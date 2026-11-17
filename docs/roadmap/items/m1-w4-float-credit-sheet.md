@@ -1,7 +1,7 @@
 ---
 id: m1-w4-float-credit-sheet
 title: Register and run one float-credit training sheet (W4)
-milestone: M1
+milestone: research
 area: training
 status: held
 open_to: lab
@@ -15,6 +15,8 @@ scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-w4-float-credit-sheet*, 
 Last resort in Stage 2 if no discrete law learns to rank.
 
 ## What is missing
+
+**November 17, 2026.** The W4 trigger did not fire. W2 returned H_mixed and the six M1 bars closed on the saved discrete model on October 30. W4 did not run. Its M1 work request closes as not planned. Its FIT, cancellation evidence and conditional experimental design are retained as research history. [antigravity-91 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/m1-w4-float-credit-sheet/antigravity-91/REPORT.md) · [Issue #2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6515151261)
 
 W4 is conditional: only if W2 = H_law and W3 (BVG-K) fails. It is one decimal-training run in a separate scanned module (float is legal in offline training only, D37), about $5 to $10 GPU plus build work, with a disqualifying export-gap rule fixed per sheet at FIT time (D39 item 5). M1 can only be closed by a whole-number-trained model, so the owner must first redefine the milestone if a float trunk is used.
 

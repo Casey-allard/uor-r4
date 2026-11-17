@@ -1,13 +1,15 @@
 <!-- freshness: sources=CHARTER.md,PLAN.md checked=d5eb4a55656726b04ea79b06968f91905933c925 -->
 # What UOR-R4 is
 
-**In one paragraph.** UOR-R4 is an attempt to build a language model, the kind of program behind chat assistants, that is cheap enough to train and run on an ordinary laptop or inside a web browser. Today's language models are *transformers*. They spend most of their effort multiplying very large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job for far less: rotations of a geometric object, exact whole-number addresses built from primes, small lookup tables, and an exact memory. This page explains that bet in about five minutes. It is a research project and it is **pre-alpha**. **M1 is complete: 1 of 8 milestones**, but no model built under its rules holds a useful conversation yet ([PLAN](../../PLAN.md), [STATE](../../STATE.md)).
+**In one paragraph.** UOR-R4 is an attempt to build a language model, the kind of program behind chat assistants, that is cheap enough to train and run on an ordinary laptop or inside a web browser. Many language models use *transformers*. Those models spend much of their compute multiplying very large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job for far less: rotations of a geometric object, exact whole-number addresses built from primes, small lookup tables, and an exact memory. This page explains that bet in about five minutes. It is a research project and it is **pre-alpha**. **M1 is complete: 1 of 8 milestones**, but no model built under its rules holds a useful conversation yet ([PLAN](../../PLAN.md), [STATE](../../STATE.md)).
 
 ![Four panels read left to right. Panel 1: the words "the cat sat on the" split into numbered pieces. Panel 2: each piece becomes an address, drawn as a point on a ring of evenly spaced points (a stand-in for the geometric object), labelled "4 blocks of 8 whole numbers". Panel 3: the newest piece looks at only a few nearby earlier points, which are highlighted, while the rest of the history stays grey. Panel 4: a few labelled drawers open near what was read, and the nearest word inside them, "mat", is picked. A band under all four panels reads "Served as whole numbers: add, subtract, integer multiply/divide, compare, table look-up. No floats.".](../figures/start/hero-how-it-thinks.svg)
 
 *How UOR-R4 predicts the next word. Each step uses only whole numbers. The picture shows the design; it does not show a model that already works well.*
 
 Words in **bold** are defined in the [glossary](./glossary.md). Claims are labelled **proof** (follows from definitions or code), **measurement** (from a recorded run) or **hypothesis** (an untested idea), as in [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
+
+UOR-R4 is where we compare designs and publish what happened. The companion LexLean-R4 project formalizes the design in a separate implementation aimed at productization. [Research results](where-we-are.md) · [LexLean-R4](https://github.com/Casey-allard/lexlean-r4)
 
 ## What a language model does
 

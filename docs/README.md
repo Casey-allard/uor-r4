@@ -1,32 +1,13 @@
 <!-- freshness: sources=crates/uor-r4-discrete,crates/uor-r4-discrete/README.md,crates/uor-r4-integer,crates/uor-r4-integer/README.md checked=abfad060460503bbd468f5b8c74b892b2aaca800 -->
 # UOR-R4 documentation
 
-Read online: <https://uor-foundation.github.io/uor-r4/>. Production publication is by manual dispatch; pushes to main update the preview site. The earlier Studio web app moves to <https://uor-foundation.github.io/uor-r4/studio/>.
+**Can geometry and exact memory support a language model on an ordinary laptop?** Start with [the illustrated explanation](start/what-is-uor-r4.md), follow [one prediction through the model](model/pipeline-map.md), or inspect [the released M1 weights](https://huggingface.co/caseyallard/uor-r4-m1-model).
 
-**In one paragraph.** This is the map of the UOR-R4 documentation. UOR-R4 is an open research
-project building a language model that predicts text with geometry and whole-number arithmetic
-instead of a transformer's large grids of decimal multiplications, so that it can run fast on a
-laptop or in a browser. It is **pre-alpha**: 1 of its 8 milestones is complete, and no model built
-under its rules holds a useful conversation yet ([where we are](start/where-we-are.md)). The pages
-here explain what the project is, where it stands and where it is going in plain words first, then
-give the evidence for every claim so an expert can check it. Use the table below to jump to the page
-that answers your question. The same pages build into a book site, whose table of contents is
-[SUMMARY.md](SUMMARY.md).
+![A brass geometric frame casts a shadow on graph paper beside a laptop.](figures/start/geometric-workbench.jpg)
 
-```mermaid
-flowchart LR
-  S["Start here<br/>what, where, where next"] --> P["Products<br/>model, web, desktop"]
-  S --> M["The model<br/>end to end"]
-  M --> MB["Mechanism board<br/>28 parts, one page each"]
-  MB --> G["Geometry<br/>the mathematics"]
-  M --> R["Research<br/>findings, open questions,<br/>history, lines, notebooks"]
-  R --> A["Archive<br/>every dated record"]
-  S --> RU["Rules<br/>the charter explained"]
-  RU --> REF["Reference<br/>vocabulary, configuration"]
-```
+**One of eight milestones is complete.** M1 measured next-token prediction on templated conversations. The next capability milestone asks for complete answers grounded in earlier turns. The current experiment tests whether storing counts at geometric addresses improves predictions over a strong count model. [Measured results](start/where-we-are.md) · [Research direction](start/where-were-going.md) · [Try the Studio](https://uor-foundation.github.io/uor-r4/studio/)
 
-*How the sections connect. Read left to right for more depth; every section links back to its
-sources.*
+This book follows the experiments in UOR-R4. For the separate formal implementation working toward productization, visit [LexLean-R4](https://github.com/Casey-allard/lexlean-r4).
 
 ## Find your way
 
@@ -89,9 +70,9 @@ a failed run closes one configuration, never a mechanism ([charter](../CHARTER.m
 | Research lines with their own page | 17 | [research lines](research/lines/README.md) |
 | Records in the archive catalog | 1,175 | [archive catalog](../archive/CATALOG.md) |
 
-**M1 closed 30 Oct; current research through 14 Nov 2026.** Pre-alpha, 1 of 8 milestones complete. The saved discrete M1 model scores 7,002 / 7,001 on DEV, 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f, at two seeds, and decodes at 10,876 / 10,566 tok/s on an Apple M1. Its limit is that 62.5% of p-f's reference replies are verbatim TRAIN replies: M1 is a language base, not useful chat.
+**M1 closed 30 October. Research evidence checked through 17 November 2026.** Pre-alpha, 1 of 8 milestones complete. The saved discrete M1 model scores 7,002 / 7,001 on DEV, 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f, at two seeds, and decodes at 10,876 / 10,566 tok/s on an Apple M1. Its limit is that 62.5% of p-f's reference replies are verbatim TRAIN replies: M1 is a language base, not useful chat.
 
-Since then the work has moved to replies in controlled conversations, on the separate FBS trunk. Claude-358's three models state a value told earlier on 314, 320 and 325 of 578 recall questions ([claude-358](loop/tasks/one-model-end-to-end/claude-358/REPORT.md)). Served without their exact turn memory, they give 171 to 211 exact replies of 2,218, against 377 to 441 with it, and almost every fact they get right comes from that memory's table ([V0, claude-376](loop/tasks/one-model-end-to-end/claude-376/REPORT.md)). Since 13 Nov (D85) the default route is one persistent integer geometric state that training and serving share; the first Q31 vector state has trained on CUDA in a 64-step contract test ([codex-5](loop/tasks/native-space-state-contract/codex-5/REPORT.md)). Carrying the state across training windows (V1) and vector-native reads (V2(a)) are in progress ([where we are](start/where-we-are.md), [PLAN](../PLAN.md)).
+In early November the separate FBS trunk was tested on controlled conversations. Claude-358's three models state a value told earlier on 314, 320 and 325 of 578 recall questions ([claude-358](loop/tasks/one-model-end-to-end/claude-358/REPORT.md)). Served without their exact turn memory, they give 171 to 211 exact replies of 2,218, against 377 to 441 with it, and almost every fact they get right comes from that memory's table ([V0, claude-376](loop/tasks/one-model-end-to-end/claude-376/REPORT.md)). Since 13 Nov (D85) the default route is one persistent integer geometric state that training and serving share; the first Q31 vector state has trained on CUDA in a 64-step contract test ([codex-5](loop/tasks/native-space-state-contract/codex-5/REPORT.md)). On November 15 the separate FBS experiments merged cross-window training state (V1) and three optional reads (V2(a)). Flock-g learned to select the requested fact. Its best answer accuracy was 0.023 against the 0.90 bar. The November 16 written-state experiment starts with a count reference. Its order-2 scorer measured 2.004736 BPB on DEV-tune. The sealed reference and geometric model comparison still await merged results. [Read comparison](loop/tasks/one-model-end-to-end/claude-386/REPORT.md) · [Research direction](start/where-were-going.md#the-current-experiment)
 
 ## Go deeper
 

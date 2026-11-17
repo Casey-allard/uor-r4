@@ -1,10 +1,6 @@
 # Hard rules for any contribution
 
-These are the constraints a diff is judged against. They are not style preferences: a
-contribution that breaks one is not merged, however good it is otherwise. The full rule
-set is [AGENTS.md](../../AGENTS.md); the decisions themselves are in
-[DECISIONS.md](../integration/DECISIONS.md). Where this page and a decision disagree, the
-decision wins.
+The charter sets the contribution rules. This table summarizes the checks a diff must pass. The decision index records their history. [Charter](../../CHARTER.md) · [Decision index](../integration/DECISIONS.md)
 
 | Rule | Decision | What it means in your diff | How to check |
 |---|---|---|---|
@@ -13,7 +9,7 @@ decision wins.
 | **A banned mechanism may not exist in any compiled or loaded module.** | D29 | Presence counts, not only execution. A renamed feature that re-exposes a retired runtime is a violation even if it is never called. | Compile the feature you changed and inspect its symbols and imports; the crate-level `#[cfg] compile_error!` guards exist for this. |
 | **Model compute is GPU-first.** | D24, D84 | GPU results qualify training and evaluation by default, and a silent CPU fallback remains a defect. A named CPU program explicitly authorized by the owner may run CPU training, evaluation and parity as development research in a separately scanned Rust module. CPU evidence may not replace a GPU qualification bar without a later owner decision. Non-model work runs locally. | A CPU run outside D84's named program is a defect, not a cheaper result to report. |
 | **Serving is integer.** | D11, D80, D81 | The served kernel has no floating point and no transcendental arithmetic. Since D80 and D81 (28 Oct 2026) it may use the hardware integer multiply and divide, so products of runtime values come from tables, exact geometric structure or those instructions. Dense matrix multiplication stays banned (§3.3). | `scripts/audit_zero_matmul_serving.py --stack` and `scripts/audit_zero_matmul_wasm.py --serving` (the FBS stack: scalar integer multiply and divide allowed, float and vector or matrix multiplies refused); `scripts/serving_multiplier_check.py` (the VSA chat binary, still held to zero multiplies). |
-| **Float is legal in offline training only.** | D37 | A float forward pass, gradient or optimizer lives in a separate, separately scanned geometric module with its own allowlist entry. It never widens the discrete crate's scan, and every float-trained candidate reports its D11 export gap. | The pre-registration names the module and the scan entry; the report gives the export gap on the same evaluator. |
+| **Train and serve in one native state.** | D85, historical D37 | The default model uses a declared integer or fixed-point representation and shared typed operators. Its D11 artifact serializes that state losslessly. Floating point belongs in separately scanned reference or diagnostic code. The older D37 float-training experiments retain their reported export gaps. | Replay identical prompts from identical native state and compare route, carry, read, memory address and token IDs bit for bit. |
 | **New code and tooling default to Rust.** | D27 | Python only where Rust genuinely cannot do the job. A measurement script is tooling, so the default applies to it too. | The PR says why Rust was insufficient if Python appears. |
 | **Never commit model binaries, corpora, wasm bundles or generated artifacts.** | `.gitignore` | No `.wasm`, `.lut`, checkpoints, datasets, `pkg-*/` output or generated figures. Large material goes to the MD5-verified store, not the tree. | `git status --short` and `git diff --stat`: no large blobs in the diff. |
 | **Never commit credentials, passwords, tokens or absolute home paths.** | — | No API keys, no `sudo -S` passwords, no `/home/<user>/...` in scripts. | `git grep -n -iE 'password\|api[_-]?key\|secret'` on the changed paths. Report a leaked secret privately per [SECURITY.md](../../SECURITY.md). |

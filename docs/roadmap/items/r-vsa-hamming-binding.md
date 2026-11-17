@@ -16,6 +16,8 @@ A possible lawful binding mechanism for memory and relations.
 
 ## What is missing
 
+**November 17, 2026.** The original VSA writer kernel and its controlled GPU test remain unrun. Stage T completed. The written-state P2 plan includes SplitMix VSA as a conditional address arm, with its own gate and controls. [antigravity-69 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/r-vsa-hamming-binding/antigravity-69/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 Discrete Hamming binding on the current writer has never been tested; the earlier VSA test used the banned CPU learner and is a configuration failure only.
 
 ## Done when

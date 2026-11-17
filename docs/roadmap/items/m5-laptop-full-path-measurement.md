@@ -17,13 +17,20 @@ An integer path is not an efficiency result until it is measured (CHARTER §3.9:
 
 ## What is missing
 
-m5-cost is 0/1 qualified. Only synthetic-stack measurements exist: macmon M1 runs (4.13 vs 0.96 mJ/tok) and a provisional Linux RAPL receipt (17,190 tok/s, 3.172 mJ/tok gross, 1.530 mJ/tok net, on a 15,968 weights-per-token synthetic fixture, not a trained model). The maintainer annotation in the protocol (section 4) records two defects in that receipt: `work_rate_w` (40.5 W) disagrees with gross energy times tok/s (about 54.5 W), and the confidence interval used a z-value for three samples where a t-based interval gives about ±0.080 mJ instead of ±0.037 mJ. The owner's M1 run on the accepted M4 artifact is the authoritative record.
+**November 17, 2026.** The measurement protocol is registered. The outstanding receipt covers full-path latency, throughput, energy, RSS and touched weights on the accepted M4 artifact. Existing small-model and synthetic measurements retain their recorded scopes. [Issue #2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) · [Issue #2657](https://github.com/UOR-Foundation/uor-r4/issues/2657) · [Issue #2859](https://github.com/UOR-Foundation/uor-r4/issues/2859)
+
+M5 remains 0/1 qualified. Historical synthetic-stack receipts include macmon M1 runs (4.13 vs 0.96 mJ/tok) and a provisional Linux RAPL receipt (17,190 tok/s, 3.172 mJ/tok gross, 1.530 mJ/tok net, on a 15,968 weights-per-token synthetic fixture, not a trained model). The maintainer annotation in the protocol (section 4) records two defects in that receipt: `work_rate_w` (40.5 W) disagrees with gross energy times tok/s (about 54.5 W), and the confidence interval used a z-value for three samples where a t-based interval gives about ±0.080 mJ instead of ±0.037 mJ. The owner's M1 run on the accepted M4 artifact is the authoritative record.
 
 ## Done when
 
 M5 bar: "Measured energy per token, memory and tokens per second on an M1-class laptop". Latency (ms/tok), peak RSS, energy (mJ/tok) and weights_per_token over total parameters are measured and reproducible across ingestion, routing, memory lookup and emission, with no hidden host float fallback or uncounted external daemon.
 
 ## How to start
+
+Bind the accepted M4 `UORLUT01` digest and use the existing [protocol v3](../../compute/energy-measurement-protocol-v3.md) on the owner’s M1-class laptop. Record full-path and per-phase measurements on a quiescent host, including strict energy validation, peak RSS, throughput and touched weights. Attach the checksum-pinned receipt and record one serving-notebook row. The [completed rehearsal](../../labs/m5-laptop-full-path-measurement/README.md) records the synthetic fixture, its control failures and the commands.
+
+<details>
+<summary>Original protocol-design and synthetic rehearsal instructions (historical)</summary>
 
 1. Read `archive/ops/ENERGY_MEASUREMENT_PROTOCOL_V2.md` (protocol, scope and the 2026-10-18 maintainer annotation), `archive/ops/D5B_ADDRESS_ASSIGNMENT_MEMO.md` and the unedited receipt `archive/ops/measurement_report_rnd.json`. The files were archived byte-identical, so cite the `archive/ops/` paths. Read `scripts/energy_per_token.py`, the existing macmon harness; do not add new Python.
 2. Read the Rust side that will be measured: `crates/uor-r4-integer/src/bin/uor-r4-stack.rs`, `uor-chat.rs` and `mk-synthetic-stack.rs`. Build with `~/.cargo/bin/cargo build --release -p uor-r4-integer --features serving-wasm --bins` (every binary in that crate requires the `serving-wasm` feature). Note where ingestion, routing, memory lookup and emission happen, because the bar asks for the cost across all four.
@@ -32,6 +39,8 @@ M5 bar: "Measured energy per token, memory and tokens per second on an M1-class 
 5. Rehearse the whole procedure on the synthetic fixture (`mk-synthetic-stack`) and label every number provisional. Keep the output as one receipt file with its sha256. Measuring serving on a client device is allowed (CHARTER §3.6); training and panel scoring are not part of this item.
 6. When M4's artifact exists (`m4-export-uorlut01-cli`), stage the commands for the owner's M1 run on it and attach the receipt.
 7. Open a PR that says `Closes #<this issue>` after the owner's M1 receipt lands, or `References #<this issue>` for the protocol and rehearsal. Record the result as one row in `docs/research/notebook/m4-serving.md` (no M5 notebook page exists yet).
+
+</details>
 
 ## Rules that apply
 

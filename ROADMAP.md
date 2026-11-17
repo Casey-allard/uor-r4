@@ -7,12 +7,12 @@ closes only when its full bar is met on a saved model. The evidence and limitati
 
 ![The project road: M1 marked complete on the saved discrete model, while the current end-to-end line works toward grounded replies, durable memory and the remaining milestones.](docs/figures/start/roadmap.svg)
 
-*M1 is complete; the current work is replies from the model's own state and one useful model end to end.*
+The current experiment asks whether geometric reads improve on a count model at equal memory. It has separate tests for predictive quality, grounded replies, resident bytes and laptop decode speed. [Written-state decision](docs/loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 | Milestone | Bar to close it | Status |
 |---|---|---|
 | [M1 Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **Original D39 bar, preserved at item start:** one saved discrete model: the right answer reachable (within the candidates the model opens) at ≥ 4,894 of 14,287 positions before training and kept on both seeds; more than 16 of the 256 address cells in use (the occupancy gate, [D39](docs/integration/DECISIONS.md#d39--m1-closing-bar-k16-reachability-gate-post-qualification-sequence-and-lab-self-direction-owner-2026-10-18) item 1); integer top-1 through the integer export beats the unigram table (1,226) and the next-word table (6,300) on each of two seeds, with tokens per second reported; the gain holds on a fresh sealed panel. **Dated close outcome:** the pre-existing D68 decision at [log 6515151261](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6515151261), not a new bar in this PR | **complete, 30 Oct 2026** |
-| [M2 Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) | ≥ 256/512 saved questions and ≥ 40% of genuinely fresh ones, with the existing graders unchanged | in progress |
+| [M2 Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) | On the same model, ≥256/512 complete, correct saved replies and ≥52/128 fresh opposite-role pairs with both replies complete and distinct | in progress |
 | [M3 Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | Memory persists across sessions and answers stay grounded | in progress |
 | [M4 One served model](https://github.com/UOR-Foundation/uor-r4/issues/2032) | One model exported as an integer file under the serving contract (D11), usable from a command line, with held-out quality at or below 0.90 bits per byte | not complete; accepted model path not started |
 | [M5 Laptop cost](https://github.com/UOR-Foundation/uor-r4/issues/2033) | Measured energy per token, memory and tokens per second on an M1-class laptop | not started |

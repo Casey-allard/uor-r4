@@ -50,7 +50,7 @@ A fresh-context subagent counts as a non-author. Builds, finite kernel tests and
 
 ## The lines of research
 
-The research line that is current is the FBS trunk line, which carries the model's replies. See the [pipeline map](../model/pipeline-map.md) for the two model paths. Four labs work in the loop (claude, antigravity, deepseek and kimi). Its results since 27 Oct are in [what the project knows](./findings.md).
+The November 16 decision tests a model that writes counts and errors into a shared integer state. Its first reference scorer has a DEV-tune measurement. Bounded Q31 updates and replay fixtures already exist. The FBS trunk’s free-reply measurements remain available for comparison. Five registered labs participate in the loop. [Written-state experiment](../roadmap/items/written-state-count-model.md) · [Native-state contract](../roadmap/items/native-space-state-contract.md) · [Research findings](./findings.md) · [Lab registry](../harness/labs.json)
 
 The current catalog groups its **1,175 records** into 20 lines ([archive catalog](https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md)); the 19 October audit had 1,173. The ten largest are below. Counts are catalog records, which mix lab records and lane results, so they show where effort went and not how many experiments ran.
 

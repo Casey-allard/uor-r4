@@ -3,7 +3,7 @@ id: m2-donor-corpus-generation
 title: Generate the one-time offline donor answer corpus (distill-d1)
 milestone: M2
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [d41-driver-math-pilot]
@@ -14,6 +14,10 @@ depends_on: [d41-driver-math-pilot]
 It is the training data for the first simple conversation.
 
 ## What is missing
+
+**Completed on main.** D87/D89 delivered 1,009,576,044 kept tokens in 528,615 records, with reasoning and answers stored as separate hard-text fields. Both storage copies were hash-checked. This closes corpus generation only. [Sealed receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028)
+
+**At registration**
 
 Stage 5 trains the student on fixed example answers produced once by a donor model; these are not yet generated. D41 allows it as a one-time owner exception: the student sees only the answers, never the donor's probabilities. It runs only after the driver math optimization (scope not detailed in these sources), and its execution gate (release or PM-dispatch wording) is a separate owner/PM item. *(This sentence is superseded by D86 below.)*
 

@@ -27,6 +27,8 @@ Why these two kernels first:
 
 ## What is missing
 
+**November 17, 2026.** The generated kernel inventory and bit-identical fused forward/backward controls landed. The 5090 cost comparison and flag-default decision remain unrun. The written-state track uses different operators, so this measurement needs a use on an identified path before scheduling. [claude-285 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/float-kernel-fusion/claude-285/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 1. **One kernel list, generated and enforced.** `KERNEL_ENTRY_POINTS` (`src/lib.rs:55`) is the generated stack list, with no separate `EXPECTED_KERNELS` copy. The test rescans each module's sources (`tests/no_training_crate_dep.rs:91-127`), and `admit_launch` (`src/cuda_stack_kernels.rs:61`) refuses a name outside its module's list. `dispatch_module` rejects `HISTORICAL_KERNELS` (`:93`) before that admission check (`:421-428`) and PTX load (`:442`).
 2. **A measured share.** Measured in [claude-283](../../loop/tasks/float-kernel-fusion/claude-283/REPORT.md), on one RTX 5090 at P2b's recipe with `--train-as-served 1`. Skipping both chains on alternate pairs of steps inside one run shortened a step by 7.5% at (S), 192 × 16 (noise 0.46%), and by 2.6% at (L), 2,048 × 4. The cancel rule did not fire, so done-whens 2 and 3 start.
    - **Where the time is:** almost all in the forward, spread evenly over the 12 sublayers. The backward holds 1.9 ms at (L) and 1.0 ms at (S).

@@ -19,6 +19,8 @@ The decision is to serve whole-table nearest, because the writer failed at one s
 
 ## What is missing
 
+**November 17, 2026.** The writer anchor now has finite controls. A two-seed matched run with the original writer and whole-table nearest comparator is still required to establish admission at every seed. This remains a reference experiment for that specific readout. The active written-state track has a separate Pick expert and control. [PR #3722](https://github.com/UOR-Foundation/uor-r4/pull/3722) · [PR #3727](https://github.com/UOR-Foundation/uor-r4/pull/3727) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 - **claude-150's evidence** (its REPORT and the float-training notebook's row): with the `voronoi` objective, the writer held at seed 1 (`8,430` top-1 at step 32,768, against nearest's `6,762`). At seed 2 it never learned (`493` against `6,909`). There, the target's cell was admitted on only `208`–`714` of 14,287 rows from step 4,096, against `8,558`–`9,563` at seed 1.
 - **The diagnosis (done-when 1, [claude-289](../../loop/tasks/writer-admission/claude-289/REPORT.md)): seed 2's ports went flat.**
   - From step 4,096, both of seed 2's ports sit at the roots' centre, where all 16 roots tie: their mean |x| falls to `5.4e-7`, and every row's 256 cell scores lie within `1e-4`.

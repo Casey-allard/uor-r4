@@ -24,6 +24,8 @@ The owner, 28 Oct 2026, in claude's chat: "determinism is still probably the goa
 
 ## What is missing
 
+**November 17, 2026.** The integer session serves both turn tables and accepts the caller's reply boundary. The original real-checkpoint readout, control comparisons and throughput remain to be reported. Any result used on the current native model must identify the artifact and exact shared read operator tested. [PR #3616](https://github.com/UOR-Foundation/uor-r4/pull/3616)
+
 - **The artifact** carries the trunk and the writer's table, not the memory's table or weight. The exporter refuses a model with a memory ("a memory, read selection or read router is not served", `fbs_export.rs`).
 - **No per-row float reading of the memory.** claude-161 reports opening counts, not each opening row's decoded id. Parity needs the ids, so the float side writes them (the three float-train files in this item's scope).
 - **The integer session** has no memory. It needs both tables' keys, their lookups, and their moves on the readout.

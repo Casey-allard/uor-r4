@@ -1,23 +1,25 @@
 # Studio (`web/studio`) — the browser client
 
-**Live:** https://uor-foundation.github.io/uor-r4/studio/ — the current gh-pages `6540e2717d3a606330dbd141e3642f3f13b87ecf` publish serves the neutral UOR Harness workbench and 806,759-byte wasm bundle (sha256 `4a111daf…`) and preserves the model catalog with both M1 seeds and both research FBS seeds. It was built from merged `a8e51c0f4d0ed6e999b6d9e13f8289215efbd684`; Pages run `42668187497` succeeded. Previous `ab752d595` served 794,677 bytes (`e03b6cd5…`) and is the rollback identity. Earlier `eb832431a` and `233b97fb9` are historical.
+The [public Studio](https://uor-foundation.github.io/uor-r4/studio/) runs the integer engine in a browser. On November 17 its catalog offered the synthetic seed-5 demo and the trained M1 seed-1 predictor. In **Models**, choose **Load M1 next-token predictor (seed 1)**, enter `The capital of France is` in **Prediction prefix**, and select **Predict next tokens**. The deployed browser returned the native top-eight IDs offline after loading its bound weights and tokenizer. [Published catalog](https://github.com/UOR-Foundation/uor-r4/blob/2878cdc029c1d232e7468e4751a610cc91fc8ab0/studio/models.json) · [Seed-1 result](../../docs/products/web-client.md#run-the-seed-1-example)
+
+The earlier `6540e2717d3a606330dbd141e3642f3f13b87ecf` typed preview served an 806,759-byte WASM bundle (`4a111daf…`). Its [pinned catalog](https://github.com/UOR-Foundation/uor-r4/blob/6540e2717d3a606330dbd141e3642f3f13b87ecf/studio/models.json) also listed only the synthetic stack. It was built from `a8e51c0f4d0ed6e999b6d9e13f8289215efbd684` in Pages run `42668187497`. Its predecessor `ab752d595` served 794,677 bytes (`e03b6cd5…`). Earlier `eb832431a` and `233b97fb9` are historical.
 
 The Studio is the project's in-browser interface: editor, chat panel and model manager, with the
 integer serving engine (`crates/uor-r4-integer`, `--features serving-wasm`) running in a Web
 Worker. It is served from the project's documentation site at **`/studio/`**
-(<https://uor-foundation.github.io/uor-r4/studio/>). The current live publish is gh-pages `6540e2717d3a606330dbd141e3642f3f13b87ecf`; `ab752d595` was the previous publish and rollback identity. The publisher accepts an opt-in `--typed` flag that builds `web/studio/dist` and stages it through the typed allowlist while preserving the legacy default; protected merge and the actual typed publication are complete, with live desktop/mobile verification.
+(<https://uor-foundation.github.io/uor-r4/studio/>). The publisher accepts an opt-in `--typed` flag that builds `web/studio/dist` and stages it through the typed allowlist while preserving the legacy default; protected merge and the actual typed publication are complete, with live desktop/mobile verification.
 
 ### Neutral cowork workbench recovery (8 November 2026)
 
 The typed Studio uses a neutral Claude-desktop-inspired workbench rather than the rejected green placeholder: project/session navigation, environment/project/permission/model controls, compact transcript and composer, collapsible context/build tasks, and chat/editor/diff/terminal/browser panes with an accessible splitter. Mobile uses a project drawer and a secondary-view transition rather than hiding split content. The recovered native app uses the separate `org.uor.r4.desktop.cowork` identity so it cannot inherit the rejected app's restored state. Launch with `bash scripts/studio/open-cowork.sh`, which prepares the current frontend, builds with mandatory `--features gui`, verifies the identity, and opens that exact bundle. The default output is `target/cowork`; `CARGO_TARGET_DIR` overrides it, and `UOR_COWORK_NO_OPEN=1` performs a build-only check. Direct builds use `CARGO_TARGET_DIR=<generated-target> cargo tauri build --bundles app --features gui`; a plain headless build can embed older staged assets.
 
-The Terminal panel uses `portable-pty = "0.9.0"`, `@xterm/xterm = "6.0.0"`, and `@xterm/addon-fit = "0.11.0"` for a persistent shell, not a web ttyd service or one-command form. Only `/bin/zsh`, `/bin/sh`, and `/bin/bash` are accepted under a granted working directory. Every open presents the native **Enable terminal** confirmation followed by one **Approve interactive shell** approval for the exact cwd/shell; later opens repeat both dialogs. There is one shell-specific approval per open, not one total host dialog. Input, output and session counts are bounded; stale-session, workspace-change, close and post-close paths are explicit. Browser preview remains service-dependent. Static publication is verified at gh-pages `6540e2717d3a606330dbd141e3642f3f13b87ecf`; this is not full Cowork parity, a signed release, useful conversation, or an R4 API integration result.
+The Terminal panel uses `portable-pty = "0.9.0"`, `@xterm/xterm = "6.0.0"`, and `@xterm/addon-fit = "0.11.0"` for a persistent shell, not a web ttyd service or one-command form. Only `/bin/zsh`, `/bin/sh`, and `/bin/bash` are accepted under a granted working directory. Every open presents the native **Enable terminal** confirmation followed by one **Approve interactive shell** approval for the exact cwd/shell; later opens repeat both dialogs. There is one shell-specific approval per open, not one total host dialog. Input, output and session counts are bounded; stale-session, workspace-change, close and post-close paths are explicit. Browser preview remains service-dependent. That historical static publication was verified at gh-pages `6540e2717d3a606330dbd141e3642f3f13b87ecf`; this is not full Cowork parity, a signed release, useful conversation, or an R4 API integration result.
 
 ### Conversation-first Studio and native runner (4 November 2026)
 
 The source now opens into one quiet dark conversation column instead of the former panel-heavy IDE. First run automatically loads the bundled synthetic demo; the empty state offers working offline-demo, model-choice and native-setup actions. Connections, Workspace, sessions and diagnostics remain available outside the main chat flow. System typography, rounded message bubbles, a floating composer, mobile-safe 16px input text and compact phone controls are covered by browser inspection at 1440×900 and 390×852 plus focused regressions. Enter/Shift+Enter, IME-safe submission, ArrowUp/Down history, long pastes, attachments, image decomposition and exact metrics retain their existing paths.
 
-Static GitHub Pages still cannot host an API, and HTTPS Pages must not call insecure HTTP loopback. The new [studio-native-runner-v0.1.0 prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) supplies a hash-pinned Apple silicon `uor-chat`, a runtime-only Studio archive, `native-runner.sh` and `SHA256SUMS`. The runner serves the same UI and authenticated native API together on `127.0.0.1:8000`, with an in-memory launch token and no public tunnel or token output. Fresh public downloads and an empty-cache launch passed. A real native short-prompt stream returned 16 completion tokens with exact `19/16/35` usage, measured tok/s and TTFT; a longer prompt correctly returned HTTP 413 at 69 of 64 context positions without truncation. These are synthetic protocol results, not useful conversation, visual understanding, M7/M8 completion or production readiness. The live-Pages publish is `6540e2717d3a606330dbd141e3642f3f13b87ecf`; the earlier hosted desktop generation, mobile layout inspection and Native setup verification at `ab752d595` and `eb832431a` is historical evidence.
+Static GitHub Pages still cannot host an API, and HTTPS Pages must not call insecure HTTP loopback. The new [studio-native-runner-v0.1.0 prerelease](https://github.com/UOR-Foundation/uor-r4/releases/tag/studio-native-runner-v0.1.0) supplies a hash-pinned Apple silicon `uor-chat`, a runtime-only Studio archive, `native-runner.sh` and `SHA256SUMS`. The runner serves the same UI and authenticated native API together on `127.0.0.1:8000`, with an in-memory launch token and no public tunnel or token output. Fresh public downloads and an empty-cache launch passed. A real native short-prompt stream returned 16 completion tokens with exact `19/16/35` usage, measured tok/s and TTFT; a longer prompt correctly returned HTTP 413 at 69 of 64 context positions without truncation. These are synthetic protocol results, not useful conversation, visual understanding, M7/M8 completion or production readiness. The Pages publish recorded for that work was `6540e2717d3a606330dbd141e3642f3f13b87ecf`; the earlier hosted desktop generation, mobile layout inspection and Native setup verification at `ab752d595` and `eb832431a` is historical evidence.
 
 ### First console redesign (superseded by v2)
 
@@ -193,9 +195,7 @@ find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
 ```
 
 So a built Studio published once to `gh-pages` / `gh-pages-preview` **persists across every later
-book deploy**. The current live app at `/studio/` is gh-pages `6540e2717d3a606330dbd141e3642f3f13b87ecf`,
-with an 806,759-byte M1-capable wasm bundle at SHA-256 `4a111daf…` and both M1 seeds in `models.json`
-verified by HTTP and hash checks. The earlier `ab752d595` publish served 794,677 bytes (`e03b6cd5…`),
+book deploy**. The historical `6540e2717d3a606330dbd141e3642f3f13b87ecf` publication served an 806,759-byte M1-capable WASM bundle at SHA-256 `4a111daf…`. Its catalog contained only the synthetic fixture. The earlier `ab752d595` publish served 794,677 bytes (`e03b6cd5…`),
 and `454bb30fc` and `d8e67c66` are historical identities. Publishing a newer page means replacing that directory once.
 
 **The publisher.** `scripts/studio/build-and-publish.sh` does the whole unit:
@@ -214,10 +214,10 @@ and `454bb30fc` and `d8e67c66` are historical identities. Publishing a newer pag
 
 ```sh
 # dry run against the preview branch: builds, stages, commits locally, pushes nothing
-scripts/studio/build-and-publish.sh --target gh-pages-preview --stage-dir /tmp/studio-staged
+scripts/studio/build-and-publish.sh --typed --target gh-pages-preview --stage-dir /tmp/studio-staged
 
 # after review, publish the live site from a clean, attached main checkout (owner/Lead only)
-scripts/studio/build-and-publish.sh --target gh-pages --push --yes
+scripts/studio/build-and-publish.sh --typed --target gh-pages --push --yes
 ```
 
 **Why not in CI yet.** Making the Studio build part of the workflow needs
@@ -314,22 +314,16 @@ The trained M1 model is the M1-closing 19-table discrete trunk (`uor-r4.lut-disc
 <https://huggingface.co/caseyallard/uor-r4-m1-model> with both stack-bound tokenizers; the 4-table
 Stage-T base exports are at <https://huggingface.co/caseyallard/uor-r4-m1-discrete> and the research
 FBS trunk pair at <https://huggingface.co/caseyallard/uor-r4-fbs-dual-c131> (no token writer, so it
-loads but cannot generate). The primary Model Source card is **remote-only**: the page makes no
+loads but cannot generate). When the catalog includes this card, the primary Model Source card is **remote-only**: the page makes no
 external request at load, and the 86.5 MB artifact is downloaded only after an explicit Load click,
 with sha256 and tokenizer validation, then loaded into the discrete wasm runtime and served as
 **top-8 next-token prediction** (greedy continuation repeats tokens; the page says so and refuses
 chat generation on the discrete engine). The page/worker artifact cap is 128 MB.
 
-```json
-[{"id": "m1-trunk-seed1", "label": "M1 model (19-table trunk, seed 1)", "primary": true,
-  "hf_url": "https://huggingface.co/caseyallard/uor-r4-m1-model/resolve/main/t16-frozen-zero-seed1-trunk.d11",
-  "hf_tokenizer_url": "https://huggingface.co/caseyallard/uor-r4-m1-model/resolve/main/tokenizer-seed-1.json",
-  "sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
-  "size_bytes": 86536132, "schema": "uor-r4.lut-discrete-trunk/1", "note": "..."}]
-```
+The typed publisher uses the checked-in [seed-1 selector](../../scripts/studio/public-m1.json). It verifies the release receipt and pinned model and tokenizer metadata. Run from the repository root on current `main`:
 
 ```sh
-scripts/studio/build-and-publish.sh --target gh-pages --push --yes --trained-manifest /tmp/m1-trained.json
+scripts/studio/build-and-publish.sh --typed --trained-manifest scripts/studio/public-m1.json --target gh-pages --push --yes
 ```
 
 ### The /7 turn memory

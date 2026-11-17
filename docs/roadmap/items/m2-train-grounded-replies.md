@@ -16,11 +16,13 @@ This is the first simple conversation, Stage 5.
 
 ## What is missing
 
+**November 17, 2026.** The D87/D89 data receipt covers 1,009,576,044 kept tokens in 528,615 records. The student still has to meet both reply bars under the registered grader, including genuinely fresh replies. The written-state P3 experiment is one proposed step toward that result. [PR #4028](https://github.com/UOR-Foundation/uor-r4/pull/4028) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046) · [Issue #2030](https://github.com/UOR-Foundation/uor-r4/issues/2030)
+
 Replies must be grounded in the exact memory and the object store, with relation, action and span extraction running through the shared geometric carrier and no fallback to hand-coded phrase tables or external teachers (D28). The earlier 437/512 then 0/128 result failed on configuration. M2 is in progress: the older blanket training/rental holds are retired, so training proceeds under a registered FIT and the lab's D67 pre-run review. D41's donor pass is the named owner-at-dispatch exception.
 
 ## Done when
 
-M2 bar: '>= 256/512 saved questions and >= 40% of genuinely fresh ones, with the existing graders unchanged'; the student stays on the discrete path unless the owner decides otherwise (D41); it exports to D11 with the export gap reported (D37).
+The same native student must pass both graders. It must give complete, correct replies on at least 256/512 saved questions. On the 256 fresh questions it must score at least 52/128 opposite-role history pairs with **both** replies in each qualifying pair complete and distinct. [Frozen paired grader](../../harness/panels/m2-fresh256.json) D85 requires lossless D11 serialization and bit-identical native train/serve replay. The historical D37 float route reported an export gap.
 
 ## How to start
 

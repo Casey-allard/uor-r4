@@ -74,7 +74,7 @@ flowchart LR
 
 ## D
 
-**D-entries (D11, D22, D37 and the rest).** Numbered owner decisions, from D0 to D41 plus later D67, D68, D72, D76, D77, D80, D81, D82 and D83, that used to be the project's rulebook. The charter now holds the rules that still bind, and the [decision map](../rules/decision-map.md) says what became of each decision. The ones you will meet most are [D11](#d11), [D22](#d22) and [D37](#d37).
+**D-entries.** The numbered decision records identify who authorized each change, its scope and when it took effect. The index includes owner decisions and whole-project lab decisions. D68 defines the lab’s review process. The charter holds the binding rules. [Decision index](../integration/DECISIONS.md) · [Decision map](../rules/decision-map.md)
 
 <a id="d11"></a>**D11.** The serving contract: the finished model runs with whole numbers only. It has five rules covering arithmetic, access, architecture and evidence. No floating point, transcendental arithmetic, dense matrix multiplication or transformer backbone is allowed; D80 and D81 (28 Oct 2026) permit the hardware integer multiply and divide. See [serving and export](../model/serving-and-export.md).
 
@@ -84,7 +84,7 @@ flowchart LR
 
 <a id="d24"></a>**D24.** The owner's rule of 12 October 2026 that model compute is GPU-first: training, evaluation and qualification use the GPU by default, and GPU is spent only where a run can change a decision. D84 allows only the named owner-authorized CPU training program to run development training, evaluation and parity locally; those results do not replace a GPU qualification bar. Serving the exported [D11](#d11) integer artifact on a client device is the product, not research compute (charter 3.6). See [the rules](../rules/README.md).
 
-<a id="d37"></a>**D37.** The owner's rule of 18 October that floating point is legal in offline training. Softmax-like functions and matrix multiplication stay banned, and every float-trained candidate must report its export gap. See [training](../model/training.md).
+<a id="d37"></a>**D37.** The October 18 decision allowed historical offline float-training experiments with separately scanned modules and a reported D11 export gap. D85 makes a shared native integer or fixed-point state the default for training and serving. [Training](../model/training.md)
 
 <a id="d80"></a>**D80, D81.** Owner decisions of 28 Oct 2026: served integer code may use the hardware integer multiply (D80) and divide (D81). Floats, transcendentals and dense matmul stay banned in serving. See [serving and export](../model/serving-and-export.md).
 
@@ -150,7 +150,7 @@ flowchart LR
 
 ## L
 
-**Lab.** Any contributor, human or AI, working under the charter. The registry holds four labs: Claude, Antigravity, DeepSeek and Kimi (Codex has left it). Kimi sits in the project-manager seat. Labs choose work from [PLAN.md](../../PLAN.md). See [the rules](../rules/README.md#what-labs-may-do-and-what-they-may-not).
+**Lab.** A contributor or team working under the charter. The registry lists Antigravity, Claude, Codex, DeepSeek and Kimi. Kimi holds the PM seat, and labs choose work from the plan. [Lab registry](../harness/labs.json) · [Plan](../../PLAN.md)
 
 **`lut-stack/5`, `lut-stack/6`.** Versions of the integer file format for the float-trained FBS trunk. `/5` keeps the rotations exact instead of snapping them to the 120 roots, which put the export gap inside its bar on both seeds and serves at 4,217 to 4,504 tok/s on the M1 laptop (claude-180 to 186). `/6` also carries the Hamming reads (claude-188); the session refuses `/6` until it serves them. See [serving and export](../model/serving-and-export.md).
 
@@ -161,7 +161,7 @@ flowchart LR
 | # | Meaning |
 |---|---|
 | M1 | It predicts text (a saved discrete model beats both count tables through the integer export) |
-| M2 | It answers from memory (at least 256 of 512 development replies, and 40% on a fresh panel) |
+| M2 | It answers from memory (the same model gives complete, correct replies to ≥256/512 saved questions and two complete, distinct replies on ≥52/128 fresh opposite-role pairs) |
 | M3 | It remembers across sessions |
 | M4 | It is served: exported to `UORLUT01` and run from the command line |
 | M5 | It is cheap on a laptop, with the cost measured |
@@ -196,7 +196,7 @@ There is no "retired" status, by [D22](#d22). Source: [mechanism board](../mecha
 
 <a id="orbit"></a>**Orbit.** A set of points that one group of moves carries into one another. The model uses a single orbit of 16 E8 roots, each a signed rearrangement of (2, 2, 0, 0, 0, 0, 0, 0). See [E8, H4 and the 600-cell](../geometry/e8-h4-and-the-600-cell.md).
 
-**Owner.** Casey Allard, the project lead. He sets the charter, technical constraints and GPU caps. Runs go through the lab's own D67 pre-run review; D41's donor pass is the named owner-at-dispatch exception.
+**Owner.** Casey Allard sets the charter, technical constraints and GPU caps. Labs use D67 pre-run reviews. D41 required owner approval at donor dispatch, and D86 authorized the campaign carried out under D87/D89. [Decision index](../integration/DECISIONS.md) · [Donor receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028)
 
 **Owner release.** An owner approval in the lab's own chat, recorded verbatim with its time. Since D67, GPU/training runs go through the lab's own pre-run review rather than a blanket owner release; D41's donor pass is the named owner-at-dispatch exception. See [charter](../../CHARTER.md), section 5.1.
 

@@ -16,6 +16,8 @@ This is the deliverable of M8: the single file and install path a person outside
 
 ## What is missing
 
+**November 17, 2026.** Packaging depends on the accepted, checksum-pinned model and the recorded M1–M7 results. The release/install and independent reproduction issues remain open. Only the owner declares alpha. [Issue #2036](https://github.com/UOR-Foundation/uor-r4/issues/2036)
+
 No versioned, checksum-pinned release artifact, reproducible install path or release notes exist. The two GitHub releases on file (`v0.1`, `v0.1.0-alpha`) belong to an earlier engine and are historical. [`.github/workflows/release.yml`](../../../.github/workflows/release.yml) has all three jobs paused (`if: ${{ false }}`) and packages the old R4G1 bundle, not `UORLUT01`. Release notes must bind the exact measured scores and known limitations, and the owner declares alpha. The M1 pair is exported and served, but there is still no versioned M8 artifact, reproducible install path or release notes to pin ([M1 close](../../labs/m1-close-saved-model/README.md)).
 
 ## Done when
@@ -24,10 +26,12 @@ M8 bar ([`ROADMAP.md`](../../../ROADMAP.md) line 21): "One versioned, checksum-p
 
 ## How to start
 
+Publish the checksum-pinned candidate and installation instructions for [independent verification](m8-independent-verification.md) while this packaging issue is open. The independent report goes to the owner before the alpha declaration. Keep the verified digest through release, or repeat independent verification for a replacement.
+
 1. Read [`docs/products/releases-and-artifacts.md`](../../products/releases-and-artifacts.md), the M8 section of [`docs/integration/project-track.md`](../../integration/project-track.md), issue #2036 and CHARTER sections 2, 3.6 and 3.12 (every artifact binds its data, seed, configuration, parameters and format). Also read `docs/RELEASE_PIPELINE.md`, which is a preserved reference for the older R4G1 bundle, not the product pipeline.
 2. Post a design note on the issue first. It must say: the release checklist (model file with SHA-256, tokenizer identity, release notes, `uor-chat` binaries per platform with `.sha256`, WebAssembly bundle, Studio at `/studio`, independent verification); which items can be built before a model exists; and which two inference contracts apply. `docs/inference_contract.md` covers the older R4G1 runtime and D11 rules R1 to R5 cover the product. Say which one the release binds.
 3. Build the checksum tooling against a stand-in. Open `crates/uor-r4-integer/src/stack/format.rs`, where the `UORLUT01` reader already computes the SHA-256 of the whole file. Write a small Rust release-manifest tool, with tests, that records the file hash, tokenizer identity (see [`number-aware-tokenizer`](number-aware-tokenizer.md) for how identity is pinned), code SHA and measured scores, and refuses a file whose hash does not match. Run `~/.cargo/bin/cargo test -p uor-r4-integer` before and after. No new Python.
-4. Draft the release-notes template in the PR. It must have fixed fields for the code SHA, file hash, tokenizer, training data and seed, every measured score with its panel, the export gap and known limitations. Leave score fields as "NOT_RUN" until M1 to M7 report. Do not write a score the notebooks do not hold.
+4. Draft the release-notes template in the PR. It must have fixed fields for the code SHA, file hash, tokenizer, training data and seed, every measured score with its panel, the D85 native-state replay and known limitations. Historical float artifacts retain their D37 export-gap records. Leave score fields as "NOT_RUN" until M1 to M7 report. Do not write a score the notebooks do not hold.
 5. Plan the workflow change as a separate step: [`.github/workflows/release.yml`](../../../.github/workflows/release.yml) must be repointed from R4G1 to `UORLUT01` and re-enabled. Do not enable it from this issue without the owner. Re-run the zero-multiply audits (native 44 symbol ranges, WebAssembly 7 of 7 at last count) on the shipped binaries.
 6. Open a PR that says `References #<this issue>`. It closes the issue only when M1 to M7 are met, the file is pinned and the owner has declared alpha. Record the result as one row in a research notebook. There is no M8 page under `docs/research/notebook/` yet, so ask on the issue whether to add one or use `docs/research/notebook/m4-serving.md`.
 

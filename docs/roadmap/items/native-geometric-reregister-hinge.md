@@ -16,6 +16,8 @@ It reopens a PARKED whole-model engine under the current loss.
 
 ## What is missing
 
+**November 17, 2026.** The original engine's gate requires lawful replacements for its quarantined kernels and a shared writer. The current P3 proposal uses the old pooled-rank hinge for pointer selection. That reuse does not establish a result for the historical whole-engine configuration. [antigravity-64 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/native-geometric-reregister-hinge/antigravity-64/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 The native geometric engine answered authored questions only and wrote no prose, and 437/512 fell to 0/128 on fresh rows, a result the synthesis attributes to panel fitting. It has not been re-registered with the rank-margin hinge, and it waits for the M2 hold to lift.
 
 ## Done when

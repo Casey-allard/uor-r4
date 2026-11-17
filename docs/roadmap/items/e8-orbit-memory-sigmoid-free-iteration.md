@@ -17,6 +17,8 @@ It reopens a PARKED feed-forward replacement under the project's rules.
 
 ## What is missing
 
+**November 17, 2026.** The original work needs a lawful trained gate and a controlled GPU comparison. The historical exporter is now available at its documented scope. P2's E8 product-key addressing shares geometry with this proposal but measures a different use. [antigravity-73 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/e8-orbit-memory-sigmoid-free-iteration/antigravity-73/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 E8 orbit memory replacing half the MLPs cost +0.033 BPB at about 10× fewer operations, but learned keys beat E8 by 0.023, the gate was a sigmoid, and training used 2,000 CPU steps. No sigmoid-free gate form or GPU run exists, and the architect finds no E8-memory site on the discrete path.
 
 ## Done when

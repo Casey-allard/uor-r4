@@ -4,19 +4,13 @@
 UOR-R4 turns text into whole-number token ids, carries those ids through geometric state and exact
 memory, and chooses the next token without softmax or dense matrix multiplication. **M1 is
 complete**: a saved discrete model passed all six bars on two seeds. No model holds a useful
-conversation. Two model paths exist and have not joined: the discrete M1 path and the float-trained
-FBS trunk.
+conversation. The diagrams below trace the saved discrete M1 model and the separate float-trained FBS trunk.
 
 <!-- native-space-contract: Native default: one persistent native geometric state uses one declared integer or fixed-point representation for token addresses, vector coordinates, carry, routes, memory keys and reads, learned state, gradients and optimizer updates; training and serving use the same typed operators; route choices, carry state, read choices, memory addresses and token ids are bit-identical on the same prompt and starting state; the artifact losslessly serializes that state instead of an F32 master model or an export gap; floating point remains reference or diagnostic code only. -->
 
 **D85 status:** the persistent native state/operator implementation is pending; all float-to-integer measurements on this page are historical/export evidence.
 
-**D85 correction:** these two paths record how the model arrived at M1. Under D85, the default
-path is required to carry one persistent native integer/fixed-point geometric state through the
-same typed training and serving operators. The first implementation item is
-[`native-space-state-contract`](../roadmap/items/native-space-state-contract.md). The diagrams and
-measurements below remain historical evidence until that contract and a joined native-space model
-replace them.
+D85 requires training and serving to apply the same typed operators to one integer geometric state. A Q31 vector fixture matched CPU and CUDA after each of 64 updates. The complete operator inventory, replay of every required raw word and a recorded planted fault remain open. The written-state design specifies the state and operators for the next model comparison. [Q31 fixture](../loop/tasks/native-space-state-contract/codex-5/REPORT.md) · [Contract requirements](../roadmap/items/native-space-state-contract.md) · [Written-state decision](../loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 ![Two separate pipelines: the completed discrete M1 lane uses PositionHolonomyV1, Flock plus an orbit-root causal pointer, discrete Hamilton mixing, OrbitRootSnapNormV1 and OuterL1V1 readout; the float-trained FBS lane separately uses SpiralCore position, FBS recurrence, Hamming copy heads, exact turn memory and whole-table nearest readout.](../figures/model/pipeline.svg)
 
@@ -91,7 +85,7 @@ then tested them in free generation on fresh p-v. The point-key opening improves
 +13/+8/+12 and exact replies by +9/+8/+12 at three seeds, but only partially. The sign key is
 inconclusive at this panel size. [Claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md) then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. [Claude-222](../loop/tasks/point-key-integer/claude-222/REPORT.md) has built the integer point table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell.
 
-**State on 14 Nov 2026.** Since 10 Nov the work is recall in controlled conversations. The current recipe reads with four Hamming reads and an exact turn memory, not the Route, Flock or Relation reads, and training carries no state from one window to the next. The pure-vector baseline, [claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md), found that almost every fact the model gets right comes from the turn memory's table. On 13 Nov D85 made one persistent integer geometric state, trained and served by the same typed operators with bit-identical replay, the default route. V1, the state carried across training windows (PR #3979), and V2(a), three vector-native reads behind flags (PR #3978), are in progress. Useful chat remains unproven.
+**State on 14 Nov 2026.** Since 10 Nov the work is recall in controlled conversations. The current recipe reads with four Hamming reads and an exact turn memory, not the Route, Flock or Relation reads, and training carries no state from one window to the next. The pure-vector baseline, [claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md), found that almost every fact the model gets right comes from the turn memory's table. On 13 Nov D85 made one persistent integer geometric state, trained and served by the same typed operators with bit-identical replay, the default route. On November 15, the FBS experiments merged cross-window training state (V1, PR #3979) and three optional reads (V2(a), PR #3978). Useful chat remains unproven.
 
 ## What remains unbuilt or unqualified
 

@@ -3,7 +3,7 @@ id: point-key-integer
 title: Serve the point key's opening in the integer artifact on the laptop
 milestone: research
 area: serving
-status: ready
+status: held
 open_to: lab
 needs_gpu: false
 depends_on: [one-model-end-to-end, turn-memory-integer, integer-retention-rates, integer-nearest-readout]
@@ -13,7 +13,7 @@ scope: [crates/uor-r4-integer/src/stack/session.rs, crates/uor-r4-integer/src/st
 
 ## Why it matters
 
-The project's first hurdle is one working model end to end: token → vector → vector → integer → token (`PLAN.md`). The integer table, search and `/8` record are built, and the point-key override serves the integer session's own opening. Claude-232's end-to-end greedy parity check then missed every cell, so the trained readout is not yet reproduced and this item remains ready.
+The project's first hurdle is one working model end to end: token → vector → vector → integer → token (`PLAN.md`). The integer table, search and `/8` record are built, and the point-key override serves the integer session's own opening. Claude-232's end-to-end greedy parity check then missed every cell, and the owner subsequently stopped the Q5 investigation. The original integer configuration is held.
 
 - **claude-219 found the point key.** At a reply's opening where the turn memory's exact first-8 key misses, the trunk's opening point is named by its L1-nearest TRAIN openings.
 - **claude-220 serves it inside the float model's decode** ([REPORT](../../loop/tasks/one-model-end-to-end/claude-220/REPORT.md), merged as `c3d5cb684`, #3443). Its registered outcome is row 2: the served key carries the reply at all three seeds on the fresh 1,200-conversation panel p-w.
@@ -27,9 +27,13 @@ The integer artifact cannot hold the float table, since no floating point is all
 
 ## What is missing
 
+**Disposition, 17 November 2026.** Claude-229 decoded and graded p-x once at seeds 1–3. The integer session used the native writer in place of the trained whole-table nearest readout. Both arms recorded zero discordant template and exact-reply pairs throughout. The lab recorded row 0, an instrument fault, and reported neither a mechanism verdict nor a qualified throughput number. [Original run and rerun rule](../../loop/tasks/point-key-integer/claude-229/REPORT.md)
+
+Claude-232 then missed greedy parity in every tested cell. No three-seed p-x rerun with a repaired readout followed. The owner stopped the Q5 readout investigation (#3462), and its incomplete replay was archived. This configuration closed as not planned. Reopening requires an explicitly selected consumer and a registered parity repair for this exact artifact. The original sheet keeps p-x as the deciding panel and fixes the rerun bar before reading its outputs. Native replay and the written-state experiment continue under #3973 and #4063. [Parity comparison](../../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) · [Q5 stop and archive](../../loop/tasks/integer-nearest-readout/claude-257/REPORT.md)
+
 **Completed units:** claude-222 (#3452) built the integer point table, its least-L1/commonest-target search and the `/8` record, with 380 library tests, 18 negative gates and a full serving audit. Claude-224 (#3454, [REPORT](../../loop/tasks/point-key-integer/claude-224/REPORT.md)) then built the panel prompts, integer decode and grade, with 383 integer-library tests, 185 float-library tests, a full serving audit and 13 negative gates. These are synthetic/host instruments, not a real TRAIN export or panel evaluation. Claude-227 completed [`integer-retention-rates`](integer-retention-rates.md) with GPU parity inside the 3% bar: 1,531 / 1,536 sequences and 4,023 / 4,096 single tokens. Three full snapshots are stored. Claude-228 built the run's reference/read-back/BOS instruments, with 390 integer-library tests with one ignored and four negative gates. Claude-229's real run found row 0, an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so every grade pair is (0, 0) and no throughput is reported. [Claude-231](../../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](../../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun.
 
-The completed table, search, artifact and instruments below are retained as implementation requirements and evidence, not as claims that they remain unbuilt. The remaining gate is localizing claude-232's parity MISS before rechecking parity and rerunning p-x.
+The original registration below preserves the table, search, artifact, instruments and untested integer bar. A revived run would first have to localize the parity mismatch and reproduce the trained readout.
 
 - **A table built by the integer engine.**
   - It holds TRAIN's opening points at the writer query's representation (i16 Q12: 212,968 × 256 × 2 B, about 109 MB) and their targets.
@@ -113,7 +117,7 @@ The model throughout is (r-drop)'s sealed step-16,384 checkpoints at seeds 1–3
    - The likely cause: (r-drop) is a cell-objective model, decoded as the whole table's nearest token, while the integer session serves the native writer.
    - Nothing was counted and no throughput is reported. p-x stays the deciding panel ([lab record](../../labs/point-key-integer/README.md)).
 5. **Built: the trained model's nearest readout** (claude-231, #3463, merged as `62308fcbc`), on native and browser paths, with 395 integer-library tests with one ignored, seven negative gates and full serving/WASM audits.
-6. **Parity MISS: localize the mismatch** (claude-232, #3464, merged as `4195ce2bf`). First-token agreement on DEV is 291, 285 and 284 of 310 at seeds 1–3; on p-w it is 911, 777 and 64 of 1,202. Every cell missed its bar, and whole-reply agreement remains incomplete. The trunk, Hamming read and readout are suspects, not located causes. **Next:** localize the mismatch layer by layer on real prompts, then rerun the parity check and unit 4's p-x sheet.
+6. **Parity MISS: localize the mismatch** (claude-232, #3464, merged as `4195ce2bf`). First-token agreement on DEV is 291, 285 and 284 of 310 at seeds 1–3; on p-w it is 911, 777 and 64 of 1,202. Every cell missed its bar, and whole-reply agreement remains incomplete. The trunk, Hamming read and readout are suspects, not located causes. The next step registered at the time was to localize the mismatch, recheck parity and rerun unit 4's p-x sheet. That rerun was still pending when Q5 stopped.
 
 ## Rules that apply
 

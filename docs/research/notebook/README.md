@@ -49,19 +49,21 @@ Rules for keeping a notebook:
 
 ## The notebooks
 
-| Line | Page | What it asks | Result rows |
-|---|---|---|---:|
-| `m1-discrete-attention` | [m1-discrete-attention.md](./m1-discrete-attention.md) | Can the integer model learn to read earlier text well enough to predict the next word? | 30 |
-| `m1-prime-zeta` | [m1-prime-zeta.md](./m1-prime-zeta.md) | Can prime numbers and zeta-zero phases give every token a distinct starting vector? | 1 |
-| `m3-durable-memory` | [m3-durable-memory.md](./m3-durable-memory.md) | Can conversation be stored and rebuilt exactly, so memory lasts across sessions? | 1 |
-| `m4-serving` | [m4-serving.md](./m4-serving.md) | Can the trained model be served with integers and tables only? | 0 |
-| `data-tokenizer` | [data-tokenizer.md](./data-tokenizer.md) | Which data and which tokenizer does the model train on? | 0 |
-| `cpu-training` | [cpu-training.md](./cpu-training.md) | Can the historical lawful training families be repaired on the owner's CPU without becoming a separate model path? | 0 |
-| `harness-governance` | [harness-governance.md](./harness-governance.md) | Is the research tooling and process worth its cost? | 0 |
+| Line | Page | Research question |
+|---|---|---|
+| `m1-discrete-attention` | [m1-discrete-attention.md](./m1-discrete-attention.md) | Can the integer model learn to read earlier text well enough to predict the next word? |
+| `m1-prime-zeta` | [m1-prime-zeta.md](./m1-prime-zeta.md) | Can prime numbers and zeta-zero phases give every token a distinct starting vector? |
+| `m3-durable-memory` | [m3-durable-memory.md](./m3-durable-memory.md) | Can conversation be stored and rebuilt exactly, so memory lasts across sessions? |
+| `m4-serving` | [m4-serving.md](./m4-serving.md) | Can the trained model be served with integers and tables only? |
+| `data-tokenizer` | [data-tokenizer.md](./data-tokenizer.md) | Which data and which tokenizer does the model train on? |
+| `cpu-training` | [cpu-training.md](./cpu-training.md) | Can the historical lawful training families be repaired on the owner's CPU without becoming a separate model path? |
+| `harness-governance` | [harness-governance.md](./harness-governance.md) | Is the research tooling and process worth its cost? |
+| `float-training` | [float-training.md](./float-training.md) | What did the historical float-trained trunk learn, read and carry in controlled comparisons? |
+| `m2-grounded-reply` | [m2-grounded-reply.md](./m2-grounded-reply.md) | Can the selected model generate complete grounded replies? |
+| `m6-reasoning-coding` | [m6-reasoning-coding.md](./m6-reasoning-coding.md) | Which deterministic instruments and model results support the reasoning and coding bar? |
+| `legal-construction` | [legal-construction.md](./legal-construction.md) | Can the registered solver construct the target under the project’s constraints? |
 
-*Source of the counts: [`archive/catalog.jsonl`](../../../archive/catalog.jsonl), records dated 12 October 2026 or later whose outcome is positive, negative, inconclusive, diagnostic-stop or blocked, counted with `jq`. Pages with 0 rows have records on those dates, but all of them are tooling, planning or process records. The page says so.*
-
-The other fourteen lines in the audit catalog (for example `m2-exact-memory` and `m1-float-rung0`) have no notebook yet. Each gets one the next time it produces a result. The project is pre-alpha: 1 of 8 milestones is complete. The M1 close is a measured language-base result; rows on other pages remain construction, mechanism or scoped oracle evidence unless their panel and artifact say otherwise.
+The native-state and written-state units also publish their per-unit reports. The scorer’s order-2 measurement on DEV-tune is calibration for the later sealed comparison. [Q31 update report](../../loop/tasks/native-space-state-contract/codex-5/REPORT.md) · [Written-state decision](../../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [Scorer report](../../loop/tasks/written-state-count-model/claude-421/REPORT.md)
 
 ## Where the rows came from
 

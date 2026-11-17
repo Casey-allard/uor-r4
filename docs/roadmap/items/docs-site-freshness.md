@@ -19,6 +19,8 @@ The book has 104 pages (`docs/SUMMARY.md`). Nothing records when a page was last
 
 ## What is missing
 
+**November 17, 2026.** The records, book-fresh command, staged banner and mdBook upgrade landed. Claude-379 corrected and checked 23 more pages. Its report leaves the mermaid version warning open under criterion 5. Pages with a record can still be unchecked. [PR #3975](https://github.com/UOR-Foundation/uor-r4/pull/3975) · [PR #3976](https://github.com/UOR-Foundation/uor-r4/pull/3976)
+
 - **No freshness record.** A page names no source paths and no commit it was checked against. `xtask/src/book_stage.rs` copies each page into `target/book-src` unchanged apart from links and maths.
 - **No report.** Nothing counts the commits that touched a page's sources since it was last checked, or lists the pages never checked or naming paths that no longer exist.
 - **No banner.** A reader of the site cannot tell a page checked last week from one untouched since September.

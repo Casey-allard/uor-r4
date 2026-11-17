@@ -18,13 +18,7 @@ Labels: **proof**, **measurement**, **hypothesis**. See [`docs/formal_vocabulary
 
 ## D85: one state, one operator path
 
-Under D85, the default path is required to train directly in the integer/fixed-point geometric
-representation it serves. That implementation does not exist yet: the first bounded unit is the
-state/operator contract linked below. Until it lands, the measured float-to-integer route remains
-historical evidence rather than a native-space qualification.
-
-Float training and the FBS export remain preserved below as historical/reference evidence. Their
-measured export gaps show how the old boundary behaved; they do not qualify the D85 path.
+D85 requires a lossless serialization of the integer geometric state updated by training. A Q31 fixture matched CPU and CUDA after each of 64 updates. Acceptance still requires an inventory of the shared operators, raw-word replay across every required field and a recorded planted fault. The FBS export measurements below describe the earlier float-to-integer boundary. [Q31 fixture](../loop/tasks/native-space-state-contract/codex-5/REPORT.md) · [Contract requirements](../roadmap/items/native-space-state-contract.md) · [Written-state design](../loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 ## Historical two halves with one hard border
 

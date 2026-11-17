@@ -21,6 +21,8 @@ flowchart LR
 
 ## For outside contributors
 
+Pick an open question or a reproducible defect. A useful first contribution might reproduce one measured count from the M1 report, add a failure case to an evaluator, or clarify a result whose test panel is hard to identify. For a new mechanism, explain which roadmap question it answers and what observation would change your mind. Formal implementation work has a separate home in [LexLean-R4](https://github.com/Casey-allard/lexlean-r4).
+
 ### Build and test
 
 Rust 1.97.1 is pinned by `rust-toolchain.toml` and selected by rustup. From the repository root:
@@ -74,11 +76,7 @@ or dependency. Never commit model weights, corpora, binaries or secrets ([charte
 
 ### Model work is gated
 
-M1 is complete; M2 is blocked and M3 is held; M4–M8 are not complete. M7 has a browser engine and Studio
-harness on a synthetic stand-in, but no accepted model bundle. GPU training or evaluation, and any
-run a milestone claim rests on, needs a one-page pre-registration with a non-author **TEST FITNESS:
-FIT** review and the lab's own whole-project pre-run review (D67). The D41 donor pass is the named
-exception that still needs the owner at dispatch; there is no blanket owner release for every run.
+M1 is complete. M2 grounded replies, M3 durable memory and M7 distribution are in progress. M4, M5, M6 and M8 still require their qualifying measurements or release. The current research issue tests a written-state model. GPU qualification requires a one-page pre-registration, a non-author FIT and the lab’s whole-project pre-run review under D67. D41 made donor dispatch an owner decision. D86 authorized the campaign and D87/D89 produced its sealed hard-text corpus. [Milestone registry](docs/harness/milestones.json) · [Current experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [Donor receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028)
 
 The model must also obey the technical rules: geometry only, no softmax or other squashing, no dense
 matrix multiplication, research compute on GPUs, and an integer-only served artifact. Roadmap items

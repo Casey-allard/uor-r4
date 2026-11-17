@@ -17,6 +17,8 @@ The object store is the project's exact, hashed durable storage, and M3 (durable
 
 ## What is missing
 
+**November 17, 2026.** The store consumer and registered thresholds have host evidence. M3 still needs the selected model, fixed panel and scoring controls for provenance, contradiction/correction, abstention, reset and restart. D67 governs dispatch after a non-author FIT and the lab's pre-run review. [deepseek-63 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/object-store-consumer-m3/deepseek-63/REPORT.md) · [Issue #2858](https://github.com/UOR-Foundation/uor-r4/issues/2858)
+
 The object store (D19) keeps bytes exactly in a hashed tree and has a client conformance pass. The durable-memory consumer and its frozen 384-item host-control panel are delivered (`4797ca883`, `#2960`), including `export_scope`/`import_scope`, and a cross-crate interop contract pins the integer session bytes against the store (`#3106`). The on-model durable-memory qualification remains **NOT_RUN**: it needs an M1-or-M2 model selection, a non-author FIT and the lab's D67 pre-run review. M1 is complete and M2 is in progress; M1's completion alone is not M3 qualification. The six per-sub-panel thresholds are registered in the [consumer record](../../labs/object-store-consumer-m3/README.md).
 
 ## Done when

@@ -21,6 +21,8 @@ The owner, 28 Oct 2026, in claude's chat (the message's first clause, recorded i
 
 ## What is missing
 
+**November 17, 2026.** The one-pass and fused rival selectors landed. The fused kernel reduced synthetic step time by 40.1%, with differing tied gradients. The default remains off pending a real b64L matched A/B for quality and step time. The written-state track does not depend on this legacy training kernel. [PR #3825](https://github.com/UOR-Foundation/uor-r4/pull/3825) · [PR #3826](https://github.com/UOR-Foundation/uor-r4/pull/3826) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 - **The backward's split.** Its host time is 0.98–0.99 of its GPU time. That fits launches with the GPU keeping pace, or the host waiting at a sync inside it; claude-157 could not tell which. Which forward stage's gradient dominates is not measured.
 - **A cheaper rival search.** The search is GPU-bound and grows with the table (4,096 × width). A search over a subset, for example the writer's kept cells, or a search every few steps with the rivals kept, has not been run. Its effect on prediction is a hypothesis.
   - [deepseek-2](../../loop/tasks/training-step-cost/deepseek-2/REPORT.md) built an off-by-default one-pass top-eight selector. It is 3.69× to 19.23× faster than the repeated argmax rounds at 256–4,096 rows, but the full synthetic step is only 1.07% faster. Current CUDA argmax has no defined tie order; the selector's lower-id ties move gradients by 0.75–1.14%. This meets done-when 2's implementation and tests, but does not satisfy the prediction/cost bar in done-when 3.

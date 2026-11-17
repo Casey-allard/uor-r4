@@ -1,32 +1,42 @@
-# UOR-R4 Geometric Language Model
+# UOR-R4 · A geometric language model
 
-*An open research project: can geometry replace a transformer's run-time machinery in a language
-model that runs on a laptop?*
+**Can a laptop predict language by rotating points, following a few addresses and reading exact memory?** UOR-R4 is an open research project testing that question. We build the model in Rust, measure each proposed mechanism against a simple baseline, and publish the failures alongside the results.
 
-[![License: MIT](https://img.shields.io/github/license/UOR-Foundation/uor-r4)](LICENSE)
-[![Rust 1.97.1](https://img.shields.io/badge/rust-1.97.1-orange?logo=rust)](rust-toolchain.toml)
-[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-yellow)](PLAN.md)
-[![Milestones: 1 of 8 complete](https://img.shields.io/badge/milestones-1%2F8%20complete-blue)](#where-we-are)
-[![Last commit](https://img.shields.io/github/last-commit/UOR-Foundation/uor-r4/main)](https://github.com/UOR-Foundation/uor-r4/commits/main)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-m1-model)
+[Research book](https://uor-foundation.github.io/uor-r4/) · [Studio](https://uor-foundation.github.io/uor-r4/studio/) · [M1 model files](https://huggingface.co/caseyallard/uor-r4-m1-model) · [Roadmap and open work](https://github.com/UOR-Foundation/uor-r4/issues/2028)
 
-![Four panels read left to right: a sentence split into numbered pieces; each piece placed as a point on a geometric object; the newest piece looking at only a few nearby earlier points; a few drawers opening near what was read, with the nearest word inside them picked. A band underneath reads "Served as whole numbers: add, subtract, integer multiply/divide, compare, table look-up. No floats.".](docs/figures/start/hero-how-it-thinks.svg)
+![A brass geometric frame on graph paper beside a laptop, casting a shadow across a field of points.](docs/figures/start/geometric-workbench.jpg)
 
-*How UOR-R4 is designed to predict the next word. The picture shows the design, not a claim of useful conversation.*
+**Pre-alpha · 1 of 8 milestones complete.** We have published a trained integer model that ranks the next token. Producing complete replies grounded in earlier turns is an open problem. The target is one model that can carry a conversation, remember across sessions and eventually reason and write code on ordinary hardware.
 
-## What this is
+| If you want to… | Start here |
+|---|---|
+| Understand a prediction from input to output | [Illustrated introduction](docs/start/what-is-uor-r4.md) and [model pipeline](docs/model/pipeline-map.md) |
+| Inspect a result or reproduce a measurement | [Two-seed M1 record](docs/labs/m1-close-saved-model/README.md), [released weights and tokenizer](https://huggingface.co/caseyallard/uor-r4-m1-model), [research notebooks](docs/research/notebook/README.md) |
+| Work on the next experiment | [Current research direction](#current-research-direction), [open roadmap items](docs/roadmap/README.md) and [contribution guide](CONTRIBUTING.md) |
+| Follow the formalization | [Casey-allard/lexlean-r4](https://github.com/Casey-allard/lexlean-r4) and its [documentation](https://casey-allard.github.io/lexlean-r4/) |
 
-Chat assistants run on **transformers**: programs that spend much of their effort multiplying very
-large grids of decimal numbers. UOR-R4 bets that a different toolkit can do the same job more
-cheaply: geometric rotations, whole-number addresses built from primes, small lookup tables and an
-exact memory. The goal is a fast language model that trains quickly and runs on your own laptop or
-in your browser, computing locally by default. The web Studio alone has an optional mode that sends
-prompts to an OpenAI-compatible endpoint the user configures; the desktop shell has none.
+Here we can test competing designs, retain a negative and change direction within the [research charter](CHARTER.md). LexLean-R4 takes the same goal toward a product through a separate formal implementation in LexLean and PrismPM. Each repository records the evidence for its own implementation.
 
-The project is open research and **pre-alpha**. One of eight milestones is complete, but **no model
-built under its rules holds a useful conversation yet.** [What UOR-R4 is](docs/start/what-is-uor-r4.md)
-explains the bet in five minutes, and the [glossary](docs/start/glossary.md) defines every term used
-below.
+## Try the M1 predictor
+
+From the repository root, run the released seed-1 model on the token IDs for `The capital of France is`:
+
+```sh
+curl -fL -o seed1.d11 https://huggingface.co/caseyallard/uor-r4-m1-model/resolve/1fec0d4c42d4d5929a0cf08b1a0f17291d1dbc55/t16-frozen-zero-seed1-trunk.d11
+printf '%s  %s\n' 04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d seed1.d11 | shasum -a 256 -c - && \
+  cargo run --locked -p uor-r4-integer --features serving-wasm --bin uor-chat -- \
+    --discrete seed1.d11 --prompt-ids 413,2743,3695,372,3704,1651,435 --max-tokens 1 --temperature 0
+```
+
+The JSON result contains `"generated_ids": [223]`. This is one next-token prediction.
+
+The CLI returns one greedy token, ID **223** (a space). To see the eight ranked candidates for the same prefix, open **Models** in the public Studio, choose **Load M1 next-token predictor (seed 1)**, enter `The capital of France is` in **Prediction prefix**, then choose **Predict next tokens**. On November 17, the browser ranked 223 first with its network disabled after loading. [Public Studio](https://uor-foundation.github.io/uor-r4/studio/) · [Full result and model hashes](docs/products/web-client.md#run-the-seed-1-example) · [Published catalog](https://github.com/UOR-Foundation/uor-r4/blob/2878cdc029c1d232e7468e4751a610cc91fc8ab0/studio/models.json)
+
+## Current research direction
+
+On 16 November the lab adopted an experiment in **writing observations directly into addressed integer cells**. Counts establish what follows each token sequence. Phase P2 asks whether geometry improves which observations the model retrieves. With equal table bytes, it must use at least 1% fewer DEV-test bits than the best of token context, re-seeded transport and SplitMix, with the paired 95% interval excluding zero. Training and serving must replay the same persistent integer state. [Research decision](docs/research/reviews/pi-review-2026-11-16/DECISION.md) · [Native state and replay contract](docs/loop/tasks/written-state-count-model/claude-409/NATIVE-SPACE.md)
+
+The separate whole-model quality gate requires at most **0.80 times the bits per byte of R\*** on sealed D87 DEV-test. R\* is an unpruned modified Kneser–Ney count model. At order 2 its scorer measured **2.004736 bits per byte** on D87 DEV-tune and **2.194312** on novel targets. Lower is better. The sealed reference and the geometric model comparison still await merged results. [Calibration measurement](docs/loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Experiment sequence](PLAN.md)
 
 ## Where we are
 
@@ -52,7 +62,7 @@ new prompts into known kinds of reply. It does not show a model inventing new re
 conversation. The evidence: [M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029) and
 [M1 close](docs/labs/m1-close-saved-model/README.md).
 
-### The open research questions (14 Nov 2026)
+### Earlier experiments on human text and conversation (6–14 November)
 
 **Does the model learn human-written text?** M1's panels are templated. On real human text, a
 held-out panel of 1,460,697 rows from public conversation and encyclopedia text, counted as correct
@@ -93,8 +103,7 @@ None ships today. A trained integer artifact exists; an integrated, qualified pr
   with integer multiply and divide allowed by D80/D81. The saved discrete M1 pair is real; so is a
   separate `lut-stack/5` FBS export with exact rotations and its DEV export gap inside the bar.
   New FBS exports are `lut-stack/10`, which binds the stack contract and the tokenizer. Neither is a released conversational product.
-- **[Web client](docs/products/web-client.md):** the live Studio can load the publicly released M1
-  model after an explicit click and serves top-8 next-token prediction—not chat. The synthetic
+- **[Web client](docs/products/web-client.md):** the Studio and public model files are available separately. The M1 inference task is top-8 next-token prediction. The synthetic
   parity harness passes; M7's accepted-model parity and a qualified product bundle remain open.
 - **[Desktop client](docs/products/desktop-client.md):** the Tauri shell exists and verifies
   durable session behavior on a synthetic artifact. It has no qualified trained product bundle.
@@ -103,9 +112,7 @@ None ships today. A trained integer artifact exists; an integrated, qualified pr
 
 M2 asks for complete correct replies grounded in exact memory; M3 then qualifies durable memory.
 After that come one served model (M4), laptop cost (M5), reasoning and coding (M6), browser/API
-distribution (M7) and an alpha release (M8). The immediate work is the second open question above:
-replies that answer from the conversation and from what the model knows, in a form the integer
-artifact serves ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)). This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
+distribution (M7) and an alpha release (M8). The current written-state experiment tests whether geometric reads add predictive value beyond counts. Grounded replies still have to pass controls for memory and speaker roles ([#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407)). This is a plan, not a promise: [where we're going](docs/start/where-were-going.md) and [PLAN.md](PLAN.md).
 
 ## How it works
 

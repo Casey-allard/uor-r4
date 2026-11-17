@@ -13,15 +13,15 @@ Labels: **proof** (derived from definitions or code), **measurement** (a recorde
 
 ```mermaid
 flowchart LR
-  T["Train on GPUs<br/>discrete, or offline float"] --> X["Export to UORLUT01<br/>and measure export gap"]
-  X --> A["Audit: integer only;<br/>no float or dense matmul"]
+  T["Train one native integer state on GPU"] --> X["Serialize the trained state losslessly"]
+  X --> A["Verify raw-word replay and audit integer operations"]
   A --> S["Serve on the device<br/>uor-r4-integer"]
   S --> C1["Command line"]
   S --> C2["WebAssembly"]
   S --> C3["Native desktop"]
 ```
 
-*Training happens offline on a GPU. The exported integer artifact is the product boundary.*
+*D85 design. A device must reproduce the training path’s route, carry, read, memory-address and token decisions from the same prompt and starting state.*
 
 ## What the model is meant to be
 
@@ -34,9 +34,11 @@ then coding and reasoning, on one model.
 decode reported separately. A small quality gap is acceptable if the model is much cheaper.
 
 **Integer at serving.** D11 bans floating point and transcendental arithmetic and excludes dense
-matrix multiplication. Since D80 and D81 it allows the hardware integer multiply and divide. Offline
-training may use float under D37, but every float candidate must report its export gap and ship as
-an integer artifact.
+matrix multiplication. Since D80 and D81 it allows the hardware integer multiply and divide. D85 requires the shared integer or fixed-point representation throughout training and serving. Floating point serves as a reference or diagnostic outside that path. [Charter §3.7](../../CHARTER.md#3-technical-constraints)
+
+## The current model experiment
+
+The written-state experiment asks how much geometric routing and memory improve on a count model trained on the same text at equal bytes. On D87 DEV-tune, the order-2 modified Kneser–Ney scorer measured **2.004736 bits per byte overall** and **2.194312 on novel targets**. The frozen reference still needs its DEV-test score. The proposed model must then improve on that reference and pass the grounded-reply controls with memory removed or speakers shuffled. [Written-state decision](../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [Scorer measurement](../loop/tasks/written-state-count-model/claude-421/REPORT.md)
 
 ## What exists now
 
@@ -63,8 +65,7 @@ conversation.
 
 - **The discrete path** produced the M1 artifact. It trains integer geometric state and exports
   through table-native `UORLUT01` schemas.
-- **The float-trained FBS trunk** trains offline under D37 and exports with exact rotations and its DEV export gap inside the bar under `lut-stack/5`
-  at DEV scope. It is the current complete-reply research line, not the M1 artifact.
+- **The float-trained FBS trunk** supplied the October complete-reply experiments. Its `lut-stack/5` export preserved exact rotations and met the export-gap bar on DEV.
 
 Claude-217's cycle-step experiment ends every registered loop but leaves content underpowered, so
 greedy remains the decode. Exact turn memory keys on exact first token ids and misses reworded
@@ -74,8 +75,7 @@ then served the point key for the first reply token in free generation on fresh 
 templates by +13/+8/+12 and exact replies by +9/+8/+12 at three seeds, but reaches only 12–18% of
 the forced-opening lift. [Claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md) then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. [Claude-222](../loop/tasks/point-key-integer/claude-222/REPORT.md) has built the integer point table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell.
 
-Since 10 Nov the work is recall in controlled conversations. [Claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)'s three `p` models state a value told earlier on 314, 320 and 325 of 578 recall questions. The pure-vector baseline, [claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md), served them over 2,218 rows: 377, 380 and 441 exact replies as exported, 171, 173 and 211 with the exact turn memory dropped. Almost every fact the model gets right comes from the turn memory's table. On 13 Nov D85 made one persistent integer geometric state, trained and served by the same typed operators, the default route. V1 (PR #3979) and V2(a) (PR #3978) are in progress.
-This is not a useful-chat result.
+The November FBS experiments measured recall in controlled conversations. [Claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)'s three `p` models state a value told earlier on 314, 320 and 325 of 578 recall questions. The pure-vector baseline, [claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md), served them over 2,218 rows: 377, 380 and 441 exact replies as exported, 171, 173 and 211 with the exact turn memory dropped. Almost every fact the model gets right comes from the turn memory's table. A later run carried state across training windows. In the vector-read comparison, Flock-g learned to select the requested fact, but its best held-out answer accuracy was 0.023 against the 0.90 bar. [Cross-window result](../loop/tasks/one-model-end-to-end/claude-380/REPORT.md) · [Read comparison](../loop/tasks/one-model-end-to-end/claude-386/REPORT.md)
 
 ## The artifact format and serving boundary
 
@@ -96,13 +96,13 @@ quality, CLI, session and audit path; M7's distribution check is separate.
 | # | Meaning | Current state |
 |---|---|---|
 | M1 | **It predicts text.** Six bars through the saved integer model, including fresh and held-out-phrasing transfer | **Complete** |
-| M2 | **It answers from memory.** ≥256/512 complete correct DEV replies and ≥40% fresh | In progress |
+| M2 | **It answers from memory.** On the same model, ≥256/512 complete, correct saved replies and ≥52/128 fresh opposite-role pairs with both replies complete and distinct | In progress |
 | M3 | **It remembers across sessions.** Provenance, correction, abstention, reset and restart | In progress |
-| M4 | **It is served.** Accepted model and export gap; held-out quality **≤0.90 BPB**; M1–M3 bars through `uor-chat`; bit-identical continuation after restore; full CLI/session/audit path | Not complete; accepted model path not started |
-| M5 | **It is cheap on a laptop.** Latency, memory, energy and selected access measured | Not started |
-| M6 | **It reasons and codes.** Frozen tasks with executable oracles and causal ablation | Not started |
+| M4 | **It is served.** Accepted model with lossless native serialization and raw-word parity; held-out quality **≤0.90 BPB**; M1–M3 bars through `uor-chat`; bit-identical continuation after restore; full CLI/session/audit path | Qualification requires the selected M3 model and its measured [M4 artifact](../roadmap/items/m4-export-uorlut01-cli.md) |
+| M5 | **It is cheap on a laptop.** Latency, memory, energy and selected access measured | [Protocol registered](../roadmap/items/m5-laptop-full-path-measurement.md), accepted-model measurements open |
+| M6 | **It reasons and codes.** Frozen tasks with executable oracles and causal ablation | [Reference verifier](../roadmap/items/m6-qualify-reasoning-coding.md) checked 80 programs on 320 vectors, model qualification open |
 | M7 | **It runs everywhere the same.** Library, CLI and browser parity plus a local-by-default Studio with optional user-configured web API | Runtime/harness on synthetic stand-in; accepted model open |
-| M8 | **It is released.** One versioned, checksum-pinned artifact meeting M1–M7 | Not started |
+| M8 | **It is released.** One versioned, checksum-pinned artifact meeting M1–M7 | [Packaging and independent reproduction](../roadmap/items/m8-release-packaging.md) depend on the accepted artifact |
 
 M4's quality work includes a lawful likelihood (`PRLL`), but GPU held-out scoring remains open. M1
 does not select the M2/M3/M4 model automatically, and an engine audit alone closes no milestone.

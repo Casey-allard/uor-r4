@@ -17,6 +17,8 @@ M3 is the claim that a conversation can be stored and come back exactly, with an
 
 ## What is missing
 
+**November 17, 2026.** The durable-memory policy thresholds and host checks exist. The selected artifact must still pass the controlled five-axis GPU panel with exact token-for-token restore and the registered baseline comparisons. [Issue #2873](https://github.com/UOR-Foundation/uor-r4/issues/2873)
+
 m3-memory is not qualified on the selected model. The object-store consumer and frozen 384-item host-control panel are built and pass, but the on-model M3 run still needs an M1-or-M2 model selection; M1's completion alone is not M3 qualification ([consumer record](../../labs/object-store-consumer-m3/README.md)). The evaluator and session exist (`stack_grounded_session`, the typed-script multi-turn evaluator, `IntegerStackSession`, and the `UR4SESS1` session file). `crates/uor-r4-training/src/stack_grounded_session.rs` describes itself (line 6) as "a float development path, not a D11 serving kernel": the integer-path verdict must come from `IntegerStackSession`, not from that module alone.
 
 M1 is complete, and M2 is in progress under D67 rather than a blanket owner hold. The older 437/512 then 0/128 result remains a panel-fitting lesson, not the current saved-model result. The M3 bar is "Memory persists across sessions and answers stay grounded". The six per-sub-panel thresholds are registered in the consumer record; the on-model qualification has not run.

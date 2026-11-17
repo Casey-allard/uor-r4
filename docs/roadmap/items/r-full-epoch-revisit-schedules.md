@@ -16,6 +16,8 @@ Checks whether the low top-1 is partly a coverage problem.
 
 ## What is missing
 
+**November 17, 2026.** The historical one-pass schedule visited 43.28% of targets. The registered revisit implementation and controlled comparison remain open. Stage T has concluded. The next prerequisite is an applicable native training schedule on which this measurement would change a decision. [antigravity-66 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/r-full-epoch-revisit-schedules/antigravity-66/REPORT.md) · [Issue #2836](https://github.com/UOR-Foundation/uor-r4/issues/2836)
+
 One full run sees 1,049,856 of 2,425,925 training targets, 43.3% (proof, by arithmetic). Full-epoch and frequent-token revisit schedules have never been run.
 
 ## Done when

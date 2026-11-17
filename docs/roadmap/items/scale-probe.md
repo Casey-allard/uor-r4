@@ -25,6 +25,8 @@ The pipeline map's gap 9: "Scale caps, with one data point." Every reply result 
 
 ## What is missing
 
+**November 17, 2026.** The w128 and w256 runs were scored on the registered human-text panel. The w512 configuration ran out of memory. Any repeat of that width comparison first needs its memory fix and the same controls. The written-state P1 table-size and score gates now govern the active scaling experiment. [claude-317 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/scale-probe/claude-317/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 **A scale probe on the recipe [`one-model-end-to-end`](one-model-end-to-end.md) picks:** the same arms and decode, at more than one width and more than one corpus size, scored on prompts the model has not seen. This item waits for that recipe, so it measures the model the project will serve.
 
 - **Widths:** 256, 512 and 1,024 (the writer's cap). A width past 1,024 needs the writer changed first, and is a separate item.

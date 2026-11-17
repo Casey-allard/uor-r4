@@ -16,6 +16,8 @@ It would give the lawful reads a training signal that worked on a softmax read.
 
 ## What is missing
 
+**November 17, 2026.** The old Stage T prerequisite has concluded. The specific Flock/Relation binding kernel and its three-seed, 120-item comparison remain outstanding. Link any new candidate to the P2 read or P3 pointer decision that would use it. [antigravity-70 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/read-binding-on-lawful-read/antigravity-70/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 Read binding (a teacher marks which earlier value the question asks for and the read is rewarded for landing on it) cut wrong-value errors from 47 to 30 of 120 over 3 seeds, but on a softmax read. It has not been ported to a Flock or Relation read.
 
 ## Done when

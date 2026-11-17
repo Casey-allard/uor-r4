@@ -16,6 +16,8 @@ It is the reopen condition for a PARKED attention-scoring replacement.
 
 ## What is missing
 
+**November 17, 2026.** The retained-fibre test needs a discrete consumer before the controlled integer-DEV run. P2 reserves a Hopf-sector address for its failure branch. That different comparison does not satisfy the original experiment. [antigravity-63 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/hopf-retained-fibre-test/antigravity-63/REPORT.md) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 Hopf observation is telemetry only. Sector routing used 7 of 512 sectors, and the kept-fibre map is built and unit-tested, but the language test with the retained fibre was never run.
 
 ## Done when

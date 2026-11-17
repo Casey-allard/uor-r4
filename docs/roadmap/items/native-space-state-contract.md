@@ -24,6 +24,8 @@ contract shared by both phases.
 
 ## What is missing
 
+**November 17, 2026.** The Q31 CUDA updates, integer recurrence and bounded fixtures are on main. Acceptance still calls for the complete operator inventory, raw-word replay over every required field and a recorded planted fault. The written-state S0–S6 contract identifies the fields and operators for the current model. [PR #3962](https://github.com/UOR-Foundation/uor-r4/pull/3962) · [PR #4010](https://github.com/UOR-Foundation/uor-r4/pull/4010) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
+
 There is no single type that declares which token addresses, vector coordinates, SpiralCore
 carry, routes, memory keys, memory reads, learned state and optimizer state cross every
 training and serving boundary. There is also no source-level operator registry proving that

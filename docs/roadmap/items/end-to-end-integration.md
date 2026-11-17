@@ -1,8 +1,8 @@
 ---
 id: end-to-end-integration
-title: Connect the mechanisms behind one stage interface, from training to integer serving
+title: Connect training and integer serving behind shared stage interfaces
 milestone: research
-area: integration
+area: architecture
 status: ready
 open_to: lab
 needs_gpu: false
@@ -24,6 +24,8 @@ composed.
 both before any mechanism is promoted.
 
 ## What is missing
+
+**November 17, 2026.** The November 16 decision changes the model route that the original D86 sequence below supported. The interfaces and finite fixtures remain available. Use the written-state S0–S6 contract to identify which are actually consumed by P1–P4. Record a new decision before treating a different model run as fulfillment of I6. [Written-state decision](../../loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 - One common `Read` result and interface, whose reference implementation is the native Q31
   first-pick read that D86 step 6 trains and serves (ADR-0007 Amendment 1). The Hamming copy and
@@ -60,3 +62,16 @@ Follow-ups after it closes, as their own items: I3 (e-means at one site) and any
 
 Changing D85, new GPU qualification runs, promoting a PARKED mechanism without its own reopen
 condition, and any claim of useful conversation.
+
+
+## How to start
+
+Read ADR-0007 and its amendments alongside the registered phase plan. Compare the interface required by the next phase with the merged finite replay records before changing a backend.
+
+## Rules that apply
+
+D85 requires shared typed operators, lossless state and raw-word train/serve replay. Promotion and GPU evaluation follow the charter’s evidence and pre-registration rules.
+
+## Sources
+
+[ADR-0007](../../reference/adr/0007-stage-interfaces-for-end-to-end-integration.md) · [Native-state contract](native-space-state-contract.md) · [Written-state experiment](written-state-count-model.md)

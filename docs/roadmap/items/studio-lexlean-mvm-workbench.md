@@ -17,6 +17,8 @@ The owner wants the useful LexLean IDE experience in UOR Studio: repository/file
 
 ## What is missing
 
+**November 17, 2026.** The browser-owned task workspace is available in source. The LexLean MVM design was registered separately. Draft #3941 proposes its implementation. The original native/WASM runtime, genuine RV64 build and real-client workflow criteria remain open. [PR #3938](https://github.com/UOR-Foundation/uor-r4/pull/3938) · [PR #3915](https://github.com/UOR-Foundation/uor-r4/pull/3915) · [PR #3941](https://github.com/UOR-Foundation/uor-r4/pull/3941)
+
 The current Studio has a durable browser task runtime and optional companion, but its static terminal is unavailable and the presentation is not LexLean's three-pane IDE. The existing editor's tree is host-owned and cannot list MVM files; the MVM WASM also needs explicit local packaging and desktop execution evidence. Missing are the real browser MVM sandbox, virtual files/Git, RV64 C compilation, revision-safe editor/terminal writes, bounded CoW persistence, repository seeding and an approved GitHub branch/edit/commit/PR flow that pins its target and protects stale bases and credentials.
 
 The accepted M1 artifact is prediction-only and the ReplayModelPort fixture is synthetic. A future generation-capable model must enter through the existing ModelPort boundary. No real generation, useful-model evaluation, production service or full LexLean/Cursor parity is authorized by this item's local implementation.

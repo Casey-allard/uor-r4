@@ -1,6 +1,8 @@
 # The mechanism board
 
-Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists 28 rows for them, because Hopf observation is split into its two forms (owner ruling D72), and says where each one stands. Status here means how far a mechanism has been built and tested. The statuses were last set on 31 Oct 2026. The results recorded since then, and what the current model trains and serves, are in [Since 31 Oct](#since-31-oct-what-the-current-model-trains-and-serves-14-nov-2026); they change no status. M1 is complete (1 of 8 milestones); no mechanism has produced a useful conversation yet ([PLAN](../../PLAN.md) and rendered [STATE](../../STATE.md)).
+Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists 28 rows for them, because Hopf observation is split into its two forms (owner ruling D72), and says where each one stands. Status here means how far a mechanism has been built and tested. The statuses were last set on 31 Oct 2026. The [14 November FBS snapshot](#since-31-oct-what-the-current-model-trains-and-serves-14-nov-2026) records later measurements. M1 is complete (1 of 8 milestones); no mechanism has produced a useful conversation yet ([PLAN](../../PLAN.md) and rendered [STATE](../../STATE.md)).
+
+**Research direction, 17 November.** Under D85 the model must train and serve the same integer geometric state. The written-state experiment asks whether routing and memory improve on a count model at equal bytes. The order-2 scorer has been measured on D87 DEV-tune. Scoring the frozen reference on DEV-test and testing the geometric model against it are separate steps. [Written-state decision](../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [Scorer measurement](../loop/tasks/written-state-count-model/claude-421/REPORT.md)
 
 ![A family tree of the 27 mechanisms with lineage from 19 October 2026 and statuses current on 31 October, showing which mechanism grew out of which](../figures/mechanisms-family.svg)
 
@@ -10,7 +12,7 @@ Most chat AIs are built from a few standard parts: a way to look back at earlier
 
 | Status | Meaning | Count |
 |---|---|---|
-| **ACTIVE** | On a current model path: the discrete path (`crates/uor-r4-discrete`) or the float-trained FBS trunk ([two paths](../model/pipeline-map.md)). | 12 |
+| **ACTIVE** | On a model path at the 31 October status review: the discrete path (`crates/uor-r4-discrete`) or the float-trained FBS trunk ([two paths](../model/pipeline-map.md)). | 12 |
 | **READY** | Built and tested, but not yet trained into a model. | 5 |
 | **PARKED** | The forms tried so far failed or broke a project rule. The mechanism stays open, and its page lists what would reopen it. | 11 |
 
@@ -20,7 +22,7 @@ Every number in the tables is a **measurement** from a recorded run or test, lin
 
 ## M1 closed 30 Oct; current mechanisms on 31 Oct 2026
 
-Two model paths remain distinct. The saved discrete 19-table model has closed M1 at all six bars: DEV 7,002 / 7,001, Fresh V2 7,215 / 7,228 and p-f 7,850 / 7,872 at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s under the bar-f remeasurement ([M1 close](../labs/m1-close-saved-model/README.md), [Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). The separate float-trained FBS trunk is the current complete-reply line:
+Two model paths remain distinct. The saved discrete 19-table model has closed M1 at all six bars: DEV 7,002 / 7,001, Fresh V2 7,215 / 7,228 and p-f 7,850 / 7,872 at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s under the bar-f remeasurement ([M1 close](../labs/m1-close-saved-model/README.md), [Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). At the 31 October review, the separate float-trained FBS trunk carried the complete-reply experiments:
 
 - **Router:** the FBS recurrence, Hamilton gate and SpiralCore/FBS routes, trained and served with exact rotations and its DEV export gap inside the bar under `lut-stack/5`.
 - **Position:** SpiralCore transport spin in the recurrence, with no RoPE.
@@ -31,13 +33,17 @@ Two model paths remain distinct. The saved discrete 19-table model has closed M1
 
 M1 does not prove each mechanism's independent effect or useful conversation. On p-f, **62.5% of reference replies are verbatim TRAIN replies**: reference-data overlap, not a generated-copy rate or new reply kinds. Claude-217's teacher-forced p-s reply openings are 17.4%, 13.7% and 18.6% at three seeds, against about 80% on later tokens. Claude-219's point-key opening improves free generation at three seeds on fresh p-v, but reaches only 12–18% of the forced-opening lift; the sign key is inconclusive at this panel size. [Claude-220](../loop/tasks/one-model-end-to-end/claude-220/REPORT.md) then served the point key inside one float model on fresh p-w: templates improve by +41/+40/+42 at three seeds with exact claude-219 parity, while recalling TRAIN replies rather than generalizing. [Claude-222](../loop/tasks/point-key-integer/claude-222/REPORT.md) has built the integer point table, search and `/8` record, with 380 library tests and a full serving audit. [Claude-224](../loop/tasks/point-key-integer/claude-224/REPORT.md) has built the panel decode and grade. [Claude-227](../loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [Claude-228](../loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [Claude-229](../loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](../loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout; [claude-232](../loop/tasks/integer-nearest-readout/claude-232/REPORT.md) missed parity in every cell, so the mismatch must be localized before p-x. The parts, costs and current order are in the [pipeline map](../model/pipeline-map.md).
 
-## Since 31 Oct: what the current model trains and serves (14 Nov 2026)
+<a id="since-31-oct-what-the-current-model-trains-and-serves-14-nov-2026"></a>
+
+## The FBS trunk on 14 November 2026
 
 This section records facts at `origin/main` `085ff55d9` (14 Nov 2026), read from the code and the [float-training notebook](../research/notebook/float-training.md). It changes no status: where a fact and a status disagree, the change is a decision card, listed in [claude-375's REPORT](../loop/tasks/docs-status-refresh/claude-375/REPORT.md).
 
-### The current recipe: claude-358's `p` recipe
+<a id="the-current-recipe-claude-358s-p-recipe"></a>
 
-The saved models p-s1 to p-s3 ([claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)) are the FBS trunk's current models, and later units reuse their recipe ([pair-rows sheet](../harness/prep/one-model-end-to-end-pair-rows-2026-11-13.md), "The recipe"):
+### Claude-358’s `p` recipe
+
+The saved models p-s1 to p-s3 ([claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md)) supplied the FBS recipe reused by later units ([pair-rows sheet](../harness/prep/one-model-end-to-end-pair-rows-2026-11-13.md), "The recipe"):
 
 `--objective cell --retain-rates 1 --decay-mult 1 --lr 0.001 --lr-end 0 --context 256 --width 256 --hamming-read 4 --batch 16 --turn-memory 8 --turn-memory-reply 1 --turn-memory-dropout 500 --samples 6 --reply-tokens 48 --hamming-copy-latest 1 --turn-memory-leave-copied 1 --hamming-ask 1 --hamming-place KIT --hamming-place-pull 1 --hamming-copy-longest 714,28`
 

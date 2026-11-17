@@ -3,7 +3,7 @@ id: m7-lexlean-studio-tools
 title: Repair Studio model identity and share exact geometric arithmetic
 milestone: M7
 area: serving
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 notebook: docs/research/notebook/m4-serving.md
@@ -17,6 +17,10 @@ done_class: host
 The owner asked to inspect LexLean-R4's repository and hosted model, use it as the Studio default if possible, and port its useful behavior to the web and Tauri clients. The live full-pack browser probe answered `17 + 25` correctly through its exact-arithmetic path, but returned an unrelated Hunger Games review for self-description and a Fibonacci example instead of recalling `42`. The deployed runtime is an older `/8` layout with different memory keys and table-form squashing, so it is not a compatible or charter-lawful drop-in default. UOR already owns the geometric arithmetic engine used for the useful path, but does not expose it as a distinct tool result. The Studio also leaves a mismatched worker identity silently stuck in `finalizing`.
 
 ## What is missing
+
+**Completed on main.** The published browser and packaged Tauri clients share the bounded decimal tool. The merged-source and Pages receipt records the checks and artifact identities. The broader LexLean MVM workbench is tracked separately in #3939. [Verification and publication](https://github.com/UOR-Foundation/uor-r4/pull/3797#issuecomment-6705531059)
+
+**At registration**
 
 - A truthful, shared way to answer bounded exact arithmetic without sending the prompt through an unhelpful synthetic model or attributing the result to learned generation.
 - An explicit terminal error when the worker reports an artifact identity different from the requested file or expected hash.

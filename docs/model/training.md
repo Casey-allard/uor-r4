@@ -13,9 +13,7 @@ evidence, not the current best.
 **D85 changes the default route.** The model to train next carries one persistent native
 integer/fixed-point geometric state through weights, activations, SpiralCore carry, routes,
 memory, gradients and optimizer updates. Training and serving must call the same typed
-operators and replay the same route, carry, read and token decisions bit for bit. The FBS path
-below is retained as historical/reference work; an F32 master plus export gap is not the
-default model boundary.
+operators and replay the same route, carry, read and token decisions bit for bit. A finite Q31 training fixture matched CPU and CUDA after each of 64 updates. The fixture exercised a shared vector state. The remaining training contract calls for replay over every required field and a recorded planted fault. For the language experiment, the written-state decision sets a count reference on D87 ahead of the geometric comparison. [Q31 fixture](../loop/tasks/native-space-state-contract/codex-5/REPORT.md) · [Contract requirements](../roadmap/items/native-space-state-contract.md) · [Written-state decision](../loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 ![The discrete learning loop: score every legal move, choose the lowest integer loss, commit only a strict gain, then verify the stored result. A side panel shows BVG-K scoring several coordinates per launch.](../figures/model/discrete-learning-loop.svg)
 

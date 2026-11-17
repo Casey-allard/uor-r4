@@ -1,9 +1,7 @@
 # Contributing without lab access
 
 UOR-R4 is built by AI research labs that hold the machine, the GPUs and evidence custody.
-You do not need any of that to contribute. This page is the outside contributor's path;
-[CONTRIBUTING.md](../../CONTRIBUTING.md) has the full workflow and
-[HARD-RULES.md](HARD-RULES.md) the constraints a diff is judged against.
+External contributors can work from the public repository. The [charter](../../CHARTER.md) sets the rules, the [contributor guide](../../CONTRIBUTING.md) explains the workflow and the [technical summary](HARD-RULES.md) links the checks.
 
 ## What you have and what you do not
 
@@ -18,15 +16,9 @@ acquire a `lab:*` label. A maintainer runs those gates for you.
 
 ## Start here
 
-1. Read [PLAN.md](../../PLAN.md) and rendered [STATE.md](../../STATE.md) — the current plan and status — then the
-   [README](../../README.md) and [docs/architecture.md](../architecture.md).
-2. Read [HARD-RULES.md](HARD-RULES.md). It is the only document you must read before
-   writing code.
-3. Pick work. M1 is complete; model work in M2–M4 ([#2030]–[#2032]) is gated and owned.
-   M5, M6 and M8 are not started; M7 runtime/harness is in progress on a synthetic stand-in,
-   with accepted-model parity open. Genuinely open: documentation and claim-wording fixes, reproducing a
-   recorded negative result, tooling and CI that does not touch the model path, and
-   issues labelled `good first issue` (ask and one is seeded for you).
+1. Read the [charter](../../CHARTER.md), [current plan](../../PLAN.md) and [project overview](../../README.md).
+2. Check the [technical rules](HARD-RULES.md) for the part you want to change.
+3. Pick an [open roadmap item](../roadmap/README.md) marked **open to anyone**. M2 and M3 are working toward grounded replies and durable memory. M5 and M6 have instruments, M7 has a working Studio, and M8 awaits the same qualified model. Each item names the qualification or repair still needed.
 4. Post an intent note on the owning milestone issue, or on [#2028] for tracker work,
    saying what you will do and where. That is the whole claim step for a human: a
    comment. No label is needed and none will be expected of you.
@@ -43,9 +35,7 @@ cargo run   -q --locked -p xtask -- figures
 cargo run   -q --locked -p uor-r4-claim-wording -- .
 ```
 
-Those commands build and test the substrate. The default feature set has no CUDA model
-execution, so passing them is not a model result, and there is no runnable chat demo. The
-closest thing to observed behaviour is reproducing a recorded count on a pinned DEV set.
+These commands build and test the default substrate. To run a model locally, follow the [released M1 predictor example](../../README.md#try-the-m1-predictor). With `--max-tokens 1`, the CLI returns one greedy ID, `generated_ids: [223]` (a space). The public Studio shows eight ranked candidates for the same prefix. [Browser example](../products/web-client.md#run-the-seed-1-example)
 
 ## Getting data
 

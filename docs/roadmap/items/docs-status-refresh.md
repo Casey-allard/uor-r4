@@ -19,6 +19,8 @@ On 30 Oct the owner assigned Kimi the follow-up: "Please make sure the documenta
 
 ## What is missing
 
+**November 17, 2026.** The October 31 milestone facts and November 14 public updates are preserved. The November 17 unit reconciles the source roadmap, live issue and milestone text, public research guide and hosted book. Content, published read-back and the tracker each need their own verification. [claude-382 report](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/docs-status-refresh/claude-382/REPORT.md) · [Issue #2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)
+
 **Item-start gap narrative, now historical except post-merge issue/render verification.**
 
 - **M1 closed after the 29 Oct refresh.** #2029 and claude-211 record two saved integer artifacts passing all six bars, but the README, root roadmap, book, milestone cache, status figures, crate READMEs and Studio text still carry earlier states. The older `m1-close-grade.json` covers bars (a)–(e); claude-211's `panel-score.json` and REPORT supply bar (f), and both parts belong in the cancel probe.

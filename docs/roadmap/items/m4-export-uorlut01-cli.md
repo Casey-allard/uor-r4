@@ -17,7 +17,9 @@ M4 (issue #2032) is the step that turns the selected M1-to-M3 work into one acce
 
 ## What is missing
 
-One M3-qualified model must be exported as a single UORLUT01 file, serve through `uor-chat`, report its training-to-D11 export gap and meet the held-out quality bar. The M1 pair is exported and served with exact 14,287-row DEV agreement, but no model has passed M4. M4 remains open under D67, not under a blanket owner hold.
+**November 17, 2026.** The M1 D11 artifacts and CLI provide an earlier serving case. M4 still requires a selected M3-qualified model, the held-out 0.90 BPB bar, static audits, exact restore and throughput. On the D85 default, native raw-word parity and lossless state serialization supersede the historical float export-gap route. [PR #4000](https://github.com/UOR-Foundation/uor-r4/pull/4000) · [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046) · [Issue #2032](https://github.com/UOR-Foundation/uor-r4/issues/2032)
+
+Package the selected M3-qualified native state in a single UORLUT01 file, serve it through `uor-chat`, and score it on the held-out byte panel. The discrete M1 pair already demonstrated exact export agreement on 14,287 DEV rows. M4 requires its own accepted artifact and score.
 
 The explicit `System: Memory: {value}.` serving turn now exists. On both public
 FBS seeds, adding it changed the model's reply ids in every matched arm, but
@@ -52,7 +54,7 @@ The M1 pair settles that a discrete model can use table-native UORLUT01. What re
 
 M4 bar: 'One model exported as an integer file under the serving contract (D11), usable from a command line, with held-out quality at or below 0.90 bits per byte'. In addition:
 
-- The export gap is reported (D37).
+- The artifact losslessly serializes the native state updated in training. On identical prompts and starting state, the shared typed operators replay raw route choices, carry, read choices, memory addresses and emitted token IDs bit for bit (D85).
 - The static audits are green.
 - A fresh-process restore is bit-identical.
 
@@ -61,7 +63,7 @@ M4 bar: 'One model exported as an integer file under the serving contract (D11),
 1. **Read the contract and the code.** Open `docs/model/serving-and-export.md`, `docs/mechanisms/lut-serving.md`, `crates/uor-r4-lut/src/format.rs` (the UORLUT01 layout), `crates/uor-r4-integer/src/bin/uor-chat.rs` and `crates/uor-r4-integer/README.md`. `uor-chat` and `mk-synthetic-stack` are built only with `--features serving-wasm` (the README's `cargo build` line omits it). Read the headers of `scripts/audit_zero_matmul_serving.py` and `scripts/audit_zero_matmul_wasm.py` for their arguments, and run both once, from the repository root, to record today's baseline. They are existing Python scripts and need built inputs. The native audit reads `target/release/libuor_r4_integer.rlib`, `target/release/uor-r4-integer` and `target/release/uor-chat` unless you pass a path, so first run `~/.cargo/bin/cargo build --release -p uor-r4-integer --features serving-wasm` (a CPU build, allowed). The WebAssembly audit needs the module that `RUSTFLAGS="-C target-feature=-simd128" wasm-pack build crates/uor-r4-integer --target web --no-opt -- --features serving-wasm` writes (by default under `crates/uor-r4-integer/pkg/`), then `python3 scripts/audit_zero_matmul_wasm.py <that .wasm> --serving --call-graph --tap` (`docs/labs/wasm-serving-runtime-2026-10-18/README.md:32-33`).
 2. **First deliverable: a design note on the issue.** Start from the M1 pair's demonstrated table-native UORLUT01 mapping and say how the selected M4 model loads through `uor-chat`. Keep the serve path at 0 float, 0 softmax or squashing and 0 dense matmul, with integer multiply/divide allowed and audited under D80/D81. Require fresh-process restore to be bit-identical.
 3. **Write a finite control as a failing test.** In `crates/uor-r4-integer/tests/`, export a toy model (see `crates/uor-r4-integer/src/bin/mk-synthetic-stack.rs`), start `uor-chat` on it in two fresh processes, and require identical token output. Run it with `~/.cargo/bin/cargo test -p uor-r4-integer --features serving-wasm`. Start the CLI with `~/.cargo/bin/cargo run -p uor-r4-integer --features serving-wasm --bin uor-chat -- --stack <ARTIFACT.lut> --tokenizer <TOKENIZER.json>`.
-4. **Draft the pre-registration sheet.** Name the chosen M3-qualified artifact, the frozen held-out byte panel with its SHA-256, and the scorer from `m4-lawful-likelihood-bpb`. Keep the 0.90 bar unchanged; register the panel, export-gap method (float candidate against integer artifact on the same evaluator, `CHARTER.md` section 3.7), tokens-per-second report, stop rule and cost. Ask a non-author for a TEST FITNESS: FIT review.
+4. **Draft the pre-registration sheet.** Pin the M3-qualified native state, the serialized artifact, the tokenizer, the held-out byte panel by SHA-256, and the scorer from `m4-lawful-likelihood-bpb`. Register the identical starting state and prompts for the raw-word train/serve replay, the fields compared at each step, and the fresh-process restore check. Use the existing ≤0.90 BPB bar and record decode and context throughput, cost and stop rules. Obtain a non-author FIT.
 5. **Run the D67 pre-run review.** After the registered FIT and the lab's own pre-run review pass, run the export and evaluation on a GPU inside the caps (outside contributors attach hardware specs), then rerun both audits on the final build. No blanket owner release applies.
 6. **Open a PR** that says `Closes #<this issue>` (or `References` if partial), and record the result as one row in `docs/research/notebook/m4-serving.md`.
 
@@ -79,6 +81,6 @@ M4 bar: 'One model exported as an integer file under the serving contract (D11),
 - [`ROADMAP.md`](../../../ROADMAP.md) and [`PLAN.md`](../../../PLAN.md)
 - [Current architecture](../../model/architecture.md) and [serving/export](../../model/serving-and-export.md) for the M1 pair's demonstrated table-native export and its exact scope
 - `docs/labs/wasm-serving-runtime-2026-10-18/README.md:32-33` (WebAssembly build and audit commands)
-- `CHARTER.md` sections 3.7 and 5.1 (export gap and D67 pre-run review)
+- [Charter §§3.7 and 5.1](../../../CHARTER.md) for D85 native replay and the D67 pre-run review. The historical D37 recipe compared a float candidate and its exported integer artifact on the same evaluator. Its measured gaps are preserved in the [M4 serving notebook](../../research/notebook/m4-serving.md).
 - issue#2032
 

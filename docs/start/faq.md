@@ -61,9 +61,9 @@ Matrix multiplication is nearly all of a transformer's arithmetic, so removing i
 
 They are different jobs. GPU results are the default and remain the qualification authority, because host runs historically gave wrong timing and evidence, and spending GPU only where a run can change a decision keeps costs down ([charter](../../CHARTER.md), section 3.5). D84 permits only the named CPU training program to run development training, evaluation and parity on the workstation; those results do not replace a GPU bar. The finished model is meant to run on the user's own device: serving the exported integer file on a laptop CPU, in a browser or on Apple silicon is the product and does not require the research-compute GPU (section 3.6). Scoring an exported model for a milestone still counts as research compute.
 
-### 10. Why can training use decimals when serving cannot?
+### 10. What number format do training and serving use?
 
-Decimals train faster, and only the shipped file has to be integer ([charter](../../CHARTER.md), section 3.7, from decision D37). Any float-trained candidate must report its **export gap**, the quality lost when it is snapped to whole numbers, and a gap above the noise band disqualifies it. The current discrete model avoids the question because it is integer from end to end. For the float-trained FBS trunk the gap is inside the bar at DEV scope under the unsnapped contract `lut-stack/5` (claude-182). See [serving and export](../model/serving-and-export.md).
+D85 requires a shared integer or fixed-point representation for the native model. Training and serving use the same typed operators, and the artifact preserves the state losslessly. Floating point serves as a reference or diagnostic. Under the historical D37 route, a float-trained FBS trunk reported an export gap inside the bar on DEV under its unsnapped `lut-stack/5` contract (claude-182). [Charter §3.7](../../CHARTER.md) · [Serving and export](../model/serving-and-export.md)
 
 ### 11. Why primes, zeta zeros, E8 and quaternions? Do they actually help?
 
@@ -81,11 +81,11 @@ You can build it and run its checks, but you cannot hold a useful chat with it. 
 
 ### 14. Is there a web or desktop app?
 
-No qualified conversational app ships. The live Studio can load the publicly released M1 model after an explicit click and serves top-8 next-token prediction, not chat. Its synthetic parity harness passes. The Tauri desktop shell verifies durable session behavior on a synthetic artifact. Neither client bundles a qualified conversational product ([products](../products/README.md), [web client](../products/web-client.md), [desktop client](../products/desktop-client.md)).
+No qualified conversational app ships. The public Studio ranks eight candidate next tokens with the trained M1 seed-1 model after an explicit download of its weights and matching tokenizer. Its synthetic parity harness passes. The Tauri desktop shell verifies durable session behavior on a synthetic artifact. Neither client bundles a qualified conversational product ([products](../products/README.md), [web client](../products/web-client.md), [desktop client](../products/desktop-client.md)).
 
 ### 15. What about the models on Hugging Face?
 
-The M1-closing pair is public at [`caseyallard/uor-r4-m1-model`](https://huggingface.co/caseyallard/uor-r4-m1-model); the Studio serves it as top-8 next-token prediction, not chat. Public research releases also hold the four-table Stage-T base exports and the FBS pair, which has no trained token writer. Four 214 million parameter checkpoints are public too, but they are historical: trained before the no-softmax and no-matrix-multiplication rules, in the float form, and not the served model. Their chat variants rewrite and summarise usably, while code and arithmetic are wrong ([releases](../products/releases-and-artifacts.md), [data and tokenizer](../model/data-and-tokenizer.md), [README](../../README.md#where-we-are)).
+The M1-closing pair is public at [`caseyallard/uor-r4-m1-model`](https://huggingface.co/caseyallard/uor-r4-m1-model); its browser inference task is top-8 next-token prediction with the bound tokenizer. Public research releases also hold the four-table Stage-T base exports and the FBS pair, which has no trained token writer. Four 214 million parameter checkpoints are public too, but they are historical: trained before the no-softmax and no-matrix-multiplication rules, in the float form, and not the served model. Their chat variants rewrite and summarise usably, while code and arithmetic are wrong ([releases](../products/releases-and-artifacts.md), [data and tokenizer](../model/data-and-tokenizer.md), [README](../../README.md#where-we-are)).
 
 ### 16. How fast is it? How much does it cost to train?
 
@@ -99,7 +99,7 @@ Start with [PLAN.md](../../PLAN.md) and rendered [STATE.md](../../STATE.md), the
 
 ### 18. What are the labs, and who decides?
 
-A **lab** is any contributor, human or AI, working under the charter. Four labs are registered: claude, antigravity, deepseek and kimi, with Kimi in the project-manager seat. Codex left the registry (claude-138). The owner, Casey, decides the charter, technical constraints and GPU caps. Labs approve their own runs through whole-project pre-run reviews and make other decisions through decision reviews; D41's donor pass still needs the owner at dispatch. The project manager sequences work from `PLAN.md`. Subagents review and test but never make critical decisions. See [the rules](../rules/README.md#who-decides-what).
+Five labs are registered under the charter: Antigravity, Claude, Codex, DeepSeek and Kimi. Kimi holds the PM seat and sequences work. Casey sets the charter, technical constraints and GPU caps. Labs conduct their own whole-project pre-run and decision reviews. D41 required owner approval at donor dispatch. D86 authorized the campaign and D87/D89 delivered the sealed corpus. [Lab registry](../harness/labs.json) · [Donor receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028) · [Decision authority](../rules/README.md#who-decides-what)
 
 ### 19. What do ACTIVE, READY and PARKED mean? Is PARKED dead?
 

@@ -15,6 +15,10 @@ Terms are in the [glossary](./glossary.md). Claims are labelled **proof**, **mea
 **hypothesis**. A passing check shows code does what it says; it is not a trained capability, and
 `NOT_RUN` never means passed.
 
+## A count baseline for the next experiment
+
+On the D87 tuning split, the order-2 modified Kneser–Ney scorer measured 2.004736 bits per byte overall and 2.194312 on novel targets. The GPU scorer agreed with an independent host oracle on the checked real-data slice. This establishes an instrument for comparing later designs. The sealed baseline and geometric-model comparison are separate steps. [Scorer report](../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Next experiment](where-were-going.md#the-current-experiment)
+
 ## M1 is complete
 
 The closing artifact is antigravity-110's `trunk-joint-pointer-v1-d11`, a discrete 19-table
@@ -45,7 +49,7 @@ generated-copy rate, and not new reply kinds or useful conversation.
 | Integer serving (D11) | Exact 14,287-row DEV export/reference agreement and planted-fault control; integer multiply and divide are allowed, floats remain banned | The M1 pair and the separate FBS `lut-stack/5` export | [serving dossier](../mechanisms/lut-serving.md) |
 | Exact-read oracle | True-address 80/80 against 0/80 no-memory and 20/80 sieve | Exact-read oracle only, not learned address formation or M3 | [exact memory](../mechanisms/exact-memory.md) |
 | Object-store consumer | Consumer built; frozen 384-item host-control panel passes | On-model M3 run needs a selected M1 or M2 model; host controls are not M3 qualification | [consumer record](../labs/object-store-consumer-m3/README.md) |
-| Browser worker and Studio | Synthetic parity harness and live M1 top-8 next-token prediction, with self-hosted assets and stack-bound tokenizers | Language base, not chat; no qualified bundled product or M7 accepted-model parity | [web client](../products/web-client.md) |
+| Browser worker and Studio | Synthetic parity harness and the deployed M1 seed-1 top-eight predictor with its bound tokenizer | Language base, not chat; no qualified bundled product or M7 accepted-model parity | [web client](../products/web-client.md) |
 | Desktop shell | Native Tauri/Rust backend and durable session restore on the seed-5 synthetic artifact | No qualified trained product bundle | [desktop client](../products/desktop-client.md) |
 
 ## The separate FBS trunk: replies in conversation (since 31 Oct)
@@ -92,10 +96,7 @@ conversion and runs the same shared transition: after 64 trained steps, the rest
 transition results match as raw words. No token generation is claimed ([codex-8](../loop/tasks/native-space-state-contract/codex-8/REPORT.md)). The discrete path's CUDA training, CPU training and integer serving now
 agree on the same fixture bytes, on two fixtures ([claude-372](../loop/tasks/one-model-end-to-end/claude-372/REPORT.md)).
 
-**In progress (14 Nov).** Carrying the state across training windows, V1
-([#3979](https://github.com/UOR-Foundation/uor-r4/pull/3979)); today training carries no state
-from one window to the next. Vector-native reads, V2(a)
-([#3978](https://github.com/UOR-Foundation/uor-r4/pull/3978)). Neither has a result yet.
+**November 15 FBS experiments.** In `uor-r4-float-train`, V1 carried training state across windows and V2(a) added three optional reads. At 16,384 steps Flock-g chose the correct fact on 494–504 of 512 questions in each of the four far-distance seed/bucket combinations. Its best answer accuracy was 0.023 against the 0.90 bar. The remaining gap was using the selected fact to answer. [V1](../loop/tasks/one-model-end-to-end/claude-380/REPORT.md) · [V2 follow-up](../loop/tasks/one-model-end-to-end/claude-386/REPORT.md)
 
 The point-key and nearest-readout units of late October (claude-217 to claude-232) are recorded
 in the [float-training notebook](../research/notebook/float-training.md) and the
@@ -135,7 +136,7 @@ multiplication and are historical evidence, not the D11 product.
 | Recall of a told value | 314 / 320 / 325 of 578 questions, three seeds | [claude-358](../loop/tasks/one-model-end-to-end/claude-358/REPORT.md) |
 | Exact replies, with / without the turn memory | 377–441 / 171–211 of 2,218, three seeds | [V0, claude-376](../loop/tasks/one-model-end-to-end/claude-376/REPORT.md) |
 | Next capability milestone | M2: grounded complete replies | [PLAN](../../PLAN.md) |
-| Work in progress | One native integer state for training and serving (D85); carrying it across training windows (V1) and vector-native reads (V2(a)) | [PLAN](../../PLAN.md), [#3979](https://github.com/UOR-Foundation/uor-r4/pull/3979), [#3978](https://github.com/UOR-Foundation/uor-r4/pull/3978) |
+| Work in progress | The November 16 written-state study measured 2.004736 bits per byte on DEV-tune with its order-2 count reference. Selecting and sealing the reference precedes the geometric comparison | [Phase order](../../PLAN.md#approved-sequences), [P0 calibration](../loop/tasks/written-state-count-model/claude-421/REPORT.md), [sealed-reference follow-up](https://github.com/UOR-Foundation/uor-r4/pull/4058) |
 | Products shipped | None; M1 is not an alpha release | [products](../products/README.md) |
 
 ## Go deeper

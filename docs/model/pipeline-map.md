@@ -25,11 +25,7 @@ It answers the owner's direction of 27 October 2026 (recorded verbatim in the it
 
 **D85 correction (13 Nov, owner).** Under D85, the default pipeline is required to carry one
 persistent native integer/fixed-point geometric state through the same typed training and serving
-operators, replaying route, carry, read, memory-address and token decisions bit for bit. The
-first implementation item is
-[`native-space-state-contract`](../roadmap/items/native-space-state-contract.md). Until it lands,
-the float-trunk/export material on this page remains historical measurement and mechanism
-evidence, not a native-space qualification.
+operators, replaying route, carry, read, memory-address and token decisions bit for bit. A Q31 vector fixture matched CPU and CUDA after each of 64 updates. The full operator inventory, raw-word replay across all fields and a recorded planted fault remain open. The 16 November written-state experiment asks whether the shared state can improve predictions on unseen text at the same byte budget as a count model. [Q31 fixture](../loop/tasks/native-space-state-contract/codex-5/REPORT.md) · [Remaining contract work](../roadmap/items/native-space-state-contract.md) · [Written-state decision](../loop/tasks/written-state-count-model/claude-409/DECISION.md)
 
 The page ends with:
 - the scale arithmetic for the goal;
@@ -90,13 +86,13 @@ They share:
 - the tokenizer and the data;
 - the D11 runtime crate, [`crates/uor-r4-integer`](../../crates/uor-r4-integer).
 
-They share no table, no trunk and no artifact format. This page follows the FBS trunk for the current complete-reply work, while the discrete path supplies the M1 result. The M1 pair also scores 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s ([Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). The p-f reference replies are 62.5% verbatim TRAIN replies, so M1 is not useful-chat qualification.
+They share no table, no trunk and no artifact format. The October stage tables follow the FBS trunk through its complete-reply experiments, while the discrete path supplies the M1 result. The M1 pair also scores 7,215 / 7,228 on Fresh V2 and 7,850 / 7,872 on p-f at two seeds, with exact 14,287-row DEV export agreement and Apple M1 decode at 10,876 / 10,566 tok/s ([Fresh V2](../labs/m1-fresh-panel-transfer/README.md), [bar-f](../loop/tasks/m1-heldout-phrasing-transfer/claude-211/REPORT.md)). The p-f reference replies are 62.5% verbatim TRAIN replies, so M1 is not useful-chat qualification.
 
 ## Units since 31 Oct
 
 ### What is different on 14 Nov
 
-Read at `origin/main` `085ff55d9` (proof, from the code named in each row) and from the [float-training notebook](../research/notebook/float-training.md) (measurement, by unit). The FBS trunk's current models are claude-358's p-s1 to p-s3; their recipe is listed on the [mechanism board](../mechanisms/README.md#the-current-recipe-claude-358s-p-recipe).
+Read at `origin/main` `085ff55d9` (proof, from the code named in each row) and from the [float-training notebook](../research/notebook/float-training.md) (measurement, by unit). The FBS models in that snapshot were claude-358's p-s1 to p-s3; their recipe is listed on the [mechanism board](../mechanisms/README.md#the-current-recipe-claude-358s-p-recipe).
 
 | Stage | 31 Oct | 14 Nov |
 |---|---|---|

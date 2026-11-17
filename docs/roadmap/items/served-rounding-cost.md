@@ -1,9 +1,9 @@
 ---
 id: served-rounding-cost
 title: Bring training as served back inside the 2x operational gate
-milestone: M4
+milestone: research
 area: serving
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
@@ -26,6 +26,8 @@ remove host round-trips and repeated scalar work from the served forward while
 preserving every exported value bit-for-bit.
 
 ## What is missing
+
+**November 17, 2026.** The historical 2× question concerns training a float model with serving-time rounding. D85 and the written-state decision moved the current M4 route to a shared native representation. This configuration is held as a research comparison and its M4 work request closes as not planned. Reopen only if a reviewed decision selects this rounded float trainer for a comparison whose result changes a model or implementation choice. Its original slowdown, four-run panel and proposed profile remain available if work resumes on that specific trainer. [PR #4046](https://github.com/UOR-Foundation/uor-r4/pull/4046)
 
 The failed comparison is
 [`one-model-end-to-end-served-comparison-2026-11-02.md`](../../harness/prep/one-model-end-to-end-served-comparison-2026-11-02.md).
