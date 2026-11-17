@@ -24,6 +24,9 @@ uor-r4-discrete = { path = "../uor-r4-discrete" }
 uor-r4-integer = { path = "../uor-r4-integer", features = ["fbs-synthetic", "serving-wasm"] }
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
 [[bin]]
 name = "cpu-writer-bench"
 path = "src/bin/cpu-writer-bench.rs"

@@ -1,0 +1,91 @@
+{
+  "schema": "uor-r4.cpu-carry-hold-grouped-resource/1",
+  "status": "COMPLETE_REAL_AUDITED",
+  "experiment": "CPU grouped hold-gain and multi-checkpoint audit",
+  "updated_utc": "2026-11-09T14:04:11Z",
+  "previous_ledger": "cpu-training-pilot-carry-hold-audit-2026-11-09/resource-ledger.json",
+  "previous_admitted_cumulative_projection_seconds": 111167.677487699,
+  "cost_kind": "local CPU measured floor plus explicit unmeasured-stage projection",
+  "rate_usd_per_hour": 0,
+  "approximate_gpu_cost_usd": 0,
+  "new_pods": 0,
+  "increment_seconds": 3600,
+  "admitted_increment_seconds": 3600,
+  "complete_projection_seconds": 3600,
+  "cumulative_projected_seconds": 114767.677487699,
+  "admitted_cumulative_projection_seconds": 114767.677487699,
+  "lab_cumulative_projection_seconds": 114767.677487699,
+  "projection": {
+    "measured_library_tests_seconds": 47.30,
+    "release_build_seconds": 44.22,
+    "builds_and_checks_allowance_seconds": 900,
+    "review_and_delivery_allowance_seconds": 600,
+    "retry_and_setup_allowance_seconds": 2008.48,
+    "wall_limit_seconds": 3600
+  },
+  "measured": {
+    "focused_binary_tests_passed": 9,
+    "library_tests_passed": 480,
+    "library_tests_ignored": 5,
+    "library_tests_seconds": 47.22,
+    "library_tests_process_wall_seconds": 47.30,
+    "library_tests_cpu_percent": 2112,
+    "library_tests_peak_rss_kib": 707820,
+    "repeat_single_report_byte_identical": true,
+    "repeat_batch_report_byte_identical": true,
+    "real_checkpoints_audited": 8,
+    "real_group_and_type_weight_matches": 8,
+    "real_checkpoint_audit_seconds": 0.03,
+    "real_checkpoint_audit_cpu_percent": 520,
+    "real_checkpoint_audit_peak_rss_kib": 171240
+  },
+  "artifacts": {
+    "synthetic_single_report_sha256": "1d2014a91240db057728ce27e6554dffef1774bc2a8a6322237d2e060ed09f42",
+    "synthetic_batch_report_sha256": "95b39b12dd3684abe23c67d32f51b86dd2f5ffe83abf0191cf22d256726a4673",
+    "synthetic_batch_manifest_sha256": "51051cfd6b2cd5380fdc3854b81be8cbbdfdcbe99796c47bd3823c289f632f3b",
+    "synthetic_report_executable_sha256": "87d481a87f003b19aa675a04d720ae058ca32bf08650b1b3e9080055d12cb665",
+    "release_executable_sha256": "aef6083c6c47180d743abf3521716a12841316cecdb35b94d6768f8af171a31e",
+    "claude_seed1_tarball_sha256": "57cbd25a941f56458436caaa258b0afbe8a79a5520d5f31a371e7b33cf795d93",
+    "claude_seed2_tarball_sha256": "4d952047d69e4f80bcd1385d95c0189d268c1949d82503941c70e8395d2314fd",
+    "real_checkpoint_manifest_sha256": "e1287b9b7f31766ab0545654fa6c4c4fb8b303f41ffcceadceb7c5d4e0b78c24",
+    "real_checkpoint_report_sha256": "497140c6a6730521b3337c8f155cd31771aade953203eb1ee4eab7d51ee58865",
+    "real_gain_parity_sha256": "be065856b20a7cc56a0a71b1dacd02d6a188927f00bb303521fdc3b4a1cce6d1"
+  },
+  "storage": {
+    "task_and_ledger_bytes": 393077,
+    "debug_build_target_bytes": 5209239421,
+    "release_build_target_bytes": 304013434,
+    "free_bytes_at_measurement": 152725659648,
+    "temporary_real_checkpoint_bytes_at_measurement": 582545293,
+    "stop_margin_bytes": 134217728,
+    "absolute_floor_bytes": 32346472448,
+    "floor_passes": true
+  },
+  "host": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "physical_cores": 16,
+    "hardware_threads": 32,
+    "os": "Linux x86_64"
+  },
+  "model_time_ledger": {
+    "path": ".uor-models/native-joint-learning-2026-09-04/model-time.json",
+    "state": "ABSENT",
+    "treatment": "never treated as zero"
+  },
+  "sources": {
+    "order": "docs/loop/tasks/cpu-training-pilot/deepseek-254/ORDER.md",
+    "report": "docs/loop/tasks/cpu-training-pilot/deepseek-254/REPORT.md",
+    "single_evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/synthetic-single.json",
+    "batch_evidence": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/synthetic-batch.json",
+    "real_manifest": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/real-eight-checkpoint-manifest.json",
+    "real_report": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/real-eight-checkpoint.json",
+    "real_gain_parity": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/real-eight-gain-parity.json",
+    "store_inventory": "docs/loop/tasks/cpu-training-pilot/deepseek-254/evidence/store-runs-inventory.txt"
+  },
+  "normal_close": {
+    "gpu_pods": 0,
+    "paid_api": false,
+    "external_upload": false,
+    "local_cleanup": "remove worktree targets and the temporary checkpoint download/extraction after delivery; retain text report and hashes"
+  }
+}

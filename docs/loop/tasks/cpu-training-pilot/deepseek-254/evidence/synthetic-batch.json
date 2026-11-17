@@ -1,0 +1,1183 @@
+{
+  "arms": [
+    {
+      "checkpoint": "second",
+      "id": "aqh-s2",
+      "label": "B2-aqH",
+      "reading": {
+        "ask": {
+          "cells": 32,
+          "improved_cells": 0,
+          "improvement_bits": -8,
+          "regressed_cells": 2,
+          "relations": 16,
+          "trained_exact_codes": 28,
+          "trained_target_nearest": 28,
+          "trained_total_bits": 16,
+          "zero_exact_codes": 30,
+          "zero_target_nearest": 30,
+          "zero_total_bits": 8
+        },
+        "ask_heads": 1,
+        "depths": [
+          2,
+          6
+        ],
+        "hamming_sha256": "956719a6c1bc918715e69d8b62f4fa8f0165d152437e808e57b74250a7fc4ccd",
+        "heads": 2,
+        "hold": {
+          "gain_max": 4.0,
+          "gain_mean": 0.006136363636363636,
+          "gain_mean_abs": 0.009318181818181817,
+          "gain_min": -1.0,
+          "gain_nonzero": 10,
+          "header_gain": {
+            "max": 0.5,
+            "mean": 0.125,
+            "min": -0.25
+          },
+          "question_gain": {
+            "max": 1.0,
+            "mean": 0.0,
+            "min": -1.0
+          },
+          "rest_gain_mean": 0.00044014084507042255,
+          "rows": 8,
+          "type_weight_by_depth": [
+            {
+              "depth": 2,
+              "mean_abs": 0.1875
+            },
+            {
+              "depth": 6,
+              "mean_abs": 0.0625
+            }
+          ],
+          "value_gain": {
+            "max": 4.0,
+            "mean": 0.01171875,
+            "min": 0.0
+          },
+          "write_weight_mean_abs": 0.1875,
+          "write_weight_nonzero": 1
+        },
+        "hold_rows": 8,
+        "model_sha256": "60ce5e0b7525e73e544608f3c675df5ab6a36282013a4318684f33e711d95375",
+        "relations": [
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 32,
+            "relation": 16
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": -4,
+                "offset_abs_sum_q16": 1048576,
+                "offset_changed_coordinates": 8,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 2,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": -4,
+                "offset_abs_sum_q16": 1048576,
+                "offset_changed_coordinates": 8,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 2,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 33,
+            "relation": 17
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 16,
+                "zero_bits": 4,
+                "zero_target_nearest": false,
+                "zero_target_rank": 16
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 16,
+                "zero_bits": 4,
+                "zero_target_nearest": false,
+                "zero_target_rank": 16
+              }
+            ],
+            "question": 34,
+            "relation": 18
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 35,
+            "relation": 19
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 36,
+            "relation": 20
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 37,
+            "relation": 21
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 38,
+            "relation": 22
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 39,
+            "relation": 23
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 40,
+            "relation": 24
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 41,
+            "relation": 25
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 42,
+            "relation": 26
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 43,
+            "relation": 27
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 44,
+            "relation": 28
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 45,
+            "relation": 29
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 46,
+            "relation": 30
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 47,
+            "relation": 31
+          }
+        ],
+        "vocab": 1100,
+        "width": 8
+      },
+      "seed": 2
+    },
+    {
+      "checkpoint": "first",
+      "id": "aqh-s1",
+      "label": "B2-aqH",
+      "reading": {
+        "ask": {
+          "cells": 32,
+          "improved_cells": 0,
+          "improvement_bits": -8,
+          "regressed_cells": 2,
+          "relations": 16,
+          "trained_exact_codes": 28,
+          "trained_target_nearest": 28,
+          "trained_total_bits": 16,
+          "zero_exact_codes": 30,
+          "zero_target_nearest": 30,
+          "zero_total_bits": 8
+        },
+        "ask_heads": 1,
+        "depths": [
+          2,
+          6
+        ],
+        "hamming_sha256": "956719a6c1bc918715e69d8b62f4fa8f0165d152437e808e57b74250a7fc4ccd",
+        "heads": 2,
+        "hold": {
+          "gain_max": 4.0,
+          "gain_mean": 0.006136363636363636,
+          "gain_mean_abs": 0.009318181818181817,
+          "gain_min": -1.0,
+          "gain_nonzero": 10,
+          "header_gain": {
+            "max": 0.5,
+            "mean": 0.125,
+            "min": -0.25
+          },
+          "question_gain": {
+            "max": 1.0,
+            "mean": 0.0,
+            "min": -1.0
+          },
+          "rest_gain_mean": 0.00044014084507042255,
+          "rows": 8,
+          "type_weight_by_depth": [
+            {
+              "depth": 2,
+              "mean_abs": 0.1875
+            },
+            {
+              "depth": 6,
+              "mean_abs": 0.0625
+            }
+          ],
+          "value_gain": {
+            "max": 4.0,
+            "mean": 0.01171875,
+            "min": 0.0
+          },
+          "write_weight_mean_abs": 0.1875,
+          "write_weight_nonzero": 1
+        },
+        "hold_rows": 8,
+        "model_sha256": "49d7c0968608bb2c6dfdbfc21277c873e7dad763fb0a98878dab049cd8b973dc",
+        "relations": [
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 32,
+            "relation": 16
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": -4,
+                "offset_abs_sum_q16": 1048576,
+                "offset_changed_coordinates": 8,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 2,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": -4,
+                "offset_abs_sum_q16": 1048576,
+                "offset_changed_coordinates": 8,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 2,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 33,
+            "relation": 17
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 16,
+                "zero_bits": 4,
+                "zero_target_nearest": false,
+                "zero_target_rank": 16
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 4,
+                "trained_target_nearest": false,
+                "trained_target_rank": 16,
+                "zero_bits": 4,
+                "zero_target_nearest": false,
+                "zero_target_rank": 16
+              }
+            ],
+            "question": 34,
+            "relation": 18
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 35,
+            "relation": 19
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 36,
+            "relation": 20
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 37,
+            "relation": 21
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 38,
+            "relation": 22
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 39,
+            "relation": 23
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 40,
+            "relation": 24
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 41,
+            "relation": 25
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 42,
+            "relation": 26
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 43,
+            "relation": 27
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 44,
+            "relation": 28
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 45,
+            "relation": 29
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 46,
+            "relation": 30
+          },
+          {
+            "cells": [
+              {
+                "depth": 2,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              },
+              {
+                "depth": 6,
+                "head": 1,
+                "improvement_bits": 0,
+                "offset_abs_sum_q16": 0,
+                "offset_changed_coordinates": 0,
+                "trained_bits": 0,
+                "trained_target_nearest": true,
+                "trained_target_rank": 1,
+                "zero_bits": 0,
+                "zero_target_nearest": true,
+                "zero_target_rank": 1
+              }
+            ],
+            "question": 47,
+            "relation": 31
+          }
+        ],
+        "vocab": 1100,
+        "width": 8
+      },
+      "seed": 1
+    }
+  ],
+  "claim": "read-only multi-checkpoint grouped gain and ask-selection audit; not B2, carry, capability or serving evidence",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "executable_sha256": "87d481a87f003b19aa675a04d720ae058ca32bf08650b1b3e9080055d12cb665"
+  },
+  "manifest_sha256": "51051cfd6b2cd5380fdc3854b81be8cbbdfdcbe99796c47bd3823c289f632f3b",
+  "schema": "uor-r4.cpu-carry-hold-batch/1",
+  "settings": {
+    "query_shift": 16,
+    "relation_tokens": {
+      "end": 32,
+      "start": 16
+    },
+    "workers": 2
+  }
+}

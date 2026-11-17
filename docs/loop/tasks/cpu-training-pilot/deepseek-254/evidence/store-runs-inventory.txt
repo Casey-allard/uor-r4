@@ -1,0 +1,12 @@
+Checked 2026-11-09T06:07Z:
+
+  scripts/pod/uor-store ls results/claude/one-model-end-to-end-carry-hold-2026-11-09/runs/
+
+Result:
+
+  curl: (22) The requested URL returned error: 404
+  uor-store: listing caseyallard/uor-r4-store failed
+  exit 1
+
+The real B2 carry-hold checkpoints were therefore NOT_RUN for that 06:07Z
+observation. Deepseek-259 later audited the published checkpoints.

@@ -26,6 +26,7 @@ struct TrainedAskRead {
     depth: usize,
     key_rotation: Vec<f32>,
     ask: Vec<f32>,
+    type_weight: Option<Vec<f32>>,
 }
 
 #[derive(Clone, Debug)]
@@ -70,6 +71,26 @@ pub struct AskHoldSummary {
     pub gain_mean_abs: f64,
     pub write_weight_nonzero: usize,
     pub write_weight_mean_abs: f64,
+    pub question_gain: Option<AskGainStats>,
+    pub header_gain: Option<AskGainStats>,
+    pub value_gain: Option<AskGainStats>,
+    pub rest_gain_mean: Option<f64>,
+    pub type_weight_by_depth: Vec<AskTypeWeightSummary>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AskGainStats {
+    pub mean: f64,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AskTypeWeightSummary {
+    pub depth: usize,
+    pub mean_abs: f64,
 }
 
 impl TrainedAskOffsets {
@@ -150,10 +171,20 @@ impl TrainedAskOffsets {
             let rotation = hamming
                 .tensor(&rotation_name)
                 .map_err(|error| format!("{rotation_name}: {error}"))?;
+            let weight_name = format!("d{depth}.weight");
+            let type_weight = if hamming.names().iter().any(|name| *name == weight_name) {
+                let weight = hamming
+                    .tensor(&weight_name)
+                    .map_err(|error| format!("{weight_name}: {error}"))?;
+                Some(f32_values(&weight, &weight_name, &[2, width])?[width..].to_vec())
+            } else {
+                None
+            };
             reads.push(TrainedAskRead {
                 depth,
                 key_rotation: f32_values(&rotation, &rotation_name, &[width / 4, 4])?,
                 ask: f32_values(&ask, &ask_name, &[vocab, width])?,
+                type_weight,
             });
         }
 
@@ -225,6 +256,26 @@ impl TrainedAskOffsets {
                 .map(|&value| f64::from(value.abs()))
                 .sum::<f64>()
                 / hold.write_weight.len() as f64,
+            question_gain: gain_stats(&hold.gain, QUESTION_TOKENS),
+            header_gain: gain_stats(&hold.gain, HEADER_TOKENS),
+            value_gain: gain_stats(&hold.gain, VALUE_TOKENS),
+            rest_gain_mean: rest_gain_mean(&hold.gain),
+            type_weight_by_depth: self
+                .reads
+                .iter()
+                .filter_map(|read| {
+                    read.type_weight
+                        .as_ref()
+                        .map(|weight| AskTypeWeightSummary {
+                            depth: read.depth,
+                            mean_abs: weight
+                                .iter()
+                                .map(|&value| f64::from(value.abs()))
+                                .sum::<f64>()
+                                / weight.len() as f64,
+                        })
+                })
+                .collect(),
         })
     }
 
@@ -354,6 +405,50 @@ impl TrainedAskOffsets {
         }
         Ok(())
     }
+}
+
+// Claude-334's two-class groups from `uor-r4-float-train::in_space_long`.
+// They are copied here so this isolated CPU audit does not depend on the
+// float-training crate or its CUDA feature graph.
+const QUESTION_TOKENS: Range<usize> = 32..48;
+const HEADER_TOKENS: Range<usize> = 48..52;
+const VALUE_TOKENS: Range<usize> = 528..1_040;
+
+fn gain_stats(gain: &[f32], range: Range<usize>) -> Option<AskGainStats> {
+    if range.end > gain.len() {
+        return None;
+    }
+    let values = &gain[range];
+    Some(AskGainStats {
+        mean: values.iter().map(|&value| f64::from(value)).sum::<f64>() / values.len() as f64,
+        min: values
+            .iter()
+            .map(|&value| f64::from(value))
+            .fold(f64::INFINITY, f64::min),
+        max: values
+            .iter()
+            .map(|&value| f64::from(value))
+            .fold(f64::NEG_INFINITY, f64::max),
+    })
+}
+
+fn rest_gain_mean(gain: &[f32]) -> Option<f64> {
+    if VALUE_TOKENS.end > gain.len() {
+        return None;
+    }
+    let mut sum = 0.0;
+    let mut count = 0usize;
+    for (token, &value) in gain.iter().enumerate() {
+        if QUESTION_TOKENS.contains(&token)
+            || HEADER_TOKENS.contains(&token)
+            || VALUE_TOKENS.contains(&token)
+        {
+            continue;
+        }
+        sum += f64::from(value);
+        count += 1;
+    }
+    (count > 0).then_some(sum / count as f64)
 }
 
 fn parse_hold(
