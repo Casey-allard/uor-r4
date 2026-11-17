@@ -10,6 +10,12 @@ depends_on: []
 scope: [docs/harness/prep/read-binding-on-lawful-read*, docs/labs/read-binding-on-lawful-read/**, docs/loop/tasks/read-binding-on-lawful-read/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The completed Stage T line supplies no current Flock/Relation read that needs the proposed binding. P2 read and P3 pointer experiments live under #4063. Reopen when an identified read consumes this kernel and can compare wrong-value errors against its unbound read on 40 items per seed across three seeds, for 120 pooled observations. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-70](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/read-binding-on-lawful-read/antigravity-70/REPORT.md)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 It would give the lawful reads a training signal that worked on a softmax read.

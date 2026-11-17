@@ -11,6 +11,12 @@ notebook: docs/research/notebook/float-training.md
 scope: [docs/harness/prep/scale-probe*, docs/labs/scale-probe/**, docs/roadmap/items/scale-probe.md, docs/loop/tasks/scale-probe/**, docs/model/pipeline-map.md, docs/research/notebook/float-training.md]
 ---
 
+**November 17, 2026 · open for Casey’s November 8 scale comparison.** Track B calls for three to four model sizes on the same data and recipe, alongside the served-reply work. The same-pod D3 rescore compares w128 and w256. Both w512 seeds ran out of memory. Repair the trainer memory path and obtain a matched upper-width result before interpreting the slope above w256. The lab withdrew its 96 GB machine request for w1024. Other corpus sizes, served speed across context lengths and trained-versus-served parity retain their own acceptance criteria. P1 in #4063 varies the data fraction, so the width comparison remains outstanding. [Owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6715318106) · [Machine request](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6674683811) · [Measured sizes and open controls](../../loop/tasks/scale-probe/claude-317/REPORT.md#still-open)
+
+### Original registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 The pipeline map's gap 9: "Scale caps, with one data point." Every reply result so far comes from one size of model and one corpus. Without a measured slope, nobody can say whether the architecture gets better with size, which is the question any capable model has to answer.

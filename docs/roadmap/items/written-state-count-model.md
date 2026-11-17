@@ -18,7 +18,7 @@ The November 16 decision puts the current training and serving experiment on one
 
 ## What is missing
 
-P0 freezes the data split, reference models and scoring instruments. PR #4057 measured 2.004736 bits per byte with the order-2 modified Kneser–Ney reference on D87 DEV-tune. Order selection and the sealed DEV-test reference are the follow-up in #4058 and still await a merged result. The geometric model’s P1–P5 comparisons remain to be measured under their own gates. [Calibration report](../../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Sealed reference follow-up](https://github.com/UOR-Foundation/uor-r4/pull/4058)
+P0 freezes the split, reference models and scoring instruments. PR #4057 measured 2.004736 bits per byte on DEV-tune with the order-2 modified Kneser–Ney reference. PR #4058 merged at `11c2901d9`. The DEV-tune sweep selected order 10, the maximum its key could represent. On sealed DEV-test the reference scored **1.418136 bits per byte on all targets** and **1.743746 on the novel subset**. The corresponding bar Q thresholds for a candidate are 1.134508 and 1.394996 bits per byte. The geometric model’s P1–P5 comparisons remain open under their original gates. [Calibration](../../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Sealed reference and thresholds](../../loop/tasks/written-state-count-model/claude-422/REPORT.md) · [Merged PR #4058](https://github.com/UOR-Foundation/uor-r4/pull/4058)
 
 ## Done when
 

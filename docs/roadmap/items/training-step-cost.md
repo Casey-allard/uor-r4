@@ -3,13 +3,19 @@ id: training-step-cost
 title: Split the training backward, and run a cheaper rival search against (a)
 milestone: research
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [fbs-cost-profile]
 notebook: docs/research/notebook/float-training.md
 scope: [crates/uor-r4-float-train/build.rs, crates/uor-r4-float-train/src/lib.rs, crates/uor-r4-float-train/src/cuda_stack_kernels.rs, crates/uor-r4-float-train/src/top8_positions.rs, crates/uor-r4-float-train/src/top8_positions.cu, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/native_vector_writer.rs, crates/uor-r4-float-train/src/geometric_stack_native.rs, crates/uor-r4-float-train/src/geometric_stack_native_cuda.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, docs/harness/prep/training-step-cost*, docs/loop/tasks/training-step-cost/**, docs/research/notebook/float-training.md, docs/roadmap/items/training-step-cost.md]
 ---
+
+**November 17, 2026 · retired from the schedule under D68.** The fused nearest-objective search cut synthetic step time by 40.1% with bit-equal loss. The largest relative change in the embedding gradient was 1.14%. Tied rival selection is an unconfirmed explanation. The flag stays off. The native #4063 phases use other operators. Three decisions can reopen work independently. An RTX 5090 backward profile at (a) and w512/no-read could identify the stage to optimize. The original two-seed arm (a) A/B measures the selector-only cell objective’s step time, top-1, openings and copies. A separate matched two-seed b64L quality and time A/B measures the fused L1 search on the nearest objective before any change to its default. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [Fused selector measurement](https://github.com/UOR-Foundation/uor-r4/pull/3826)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
 
 ## Why it matters
 

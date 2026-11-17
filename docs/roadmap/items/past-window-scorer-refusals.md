@@ -3,12 +3,18 @@ id: past-window-scorer-refusals
 title: Refuse unreadable inputs to the past-window scorer
 milestone: research
 area: evaluation
-status: ready
+status: held
 open_to: anyone
 needs_gpu: false
 depends_on: []
 scope: [crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, docs/roadmap/items/past-window-scorer-refusals.md, docs/loop/tasks/past-window-scorer-refusals/**]
 ---
+
+**November 17, 2026 · retired from the schedule under D68.** Contributor PR #4039 and its merged adoption #4062 addressed the four malformed-input cases and validated the carry-scoring context. For finding 5, the default scorer now checks windows before parsing panel queries, so a panel failing both checks returns the windowing error first. The matched default-output compatibility comparison remains outstanding. The written-state scorers under #4063 use a separate path. Reopen if a named legacy scorer consumer requires the default-path comparison on matched inputs. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [Merged contributor adoption](https://github.com/UOR-Foundation/uor-r4/pull/4062)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
 
 ## Why it matters
 

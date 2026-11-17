@@ -10,6 +10,12 @@ depends_on: []
 scope: [docs/harness/prep/hopf-retained-fibre-test*, docs/labs/hopf-retained-fibre-test/**, docs/loop/tasks/hopf-retained-fibre-test/**]
 ---
 
+**November 17, 2026 · open as a conditional language experiment.** Casey's D72 ruling kept the Hopf retained-fibre map READY. The mechanism board names this test as its next action. The controlled integer-DEV run stays held until a discrete consumer can use the fibre. Compare base only, base plus the retained fibre, and explicit bank tags at equal retained bytes, including fibre removal or permutation. Failed sector routing remains PARKED. The conditional Hopf-sector address in #4063 measures another quantity. [Owner ruling](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6379430093) · [Mechanism board](../../mechanisms/README.md) · [Registered controls](../../mechanisms/hopf-observation.md#what-would-reopen-it)
+
+### Original registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 It is the reopen condition for a PARKED attention-scoring replacement.

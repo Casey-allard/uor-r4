@@ -10,6 +10,12 @@ depends_on: []
 scope: [docs/harness/prep/r-full-epoch-revisit-schedules*, docs/labs/r-full-epoch-revisit-schedules/**, docs/loop/tasks/r-full-epoch-revisit-schedules/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The canonical 16,404-batch dose covers 1,049,856 of 2,425,925 targets (43.28%) by arithmetic. Stage T separately attempted 3,008 batches per frozen-zero seed and 4,096 per relation seed. Its full-epoch and frequent-token revisit arms were never compared. P1 under #4063 measures a native count stream. Reopen the schedule comparison if a chosen learner uses those updates and target coverage would decide its schedule. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-66](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/r-full-epoch-revisit-schedules/antigravity-66/REPORT.md) · [Stage T attempted batches](https://github.com/UOR-Foundation/uor-r4/blob/11c2901d90af122c53069aff62191bc4f147ff9a/docs/labs/m1-bvg-k-stage-t-training/README.md#L80)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 Checks whether the low top-1 is partly a coverage problem.

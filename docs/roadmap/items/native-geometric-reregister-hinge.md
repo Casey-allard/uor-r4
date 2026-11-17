@@ -10,6 +10,12 @@ depends_on: []
 scope: [docs/harness/prep/native-geometric-reregister-hinge*, docs/labs/native-geometric-reregister-hinge/**, docs/loop/tasks/native-geometric-reregister-hinge/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The old whole-engine hinge would require replacements for quarantined kernels and a shared writer before a fresh-row measurement. P3 under #4063 uses a hinge specifically for S4 pointer choice. Revive the whole-engine sheet only for an identified lawful engine and writer with a fresh-row comparison to run. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-64](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/native-geometric-reregister-hinge/antigravity-64/REPORT.md)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 It reopens a PARKED whole-model engine under the current loss.

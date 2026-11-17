@@ -3,13 +3,19 @@ id: turn-memory-integer
 title: Serve the turn memory from the integer artifact on the laptop
 milestone: research
 area: serving
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [route-plus-memory]
 notebook: docs/research/notebook/m4-serving.md
 scope: [crates/uor-r4-integer/src/wasm_serve.rs, crates/uor-r4-integer/src/wasm_bindgen_exports.rs, crates/uor-r4-integer/src/stack/memory.rs, crates/uor-r4-integer/src/fbs_snapshot.rs, crates/uor-r4-float-train/src/bin/fbs-snapshot.rs, crates/uor-r4-integer/src/stack/synthetic.rs, crates/uor-r4-integer/src/stack/mod.rs, crates/uor-r4-integer/src/stack/session.rs, crates/uor-r4-integer/src/stack/format.rs, crates/uor-r4-integer/src/stack/tests.rs, crates/uor-r4-integer/src/bin/fbs-export.rs, crates/uor-r4-integer/src/bin/fbs-toks.rs, crates/uor-r4-float-train/src/fbs_export.rs, crates/uor-r4-float-train/src/flock_read_memory.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, docs/harness/prep/turn-memory-integer*, docs/loop/tasks/turn-memory-integer/**, docs/research/notebook/m4-serving.md, docs/roadmap/items/turn-memory-integer.md]
 ---
+
+**November 17, 2026 · retired from the schedule under D68.** The integer session serves both FBS turn tables and accepts an explicit reply boundary. Real-checkpoint output, the registered controls and throughput comparison are still missing. P3/P4 under #4063 test native written state and replay. Reopen the original comparison when an accepted serving route needs this two-table FBS format and a bound real checkpoint. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [Session and boundary implementation](https://github.com/UOR-Foundation/uor-r4/pull/3446) · [Served-readout diagnostic](https://github.com/UOR-Foundation/uor-r4/pull/3616)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
 
 ## Why it matters
 

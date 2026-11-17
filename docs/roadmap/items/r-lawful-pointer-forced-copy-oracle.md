@@ -10,6 +10,12 @@ depends_on: []
 scope: [crates/uor-r4-training/**, docs/harness/prep/r-lawful-pointer-forced-copy-oracle*, docs/labs/r-lawful-pointer-forced-copy-oracle/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The finite pointer preparation left the forced-copy intervention without a bound checkpoint or measured oracle-off result. P3 under #4063 has a separately specified S4 pointer. Reopen the original oracle if a particular checkpoint needs that intervention, with legal pointer construction and registered oracle-off and intervention controls. The driver still derives per-condition row and pair counts from `cpu_batch`. To qualify on GPU, repair the driver to aggregate GPU decisions and use host counts only to check parity. [Post-merge grading audit](https://github.com/UOR-Foundation/uor-r4/issues/2880#issuecomment-6403211750) [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-69](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/r-lawful-pointer-forced-copy-oracle/antigravity-69/REPORT.md)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 The pointer is the planned copy head: it copies a stored answer by the slot's exact name, not by the surrounding wording. Every pointer built so far is a softmax pointer inside a dense float model, and each one missed its bar or cannot be served. The forced-copy oracle supplies the true slot and bounds how much a perfect address could help, so it decides whether pointer-style copying is worth learning lawfully. See [the pointer-key page](../../mechanisms/pointer-key.md).

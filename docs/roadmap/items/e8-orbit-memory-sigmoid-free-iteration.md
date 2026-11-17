@@ -11,6 +11,12 @@ notebook: docs/research/notebook/float-training.md
 scope: [crates/uor-r4-float-train/**, crates/uor-r4-integer/**, docs/mechanisms/e8-orbit-memory.md, docs/harness/prep/e8-orbit-memory-sigmoid-free-iteration*, docs/labs/e8-orbit-memory-sigmoid-free-iteration/**, docs/loop/tasks/e8-orbit-memory-sigmoid-free-iteration/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The earlier CPU orbit gate used a sigmoid and learned keys led E8 by 0.023 BPB. The current experiment uses an E8 product key in P2 under #4063. Revisit the orbit gate only if a selected consumer requires a sigmoid-free trained gate and a GPU comparison with the learned-key control. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-73](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/e8-orbit-memory-sigmoid-free-iteration/antigravity-73/REPORT.md)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 It reopens a PARKED feed-forward replacement under the project's rules.

@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 31 |
-| held | 11 |
+| ready | 27 |
+| held | 15 |
 | decision | 0 |
 | done | 114 |
 | total | 156 |
@@ -40,7 +40,6 @@ These items are ready and open to anyone.
 | [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | M8 | [#2869](https://github.com/UOR-Foundation/uor-r4/issues/2869) |
 | [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | M8 | [#2870](https://github.com/UOR-Foundation/uor-r4/issues/2870) |
 | [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | M3 | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
-| [Refuse unreadable inputs to the past-window scorer](items/past-window-scorer-refusals.md) | research | [#3714](https://github.com/UOR-Foundation/uor-r4/issues/3714) |
 | [Preserve RunPod pod cleanup across the API migration](items/runpod-reaper-api.md) | infra | [#3957](https://github.com/UOR-Foundation/uor-r4/issues/3957) |
 
 ## M1
@@ -154,27 +153,27 @@ These items are ready and open to anyone.
 | [Run and grade the bounded CPU training pilot](items/cpu-training-pilot.md) | ready | a lab | no | [cpu-discrete-training-path](items/cpu-discrete-training-path.md), [cpu-shared-vector-train](items/cpu-shared-vector-train.md), [cpu-quantization-exact-memory](items/cpu-quantization-exact-memory.md), [cpu-whole-path-exact-updates](items/cpu-whole-path-exact-updates.md) | [#3506](https://github.com/UOR-Foundation/uor-r4/issues/3506) |
 | [Book page freshness records, a staged banner, and mdBook 0.5](items/docs-site-freshness.md) | ready | a lab | no | none | [#3972](https://github.com/UOR-Foundation/uor-r4/issues/3972) |
 | [Connect training and integer serving behind shared stage interfaces](items/end-to-end-integration.md) | ready | a lab | no | [integer-hamming-read](items/integer-hamming-read.md), [fbs-serving-kernels](items/fbs-serving-kernels.md), [native-space-state-contract](items/native-space-state-contract.md) | [#4064](https://github.com/UOR-Foundation/uor-r4/issues/4064) |
-| [One kernel list for the float crate, and fused kernels for the served quantizers](items/float-kernel-fusion.md) | ready | a lab | yes | none | [#3678](https://github.com/UOR-Foundation/uor-r4/issues/3678) |
 | [Build a lawful GPU comparator for the historical S1.4 icosian snap replay](items/icosian-snap-parity.md) | ready | anyone | yes | none | [#2655](https://github.com/UOR-Foundation/uor-r4/issues/2655) |
 | [Define one persistent native training/serving state and its operator parity](items/native-space-state-contract.md) | ready | a lab | no | none | [#3973](https://github.com/UOR-Foundation/uor-r4/issues/3973) |
 | [Score one model end to end on prompts it has not seen, with tokens per second](items/one-model-end-to-end.md) | ready | a lab | yes | [turn-memory-reply](items/turn-memory-reply.md) | [#3407](https://github.com/UOR-Foundation/uor-r4/issues/3407) |
-| [Refuse unreadable inputs to the past-window scorer](items/past-window-scorer-refusals.md) | ready | anyone | no | none | [#3714](https://github.com/UOR-Foundation/uor-r4/issues/3714) |
 | [Measure how ability grows with width and data](items/scale-probe.md) | ready | a lab | yes | [one-model-end-to-end](items/one-model-end-to-end.md) | [#3472](https://github.com/UOR-Foundation/uor-r4/issues/3472) |
-| [Split the training backward, and run a cheaper rival search against (a)](items/training-step-cost.md) | ready | a lab | yes | [fbs-cost-profile](items/fbs-cost-profile.md) | [#3391](https://github.com/UOR-Foundation/uor-r4/issues/3391) |
-| [Serve the turn memory from the integer artifact on the laptop](items/turn-memory-integer.md) | ready | a lab | yes | [route-plus-memory](items/route-plus-memory.md) | [#3392](https://github.com/UOR-Foundation/uor-r4/issues/3392) |
 | [Make the native writer's admission hold at every seed](items/writer-admission.md) | ready | a lab | yes | [one-decoder](items/one-decoder.md) | [#3394](https://github.com/UOR-Foundation/uor-r4/issues/3394) |
 | [Test the written-state geometric count model against the frozen reference](items/written-state-count-model.md) | ready | a lab | yes | [m2-donor-corpus-generation](items/m2-donor-corpus-generation.md) | [#4063](https://github.com/UOR-Foundation/uor-r4/issues/4063) |
 | [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
+| [One kernel list for the float crate, and fused kernels for the served quantizers](items/float-kernel-fusion.md) | held | a lab | yes | none | [#3678](https://github.com/UOR-Foundation/uor-r4/issues/3678) |
 | [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
 | [Serve the trained model's readout in the integer artifact](items/integer-nearest-readout.md) | held | a lab | no | [integer-retention-rates](items/integer-retention-rates.md), [one-decoder](items/one-decoder.md) | [#3462](https://github.com/UOR-Foundation/uor-r4/issues/3462) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
+| [Refuse unreadable inputs to the past-window scorer](items/past-window-scorer-refusals.md) | held | anyone | no | none | [#3714](https://github.com/UOR-Foundation/uor-r4/issues/3714) |
 | [Serve the point key's opening in the integer artifact on the laptop](items/point-key-integer.md) | held | a lab | no | [one-model-end-to-end](items/one-model-end-to-end.md), [turn-memory-integer](items/turn-memory-integer.md), [integer-retention-rates](items/integer-retention-rates.md), [integer-nearest-readout](items/integer-nearest-readout.md) | [#3450](https://github.com/UOR-Foundation/uor-r4/issues/3450) |
 | [Test full-epoch and frequent-token revisit schedules](items/r-full-epoch-revisit-schedules.md) | held | a lab | yes | none | [#2878](https://github.com/UOR-Foundation/uor-r4/issues/2878) |
 | [Build a lawful pointer, then run the forced-copy oracle](items/r-lawful-pointer-forced-copy-oracle.md) | held | a lab | yes | none | [#2880](https://github.com/UOR-Foundation/uor-r4/issues/2880) |
 | [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
 | [Bring training as served back inside the 2x operational gate](items/served-rounding-cost.md) | held | a lab | yes | none | [#3594](https://github.com/UOR-Foundation/uor-r4/issues/3594) |
+| [Split the training backward, and run a cheaper rival search against (a)](items/training-step-cost.md) | held | a lab | yes | [fbs-cost-profile](items/fbs-cost-profile.md) | [#3391](https://github.com/UOR-Foundation/uor-r4/issues/3391) |
+| [Serve the turn memory from the integer artifact on the laptop](items/turn-memory-integer.md) | held | a lab | yes | [route-plus-memory](items/route-plus-memory.md) | [#3392](https://github.com/UOR-Foundation/uor-r4/issues/3392) |
 | [Build a hard-selection step for carrier credit](items/carrier-credit-hard-selection.md) | done | a lab | yes | none | [#2819](https://github.com/UOR-Foundation/uor-r4/issues/2819) |
 | [Port exact CPU reads, counterfactual updates and BVG-K](items/cpu-discrete-training-path.md) | done | a lab | no | [cpu-discrete-writer-core](items/cpu-discrete-writer-core.md) | [#3501](https://github.com/UOR-Foundation/uor-r4/issues/3501) |
 | [Build an exact CPU discrete writer and admission oracle](items/cpu-discrete-writer-core.md) | done | a lab | no | [cpu-training-program](items/cpu-training-program.md) | [#3502](https://github.com/UOR-Foundation/uor-r4/issues/3502) |

@@ -10,6 +10,12 @@ depends_on: []
 scope: [docs/harness/prep/r-vsa-hamming-binding*, docs/labs/r-vsa-hamming-binding/**, docs/loop/tasks/r-vsa-hamming-binding/**]
 ---
 
+**November 17, 2026 · retired from the schedule under D68.** The Stage T writer’s Hamming-binding kernel and controlled GPU comparison were never run. P2 under #4063 reserves a SplitMix VSA address arm for its conditional branch. Reopen the writer experiment only if a selected writer uses that binding and its three-arm comparison against count controls would decide admission. [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md) · [Written-state experiment](https://github.com/UOR-Foundation/uor-r4/issues/4063) · [antigravity-69](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/tasks/r-vsa-hamming-binding/antigravity-69/REPORT.md)
+
+### Historical registration and evidence
+
+The original rationale, acceptance criteria and work instructions follow.
+
 ## Why it matters
 
 A possible lawful binding mechanism for memory and relations.

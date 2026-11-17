@@ -11,6 +11,12 @@ notebook: docs/research/notebook/float-training.md
 scope: [crates/uor-r4-float-train/src/native_vector_writer.rs, crates/uor-r4-float-train/src/in_space_long.rs, crates/uor-r4-float-train/src/bin/train-in-space.rs, crates/uor-r4-float-train/src/hamilton_sheet.rs, docs/harness/prep/writer-admission*, docs/loop/tasks/writer-admission/**, docs/research/notebook/float-training.md, docs/roadmap/items/writer-admission.md]
 ---
 
+**November 17, 2026 · open on owner direction.** On November 2 Casey selected writer admission for the next training round on the chosen base arm. The diagnosis and finite anchor controls landed. The outstanding owner-directed run trains through the writer as served at **three seeds** and requires admission at every seed. Its registration must also account for the original two-seed matched writer-versus-whole-table-nearest comparison on the same checkpoints, including cost per token. Bind the selected base and shared native operator under the current charter before execution. The separate Pick expert in #4063 does not supply these results. [Owner direction](https://github.com/UOR-Foundation/uor-r4/issues/3394#issuecomment-6585646629) · [Anchor controls and outstanding comparison](../../loop/tasks/writer-admission/claude-290/REPORT.md) · [November queue decision](../../loop/tasks/infra-loop-harness/codex-10/DECISION.md)
+
+### Original registration and evidence
+
+The original rationale and comparisons follow. The November 2 owner direction adds the three-seed arm above.
+
 ## Why it matters
 
 The owner, 28 Oct 2026, in claude's chat: "I don't care what we serve at long as it is cheap". This is the [pipeline map](../../model/pipeline-map.md)'s R2 and its gap 2.

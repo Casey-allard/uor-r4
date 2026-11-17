@@ -121,7 +121,7 @@ Both feed the trunk.
 
 **The 29 Oct order is historical.** The open owner direction above first named `turn-memory-reply`, then the integer serving of the parts, R7, and one model end to end. Until 29 Oct, `loop next` ranked these items by unblock count, and `turn-memory-reply`, which unblocks no item, was never offered.
 
-The [map](docs/model/pipeline-map.md)'s current order of work goes on with these, each with its cost per token beside its result:
+**Historical October 29 pipeline order.** The [pipeline map](docs/model/pipeline-map.md) tracked the following FBS work and its cost per token. The November 16 written-state track and its P0–P5 gates appear under [Approved sequences](#approved-sequences). The November 17 [queue decision](docs/loop/tasks/infra-loop-harness/codex-10/DECISION.md) records the disposition of the historical configurations. The later owner direction for the [three-seed writer arm](https://github.com/UOR-Foundation/uor-r4/issues/3394#issuecomment-6585646629) remains open in #3394. Casey’s [November 8 scale direction](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6715318106) also keeps the three-to-four-size comparison open in #3472.
 - `turn-memory-reply` (R1's follow-up) is **done**. [Claude-222 and claude-224](docs/loop/tasks/point-key-integer/claude-224/REPORT.md) built the integer table/search and panel decode/grade; [claude-227](docs/loop/tasks/integer-retention-rates/claude-227/REPORT.md) passed retention GPU parity within the 3% bar; [claude-228](docs/loop/tasks/point-key-integer/claude-228/REPORT.md) built the run's reference/read-back/BOS checks; [claude-229](docs/loop/tasks/point-key-integer/claude-229/REPORT.md) found an instrument fault: the integer session uses the native writer instead of the trained whole-table nearest readout, so no bar result or throughput is reported. [Claude-231](docs/loop/tasks/integer-nearest-readout/claude-231/REPORT.md) built the nearest readout and export on native and browser paths; [claude-232](docs/loop/tasks/integer-nearest-readout/claude-232/REPORT.md) then missed greedy parity in every cell, so the mismatch must be localized before the p-x rerun.
 - `writer-admission` (R2): make the native writer's admission hold at every seed, so the cheap readout is right.
 - `fbs-serving-kernels` (R3): **done** (claude-163 to claude-170). Exact structured kernels took the M1's served token from 270 to 3,042–3,044 tok/s, replies byte-identical. Its follow-ups, a NEON kernel and fewer snap candidates, are `fbs-serving-vector-kernel`. Host work.
@@ -131,9 +131,9 @@ The [map](docs/model/pipeline-map.md)'s current order of work goes on with these
   - The FBS backward is fixed-order (claude-179).
   - The unsnapped contract (`lut-stack/5`) puts dual-c131 inside the export-gap bar on both seeds, at 4,217–4,320 decode tok/s. Those models were trained before the fixed-order backward, with the old `atomicAdd` one.
   - The one fixed-order configuration, bfixed-c179, misses, as do the other two.
-  - **Open:** R6's "with repeats", as a confirming run on new dual-c131 seeds trained with the fixed-order backward.
+  - **Outstanding in the historical registration:** R6's "with repeats", as a confirming run on new dual-c131 seeds trained with the fixed-order backward.
 
-The float-side items (the first, second and fourth) share files and run one after the other. `fbs-serving-vector-kernel` and `integer-hamming-read` share `session.rs`, and neither shares a file with the float side, so either can run beside a float-side item. `turn-memory-integer` shares files with both sides and runs alone.
+The historical schedule serialized the first, second and fourth items because they shared float-side files. `fbs-serving-vector-kernel` and `integer-hamming-read` shared `session.rs` and could run beside a float-side item. `turn-memory-integer` shared files with both sides and was scheduled alone.
 
 ## The route M2–M8
 
