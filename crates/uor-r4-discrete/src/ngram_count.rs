@@ -24,6 +24,8 @@ pub const TRIPLE_BYTES: usize = 22;
 pub const CONTEXT_BYTES: usize = 40;
 const TRIPLE_DOMAIN: &[u8] = b"uor-r4/ngram-triples/v1\0";
 const CONTEXT_DOMAIN: &[u8] = b"uor-r4/ngram-contexts/v1\0";
+const ADJUSTED_TRIPLE_DOMAIN: &[u8] = b"uor-r4/ngram-adjusted-triples/v1\0";
+const ADJUSTED_CONTEXT_DOMAIN: &[u8] = b"uor-r4/ngram-adjusted-contexts/v1\0";
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -193,14 +195,26 @@ pub struct NgramAssembler {
 impl NgramAssembler {
     /// `keep` retains the streams in memory (tests); otherwise only hashes.
     pub fn new(order: u32, keep: bool) -> Result<Self> {
+        Self::with_domains(order, keep, TRIPLE_DOMAIN, CONTEXT_DOMAIN)
+    }
+
+    /// The assembler of adjusted counts (claude-418): the same checks and
+    /// record formats under their own SHA-256 domains, so an adjusted stream
+    /// never hashes like a raw one. Its digest's `targets` is the sum of the
+    /// adjusted counts.
+    pub fn new_adjusted(order: u32, keep: bool) -> Result<Self> {
+        Self::with_domains(order, keep, ADJUSTED_TRIPLE_DOMAIN, ADJUSTED_CONTEXT_DOMAIN)
+    }
+
+    fn with_domains(order: u32, keep: bool, triples: &[u8], contexts: &[u8]) -> Result<Self> {
         if order > NGRAM_MAX_ORDER {
             return Err(invalid(format!("n-gram order {order} exceeds {NGRAM_MAX_ORDER}")));
         }
         let mut triple_hash = Sha256::new();
-        triple_hash.update(TRIPLE_DOMAIN);
+        triple_hash.update(triples);
         triple_hash.update([order as u8]);
         let mut context_hash = Sha256::new();
-        context_hash.update(CONTEXT_DOMAIN);
+        context_hash.update(contexts);
         context_hash.update([order as u8]);
         Ok(Self {
             order,
@@ -482,10 +496,296 @@ pub fn check_tokens(tokens: &[u16]) -> Result<()> {
     }
 }
 
+/// The census of a run of canonical triples: one context record per run of
+/// equal keys, and n1..n4.
+pub fn partition_from_triples(triples: Vec<NgramTriple>) -> NgramPartition {
+    let mut partition = NgramPartition::default();
+    for triple in &triples {
+        let NgramTriple { key, count, .. } = *triple;
+        if (1..=4).contains(&count) {
+            partition.count_of_counts[count as usize - 1] += 1;
+        }
+        if partition.contexts.last().is_none_or(|h| h.key != key) {
+            partition.contexts.push(NgramContext {
+                key,
+                total: 0,
+                followers: 0,
+                n1: 0,
+                n2: 0,
+                n3_plus: 0,
+            });
+        }
+        let h = partition.contexts.last_mut().expect("context");
+        h.total += u64::from(count);
+        h.followers += 1;
+        match count {
+            1 => h.n1 += 1,
+            2 => h.n2 += 1,
+            _ => h.n3_plus += 1,
+        }
+    }
+    partition.triples = triples;
+    partition
+}
+
+/// One run of the left-extension census: the order-(k+1) triples whose
+/// back-off key and next are (key, next). The triples of one run differ in
+/// their oldest slot alone, so `types` is N1+(. key next).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LeftTypes {
+    key: u128,
+    next: u16,
+    types: u32,
+}
+
+/// Sort the (suffix key, next) of every order-(k+1) triple and count each run.
+/// Within an order-(k+1) partition the triples of one suffix are spread over
+/// the oldest slot, which sorts before `next`, so a sort brings them together.
+fn left_types(mut suffixes: Vec<(u128, u16)>) -> Vec<LeftTypes> {
+    suffixes.sort_unstable();
+    let mut runs: Vec<LeftTypes> = Vec::new();
+    for (key, next) in suffixes {
+        match runs.last_mut() {
+            Some(run) if run.key == key && run.next == next => run.types += 1,
+            _ => runs.push(LeftTypes { key, next, types: 1 }),
+        }
+    }
+    runs
+}
+
+fn absent_suffix(order: u32) -> Error {
+    invalid(format!(
+        "adjusted counts: an order-{} triple's suffix gram is absent from the order-{order} partition",
+        order + 1
+    ))
+}
+
+/// Modified Kneser-Ney adjusted counts of one order-k partition, 1 <= k <= N
+/// (claude-418). `counted` is order k's partition over partition tokens
+/// lo..hi; `extended` is order k+1's partition over the same lo..hi, or None
+/// when k = N. Both partition on slot 1 (t[j-1]) and back-off keeps that slot,
+/// so the two hold exactly the grams the step needs. A gram g keeps a(g) = c(g)
+/// when k = N or its oldest slot is BOS; otherwise a(g) = N1+(. g), the number
+/// of order-(k+1) triples whose back-off key and next equal g's. Refuses a
+/// zero adjusted count (rule 4), an order-(k+1) triple whose suffix is absent
+/// or extends a document-start gram, and partitions of another order or range.
+/// The output is a partition of adjusted counts for [`NgramAssembler::new_adjusted`].
+pub fn adjust_partition(
+    order: u32,
+    highest: u32,
+    lo: u32,
+    hi: u32,
+    counted: &NgramPartition,
+    extended: Option<&NgramPartition>,
+) -> Result<NgramPartition> {
+    if order == 0 || order > highest || highest > NGRAM_MAX_ORDER {
+        return Err(invalid(format!(
+            "adjusted counts take an order-1..={highest} partition (order 0 is a whole-order step), got order {order} under N = {highest} <= {NGRAM_MAX_ORDER}"
+        )));
+    }
+    if lo >= hi || hi > NGRAM_VOCABULARY {
+        return Err(invalid(format!("adjusted counts need a token range lo < hi <= 4,096, got {lo}..{hi}")));
+    }
+    let checked = |word: u128, want: u32| -> Result<PrimeRouteKey> {
+        let key = PrimeRouteKey::from_word(word)?;
+        if key.order() != want {
+            return Err(invalid(format!(
+                "adjusted counts: a key of order {} in an order-{want} partition",
+                key.order()
+            )));
+        }
+        let token = u32::from(key.slot(1).expect("order >= 1 has slot 1"));
+        if token < lo || token >= hi {
+            return Err(invalid(format!(
+                "adjusted counts: partition token {token} lies outside {lo}..{hi}"
+            )));
+        }
+        Ok(key)
+    };
+    let mut last = None;
+    for triple in &counted.triples {
+        checked(triple.key, order)?;
+        let at = (triple.key, triple.next);
+        if last.is_some_and(|before| before >= at) {
+            return Err(invalid("adjusted counts: order-k triples are not in strictly ascending order"));
+        }
+        last = Some(at);
+    }
+    let runs = match (order < highest, extended) {
+        (true, Some(extended)) => {
+            let mut suffixes = Vec::with_capacity(extended.triples.len());
+            let mut last_extended = None;
+            for triple in &extended.triples {
+                // Each order-(k+1) triple is one distinct left token, so a
+                // repeated or zero-count triple would inflate N1+ (review MEDIUM).
+                let at = (triple.key, triple.next);
+                if triple.count == 0 || last_extended.is_some_and(|before| before >= at) {
+                    return Err(invalid(
+                        "adjusted counts: order-(k+1) triples are not strictly ascending with counts >= 1",
+                    ));
+                }
+                last_extended = Some(at);
+                let suffix = checked(triple.key, order + 1)?.back_off().expect("order >= 2");
+                suffixes.push((suffix.word(), triple.next));
+            }
+            left_types(suffixes)
+        }
+        (false, None) => Vec::new(),
+        (true, None) => {
+            return Err(invalid(format!(
+                "adjusted counts of order {order} < N = {highest} need the order-{} partition",
+                order + 1
+            )))
+        }
+        (false, Some(_)) => {
+            return Err(invalid(format!(
+                "adjusted counts of the highest order N = {highest} take no order-{} partition",
+                order + 1
+            )))
+        }
+    };
+    let mut at = 0usize;
+    let mut adjusted = Vec::with_capacity(counted.triples.len());
+    for triple in &counted.triples {
+        let NgramTriple { key, next, count } = *triple;
+        let mut types = 0u32;
+        while let Some(&LeftTypes { key: run_key, next: run_next, types: run_types }) = runs.get(at) {
+            if (run_key, run_next) > (key, next) {
+                break;
+            }
+            if (run_key, run_next) < (key, next) {
+                return Err(absent_suffix(order));
+            }
+            types = run_types;
+            at += 1;
+        }
+        let document_start = PrimeRouteKey(key).slot(order) == Some(NGRAM_BOS);
+        let count = if order == highest {
+            count
+        } else if document_start {
+            if types != 0 {
+                return Err(invalid(format!(
+                    "adjusted counts: an order-{} triple extends an order-{order} gram whose oldest slot is BOS",
+                    order + 1
+                )));
+            }
+            count
+        } else {
+            if types == 0 {
+                return Err(invalid(format!(
+                    "adjusted counts: order-{order} gram (key {key:#x}, next {next}) has no counted left extension, adjusted count 0 (rule 4)"
+                )));
+            }
+            types
+        };
+        adjusted.push(NgramTriple { key, next, count });
+    }
+    if at != runs.len() {
+        return Err(absent_suffix(order));
+    }
+    Ok(partition_from_triples(adjusted))
+}
+
+/// Order 0's left-extension census (claude-418): N1+(. w) for every target w,
+/// summed over all order-1 partitions. Order 0 partitions on t[j] and order 1
+/// on t[j-1], so no single order-1 partition holds a unigram's extensions;
+/// each order-1 triple (v, w) is one distinct left token v of w, and adding
+/// every order-1 partition once gives the whole census (at most 4,096 bins).
+pub struct UnigramContinuation {
+    types: Vec<u32>,
+    /// The last order-1 (key, next) added: partitions arrive in plan order, so
+    /// the whole order-1 stream is strictly ascending, and a partition added
+    /// twice or two overlapping partitions are refused.
+    last: Option<(u128, u16)>,
+}
+
+impl Default for UnigramContinuation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl UnigramContinuation {
+    pub fn new() -> Self {
+        Self { types: vec![0; NGRAM_VOCABULARY as usize], last: None }
+    }
+
+    /// Add one order-1 partition, in plan order. Each partition is added
+    /// exactly once: a repeated or overlapping one breaks the strictly
+    /// ascending order-1 stream and is refused.
+    pub fn add(&mut self, extended: &NgramPartition) -> Result<()> {
+        for triple in &extended.triples {
+            if PrimeRouteKey::from_word(triple.key)?.order() != 1 {
+                return Err(invalid("unigram continuation takes order-1 triples only"));
+            }
+            if u32::from(triple.next) >= NGRAM_VOCABULARY {
+                return Err(invalid("unigram continuation: next token is outside the 12-bit vocabulary"));
+            }
+            let at = (triple.key, triple.next);
+            if triple.count == 0 || self.last.is_some_and(|before| before >= at) {
+                return Err(invalid(
+                    "unigram continuation: order-1 triples are not strictly ascending across partitions with counts >= 1",
+                ));
+            }
+            self.last = Some(at);
+            self.types[triple.next as usize] += 1;
+        }
+        Ok(())
+    }
+
+    /// The adjusted unigrams of the whole order-0 triple stream (ascending,
+    /// at most 4,096 triples) under highest order N. N = 0 keeps a = c and
+    /// takes no order-1 partition. Refuses a zero adjusted count (rule 4) and
+    /// an order-1 target absent from the order-0 stream.
+    pub fn adjust(&self, highest: u32, counted: &[NgramTriple]) -> Result<NgramPartition> {
+        if highest > NGRAM_MAX_ORDER {
+            return Err(invalid(format!("highest order {highest} exceeds {NGRAM_MAX_ORDER}")));
+        }
+        if highest == 0 && self.last.is_some() {
+            return Err(invalid("adjusted unigrams of the highest order N = 0 take no order-1 partition"));
+        }
+        let mut last: Option<u16> = None;
+        let mut covered = 0u64;
+        let mut adjusted = Vec::with_capacity(counted.len());
+        for triple in counted {
+            let NgramTriple { key, next, count } = *triple;
+            if key != 0 {
+                return Err(invalid("adjusted unigrams take order-0 triples only"));
+            }
+            if u32::from(next) >= NGRAM_VOCABULARY || last.is_some_and(|before| before >= next) {
+                return Err(invalid("adjusted unigrams: next tokens are not ascending 12-bit ids"));
+            }
+            last = Some(next);
+            let types = self.types[next as usize];
+            covered += u64::from(types);
+            let count = if highest == 0 {
+                count
+            } else if types == 0 {
+                return Err(invalid(format!(
+                    "adjusted unigrams: target {next} has no counted left extension, adjusted count 0 (rule 4)"
+                )));
+            } else {
+                types
+            };
+            adjusted.push(NgramTriple { key, next, count });
+        }
+        if covered != self.types.iter().map(|&t| u64::from(t)).sum::<u64>() {
+            return Err(if highest == 0 {
+                invalid("adjusted unigrams of the highest order N = 0 take no order-1 partition")
+            } else {
+                absent_suffix(0)
+            });
+        }
+        Ok(partition_from_triples(adjusted))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ngram_count_oracle::{oracle_count, oracle_partition, plant_one_count};
+    use crate::ngram_count_oracle::{
+        oracle_adjusted, oracle_count, oracle_partition, plant_one_count,
+    };
 
     #[test]
     fn ngram_count_key_round_trip_and_back_off() {
@@ -811,5 +1111,249 @@ mod tests {
         assert_eq!(stream_length_bound(1 << 31).unwrap(), 1 << 31);
         assert!(stream_length_bound((1 << 31) + 1).is_err());
         assert!(stream_length_bound(0).is_err());
+    }
+
+    type OrderStreams = (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>);
+
+    fn admitted_histogram(tokens: &[u16], order: u32) -> Vec<u64> {
+        let offset = partition_offset(order);
+        let mut histogram = vec![0u64; 4096];
+        for j in order as usize..tokens.len() {
+            if ngram_admitted(tokens, j, order as usize) {
+                histogram[tokens[j - offset] as usize] += 1;
+            }
+        }
+        histogram
+    }
+
+    /// The product path: plan order k from its own histogram, adjust each
+    /// partition against order k+1 over the same range, assemble. Order 0
+    /// sums the order-1 partitions of order 1's plan.
+    fn adjusted_by_plan(tokens: &[u16], order: u32, highest: u32, budget: u64) -> Result<OrderStreams> {
+        let mut assembler = NgramAssembler::new_adjusted(order, true)?;
+        if order == 0 {
+            let (_, unigrams, _) = oracle_count(tokens, 0)?;
+            let mut continuation = UnigramContinuation::new();
+            if highest >= 1 {
+                for range in plan_partitions(&admitted_histogram(tokens, 1), budget)? {
+                    continuation.add(&oracle_partition(tokens, 1, range.lo, range.hi)?)?;
+                }
+            }
+            assembler.push(&continuation.adjust(highest, &unigrams)?)?;
+        } else {
+            for range in plan_partitions(&admitted_histogram(tokens, order), budget)? {
+                let counted = oracle_partition(tokens, order, range.lo, range.hi)?;
+                let extended = match order < highest {
+                    true => Some(oracle_partition(tokens, order + 1, range.lo, range.hi)?),
+                    false => None,
+                };
+                let adjusted =
+                    adjust_partition(order, highest, range.lo, range.hi, &counted, extended.as_ref())?;
+                assembler.push(&adjusted)?;
+            }
+        }
+        Ok(assembler.finish())
+    }
+
+    /// Two documents (BOS = 0, EOS = 1), n = 19, N = 2:
+    ///   0 5 6 7 5 6 8 3 6 7 1 | 0 5 6 7 4 6 7 1
+    const TWO_DOCS: [u16; 19] = [0, 5, 6, 7, 5, 6, 8, 3, 6, 7, 1, 0, 5, 6, 7, 4, 6, 7, 1];
+
+    fn kn_key(context: &[u16]) -> u128 {
+        PrimeRouteKey::from_context(context).unwrap().word()
+    }
+
+    fn kn_triple(context: &[u16], next: u16, count: u32) -> NgramTriple {
+        NgramTriple { key: kn_key(context), next, count }
+    }
+
+    fn kn_context(context: &[u16], census: [u32; 5]) -> NgramContext {
+        let [total, followers, n1, n2, n3_plus] = census;
+        NgramContext { key: kn_key(context), total: u64::from(total), followers, n1, n2, n3_plus }
+    }
+
+    /// Order 2 (k = N): a = c, the raw trigrams; three are seen twice
+    /// (0 5 6, 5 6 7, 6 7 1) and nine once.
+    /// Order 1 (N1+ of the order-2 left tokens):
+    ///   a(0 5) = c = 2: the document-start gram (BOS oldest; no order-2 gram
+    ///   extends it, since BOS may sit only in the oldest slot);
+    ///   a(5 6) = |{0, 7}| = 2 while c(5 6) = 3 (0 5 6 twice, 7 5 6 once);
+    ///   a(6 7) = |{5, 3, 4}| = 3 (c = 4); a(7 1) = |{6}| = 1 (c = 2);
+    ///   a = c = 1 for the six bigrams seen once: 7 5, 6 8, 8 3, 3 6, 7 4, 4 6.
+    /// Order 0 (N1+ of the left tokens of the counted bigrams):
+    ///   1:{7} 3:{8} 4:{7} 5:{0,7} 6:{5,3,4} 7:{6} 8:{6} -> 1 1 1 2 3 1 1,
+    ///   while the raw counts are 2 1 1 3 5 4 1.
+    #[test]
+    fn ngram_count_adjusted_hand_fixture_two_documents() {
+        let (d0, t0, h0) = adjusted_by_plan(&TWO_DOCS, 0, 2, u64::MAX).unwrap();
+        let unigram = |next, count| kn_triple(&[], next, count);
+        assert_eq!(
+            t0,
+            vec![unigram(1, 1), unigram(3, 1), unigram(4, 1), unigram(5, 2), unigram(6, 3), unigram(7, 1), unigram(8, 1)]
+        );
+        assert_eq!(h0, vec![kn_context(&[], [10, 7, 5, 1, 1])]);
+        assert_eq!((d0.targets, d0.count_of_counts), (10, [5, 1, 1, 0]));
+        let (_, raw0, _) = oracle_count(&TWO_DOCS, 0).unwrap();
+        assert_eq!(raw0.iter().map(|t| t.count).collect::<Vec<_>>(), vec![2, 1, 1, 3, 5, 4, 1]);
+
+        let (d1, t1, h1) = adjusted_by_plan(&TWO_DOCS, 1, 2, u64::MAX).unwrap();
+        assert_eq!(
+            t1,
+            vec![
+                kn_triple(&[0], 5, 2),
+                kn_triple(&[3], 6, 1),
+                kn_triple(&[4], 6, 1),
+                kn_triple(&[5], 6, 2),
+                kn_triple(&[6], 7, 3),
+                kn_triple(&[6], 8, 1),
+                kn_triple(&[7], 1, 1),
+                kn_triple(&[7], 4, 1),
+                kn_triple(&[7], 5, 1),
+                kn_triple(&[8], 3, 1),
+            ]
+        );
+        assert_eq!(
+            h1,
+            vec![
+                kn_context(&[0], [2, 1, 0, 1, 0]),
+                kn_context(&[3], [1, 1, 1, 0, 0]),
+                kn_context(&[4], [1, 1, 1, 0, 0]),
+                kn_context(&[5], [2, 1, 0, 1, 0]),
+                kn_context(&[6], [4, 2, 1, 0, 1]),
+                kn_context(&[7], [3, 3, 3, 0, 0]),
+                kn_context(&[8], [1, 1, 1, 0, 0]),
+            ]
+        );
+        assert_eq!((d1.targets, d1.count_of_counts), (14, [7, 2, 1, 0]));
+        let (_, raw1, _) = oracle_count(&TWO_DOCS, 1).unwrap();
+        assert!(raw1.contains(&kn_triple(&[5], 6, 3)) && raw1.contains(&kn_triple(&[0], 5, 2)));
+
+        let (d2, t2, _) = adjusted_by_plan(&TWO_DOCS, 2, 2, u64::MAX).unwrap();
+        let (raw2_digest, raw2, _) = oracle_count(&TWO_DOCS, 2).unwrap();
+        assert_eq!(t2, raw2);
+        assert_eq!((d2.count_of_counts, raw2_digest.count_of_counts), ([9, 3, 0, 0], [9, 3, 0, 0]));
+
+        for order in 0..=2 {
+            let oracle = oracle_adjusted(&TWO_DOCS, order, 2).unwrap();
+            assert_eq!(adjusted_by_plan(&TWO_DOCS, order, 2, 1).unwrap(), oracle, "order {order}");
+        }
+    }
+
+    /// Skewed seeded stream starting with BOS, BOS planted about one position
+    /// in twelve. Starting with BOS matters: the gram at j = k has no left
+    /// token, so a stream whose first gram is unique and not BOS-led is refused.
+    fn kn_stream(seed: u64, len: usize) -> Vec<u16> {
+        let mut state = seed;
+        let mut stream: Vec<u16> = (0..len)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                let r = (state >> 20) as u32;
+                (if r % 4 == 0 { r % 64 } else { r % 9 }) as u16
+            })
+            .collect();
+        stream[0] = NGRAM_BOS;
+        stream
+    }
+
+    #[test]
+    fn ngram_count_adjusted_assembler_matches_the_oracle_on_seeded_streams() {
+        for seed in [0x418u64, 0x9e37_79b9, 0x5eed_c0de] {
+            let stream = kn_stream(seed, 6_000);
+            assert!(stream.iter().filter(|&&t| t == NGRAM_BOS).count() > 300);
+            for order in 0..=4u32 {
+                let oracle = oracle_adjusted(&stream, order, 4).unwrap();
+                let oracle_digest = &oracle.0;
+                let (raw, ..) = oracle_count(&stream, order).unwrap();
+                if order < 4 {
+                    assert!(oracle_digest.targets < raw.targets, "seed {seed:#x} order {order}");
+                } else {
+                    assert_eq!(oracle_digest.targets, raw.targets);
+                }
+                for budget in [u64::MAX, 700, 1] {
+                    let assembled = adjusted_by_plan(&stream, order, 4, budget).unwrap();
+                    assert_eq!(assembled, oracle, "seed {seed:#x} order {order} budget {budget}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn ngram_count_adjusted_refuses_a_zero_adjusted_count_and_inconsistent_inputs() {
+        let counted = oracle_partition(&TWO_DOCS, 1, 0, 4096).unwrap();
+        let extended = oracle_partition(&TWO_DOCS, 2, 0, 4096).unwrap();
+        adjust_partition(1, 2, 0, 4096, &counted, Some(&extended)).unwrap();
+        let refuse = |order, lo, hi, counted: &NgramPartition, extended: Option<&NgramPartition>| {
+            adjust_partition(order, 2, lo, hi, counted, extended).unwrap_err().to_string()
+        };
+        // Rule 4: 6 7 -> 5 is the only left extension of 7 -> 5; drop it.
+        let mut tampered = extended.clone();
+        let at = tampered.triples.iter().position(|t| *t == kn_triple(&[6, 7], 5, 1)).unwrap();
+        tampered.triples.remove(at);
+        let message = refuse(1, 0, 4096, &counted, Some(&tampered));
+        assert!(message.contains("adjusted count 0 (rule 4)"), "{message}");
+        // An order-2 triple whose suffix 9 -> 9 is not an order-1 gram.
+        let mut stray = extended.clone();
+        stray.triples.push(kn_triple(&[9, 9], 9, 1));
+        assert!(refuse(1, 0, 4096, &counted, Some(&stray)).contains("is absent from the order-1"));
+        // Mismatched order, a missing or extra order-(k+1) partition, a range.
+        assert!(refuse(1, 0, 4096, &counted, Some(&counted)).contains("in an order-2 partition"));
+        assert!(refuse(1, 0, 4096, &counted, None).contains("need the order-2 partition"));
+        assert!(refuse(2, 0, 4096, &extended, Some(&extended)).contains("take no order-3"));
+        assert!(refuse(1, 0, 5, &counted, Some(&extended)).contains("outside 0..5"));
+        let low = oracle_partition(&TWO_DOCS, 1, 0, 5).unwrap();
+        assert!(refuse(1, 0, 5, &low, Some(&extended)).contains("outside 0..5"));
+        // Order 0, rule 4: 6 -> 8 is the only left extension of 8.
+        let (_, unigrams, _) = oracle_count(&TWO_DOCS, 0).unwrap();
+        let mut order1 = counted.clone();
+        let at = order1.triples.iter().position(|t| *t == kn_triple(&[6], 8, 1)).unwrap();
+        order1.triples.remove(at);
+        let mut continuation = UnigramContinuation::new();
+        continuation.add(&order1).unwrap();
+        let message = continuation.adjust(2, &unigrams).unwrap_err().to_string();
+        assert!(message.contains("target 8") && message.contains("(rule 4)"), "{message}");
+        // Order 0: an order-1 target absent from the unigrams.
+        let mut continuation = UnigramContinuation::new();
+        continuation.add(&counted).unwrap();
+        let missing: Vec<NgramTriple> = unigrams.iter().copied().filter(|t| t.next != 4).collect();
+        assert!(continuation.adjust(2, &missing).unwrap_err().to_string().contains("absent"));
+        // Review MEDIUM: a repeated order-2 triple would count 6 as a second
+        // left token of 7 -> 5 (a = 2, not 1); it is refused instead.
+        let mut repeated = extended.clone();
+        let at = repeated.triples.iter().position(|t| *t == kn_triple(&[6, 7], 5, 1)).unwrap();
+        repeated.triples.insert(at, kn_triple(&[6, 7], 5, 1));
+        assert!(refuse(1, 0, 4096, &counted, Some(&repeated)).contains("not strictly ascending"));
+        // Order 0: the same order-1 partition added twice is refused, and so
+        // is an order-1 partition under N = 0.
+        let mut continuation = UnigramContinuation::new();
+        continuation.add(&counted).unwrap();
+        assert!(continuation.add(&counted).unwrap_err().to_string().contains("not strictly ascending"));
+        let message = continuation.adjust(0, &unigrams).unwrap_err().to_string();
+        assert!(message.contains("N = 0 take no order-1 partition"), "{message}");
+        // The oracle refuses a stream whose first gram is unique and not BOS-led.
+        assert!(oracle_adjusted(&[9, 5, 6], 1, 2).is_err());
+    }
+
+    #[test]
+    fn ngram_count_adjusted_sha_is_independent_of_the_budget() {
+        let stream = kn_stream(0x418, 6_000);
+        for order in 0..=4u32 {
+            let plan_order = order.max(1);
+            let mut partitions = Vec::new();
+            let mut digests = Vec::new();
+            for budget in [u64::MAX, 2_000, 300, 1] {
+                let plan = plan_partitions(&admitted_histogram(&stream, plan_order), budget).unwrap();
+                partitions.push(plan.len());
+                let (digest, ..) = adjusted_by_plan(&stream, order, 4, budget).unwrap();
+                digests.push((digest.triple_sha256, digest.context_sha256));
+            }
+            assert!(partitions.windows(2).all(|w| w[0] < w[1]), "order {order}: {partitions:?}");
+            assert!(digests.iter().all(|d| *d == digests[0]), "order {order}");
+            // Domain separation: at k = N, a = c, yet the adjusted SHA differs.
+            let (raw, ..) = oracle_count(&stream, order).unwrap();
+            let (adjusted_triples, _) = &digests[0];
+            assert_ne!(*adjusted_triples, raw.triple_sha256);
+        }
     }
 }

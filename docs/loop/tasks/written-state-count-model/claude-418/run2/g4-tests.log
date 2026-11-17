@@ -1,0 +1,32 @@
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c418/crates/uor-r4-discrete)
+     Running unittests src/lib.rs (target/release/deps/uor_r4_discrete-66f014575ecb7015)
+test ngram_count::tests::ngram_count_adjusted_refuses_a_zero_adjusted_count_and_inconsistent_inputs ... ok
+test ngram_count::tests::ngram_count_assembler_admits_unmodified_oracle_partitions ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_context_of_another_order ... ok
+test ngram_count::tests::ngram_count_adjusted_hand_fixture_two_documents ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_next_token_outside_the_vocabulary ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_corrupted_context_n1 ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_planted_count_of_counts ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_an_extra_or_missing_context ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_an_order_one_context_across_a_seam ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_disorder_and_the_sha_covers_a_planted_count ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_followers_unequal_to_their_parts ... ok
+test ngram_count::tests::ngram_count_device_bounds_refuse_past_the_u32_index_range ... ok
+test ngram_count::tests::ngram_count_key_preserves_order ... ok
+test ngram_count::tests::ngram_count_key_round_trip_and_back_off ... ok
+test ngram_count::tests::ngram_count_oracle_hand_fixture ... ok
+test ngram_count::tests::ngram_count_oracle_respects_document_boundaries ... ok
+test ngram_count::tests::ngram_count_plan_refuses_a_partition_past_the_target_limit ... ok
+test ngram_count::tests::ngram_count_uort_header_overflow_is_an_error ... ok
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test ngram_count::tests::ngram_count_adjusted_sha_is_independent_of_the_budget ... ok
+test ngram_count::tests::ngram_count_partitions_assemble_to_the_whole ... ok
+test ngram_count::tests::ngram_count_adjusted_assembler_matches_the_oracle_on_seeded_streams ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test result: ok. 27 passed; 0 failed; 2 ignored; 0 measured; 392 filtered out; finished in 29.19s

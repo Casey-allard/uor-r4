@@ -1,0 +1,11 @@
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c418/crates/uor-r4-discrete)
+     Running unittests src/lib.rs (target/release/deps/uor_r4_discrete-66f014575ecb7015)
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... FAILED
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... FAILED
+adjusted len 100000 order 0 budget 18446744073709551615: 1 partitions, grams 1032 n1..n4 [0, 0, 0, 0] sha b2b748f5ad4058e8722bb3e5adbab2ee0f03feb96009ae3450f7e9c1767f755b
+adjusted len 100000 order 0 budget 9000: 16 partitions, grams 1032 n1..n4 [0, 0, 0, 0] sha b2b748f5ad4058e8722bb3e5adbab2ee0f03feb96009ae3450f7e9c1767f755b
+thread 'ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle' (358280) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:163:85:
+count: Invalid("partition selected 85809 targets, planned 92671")
+thread 'ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs' (358281) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:163:85:
+count: Invalid("partition selected 858091 targets, planned 926479")
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 419 filtered out; finished in 0.28s

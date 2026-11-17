@@ -3,11 +3,54 @@
 //! here is a product path; GPU counts are the ones that qualify (CHARTER section 3, part 5).
 
 use crate::ngram_count::{
-    check_tokens, ngram_admitted, partition_offset, NgramAssembler, NgramContext, NgramOrderDigest,
-    NgramPartition, NgramTriple, PrimeRouteKey, NGRAM_MAX_ORDER,
+    check_tokens, ngram_admitted, partition_from_triples, partition_offset, NgramAssembler,
+    NgramContext, NgramOrderDigest, NgramPartition, NgramTriple, PrimeRouteKey, NGRAM_BOS,
+    NGRAM_MAX_ORDER,
 };
 use crate::{Error, Result};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// The adjusted counts of `order` under highest order `highest` (claude-418),
+/// from the token stream alone: for each order-k gram admitted at j, the SET
+/// of left tokens t[j-k-1] for which the order-(k+1) gram at j is admitted.
+/// a(g) = c(g) when k = N or the gram's oldest token is BOS, else the set's
+/// size. No triple is backed off. A zero adjusted count is an error.
+pub fn oracle_adjusted(
+    tokens: &[u16],
+    order: u32,
+    highest: u32,
+) -> Result<(NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>)> {
+    let raw = oracle_partition(tokens, order, 0, 4096)?;
+    let k = order as usize;
+    let mut left: BTreeMap<(u128, u16), BTreeSet<u16>> = BTreeMap::new();
+    if order < highest {
+        for j in k + 1..tokens.len() {
+            if ngram_admitted(tokens, j, k) && ngram_admitted(tokens, j, k + 1) {
+                let key = PrimeRouteKey::from_context(&tokens[j - k..j])?.word();
+                left.entry((key, tokens[j])).or_default().insert(tokens[j - k - 1]);
+            }
+        }
+    }
+    let mut triples = Vec::with_capacity(raw.triples.len());
+    for triple in &raw.triples {
+        let NgramTriple { key, next, count } = *triple;
+        let document_start = PrimeRouteKey::from_word(key)?.context().first() == Some(&NGRAM_BOS);
+        let adjusted = if order == highest || document_start {
+            count
+        } else {
+            left.get(&(key, next)).map_or(0, |set| set.len() as u32)
+        };
+        if adjusted == 0 {
+            return Err(Error::Invalid(format!(
+                "oracle: an order-{order} gram has adjusted count 0"
+            )));
+        }
+        triples.push(NgramTriple { key, next, count: adjusted });
+    }
+    let mut assembler = NgramAssembler::new_adjusted(order, true)?;
+    assembler.push(&partition_from_triples(triples))?;
+    Ok(assembler.finish())
+}
 
 /// The triples, contexts and count-of-counts of `order`, restricted to targets
 /// whose partition token lies in lo..hi.

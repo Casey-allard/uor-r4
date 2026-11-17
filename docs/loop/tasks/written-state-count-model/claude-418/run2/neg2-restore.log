@@ -1,0 +1,5 @@
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c418/crates/uor-r4-discrete)
+     Running unittests src/lib.rs (target/release/deps/uor_r4_discrete-66f014575ecb7015)
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 419 filtered out; finished in 4.64s

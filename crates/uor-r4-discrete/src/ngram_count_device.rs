@@ -4,8 +4,8 @@
 //! hands, in canonical order, to an [`NgramAssembler`].
 
 use crate::ngram_count::{
-    check_tokens, partition_offset, partition_target_bound, plan_partitions, stream_length_bound,
-    NgramAssembler, NgramContext,
+    adjust_partition, check_tokens, partition_offset, partition_target_bound, plan_partitions,
+    stream_length_bound, NgramAssembler, NgramContext, UnigramContinuation,
     NgramPartition, NgramTriple, PartitionRange, NGRAM_MAX_ORDER, NGRAM_VOCABULARY,
 };
 use crate::{Error, Result};
@@ -363,6 +363,68 @@ impl NgramCounter {
         let plan = self.plan(order, budget)?;
         for range in &plan {
             assembler.push(&self.count_partition(order, range)?)?;
+        }
+        Ok(plan)
+    }
+
+    /// Count the modified Kneser-Ney adjusted counts of `order` under highest
+    /// order `highest` (claude-418) into an assembler made by
+    /// [`NgramAssembler::new_adjusted`]. For 1 <= k < N each partition of
+    /// order k's plan is adjusted against order k+1 over the identical lo..hi;
+    /// that range's target count comes from order k+1's own histogram, since
+    /// `select` checks the exact planned count and order k+1 admits no more
+    /// targets per bin than order k, so order k's budget bounds it. At k = N
+    /// the counts are kept. Order 0 counts its whole stream, then adds every
+    /// partition of order 1's plan once to the unigram continuation. Returns
+    /// the plan whose partitions were counted: order max(k, 1)'s, or order
+    /// 0's when N = 0.
+    pub fn count_order_adjusted(
+        &self,
+        order: u32,
+        highest: u32,
+        budget: u64,
+        assembler: &mut NgramAssembler,
+    ) -> Result<Vec<PartitionRange>> {
+        if highest > NGRAM_MAX_ORDER || order > highest {
+            return Err(invalid(format!(
+                "adjusted counts need order <= highest <= {NGRAM_MAX_ORDER}, got order {order} under N = {highest}"
+            )));
+        }
+        if order == 0 {
+            let mut raw = NgramAssembler::new(0, true)?;
+            let unigram_plan = self.count_order(0, budget, &mut raw)?;
+            let (_, unigrams, _) = raw.finish();
+            let mut continuation = UnigramContinuation::new();
+            let plan = if highest >= 1 {
+                let plan = self.plan(1, budget)?;
+                for range in &plan {
+                    continuation.add(&self.count_partition(1, range)?)?;
+                }
+                plan
+            } else {
+                unigram_plan
+            };
+            assembler.push(&continuation.adjust(highest, &unigrams)?)?;
+            return Ok(plan);
+        }
+        let plan = self.plan(order, budget)?;
+        let extended_histogram = match order < highest {
+            true => Some(self.partition_histogram(order + 1)?),
+            false => None,
+        };
+        for range in &plan {
+            let counted = self.count_partition(order, range)?;
+            let extended = match &extended_histogram {
+                Some(histogram) => {
+                    let targets = histogram[range.lo as usize..range.hi as usize].iter().sum();
+                    let same_tokens = PartitionRange { lo: range.lo, hi: range.hi, targets };
+                    Some(self.count_partition(order + 1, &same_tokens)?)
+                }
+                None => None,
+            };
+            let adjusted =
+                adjust_partition(order, highest, range.lo, range.hi, &counted, extended.as_ref())?;
+            assembler.push(&adjusted)?;
         }
         Ok(plan)
     }
