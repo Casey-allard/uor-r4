@@ -1,0 +1,57 @@
+{
+  "total": {
+    "n": 16,
+    "old": 0,
+    "full": 0,
+    "ends": 9,
+    "endpoint": 0,
+    "connector": 0,
+    "fullRightWrongEnds": 0,
+    "lost": 0,
+    "added": 0,
+    "abstain": 0,
+    "leadingRecovered": 0,
+    "leadingPositions": 0
+  },
+  "byConnector": [
+    {
+      "key": [
+        null,
+        2
+      ],
+      "data": {
+        "n": 16,
+        "old": 0,
+        "full": 0,
+        "ends": 9,
+        "endpoint": 0,
+        "connector": 0,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 0,
+        "abstain": 0,
+        "leadingRecovered": 0,
+        "leadingPositions": 0
+      }
+    }
+  ],
+  "byFamily": [
+    {
+      "key": null,
+      "data": {
+        "n": 16,
+        "old": 0,
+        "full": 0,
+        "ends": 9,
+        "endpoint": 0,
+        "connector": 0,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 0,
+        "abstain": 0,
+        "leadingRecovered": 0,
+        "leadingPositions": 0
+      }
+    }
+  ]
+}

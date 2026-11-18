@@ -1,0 +1,174 @@
+{
+  "total": {
+    "n": 1728,
+    "old": 229,
+    "full": 359,
+    "ends": 627,
+    "endpoint": 241,
+    "connector": 347,
+    "fullRightWrongEnds": 42,
+    "lost": 4,
+    "added": 134,
+    "abstain": 461,
+    "leadingRecovered": 12,
+    "leadingPositions": 48
+  },
+  "byConnector": [
+    {
+      "key": [
+        "shared",
+        1
+      ],
+      "data": {
+        "n": 288,
+        "old": 103,
+        "full": 109,
+        "ends": 109,
+        "endpoint": 109,
+        "connector": 103,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 6,
+        "abstain": 73,
+        "leadingRecovered": 6,
+        "leadingPositions": 6
+      }
+    },
+    {
+      "key": [
+        "shared",
+        2
+      ],
+      "data": {
+        "n": 288,
+        "old": 5,
+        "full": 54,
+        "ends": 103,
+        "endpoint": 5,
+        "connector": 54,
+        "fullRightWrongEnds": 5,
+        "lost": 0,
+        "added": 49,
+        "abstain": 79,
+        "leadingRecovered": 0,
+        "leadingPositions": 6
+      }
+    },
+    {
+      "key": [
+        "shared",
+        3
+      ],
+      "data": {
+        "n": 288,
+        "old": 0,
+        "full": 73,
+        "ends": 84,
+        "endpoint": 0,
+        "connector": 73,
+        "fullRightWrongEnds": 37,
+        "lost": 0,
+        "added": 73,
+        "abstain": 75,
+        "leadingRecovered": 0,
+        "leadingPositions": 6
+      }
+    },
+    {
+      "key": [
+        "split_specific",
+        1
+      ],
+      "data": {
+        "n": 288,
+        "old": 121,
+        "full": 123,
+        "ends": 127,
+        "endpoint": 127,
+        "connector": 117,
+        "fullRightWrongEnds": 0,
+        "lost": 4,
+        "added": 6,
+        "abstain": 72,
+        "leadingRecovered": 6,
+        "leadingPositions": 6
+      }
+    },
+    {
+      "key": [
+        "split_specific",
+        2
+      ],
+      "data": {
+        "n": 288,
+        "old": 0,
+        "full": 0,
+        "ends": 105,
+        "endpoint": 0,
+        "connector": 0,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 0,
+        "abstain": 78,
+        "leadingRecovered": 0,
+        "leadingPositions": 12
+      }
+    },
+    {
+      "key": [
+        "split_specific",
+        3
+      ],
+      "data": {
+        "n": 288,
+        "old": 0,
+        "full": 0,
+        "ends": 99,
+        "endpoint": 0,
+        "connector": 0,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 0,
+        "abstain": 84,
+        "leadingRecovered": 0,
+        "leadingPositions": 12
+      }
+    }
+  ],
+  "byFamily": [
+    {
+      "key": 0,
+      "data": {
+        "n": 864,
+        "old": 201,
+        "full": 304,
+        "ends": 549,
+        "endpoint": 201,
+        "connector": 304,
+        "fullRightWrongEnds": 23,
+        "lost": 4,
+        "added": 107,
+        "abstain": 0,
+        "leadingRecovered": 0,
+        "leadingPositions": 0
+      }
+    },
+    {
+      "key": 1,
+      "data": {
+        "n": 864,
+        "old": 28,
+        "full": 55,
+        "ends": 78,
+        "endpoint": 40,
+        "connector": 43,
+        "fullRightWrongEnds": 19,
+        "lost": 0,
+        "added": 27,
+        "abstain": 461,
+        "leadingRecovered": 12,
+        "leadingPositions": 48
+      }
+    }
+  ]
+}

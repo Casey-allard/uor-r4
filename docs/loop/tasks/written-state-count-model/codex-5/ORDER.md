@@ -1,0 +1,8 @@
+# ORDER: matched entity spans and variable-length connectors
+
+Lab: codex
+Item: [written-state-count-model](../../../../roadmap/items/written-state-count-model.md) (#4063)
+
+The owner requests both ends of the matched entity, connectors with one, two and three actual token IDs, a fixed exact writer, and paired first-divergence results on Wick. At 9d30b0cab, #4087 carries one selected query/fact token, sometimes a leading name piece, and the fitted bridge has only one token. No crossed connector run exists there.
+
+Implement a typed native selector with u32 query start/end, fact start/end and selected value address. Learn geometric relation prototypes from separate labeled training prefixes, bind the serialized integer bank to its training and artifact digests and compare ordered raw choices on independent serving Rust and prebuilt SM89 CUDA. Fit updates the bank directly, without a floating master, gradients, or an optimizer. Use both span endpoints in binding or extraction; no gold position, entity length or connector length enters inference. Preserve the baseline state and #4086 exact writer. Use both D11 seeds, a prefix-only blind handoff, release to native generation on actual emissions, matched source and first-error comparisons against the current (#4087) selector, oracle and disabled controls. Isolate endpoint vs connector contributions where possible. Keep negative trajectories, boundaries, one/two/three-token strata and both role directions. Register before evaluation, require independent FIT, verify input identities and finite tests. Finish on measured traces, verified main and an M4 notebook row. No milestone promotion or paid hardware.

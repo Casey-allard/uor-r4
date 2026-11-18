@@ -23,6 +23,8 @@ pub mod discrete_d11;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod content_selector;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod span_selector;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod occurrence_selector;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod fbs_address;

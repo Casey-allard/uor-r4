@@ -1,0 +1,124 @@
+{
+  "unique_all": 3760,
+  "shared_connectors": [
+    "1139",
+    "1139,1095",
+    "1139,801,1095"
+  ],
+  "splits": {
+    "train": {
+      "rows": 1728,
+      "role_pairs": 864,
+      "connector_only_triples": 576,
+      "cell_counts": [
+        [
+          192,
+          192,
+          192
+        ],
+        [
+          192,
+          192,
+          192
+        ],
+        [
+          192,
+          192,
+          192
+        ]
+      ],
+      "prefix_lengths": [
+        28,
+        60
+      ],
+      "name_ids": {
+        "Tim": [
+          344
+        ],
+        "Sue": [
+          510
+        ],
+        "Nala": [
+          2237,
+          421,
+          67
+        ],
+        "Navi": [
+          2237,
+          1410,
+          75
+        ]
+      },
+      "connector_ids": [
+        "1139",
+        "1139,1095",
+        "1139,801,1095",
+        "3642,505",
+        "3642,602,505",
+        "505"
+      ]
+    },
+    "held": {
+      "rows": 1728,
+      "role_pairs": 864,
+      "connector_only_triples": 576,
+      "cell_counts": [
+        [
+          192,
+          192,
+          192
+        ],
+        [
+          192,
+          192,
+          192
+        ],
+        [
+          192,
+          192,
+          192
+        ]
+      ],
+      "prefix_lengths": [
+        27,
+        62
+      ],
+      "name_ids": {
+        "Joe": [
+          1886
+        ],
+        "Leo": [
+          2278
+        ],
+        "Rana": [
+          1049,
+          304,
+          67
+        ],
+        "Rani": [
+          1049,
+          304,
+          75
+        ]
+      },
+      "connector_ids": [
+        "1067,641,1935",
+        "1139",
+        "1139,1095",
+        "1139,801,1095",
+        "614",
+        "641,1935"
+      ]
+    },
+    "prior": {
+      "rows": 288,
+      "unchanged_blind_bytes": true,
+      "unchanged_grade_core": true
+    },
+    "original": {
+      "rows": 16,
+      "unchanged_blind_bytes": true,
+      "unchanged_grade_core": true
+    }
+  }
+}

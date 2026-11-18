@@ -269,11 +269,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if image.len() < 64 || !image.starts_with(b"\x7fELF") {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
-    let selectors = [
+    let selectors: [(&str, &str, &[&str]); 3] = [
+        (
+            "CARGO_FEATURE_SPAN_SELECTOR",
+            "span",
+            &["span_fit", "span_predict"],
+        ),
         (
             "CARGO_FEATURE_OCCURRENCE_SELECTOR",
             "occurrence",
-            [
+            &[
                 "occurrence_positions",
                 "occurrence_fit",
                 "occurrence_winners",
@@ -282,7 +287,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (
             "CARGO_FEATURE_CONTENT_SELECTOR",
             "content",
-            ["content_sites", "content_fit", "content_bind"],
+            &["content_sites", "content_fit", "content_bind"],
         ),
     ];
     for (feature, name, kernels) in selectors {
@@ -304,7 +309,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !status.success() {
             return Err(format!("{name} selector PTX compilation failed").into());
         }
-        admit_ptx(&fs::read_to_string(&ptx)?, &kernels)?;
+        admit_ptx(&fs::read_to_string(&ptx)?, kernels)?;
         let cubin = out.join(format!("{name}.cubin"));
         let status = Command::new(&nvcc)
             .arg("-cubin")

@@ -35,7 +35,13 @@ name = "content-selector"
 path = "src/bin/content-selector.rs"
 required-features = ["content-selector"]
 
+[[bin]]
+name = "span-selector"
+path = "src/bin/span-selector.rs"
+required-features = ["span-selector"]
+
 [features]
+span-selector = ["cuda"]
 content-selector = ["cuda"]
 occurrence-selector = ["cuda"]
 default = []

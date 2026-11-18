@@ -1,0 +1,3 @@
+879136cc884a142e43bda33a027e1c5f1eba8396e53e3d6f3c4819f65072b5df  span-target/x86_64-unknown-linux-gnu/debug/span-selector
+6cb9acb8f987685524fde69bad3f7feaf540714a25cf0679100fdaf963c5ea06  span-target/x86_64-unknown-linux-gnu/debug/build/m1-d11-artifact-scorer-instrument-6e774726a9622750/out/span.cubin
+3ed42cca5980587f16abbcb4849bd4f83d75e799c5dead6fd43f33b8987968a1  span-target/x86_64-unknown-linux-gnu/debug/build/m1-d11-artifact-scorer-instrument-6e774726a9622750/out/span.ptx

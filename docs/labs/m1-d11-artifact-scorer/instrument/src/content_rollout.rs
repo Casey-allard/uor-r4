@@ -156,23 +156,7 @@ pub fn run(artifact: &str, grade_path: &str, config_path: &str) -> Result<Value,
     for (batch_index, batch) in grades.chunks(16).enumerate() {
         let mut cases = Vec::new();
         for grade in batch {
-            let mut core = grade.clone();
-            let obj = core.as_object_mut().ok_or("bad grade")?;
-            obj.retain(|key, _| {
-                matches!(
-                    key.as_str(),
-                    "id" | "pair"
-                        | "role"
-                        | "prefix"
-                        | "asked_start"
-                        | "asked_end"
-                        | "other_start"
-                        | "other_end"
-                        | "expected"
-                )
-            });
-            let case: Case = serde_json::from_value(core).map_err(|e| e.to_string())?;
-            case.validate(&model)?;
+            let case = grade_case(grade, &model)?;
             cases.push(case);
         }
         let mut runs = Vec::new();
@@ -255,4 +239,29 @@ pub fn run(artifact: &str, grade_path: &str, config_path: &str) -> Result<Value,
         "content_and_ablated_state_sha256":hashes,"offset_state_sha256":TRAINED_STATES[seed],"writer_cubin_sha256":m1_d11_artifact_scorer_instrument::device::cubin_sha256(),
         "differential_steps":steps,"rows":rows}),
     )
+}
+
+/// Extract the immutable writer fields from a registered diagnostic grade row.
+pub(super) fn grade_case(
+    grade: &Value,
+    model: &uor_r4_integer::discrete_d11::IntegerDiscreteModel,
+) -> Result<Case, String> {
+    let mut core = grade.clone();
+    let obj = core.as_object_mut().ok_or("bad grade")?;
+    obj.retain(|key, _| {
+        matches!(
+            key.as_str(),
+            "id" | "pair"
+                | "role"
+                | "prefix"
+                | "asked_start"
+                | "asked_end"
+                | "other_start"
+                | "other_end"
+                | "expected"
+        )
+    });
+    let case: Case = serde_json::from_value(core).map_err(|e| e.to_string())?;
+    case.validate(model)?;
+    Ok(case)
 }

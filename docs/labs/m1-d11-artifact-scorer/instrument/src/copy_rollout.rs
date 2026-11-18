@@ -59,6 +59,9 @@ struct HistoricRow {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum Arm {
+    Span,
+    EndpointOnly,
+    ConnectorOnly,
     Content,
     QueryAblated,
     Offset,

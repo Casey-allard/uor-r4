@@ -1,0 +1,74 @@
+{
+  "total": {
+    "n": 288,
+    "old": 74,
+    "full": 116,
+    "ends": 147,
+    "endpoint": 147,
+    "connector": 74,
+    "fullRightWrongEnds": 0,
+    "lost": 0,
+    "added": 42,
+    "abstain": 12,
+    "leadingRecovered": 42,
+    "leadingPositions": 73
+  },
+  "byConnector": [
+    {
+      "key": [
+        null,
+        1
+      ],
+      "data": {
+        "n": 288,
+        "old": 74,
+        "full": 116,
+        "ends": 147,
+        "endpoint": 147,
+        "connector": 74,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 42,
+        "abstain": 12,
+        "leadingRecovered": 42,
+        "leadingPositions": 73
+      }
+    }
+  ],
+  "byFamily": [
+    {
+      "key": 0,
+      "data": {
+        "n": 144,
+        "old": 74,
+        "full": 74,
+        "ends": 74,
+        "endpoint": 74,
+        "connector": 74,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 0,
+        "abstain": 0,
+        "leadingRecovered": 0,
+        "leadingPositions": 0
+      }
+    },
+    {
+      "key": 1,
+      "data": {
+        "n": 144,
+        "old": 0,
+        "full": 42,
+        "ends": 73,
+        "endpoint": 73,
+        "connector": 0,
+        "fullRightWrongEnds": 0,
+        "lost": 0,
+        "added": 42,
+        "abstain": 12,
+        "leadingRecovered": 42,
+        "leadingPositions": 73
+      }
+    }
+  ]
+}

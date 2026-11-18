@@ -1,0 +1,116 @@
+{
+  "arms": [
+    "Content",
+    "Oracle",
+    "Disabled"
+  ],
+  "raw_comparison": "Full source choice for Content; exact selected positions, grade outcomes, stop, first-free tokens and all state/action/native-top-eight/ID fields for all three arms. Compared both #4087 controls and matching per-seed #4089 separate-process repeat files.",
+  "identical_trajectories": 1824,
+  "identical_raw_transitions": 12097,
+  "by_seed_and_panel": [
+    {
+      "seed": "1",
+      "panel": "held",
+      "previous_sha256": "c79bcc5a9dcc5fb3f45da4ef48c6e01e2cab6562fa28d9114fdce08854417d15",
+      "current_sha256": "d03b8a5dbfecf0014fdab3d866fc7e3a7d2a12aae4f7a2c431780fd4fb6cd22b",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "arm_counts": [
+        {
+          "arm": "Content",
+          "trajectories": 288,
+          "steps": 1593
+        },
+        {
+          "arm": "Disabled",
+          "trajectories": 288,
+          "steps": 2997
+        },
+        {
+          "arm": "Oracle",
+          "trajectories": 288,
+          "steps": 1152
+        }
+      ],
+      "identical_trajectories": 864,
+      "identical_raw_transitions": 5742
+    },
+    {
+      "seed": "1",
+      "panel": "original",
+      "previous_sha256": "0b03921377bdb850747a0cdb9637ffc53fbcb9658797739922c3da4519866d33",
+      "current_sha256": "558e6d8474b1495240cdf63b2388bd564fb1cd90f8f760dc4647ff4a2c835f07",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "arm_counts": [
+        {
+          "arm": "Content",
+          "trajectories": 16,
+          "steps": 86
+        },
+        {
+          "arm": "Disabled",
+          "trajectories": 16,
+          "steps": 179
+        },
+        {
+          "arm": "Oracle",
+          "trajectories": 16,
+          "steps": 56
+        }
+      ],
+      "identical_trajectories": 48,
+      "identical_raw_transitions": 321
+    },
+    {
+      "seed": "2",
+      "panel": "held",
+      "previous_sha256": "d59cd16b7accaceddd61ca9311affff2e15bd7a8c172d732fee7ba2842e495cd",
+      "current_sha256": "8a53c3cfc35567056c2f8a971b057c37e107e83c18230314b67b225094e5c2f8",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "arm_counts": [
+        {
+          "arm": "Content",
+          "trajectories": 288,
+          "steps": 1595
+        },
+        {
+          "arm": "Disabled",
+          "trajectories": 288,
+          "steps": 2979
+        },
+        {
+          "arm": "Oracle",
+          "trajectories": 288,
+          "steps": 1152
+        }
+      ],
+      "identical_trajectories": 864,
+      "identical_raw_transitions": 5726
+    },
+    {
+      "seed": "2",
+      "panel": "original",
+      "previous_sha256": "256af44b31bb826e5886b4610f4ec533c865fababe46d1f4468f69294a46ff20",
+      "current_sha256": "78e4c57fd234dac1d7a4363cfc335026142f48d766f71556c6c10eafe2f375ba",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "arm_counts": [
+        {
+          "arm": "Content",
+          "trajectories": 16,
+          "steps": 86
+        },
+        {
+          "arm": "Disabled",
+          "trajectories": 16,
+          "steps": 166
+        },
+        {
+          "arm": "Oracle",
+          "trajectories": 16,
+          "steps": 56
+        }
+      ],
+      "identical_trajectories": 48,
+      "identical_raw_transitions": 308
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+case	pair	role	asked_connector_len	other_connector_len	q_start	q_end	f_start	f_end	gold_value	current_q	current_f	current_value	current_first_wrong	current_wrong_expected	current_wrong_emitted	span_q_start	span_q_end	span_f_start	span_f_end	span_value	span_first_wrong	span_wrong_expected	span_wrong_emitted	span_first_free	span_error_delta	span_stage	endpoint_only_source	endpoint_only_first_wrong	connector_only_source	connector_only_first_wrong	oracle_first_wrong	disabled_first_wrong
+distinct-direct-ann-first-ask-ann	distinct-direct-ann-first	Ann	2	2	16	16	4	4	7	16	4	6	0	677	1935	16	16	4	4	6	0	677	1935	[2,16]	0	value start incorrect	6	0	6	0	1	0
+distinct-direct-ann-first-ask-ben	distinct-direct-ann-first	Ben	2	2	16	16	9	9	12	11	6	8	0	924	1155	10	11	5	6	8	0	924	1155	[0,1155]	0	query anchor outside requested name	8	0	8	0	1	0
+distinct-direct-ben-first-ask-ann	distinct-direct-ben-first	Ann	2	2	16	16	9	9	12	16	9	11	0	677	1935	16	16	9	9	11	0	677	1935	[2,16]	0	value start incorrect	11	0	11	0	1	0
+distinct-direct-ben-first-ask-ben	distinct-direct-ben-first	Ben	2	2	16	16	4	4	7	16	4	6	0	924	1935	16	16	4	4	6	0	924	1935	[2,16]	0	value start incorrect	6	0	6	0	1	0
+distinct-swap-ann-first-ask-ann	distinct-swap-ann-first	Ann	2	2	16	16	4	4	7	16	4	6	0	924	1935	16	16	4	4	6	0	924	1935	[2,16]	0	value start incorrect	6	0	6	0	1	0
+distinct-swap-ann-first-ask-ben	distinct-swap-ann-first	Ben	2	2	16	16	9	9	12	16	9	11	0	677	1935	16	16	9	9	11	0	677	1935	[2,16]	0	value start incorrect	11	0	11	0	1	0
+distinct-swap-ben-first-ask-ann	distinct-swap-ben-first	Ann	2	2	16	16	9	9	12	11	6	8	0	924	1155	10	11	5	6	8	0	924	1155	[0,1155]	0	query anchor outside requested name	8	0	8	0	1	0
+distinct-swap-ben-first-ask-ben	distinct-swap-ben-first	Ben	2	2	16	16	4	4	7	11	6	8	0	677	1155	10	11	5	6	8	0	677	1155	[0,1155]	0	query anchor outside requested name	8	0	8	0	1	0
+shared-direct-ann-first-ask-ann	shared-direct-ann-first	Ann	2	2	18	18	4	4	7	18	4	6	0	677	1935	18	18	4	4	6	0	677	1935	[3,16]	0	value start incorrect	6	0	6	0	2	0
+shared-direct-ann-first-ask-ben	shared-direct-ann-first	Ben	2	2	18	18	10	10	13	12	6	8	0	677	1710	11	12	5	6	8	0	677	1710	[1,16]	0	query anchor outside requested name	8	0	8	0	2	0
+shared-direct-ben-first-ask-ann	shared-direct-ben-first	Ann	2	2	18	18	10	10	13	11	5	7	1	1710	1999	11	12	5	6	8	0	677	1999	[1,3]	-1	query anchor outside requested name	8	0	8	0	2	0
+shared-direct-ben-first-ask-ben	shared-direct-ben-first	Ben	2	2	18	18	4	4	7	18	4	6	0	677	1935	18	18	4	4	6	0	677	1935	[3,3]	0	value start incorrect	6	0	6	0	2	0
+shared-swap-ann-first-ask-ann	shared-swap-ann-first	Ann	2	2	18	18	4	4	7	18	4	6	0	677	1935	18	18	4	4	6	0	677	1935	[3,3]	0	value start incorrect	6	0	6	0	2	0
+shared-swap-ann-first-ask-ben	shared-swap-ann-first	Ben	2	2	18	18	10	10	13	15	9	11	0	677	641	15	15	9	9	12	0	677	1935	[3,16]	0	query anchor outside requested name	11	0	12	0	2	0
+shared-swap-ben-first-ask-ann	shared-swap-ben-first	Ann	2	2	18	18	10	10	13	12	6	8	0	677	1710	11	12	5	6	8	0	677	1710	[1,16]	0	query anchor outside requested name	8	0	8	0	2	0
+shared-swap-ben-first-ask-ben	shared-swap-ben-first	Ben	2	2	18	18	4	4	7	18	4	6	0	677	1935	18	18	4	4	6	0	677	1935	[3,16]	0	value start incorrect	6	0	6	0	2	0

@@ -1,0 +1,289 @@
+case	pair	role	asked_connector_len	other_connector_len	q_start	q_end	f_start	f_end	gold_value	current_q	current_f	current_value	current_first_wrong	current_wrong_expected	current_wrong_emitted	span_q_start	span_q_end	span_f_start	span_f_end	span_value	span_first_wrong	span_wrong_expected	span_wrong_emitted	span_first_free	span_error_delta	span_stage	endpoint_only_source	endpoint_only_first_wrong	connector_only_source	connector_only_first_wrong	oracle_first_wrong	disabled_first_wrong
+held-0-0-0-early-after-long-ask-Kim	held-0-0-0-early-after-long	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-after-long-ask-Mia	held-0-0-0-early-after-long	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-early-after-none-ask-Kim	held-0-0-0-early-after-none	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-after-none-ask-Mia	held-0-0-0-early-after-none	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-early-after-short-ask-Kim	held-0-0-0-early-after-short	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-after-short-ask-Mia	held-0-0-0-early-after-short	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-early-before-long-ask-Kim	held-0-0-0-early-before-long	Kim	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-before-long-ask-Mia	held-0-0-0-early-before-long	Mia	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-early-before-none-ask-Kim	held-0-0-0-early-before-none	Kim	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-before-none-ask-Mia	held-0-0-0-early-before-none	Mia	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-early-before-short-ask-Kim	held-0-0-0-early-before-short	Kim	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-before-short-ask-Mia	held-0-0-0-early-before-short	Mia	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-early-none-long-ask-Kim	held-0-0-0-early-none-long	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-none-long-ask-Mia	held-0-0-0-early-none-long	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-early-none-none-ask-Kim	held-0-0-0-early-none-none	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-none-none-ask-Mia	held-0-0-0-early-none-none	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-early-none-short-ask-Kim	held-0-0-0-early-none-short	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-early-none-short-ask-Mia	held-0-0-0-early-none-short	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-0-late-after-long-ask-Kim	held-0-0-0-late-after-long	Kim	1	1	18	18	4	4	6	19	5	7	0	1074	1155	19	19	5	5	9	0	1074	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-after-long-ask-Mia	held-0-0-0-late-after-long	Mia	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-after-none-ask-Kim	held-0-0-0-late-after-none	Kim	1	1	18	18	4	4	6	19	5	7	0	1074	1155	19	19	5	5	9	0	1074	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-after-none-ask-Mia	held-0-0-0-late-after-none	Mia	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-after-short-ask-Kim	held-0-0-0-late-after-short	Kim	1	1	18	18	4	4	6	19	5	7	0	1074	1155	19	19	5	5	9	0	1074	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-after-short-ask-Mia	held-0-0-0-late-after-short	Mia	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-before-long-ask-Kim	held-0-0-0-late-before-long	Kim	1	1	24	24	4	4	6	14	8	10	0	1074	1730	14	14	8	8	12	0	1074	301	[5,16]	0	query anchor outside requested name	10	0	12	0	1	0
+held-0-0-0-late-before-long-ask-Mia	held-0-0-0-late-before-long	Mia	1	1	24	24	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-before-none-ask-Kim	held-0-0-0-late-before-none	Kim	1	1	24	24	4	4	6	25	5	7	0	1074	1155	25	25	5	5	9	0	1074	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-before-none-ask-Mia	held-0-0-0-late-before-none	Mia	1	1	24	24	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-before-short-ask-Kim	held-0-0-0-late-before-short	Kim	1	1	24	24	4	4	6	14	8	10	0	1074	1730	14	14	8	8	12	0	1074	301	[5,16]	0	query anchor outside requested name	10	0	12	0	1	0
+held-0-0-0-late-before-short-ask-Mia	held-0-0-0-late-before-short	Mia	1	1	24	24	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-0-late-none-long-ask-Kim	held-0-0-0-late-none-long	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-late-none-long-ask-Mia	held-0-0-0-late-none-long	Mia	1	1	18	18	8	8	10	19	5	7	0	1730	1155	19	19	5	5	9	0	1730	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-none-none-ask-Kim	held-0-0-0-late-none-none	Kim	1	1	18	18	4	4	6	19	5	7	0	1074	1155	19	19	5	5	9	0	1074	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-none-none-ask-Mia	held-0-0-0-late-none-none	Mia	1	1	18	18	8	8	10	19	5	7	0	1730	1155	19	19	5	5	9	0	1730	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-0-late-none-short-ask-Kim	held-0-0-0-late-none-short	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-0-late-none-short-ask-Mia	held-0-0-0-late-none-short	Mia	1	1	18	18	8	8	10	19	5	7	0	1730	1155	19	19	5	5	9	0	1730	614	[2,16]	0	query anchor outside requested name	7	0	9	0	1	0
+held-0-0-1-early-after-long-ask-Kim	held-0-0-1-early-after-long	Kim	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-after-long-ask-Mia	held-0-0-1-early-after-long	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-after-none-ask-Kim	held-0-0-1-early-after-none	Kim	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-after-none-ask-Mia	held-0-0-1-early-after-none	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-after-short-ask-Kim	held-0-0-1-early-after-short	Kim	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-after-short-ask-Mia	held-0-0-1-early-after-short	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-before-long-ask-Kim	held-0-0-1-early-before-long	Kim	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-before-long-ask-Mia	held-0-0-1-early-before-long	Mia	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-before-none-ask-Kim	held-0-0-1-early-before-none	Kim	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-before-none-ask-Mia	held-0-0-1-early-before-none	Mia	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-before-short-ask-Kim	held-0-0-1-early-before-short	Kim	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-early-before-short-ask-Mia	held-0-0-1-early-before-short	Mia	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-none-long-ask-Kim	held-0-0-1-early-none-long	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-1-early-none-long-ask-Mia	held-0-0-1-early-none-long	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-none-none-ask-Kim	held-0-0-1-early-none-none	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-1-early-none-none-ask-Mia	held-0-0-1-early-none-none	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-early-none-short-ask-Kim	held-0-0-1-early-none-short	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-0-1-early-none-short-ask-Mia	held-0-0-1-early-none-short	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-after-long-ask-Kim	held-0-0-1-late-after-long	Kim	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-late-after-long-ask-Mia	held-0-0-1-late-after-long	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-after-none-ask-Kim	held-0-0-1-late-after-none	Kim	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-late-after-none-ask-Mia	held-0-0-1-late-after-none	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-after-short-ask-Kim	held-0-0-1-late-after-short	Kim	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-late-after-short-ask-Mia	held-0-0-1-late-after-short	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-before-long-ask-Kim	held-0-0-1-late-before-long	Kim	1	1	23	23	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-late-before-long-ask-Mia	held-0-0-1-late-before-long	Mia	1	1	23	23	4	4	6	23	4	6	1	1	16	23	23	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-before-none-ask-Kim	held-0-0-1-late-before-none	Kim	1	1	23	23	8	8	10	24	9	11	0	1074	1155	24	24	9	9	12	0	1074	301	[4,16]	0	query anchor outside requested name	11	0	12	0	1	0
+held-0-0-1-late-before-none-ask-Mia	held-0-0-1-late-before-none	Mia	1	1	23	23	4	4	6	23	4	6	1	1	16	23	23	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-before-short-ask-Kim	held-0-0-1-late-before-short	Kim	1	1	23	23	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-0-1-late-before-short-ask-Mia	held-0-0-1-late-before-short	Mia	1	1	23	23	4	4	6	23	4	6	1	1	16	23	23	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-none-long-ask-Kim	held-0-0-1-late-none-long	Kim	1	1	18	18	8	8	10	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-0-1-late-none-long-ask-Mia	held-0-0-1-late-none-long	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-none-none-ask-Kim	held-0-0-1-late-none-none	Kim	1	1	18	18	8	8	10	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-0-1-late-none-none-ask-Mia	held-0-0-1-late-none-none	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-0-1-late-none-short-ask-Kim	held-0-0-1-late-none-short	Kim	1	1	18	18	8	8	10	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-0-1-late-none-short-ask-Mia	held-0-0-1-late-none-short	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-after-long-ask-Kim	held-0-1-0-early-after-long	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-after-long-ask-Mia	held-0-1-0-early-after-long	Mia	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-after-none-ask-Kim	held-0-1-0-early-after-none	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-after-none-ask-Mia	held-0-1-0-early-after-none	Mia	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-after-short-ask-Kim	held-0-1-0-early-after-short	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-after-short-ask-Mia	held-0-1-0-early-after-short	Mia	1	1	15	15	8	8	10	26	4	6	0	1074	1730	26	26	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-before-long-ask-Kim	held-0-1-0-early-before-long	Kim	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-before-long-ask-Mia	held-0-1-0-early-before-long	Mia	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-before-none-ask-Kim	held-0-1-0-early-before-none	Kim	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-before-none-ask-Mia	held-0-1-0-early-before-none	Mia	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-before-short-ask-Kim	held-0-1-0-early-before-short	Kim	1	1	20	20	4	4	6	20	4	6	1	1	16	20	20	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-before-short-ask-Mia	held-0-1-0-early-before-short	Mia	1	1	20	20	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-early-none-long-ask-Kim	held-0-1-0-early-none-long	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-none-long-ask-Mia	held-0-1-0-early-none-long	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-0-early-none-none-ask-Kim	held-0-1-0-early-none-none	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-none-none-ask-Mia	held-0-1-0-early-none-none	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-0-early-none-short-ask-Kim	held-0-1-0-early-none-short	Kim	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-early-none-short-ask-Mia	held-0-1-0-early-none-short	Mia	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-0-late-after-long-ask-Kim	held-0-1-0-late-after-long	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-after-long-ask-Mia	held-0-1-0-late-after-long	Mia	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-after-none-ask-Kim	held-0-1-0-late-after-none	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-after-none-ask-Mia	held-0-1-0-late-after-none	Mia	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-after-short-ask-Kim	held-0-1-0-late-after-short	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-after-short-ask-Mia	held-0-1-0-late-after-short	Mia	1	1	18	18	8	8	10	24	4	6	0	1074	1730	24	24	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-before-long-ask-Kim	held-0-1-0-late-before-long	Kim	1	1	23	23	4	4	6	23	4	6	1	1	16	23	23	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-before-long-ask-Mia	held-0-1-0-late-before-long	Mia	1	1	23	23	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-before-none-ask-Kim	held-0-1-0-late-before-none	Kim	1	1	23	23	4	4	6	24	5	7	0	1730	1155	24	24	5	5	7	0	1730	1155	[0,1155]	0	query anchor outside requested name	7	0	7	0	1	0
+held-0-1-0-late-before-none-ask-Mia	held-0-1-0-late-before-none	Mia	1	1	23	23	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-before-short-ask-Kim	held-0-1-0-late-before-short	Kim	1	1	23	23	4	4	6	23	4	6	1	1	16	23	23	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-before-short-ask-Mia	held-0-1-0-late-before-short	Mia	1	1	23	23	8	8	10	15	4	6	0	1074	1730	15	15	4	4	6	0	1074	1730	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-0-late-none-long-ask-Kim	held-0-1-0-late-none-long	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-none-long-ask-Mia	held-0-1-0-late-none-long	Mia	1	1	18	18	8	8	10	19	5	7	0	1074	1155	19	19	5	5	7	0	1074	1155	[0,1155]	0	query anchor outside requested name	7	0	7	0	1	0
+held-0-1-0-late-none-none-ask-Kim	held-0-1-0-late-none-none	Kim	1	1	18	18	4	4	6	19	5	7	0	1730	1155	19	19	5	5	7	0	1730	1155	[0,1155]	0	query anchor outside requested name	7	0	7	0	1	0
+held-0-1-0-late-none-none-ask-Mia	held-0-1-0-late-none-none	Mia	1	1	18	18	8	8	10	19	5	7	0	1074	1155	19	19	5	5	7	0	1074	1155	[0,1155]	0	query anchor outside requested name	7	0	7	0	1	0
+held-0-1-0-late-none-short-ask-Kim	held-0-1-0-late-none-short	Kim	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-0-late-none-short-ask-Mia	held-0-1-0-late-none-short	Mia	1	1	18	18	8	8	10	19	5	7	0	1074	1155	19	19	5	5	7	0	1074	1155	[0,1155]	0	query anchor outside requested name	7	0	7	0	1	0
+held-0-1-1-early-after-long-ask-Kim	held-0-1-1-early-after-long	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-after-long-ask-Mia	held-0-1-1-early-after-long	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-after-none-ask-Kim	held-0-1-1-early-after-none	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-after-none-ask-Mia	held-0-1-1-early-after-none	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-after-short-ask-Kim	held-0-1-1-early-after-short	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-after-short-ask-Mia	held-0-1-1-early-after-short	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-before-long-ask-Kim	held-0-1-1-early-before-long	Kim	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-early-before-long-ask-Mia	held-0-1-1-early-before-long	Mia	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-before-none-ask-Kim	held-0-1-1-early-before-none	Kim	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-early-before-none-ask-Mia	held-0-1-1-early-before-none	Mia	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-before-short-ask-Kim	held-0-1-1-early-before-short	Kim	1	1	21	21	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-early-before-short-ask-Mia	held-0-1-1-early-before-short	Mia	1	1	21	21	4	4	6	21	4	6	1	1	16	21	21	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-none-long-ask-Kim	held-0-1-1-early-none-long	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-none-long-ask-Mia	held-0-1-1-early-none-long	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-none-none-ask-Kim	held-0-1-1-early-none-none	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-none-none-ask-Mia	held-0-1-1-early-none-none	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-early-none-short-ask-Kim	held-0-1-1-early-none-short	Kim	1	1	15	15	8	8	10	15	8	10	1	1	16	15	15	8	8	10	1	1	16	[1,16]	0	complete value followed by wrong continuation	10	1	10	1	1	0
+held-0-1-1-early-none-short-ask-Mia	held-0-1-1-early-none-short	Mia	1	1	15	15	4	4	6	15	4	6	1	1	16	15	15	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-late-after-long-ask-Kim	held-0-1-1-late-after-long	Kim	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-late-after-long-ask-Mia	held-0-1-1-late-after-long	Mia	1	1	18	18	4	4	6	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-after-none-ask-Kim	held-0-1-1-late-after-none	Kim	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-late-after-none-ask-Mia	held-0-1-1-late-after-none	Mia	1	1	18	18	4	4	6	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-after-short-ask-Kim	held-0-1-1-late-after-short	Kim	1	1	18	18	8	8	10	23	4	6	0	1730	1074	23	23	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-late-after-short-ask-Mia	held-0-1-1-late-after-short	Mia	1	1	18	18	4	4	6	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-before-long-ask-Kim	held-0-1-1-late-before-long	Kim	1	1	24	24	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-late-before-long-ask-Mia	held-0-1-1-late-before-long	Mia	1	1	24	24	4	4	6	14	8	10	0	1074	1730	14	14	8	8	12	0	1074	301	[5,16]	0	query anchor outside requested name	10	0	12	0	1	0
+held-0-1-1-late-before-none-ask-Kim	held-0-1-1-late-before-none	Kim	1	1	24	24	8	8	10	25	9	11	0	1730	1155	25	25	9	9	11	0	1730	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-before-none-ask-Mia	held-0-1-1-late-before-none	Mia	1	1	24	24	4	4	6	25	9	11	0	1074	1155	25	25	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-before-short-ask-Kim	held-0-1-1-late-before-short	Kim	1	1	24	24	8	8	10	14	4	6	0	1730	1074	14	14	4	4	6	0	1730	1074	[1,16]	0	query anchor outside requested name	6	0	6	0	1	0
+held-0-1-1-late-before-short-ask-Mia	held-0-1-1-late-before-short	Mia	1	1	24	24	4	4	6	14	8	10	0	1074	1730	14	14	8	8	12	0	1074	301	[5,16]	0	query anchor outside requested name	10	0	12	0	1	0
+held-0-1-1-late-none-long-ask-Kim	held-0-1-1-late-none-long	Kim	1	1	18	18	8	8	10	19	9	11	0	1730	1155	19	19	9	9	11	0	1730	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-none-long-ask-Mia	held-0-1-1-late-none-long	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-0-1-1-late-none-none-ask-Kim	held-0-1-1-late-none-none	Kim	1	1	18	18	8	8	10	19	9	11	0	1730	1155	19	19	9	9	11	0	1730	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-none-none-ask-Mia	held-0-1-1-late-none-none	Mia	1	1	18	18	4	4	6	19	9	11	0	1074	1155	19	19	9	9	11	0	1074	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-none-short-ask-Kim	held-0-1-1-late-none-short	Kim	1	1	18	18	8	8	10	19	9	11	0	1730	1155	19	19	9	9	11	0	1730	1155	[0,1155]	0	query anchor outside requested name	11	0	11	0	1	0
+held-0-1-1-late-none-short-ask-Mia	held-0-1-1-late-none-short	Mia	1	1	18	18	4	4	6	18	4	6	1	1	16	18	18	4	4	6	1	1	16	[1,16]	0	complete value followed by wrong continuation	6	1	6	1	1	0
+held-1-0-0-early-after-long-ask-Ada	held-1-0-0-early-after-long	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-after-long-ask-Noah	held-1-0-0-early-after-long	Noah	1	1	23	25	12	14	16	36	4	6	0	3585	67	36	38	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-after-none-ask-Ada	held-1-0-0-early-after-none	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-after-none-ask-Noah	held-1-0-0-early-after-none	Noah	1	1	23	25	12	14	16	36	4	6	0	3585	67	36	38	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-after-short-ask-Ada	held-1-0-0-early-after-short	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-after-short-ask-Noah	held-1-0-0-early-after-short	Noah	1	1	23	25	12	14	16	36	4	6	0	3585	67	36	38	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-before-long-ask-Ada	held-1-0-0-early-before-long	Ada	1	1	30	32	4	6	8	30	4	6	0	3585	67	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-before-long-ask-Noah	held-1-0-0-early-before-long	Noah	1	1	30	32	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-before-none-ask-Ada	held-1-0-0-early-before-none	Ada	1	1	30	32	4	6	8	30	4	6	0	3585	67	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-before-none-ask-Noah	held-1-0-0-early-before-none	Noah	1	1	30	32	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-before-short-ask-Ada	held-1-0-0-early-before-short	Ada	1	1	30	32	4	6	8	30	4	6	0	3585	67	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-before-short-ask-Noah	held-1-0-0-early-before-short	Noah	1	1	30	32	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-early-none-long-ask-Ada	held-1-0-0-early-none-long	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-none-long-ask-Noah	held-1-0-0-early-none-long	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-0-0-early-none-none-ask-Ada	held-1-0-0-early-none-none	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-none-none-ask-Noah	held-1-0-0-early-none-none	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-0-0-early-none-short-ask-Ada	held-1-0-0-early-none-short	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-early-none-short-ask-Noah	held-1-0-0-early-none-short	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-0-0-late-after-long-ask-Ada	held-1-0-0-late-after-long	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-0-0-late-after-long-ask-Noah	held-1-0-0-late-after-long	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-0-late-after-none-ask-Ada	held-1-0-0-late-after-none	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-0-0-late-after-none-ask-Noah	held-1-0-0-late-after-none	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-0-late-after-short-ask-Ada	held-1-0-0-late-after-short	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-0-0-late-after-short-ask-Noah	held-1-0-0-late-after-short	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-0-late-before-long-ask-Ada	held-1-0-0-late-before-long	Ada	1	1	33	35	4	6	8	33	4	6	0	3585	67	33	35	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-late-before-long-ask-Noah	held-1-0-0-late-before-long	Noah	1	1	33	35	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-late-before-none-ask-Ada	held-1-0-0-late-before-none	Ada	1	1	33	35	4	6	8	36	15	17	0	3585	322	36	36	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-0-0-late-before-none-ask-Noah	held-1-0-0-late-before-none	Noah	1	1	33	35	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-late-before-short-ask-Ada	held-1-0-0-late-before-short	Ada	1	1	33	35	4	6	8	33	4	6	0	3585	67	33	35	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-late-before-short-ask-Noah	held-1-0-0-late-before-short	Noah	1	1	33	35	12	14	16	23	4	6	0	3585	67	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-0-late-none-long-ask-Ada	held-1-0-0-late-none-long	Ada	1	1	26	28	4	6	8	26	4	6	0	3585	67	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-late-none-long-ask-Noah	held-1-0-0-late-none-long	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-0-late-none-none-ask-Ada	held-1-0-0-late-none-none	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-0-0-late-none-none-ask-Noah	held-1-0-0-late-none-none	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-0-late-none-short-ask-Ada	held-1-0-0-late-none-short	Ada	1	1	26	28	4	6	8	26	4	6	0	3585	67	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-0-0-late-none-short-ask-Noah	held-1-0-0-late-none-short	Noah	1	1	26	28	12	14	16	26	12	14	0	3585	74	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-0-1-early-after-long-ask-Ada	held-1-0-1-early-after-long	Ada	1	1	23	25	12	14	16	35	4	6	0	3585	74	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-after-long-ask-Noah	held-1-0-1-early-after-long	Noah	1	1	23	25	4	6	8	35	20	22	0	3585	410	35	37	20	22	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-after-none-ask-Ada	held-1-0-1-early-after-none	Ada	1	1	23	25	12	14	16	35	4	6	0	3585	74	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-after-none-ask-Noah	held-1-0-1-early-after-none	Noah	1	1	23	25	4	6	8	35	20	22	0	3585	410	35	37	20	22	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-after-short-ask-Ada	held-1-0-1-early-after-short	Ada	1	1	23	25	12	14	16	35	4	6	0	3585	74	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-after-short-ask-Noah	held-1-0-1-early-after-short	Noah	1	1	23	25	4	6	8	35	20	22	0	3585	410	35	37	20	22	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-before-long-ask-Ada	held-1-0-1-early-before-long	Ada	1	1	31	33	12	14	16	22	4	6	0	3585	74	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-before-long-ask-Noah	held-1-0-1-early-before-long	Noah	1	1	31	33	4	6	8	31	4	6	0	3585	74	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-early-before-none-ask-Ada	held-1-0-1-early-before-none	Ada	1	1	31	33	12	14	16	22	4	6	0	3585	74	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-before-none-ask-Noah	held-1-0-1-early-before-none	Noah	1	1	31	33	4	6	8	31	4	6	0	3585	74	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-early-before-short-ask-Ada	held-1-0-1-early-before-short	Ada	1	1	31	33	12	14	16	22	4	6	0	3585	74	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-early-before-short-ask-Noah	held-1-0-1-early-before-short	Noah	1	1	31	33	4	6	8	31	4	6	0	3585	74	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-early-none-long-ask-Ada	held-1-0-1-early-none-long	Ada	1	1	23	25	12	14	16	23	20	22	0	3585	410	23	25	20	22	NA	0	3585	1155	[0,1155]	0	fact anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-none-long-ask-Noah	held-1-0-1-early-none-long	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-early-none-none-ask-Ada	held-1-0-1-early-none-none	Ada	1	1	23	25	12	14	16	23	20	22	0	3585	410	23	25	20	22	NA	0	3585	1155	[0,1155]	0	fact anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-none-none-ask-Noah	held-1-0-1-early-none-none	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-early-none-short-ask-Ada	held-1-0-1-early-none-short	Ada	1	1	23	25	12	14	16	23	20	22	0	3585	410	23	25	20	22	NA	0	3585	1155	[0,1155]	0	fact anchor outside requested name	NA	0	22	0	3	0
+held-1-0-1-early-none-short-ask-Noah	held-1-0-1-early-none-short	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-after-long-ask-Ada	held-1-0-1-late-after-long	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-after-long-ask-Noah	held-1-0-1-late-after-long	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-after-none-ask-Ada	held-1-0-1-late-after-none	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-after-none-ask-Noah	held-1-0-1-late-after-none	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-after-short-ask-Ada	held-1-0-1-late-after-short	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-after-short-ask-Noah	held-1-0-1-late-after-short	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-before-long-ask-Ada	held-1-0-1-late-before-long	Ada	1	1	34	36	12	14	16	22	4	6	0	3585	74	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-late-before-long-ask-Noah	held-1-0-1-late-before-long	Noah	1	1	34	36	4	6	8	34	4	6	0	3585	74	34	36	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-before-none-ask-Ada	held-1-0-1-late-before-none	Ada	1	1	34	36	12	14	16	37	7	9	0	3585	322	37	37	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-before-none-ask-Noah	held-1-0-1-late-before-none	Noah	1	1	34	36	4	6	8	34	4	6	0	3585	74	34	36	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-before-short-ask-Ada	held-1-0-1-late-before-short	Ada	1	1	34	36	12	14	16	22	4	6	0	3585	74	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-0-1-late-before-short-ask-Noah	held-1-0-1-late-before-short	Noah	1	1	34	36	4	6	8	34	4	6	0	3585	74	34	36	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-none-long-ask-Ada	held-1-0-1-late-none-long	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-none-long-ask-Noah	held-1-0-1-late-none-long	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-none-none-ask-Ada	held-1-0-1-late-none-none	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-none-none-ask-Noah	held-1-0-1-late-none-none	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-0-1-late-none-short-ask-Ada	held-1-0-1-late-none-short	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-0-1-late-none-short-ask-Noah	held-1-0-1-late-none-short	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-after-long-ask-Ada	held-1-1-0-early-after-long	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-after-long-ask-Noah	held-1-1-0-early-after-long	Noah	1	1	23	25	12	14	16	35	4	6	0	3585	67	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-after-none-ask-Ada	held-1-1-0-early-after-none	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-after-none-ask-Noah	held-1-1-0-early-after-none	Noah	1	1	23	25	12	14	16	35	4	6	0	3585	67	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-after-short-ask-Ada	held-1-1-0-early-after-short	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-after-short-ask-Noah	held-1-1-0-early-after-short	Noah	1	1	23	25	12	14	16	35	4	6	0	3585	67	35	37	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-before-long-ask-Ada	held-1-1-0-early-before-long	Ada	1	1	31	33	4	6	8	31	4	6	0	3585	67	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-before-long-ask-Noah	held-1-1-0-early-before-long	Noah	1	1	31	33	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-before-none-ask-Ada	held-1-1-0-early-before-none	Ada	1	1	31	33	4	6	8	31	4	6	0	3585	67	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-before-none-ask-Noah	held-1-1-0-early-before-none	Noah	1	1	31	33	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-before-short-ask-Ada	held-1-1-0-early-before-short	Ada	1	1	31	33	4	6	8	31	4	6	0	3585	67	31	33	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-before-short-ask-Noah	held-1-1-0-early-before-short	Noah	1	1	31	33	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-early-none-long-ask-Ada	held-1-1-0-early-none-long	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-none-long-ask-Noah	held-1-1-0-early-none-long	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-1-0-early-none-none-ask-Ada	held-1-1-0-early-none-none	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-none-none-ask-Noah	held-1-1-0-early-none-none	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-1-0-early-none-short-ask-Ada	held-1-1-0-early-none-short	Ada	1	1	23	25	4	6	8	23	4	6	0	3585	67	23	25	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-early-none-short-ask-Noah	held-1-1-0-early-none-short	Noah	1	1	23	25	12	14	16	20	4	6	0	3585	67	20	22	4	6	NA	0	3585	1155	[0,1155]	0	query anchor outside requested name	NA	0	6	0	3	0
+held-1-1-0-late-after-long-ask-Ada	held-1-1-0-late-after-long	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-after-long-ask-Noah	held-1-1-0-late-after-long	Noah	1	1	26	28	12	14	16	33	4	6	0	3585	67	33	35	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-after-none-ask-Ada	held-1-1-0-late-after-none	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-after-none-ask-Noah	held-1-1-0-late-after-none	Noah	1	1	26	28	12	14	16	33	4	6	0	3585	67	33	35	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-after-short-ask-Ada	held-1-1-0-late-after-short	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-after-short-ask-Noah	held-1-1-0-late-after-short	Noah	1	1	26	28	12	14	16	33	4	6	0	3585	67	33	35	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-before-long-ask-Ada	held-1-1-0-late-before-long	Ada	1	1	34	36	4	6	8	34	4	6	0	3585	67	34	36	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-late-before-long-ask-Noah	held-1-1-0-late-before-long	Noah	1	1	34	36	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-before-none-ask-Ada	held-1-1-0-late-before-none	Ada	1	1	34	36	4	6	8	37	15	17	0	3585	322	37	37	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-before-none-ask-Noah	held-1-1-0-late-before-none	Noah	1	1	34	36	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-before-short-ask-Ada	held-1-1-0-late-before-short	Ada	1	1	34	36	4	6	8	34	4	6	0	3585	67	34	36	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-late-before-short-ask-Noah	held-1-1-0-late-before-short	Noah	1	1	34	36	12	14	16	22	4	6	0	3585	67	22	24	4	6	8	2	2046	1667	[3,16]	2	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-0-late-none-long-ask-Ada	held-1-1-0-late-none-long	Ada	1	1	26	28	4	6	8	26	4	6	0	3585	67	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-late-none-long-ask-Noah	held-1-1-0-late-none-long	Noah	1	1	26	28	12	14	16	16	8	10	0	3585	1667	16	17	8	9	12	0	3585	2990	[7,16]	0	query anchor outside requested name	11	0	10	0	3	0
+held-1-1-0-late-none-none-ask-Ada	held-1-1-0-late-none-none	Ada	1	1	26	28	4	6	8	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-none-none-ask-Noah	held-1-1-0-late-none-none	Noah	1	1	26	28	12	14	16	29	15	17	0	3585	322	29	29	15	15	17	0	3585	322	[2,16]	0	query anchor outside requested name	17	0	17	0	3	0
+held-1-1-0-late-none-short-ask-Ada	held-1-1-0-late-none-short	Ada	1	1	26	28	4	6	8	26	4	6	0	3585	67	26	28	4	6	8	3	1	16	[3,16]	3	complete value followed by wrong continuation	8	3	6	0	3	0
+held-1-1-0-late-none-short-ask-Noah	held-1-1-0-late-none-short	Noah	1	1	26	28	12	14	16	16	8	10	0	3585	1667	16	17	8	9	12	0	3585	2990	[7,16]	0	query anchor outside requested name	11	0	10	0	3	0
+held-1-1-1-early-after-long-ask-Ada	held-1-1-1-early-after-long	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-after-long-ask-Noah	held-1-1-1-early-after-long	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-after-none-ask-Ada	held-1-1-1-early-after-none	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-after-none-ask-Noah	held-1-1-1-early-after-none	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-after-short-ask-Ada	held-1-1-1-early-after-short	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-after-short-ask-Noah	held-1-1-1-early-after-short	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-before-long-ask-Ada	held-1-1-1-early-before-long	Ada	1	1	30	32	12	14	16	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-1-early-before-long-ask-Noah	held-1-1-1-early-before-long	Noah	1	1	30	32	4	6	8	30	4	6	0	3585	74	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-before-none-ask-Ada	held-1-1-1-early-before-none	Ada	1	1	30	32	12	14	16	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-1-early-before-none-ask-Noah	held-1-1-1-early-before-none	Noah	1	1	30	32	4	6	8	30	4	6	0	3585	74	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-before-short-ask-Ada	held-1-1-1-early-before-short	Ada	1	1	30	32	12	14	16	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-1-early-before-short-ask-Noah	held-1-1-1-early-before-short	Noah	1	1	30	32	4	6	8	30	4	6	0	3585	74	30	32	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-none-long-ask-Ada	held-1-1-1-early-none-long	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-none-long-ask-Noah	held-1-1-1-early-none-long	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-none-none-ask-Ada	held-1-1-1-early-none-none	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-none-none-ask-Noah	held-1-1-1-early-none-none	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-early-none-short-ask-Ada	held-1-1-1-early-none-short	Ada	1	1	23	25	12	14	16	23	12	14	0	3585	67	23	25	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-early-none-short-ask-Noah	held-1-1-1-early-none-short	Noah	1	1	23	25	4	6	8	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-after-long-ask-Ada	held-1-1-1-late-after-long	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-1-1-late-after-long-ask-Noah	held-1-1-1-late-after-long	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-after-none-ask-Ada	held-1-1-1-late-after-none	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-1-1-late-after-none-ask-Noah	held-1-1-1-late-after-none	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-after-short-ask-Ada	held-1-1-1-late-after-short	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-1-1-late-after-short-ask-Noah	held-1-1-1-late-after-short	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-before-long-ask-Ada	held-1-1-1-late-before-long	Ada	1	1	33	35	12	14	16	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-1-late-before-long-ask-Noah	held-1-1-1-late-before-long	Noah	1	1	33	35	4	6	8	33	4	6	0	3585	74	33	35	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-before-none-ask-Ada	held-1-1-1-late-before-none	Ada	1	1	33	35	12	14	16	36	7	9	0	3585	322	36	36	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-1-1-late-before-none-ask-Noah	held-1-1-1-late-before-none	Noah	1	1	33	35	4	6	8	33	4	6	0	3585	74	33	35	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-before-short-ask-Ada	held-1-1-1-late-before-short	Ada	1	1	33	35	12	14	16	23	4	6	0	3585	74	23	25	4	6	10	0	3585	2046	[1,16]	0	query anchor outside requested name	8	2	6	0	3	0
+held-1-1-1-late-before-short-ask-Noah	held-1-1-1-late-before-short	Noah	1	1	33	35	4	6	8	33	4	6	0	3585	74	33	35	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-none-long-ask-Ada	held-1-1-1-late-none-long	Ada	1	1	26	28	12	14	16	26	12	14	0	3585	67	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-late-none-long-ask-Noah	held-1-1-1-late-none-long	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-none-none-ask-Ada	held-1-1-1-late-none-none	Ada	1	1	26	28	12	14	16	29	7	9	0	3585	322	29	29	7	7	9	0	3585	322	[2,16]	0	query anchor outside requested name	9	0	9	0	3	0
+held-1-1-1-late-none-none-ask-Noah	held-1-1-1-late-none-none	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
+held-1-1-1-late-none-short-ask-Ada	held-1-1-1-late-none-short	Ada	1	1	26	28	12	14	16	26	12	14	0	3585	67	26	28	12	14	16	3	1	16	[3,16]	3	complete value followed by wrong continuation	16	3	14	0	3	0
+held-1-1-1-late-none-short-ask-Noah	held-1-1-1-late-none-short	Noah	1	1	26	28	4	6	8	26	4	6	0	3585	74	26	28	4	6	10	0	3585	2046	[1,16]	0	value start incorrect	8	3	6	0	3	0
