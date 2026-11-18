@@ -1,0 +1,1 @@
+PASS exact TRAIN bank, 7 device/Rust words per fixture: full vs partial raw IDs, shorter registered prefix, colliding roots, START/CONT, reordered/replaced token, no eligible choice, frozen no-source and longest tie. Cubin fe75d118a97581135f035dbf3b85fee34be9710de4e550c8543cd1fd22ae6208

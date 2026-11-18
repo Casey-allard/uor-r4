@@ -11,6 +11,32 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const COMMON: [&str; 3] = ["has", "has kept", "has just kept"];
 const TRAIN_ONLY: [&str; 3] = ["found", "once found", "once again found"];
+const EXTENDS_TRAIN: [&str; 3] = ["found", "found only", "found and kept"];
+const FRESH_ONLY: [&str; 3] = ["got", "collects", "now collects"];
+
+#[derive(Clone, Copy)]
+enum Suite {
+    Train,
+    Held,
+    Shared,
+    ShortPrefix,
+    Unseen,
+}
+
+impl Suite {
+    fn split(self) -> &'static str {
+        match self {
+            Self::Train => "train",
+            Self::Held => "held",
+            _ => "fresh",
+        }
+    }
+
+    fn is_fresh(self) -> bool {
+        matches!(self, Self::Shared | Self::ShortPrefix | Self::Unseen)
+    }
+}
+
 const HELD_ONLY: [&str; 3] = ["took", "chose", "also chose"];
 
 fn write_rows(root: &Path, file: &str, rows: &[Value]) -> Result<()> {
@@ -112,7 +138,7 @@ struct Cell {
 fn row(
     t: &ByteBpeTokenizer,
     encoder: &DialogueEncoder<'_>,
-    train: bool,
+    suite: Suite,
     cell: Cell,
 ) -> Result<(Value, Value, Value)> {
     let Cell {
@@ -125,37 +151,43 @@ fn row(
         tail,
         asked,
     } = cell;
-    let split = if train { "train" } else { "held" };
-    let names = if train {
-        [["Tim", "Sue"], ["Nala", "Navi"]]
-    } else {
-        [["Joe", "Leo"], ["Rana", "Rani"]]
+    let train = matches!(suite, Suite::Train);
+    let fresh = suite.is_fresh();
+    let split = suite.split();
+    let names = match suite {
+        Suite::Train => [["Tim", "Sue"], ["Nala", "Navi"]],
+        Suite::Held => [["Joe", "Leo"], ["Rana", "Rani"]],
+        _ => [["Jim", "Jen"], ["Mira", "Miri"]],
     }[family];
     let value_set = family ^ order;
-    let values = if train {
-        [["gray", "blue"], ["small cup", "small hat"]]
-    } else {
-        [["yellow", "pink"], ["round stone", "round coin"]]
+    let values = match suite {
+        Suite::Train => [["gray", "blue"], ["small cup", "small hat"]],
+        Suite::Held => [["yellow", "pink"], ["round stone", "round coin"]],
+        _ => [["white", "gold"], ["old lamp", "old ring"]],
     }[value_set];
-    let connectors = if assignment == 0 {
-        COMMON
-    } else if train {
-        TRAIN_ONLY
-    } else {
-        HELD_ONLY
+    let (set, connectors) = match suite {
+        Suite::Train if assignment != 0 => ("split_specific", TRAIN_ONLY),
+        Suite::Held if assignment != 0 => ("split_specific", HELD_ONLY),
+        Suite::ShortPrefix => ("short_prefix", EXTENDS_TRAIN),
+        Suite::Unseen => ("unseen", FRESH_ONLY),
+        _ => ("shared", COMMON),
     };
     let verb = |who: usize| connectors[lengths[who] - 1];
     let fact = |who: usize| format!("{} {} {}.", names[who], verb(who), values[who ^ assignment]);
     let facts = format!("{} {}", fact(order), fact(1 - order));
     let name = names[asked];
     let other = names[1 - asked];
-    let question = match (train, position) {
-        (true, "early") => format!("For {name}, which item was listed?"),
-        (true, _) => format!("Which item is listed for {name}?"),
-        (false, "early") => format!("About {name}, which item was listed?"),
-        (false, _) => format!("What is the item that {name} has?"),
+    let question = match (suite, position) {
+        (Suite::Train, "early") => format!("For {name}, which item was listed?"),
+        (Suite::Train, _) => format!("Which item is listed for {name}?"),
+        (Suite::Held, "early") => format!("About {name}, which item was listed?"),
+        (Suite::Held, _) => format!("What is the item that {name} has?"),
+        (_, "early") => format!("About {name}, which item did the note list?"),
+        (_, _) => format!("Which item did the note list for {name}?"),
     };
-    let neg = if train {
+    let neg = if fresh {
+        format!("Skip {other}.")
+    } else if train {
         format!("Ignore {other}.")
     } else {
         format!("Set {other} aside.")
@@ -230,10 +262,25 @@ fn row(
         "{split}-f{family}-a{assignment}-o{order}-c{}{}-{position}-{exclusion}-{tail}",
         lengths[0], lengths[1]
     );
-    let factors = json!({"lexical_set":family,"assignment":assignment,"fact_order":order,"value_set":value_set,
-        "connector_set":if assignment==0{"shared"}else{"split_specific"},"connector_0_len":lengths[0],
+    let pair = if fresh { format!("{pair}-{set}") } else { pair };
+    let mut factors = json!({"lexical_set":family,"assignment":assignment,"fact_order":order,"value_set":value_set,
+        "connector_set":set,"connector_0_len":lengths[0],
         "connector_1_len":lengths[1],"asked_connector_len":lengths[asked],"other_connector_len":lengths[1-asked],
         "requested_position":position,"exclusion":exclusion,"tail":tail,"asked_role":asked});
+    if fresh {
+        factors["asked_connector_surface"] = json!(verb(asked));
+        let connector = &prefix[sites.fact.end + 1..src.start];
+        let longest_prefix = COMMON
+            .iter()
+            .chain(&TRAIN_ONLY)
+            .map(|verb| tokens(t, verb))
+            .filter(|ids| connector.starts_with(ids))
+            .map(|ids| ids.len())
+            .max()
+            .unwrap_or(0);
+        factors["longest_train_prefix"] = json!(longest_prefix);
+        factors["exact_train_connector"] = json!(longest_prefix == connector.len());
+    }
     let labels = json!({"prefix":prefix,"query_start":sites.query.start,"query_end":sites.query.end,
         "fact_start":sites.fact.start,"fact_end":sites.fact.end,"source":src.start});
     let grade = json!({"id":format!("{pair}-{name}"),"pair":pair,"role":name,"expected":expected,
@@ -246,38 +293,59 @@ fn generated(
     root: &Path,
     t: &ByteBpeTokenizer,
     encoder: &DialogueEncoder<'_>,
-    train: bool,
+    suites: &[Suite],
     census: &mut BTreeSet<Vec<u32>>,
 ) -> Result<()> {
     let mut grades = Vec::new();
     let mut inputs = Vec::new();
-    for family in 0..2 {
-        for assignment in 0..2 {
-            for order in 0..2 {
-                for l0 in 1..=3 {
-                    for l1 in 1..=3 {
-                        for position in ["early", "late"] {
-                            for exclusion in ["none", "before", "after"] {
-                                for tail in ["none", "long"] {
-                                    for asked in 0..2 {
-                                        let cell = Cell {
-                                            family,
-                                            assignment,
-                                            order,
-                                            lengths: [l0, l1],
-                                            position,
-                                            exclusion,
-                                            tail,
-                                            asked,
-                                        };
-                                        let (labels, blind, grade) = row(t, encoder, train, cell)?;
-                                        if !census.insert(serde_json::from_value(
-                                            blind["prefix"].clone(),
-                                        )?) {
-                                            return Err("duplicate prefix across panels".into());
+    let split = suites.first().ok_or("empty connector panel")?.split();
+    for &suite in suites {
+        let exclusions: &[&str] = if suite.is_fresh() {
+            &["none", "before"]
+        } else {
+            &["none", "before", "after"]
+        };
+        let tails: &[&str] = if suite.is_fresh() {
+            &["none"]
+        } else {
+            &["none", "long"]
+        };
+        if suite.split() != split {
+            return Err("inconsistent panel split".into());
+        }
+        for family in 0..2 {
+            for assignment in 0..2 {
+                for order in 0..2 {
+                    for l0 in 1..=3 {
+                        for l1 in 1..=3 {
+                            for position in ["early", "late"] {
+                                for &exclusion in exclusions {
+                                    for &tail in tails {
+                                        for asked in 0..2 {
+                                            let cell = Cell {
+                                                family,
+                                                assignment,
+                                                order,
+                                                lengths: [l0, l1],
+                                                position,
+                                                exclusion,
+                                                tail,
+                                                asked,
+                                            };
+                                            let (labels, blind, grade) =
+                                                row(t, encoder, suite, cell)?;
+                                            if !census.insert(serde_json::from_value(
+                                                blind["prefix"].clone(),
+                                            )?) {
+                                                return Err("duplicate prefix across panels".into());
+                                            }
+                                            inputs.push(if matches!(suite, Suite::Train) {
+                                                labels
+                                            } else {
+                                                blind
+                                            });
+                                            grades.push(grade);
                                         }
-                                        inputs.push(if train { labels } else { blind });
-                                        grades.push(grade);
                                     }
                                 }
                             }
@@ -290,24 +358,13 @@ fn generated(
     if grades.len() != 1728 {
         return Err("factor count mismatch".into());
     }
-    write_rows(
-        root,
-        if train {
-            "train.json"
-        } else {
-            "held-blind.json"
-        },
-        &inputs,
-    )?;
-    write_rows(
-        root,
-        if train {
-            "train-grade.json"
-        } else {
-            "held-grade.json"
-        },
-        &grades,
-    )
+    let inputs_name = if split == "train" {
+        "train.json".to_string()
+    } else {
+        format!("{split}-blind.json")
+    };
+    write_rows(root, &inputs_name, &inputs)?;
+    write_rows(root, &format!("{split}-grade.json"), &grades)
 }
 
 fn historic(
@@ -402,7 +459,9 @@ fn start_role(r: &Value) -> Result<usize> {
 fn run() -> Result<()> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     let [tok, previous, out] = args.as_slice() else {
-        return Err("usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR NEW_OUT".into());
+        return Err(
+            "usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR|--fresh NEW_OUT".into(),
+        );
     };
     let t = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(tok)?)
         .ok_or("invalid public tokenizer")?;
@@ -411,8 +470,17 @@ fn run() -> Result<()> {
     let root = Path::new(out);
     fs::create_dir(root)?;
     let mut census = BTreeSet::new();
-    generated(root, &t, &encoder, true, &mut census)?;
-    generated(root, &t, &encoder, false, &mut census)?;
+    if previous == "--fresh" {
+        return generated(
+            root,
+            &t,
+            &encoder,
+            &[Suite::Shared, Suite::ShortPrefix, Suite::Unseen],
+            &mut census,
+        );
+    }
+    generated(root, &t, &encoder, &[Suite::Train], &mut census)?;
+    generated(root, &t, &encoder, &[Suite::Held], &mut census)?;
     for split in ["original", "held"] {
         historic(root, Path::new(previous), split, &t, &mut census)?;
     }

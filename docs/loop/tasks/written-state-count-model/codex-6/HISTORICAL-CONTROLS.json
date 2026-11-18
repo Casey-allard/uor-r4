@@ -1,0 +1,183 @@
+{
+  "schema": "uor-r4.value-connector-historical-control-compare/1",
+  "baseline": "3b5bcc4100f7ecc4858e71ea64295a169db6e536",
+  "scope": "All Current (formerly Span), Oracle, and Disabled historical trajectories on the same prompts, grades, endpoints and writer cubin. Compared complete step arrays, including source/cursor/native and emitted IDs, plus choices, generated sequence, first error and first free token. All six current primary files were byte-identical to their independent-process repeat on Wick. The comparison rejected an injected one-ID first-step change.",
+  "trajectories": 12192,
+  "transitions": 79760,
+  "runs": [
+    {
+      "cases": 16,
+      "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+      "grade_sha256": "d36695502404048706507277063fa6f38d6f68b29525cca030c48902ebf44b35",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 48,
+      "identical_steps": 319,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 16,
+          "steps": 84
+        },
+        {
+          "arm": "Disabled",
+          "cases": 16,
+          "steps": 179
+        },
+        {
+          "arm": "Oracle",
+          "cases": 16,
+          "steps": 56
+        }
+      ],
+      "seed": 1,
+      "split": "original",
+      "prior_raw_sha256": "558e6d8474b1495240cdf63b2388bd564fb1cd90f8f760dc4647ff4a2c835f07",
+      "new_raw_sha256": "5474429608b3faef38fa6e7f4e8d394e60e5e8ee3d0134755a2f18d40afa559b"
+    },
+    {
+      "cases": 1728,
+      "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+      "grade_sha256": "75ffdce92b1e691d79e93a8c2265ee780ef982b8192a67bea46fb7b126af2f27",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 5184,
+      "identical_steps": 34142,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 1728,
+          "steps": 10078
+        },
+        {
+          "arm": "Disabled",
+          "cases": 1728,
+          "steps": 18003
+        },
+        {
+          "arm": "Oracle",
+          "cases": 1728,
+          "steps": 6061
+        }
+      ],
+      "seed": 1,
+      "split": "primary",
+      "prior_raw_sha256": "4157cc92cce35f797a7d1f93637904bc699d903d0c88df05da108a76b62c755a",
+      "new_raw_sha256": "f005a2175f0f378fe6c413b53f9f394f7dddf12920b0038084bdf95ec8122a65"
+    },
+    {
+      "cases": 288,
+      "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+      "grade_sha256": "3570822f2d8e1cf16197c27aa44401291a9c2d2ccbc2ad10194c45a0fb56f6ec",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 864,
+      "identical_steps": 5419,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 288,
+          "steps": 1270
+        },
+        {
+          "arm": "Disabled",
+          "cases": 288,
+          "steps": 2997
+        },
+        {
+          "arm": "Oracle",
+          "cases": 288,
+          "steps": 1152
+        }
+      ],
+      "seed": 1,
+      "split": "prior",
+      "prior_raw_sha256": "d03b8a5dbfecf0014fdab3d866fc7e3a7d2a12aae4f7a2c431780fd4fb6cd22b",
+      "new_raw_sha256": "16c620564ca29d80b80a789eae5c47cf681f84f5d3ffe67973e4a627b589d1fa"
+    },
+    {
+      "cases": 16,
+      "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+      "grade_sha256": "d36695502404048706507277063fa6f38d6f68b29525cca030c48902ebf44b35",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 48,
+      "identical_steps": 306,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 16,
+          "steps": 84
+        },
+        {
+          "arm": "Disabled",
+          "cases": 16,
+          "steps": 166
+        },
+        {
+          "arm": "Oracle",
+          "cases": 16,
+          "steps": 56
+        }
+      ],
+      "seed": 2,
+      "split": "original",
+      "prior_raw_sha256": "78e4c57fd234dac1d7a4363cfc335026142f48d766f71556c6c10eafe2f375ba",
+      "new_raw_sha256": "05deb20707189e3fe44a650dbdef4c6272472127e23b235db65ca0a62bdc6619"
+    },
+    {
+      "cases": 1728,
+      "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+      "grade_sha256": "75ffdce92b1e691d79e93a8c2265ee780ef982b8192a67bea46fb7b126af2f27",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 5184,
+      "identical_steps": 34176,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 1728,
+          "steps": 10099
+        },
+        {
+          "arm": "Disabled",
+          "cases": 1728,
+          "steps": 18016
+        },
+        {
+          "arm": "Oracle",
+          "cases": 1728,
+          "steps": 6061
+        }
+      ],
+      "seed": 2,
+      "split": "primary",
+      "prior_raw_sha256": "a67502b32396ffbb19d89ce77fa458a86608d8c33331fcb245bb7ed849fe852c",
+      "new_raw_sha256": "0ff60b3505abaca95d21b6613e9b689bcd10177558bd95e8b753f6105e22bca9"
+    },
+    {
+      "cases": 288,
+      "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+      "grade_sha256": "3570822f2d8e1cf16197c27aa44401291a9c2d2ccbc2ad10194c45a0fb56f6ec",
+      "writer_cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+      "identical_trajectories": 864,
+      "identical_steps": 5398,
+      "by_arm": [
+        {
+          "arm": "Current",
+          "cases": 288,
+          "steps": 1267
+        },
+        {
+          "arm": "Disabled",
+          "cases": 288,
+          "steps": 2979
+        },
+        {
+          "arm": "Oracle",
+          "cases": 288,
+          "steps": 1152
+        }
+      ],
+      "seed": 2,
+      "split": "prior",
+      "prior_raw_sha256": "8a53c3cfc35567056c2f8a971b057c37e107e83c18230314b67b225094e5c2f8",
+      "new_raw_sha256": "3c63966768c39e4ac05d22483de3bdafe22ff1beb8ece80216b09753b5fa87b2"
+    }
+  ]
+}

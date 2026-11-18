@@ -38,6 +38,8 @@ mod copy_rollout;
 mod role_swap;
 #[cfg(feature = "cuda")]
 mod span_rollout;
+#[cfg(feature = "cuda")]
+mod value_rollout;
 
 fn read_json(path: &str) -> Result<Value, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
@@ -70,6 +72,12 @@ fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
 
 fn run(args: &[String]) -> Result<(), String> {
     match args {
+        #[cfg(feature = "cuda")]
+        [cmd, artifact, grade, span_state, span_picks, state, picks, out] if cmd == "value-rollout" => {
+            refuse_existing(&[out])?;
+            let result = value_rollout::run(artifact, grade, span_state, span_picks, state, picks)?;
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
         #[cfg(feature = "cuda")]
         [cmd, artifact, grade, old_state, old_picks, state, picks, out] if cmd == "span-rollout" => {
             refuse_existing(&[out])?;

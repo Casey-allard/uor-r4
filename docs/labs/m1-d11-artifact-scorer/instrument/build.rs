@@ -269,7 +269,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if image.len() < 64 || !image.starts_with(b"\x7fELF") {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
-    let selectors: [(&str, &str, &[&str]); 3] = [
+    let selectors: [(&str, &str, &[&str]); 4] = [
+        (
+            "CARGO_FEATURE_VALUE_SELECTOR",
+            "value",
+            &["value_fit", "value_predict"],
+        ),
         (
             "CARGO_FEATURE_SPAN_SELECTOR",
             "span",

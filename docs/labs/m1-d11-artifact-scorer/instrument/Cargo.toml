@@ -40,7 +40,13 @@ name = "span-selector"
 path = "src/bin/span-selector.rs"
 required-features = ["span-selector"]
 
+[[bin]]
+name = "value-selector"
+path = "src/bin/value-selector.rs"
+required-features = ["value-selector"]
+
 [features]
+value-selector = ["cuda"]
 span-selector = ["cuda"]
 content-selector = ["cuda"]
 occurrence-selector = ["cuda"]

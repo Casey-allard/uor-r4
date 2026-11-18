@@ -1,0 +1,1186 @@
+{
+  "cases": 288,
+  "arms": {
+    "Current": {
+      "starts": 116,
+      "opening": 136,
+      "whole_value": 116,
+      "replies": 0,
+      "both_roles": 18,
+      "abstained": 12,
+      "status": {
+        "abstained": 12,
+        "distractor": 60,
+        "other": 100,
+        "requested": 116
+      },
+      "first_wrong": {
+        "0": 152,
+        "1": 74,
+        "2": 20,
+        "3": 42
+      },
+      "first_free_after_right_value": {
+        "16": 116
+      }
+    },
+    "WordStart": {
+      "starts": 116,
+      "opening": 136,
+      "whole_value": 116,
+      "replies": 0,
+      "both_roles": 18,
+      "abstained": 12,
+      "status": {
+        "abstained": 12,
+        "distractor": 60,
+        "other": 100,
+        "requested": 116
+      },
+      "first_wrong": {
+        "0": 152,
+        "1": 74,
+        "2": 20,
+        "3": 42
+      },
+      "first_free_after_right_value": {
+        "16": 116
+      }
+    },
+    "Ordered": {
+      "starts": 0,
+      "opening": 0,
+      "whole_value": 0,
+      "replies": 0,
+      "both_roles": 0,
+      "abstained": 288,
+      "status": {
+        "abstained": 288
+      },
+      "first_wrong": {
+        "0": 288
+      },
+      "first_free_after_right_value": {}
+    },
+    "Both": {
+      "starts": 0,
+      "opening": 0,
+      "whole_value": 0,
+      "replies": 0,
+      "both_roles": 0,
+      "abstained": 288,
+      "status": {
+        "abstained": 288
+      },
+      "first_wrong": {
+        "0": 288
+      },
+      "first_free_after_right_value": {}
+    },
+    "Oracle": {
+      "starts": 288,
+      "opening": 288,
+      "whole_value": 288,
+      "replies": 0,
+      "both_roles": 144,
+      "abstained": 0,
+      "status": {
+        "requested": 288
+      },
+      "first_wrong": {
+        "1": 144,
+        "3": 144
+      },
+      "first_free_after_right_value": {
+        "16": 288
+      }
+    },
+    "Disabled": {
+      "starts": 0,
+      "opening": 0,
+      "whole_value": 0,
+      "replies": 0,
+      "both_roles": 0,
+      "abstained": 288,
+      "status": {
+        "abstained": 288
+      },
+      "first_wrong": {
+        "0": 288
+      },
+      "first_free_after_right_value": {}
+    }
+  },
+  "triplets": null,
+  "comparisons": {
+    "WordStart": {
+      "rows": 288,
+      "moves": {
+        "tied": 288
+      },
+      "index_transitions": {
+        "0->0": 152,
+        "1->1": 74,
+        "2->2": 20,
+        "3->3": 42
+      },
+      "right": 116,
+      "gained": 0,
+      "lost": 0,
+      "abstained": 12,
+      "wrong_copy": 160,
+      "later_source_status": {},
+      "earlier_source_status": {},
+      "tied_index_changed_wrong_id": 40,
+      "changed_source": 40
+    },
+    "Ordered": {
+      "rows": 288,
+      "moves": {
+        "earlier": 136,
+        "tied": 152
+      },
+      "index_transitions": {
+        "0->0": 152,
+        "1->0": 74,
+        "2->0": 20,
+        "3->0": 42
+      },
+      "right": 0,
+      "gained": 0,
+      "lost": 116,
+      "abstained": 288,
+      "wrong_copy": 0,
+      "later_source_status": {},
+      "earlier_source_status": {
+        "abstained": 136
+      },
+      "tied_index_changed_wrong_id": 123,
+      "changed_source": 276
+    },
+    "Both": {
+      "rows": 288,
+      "moves": {
+        "earlier": 136,
+        "tied": 152
+      },
+      "index_transitions": {
+        "0->0": 152,
+        "1->0": 74,
+        "2->0": 20,
+        "3->0": 42
+      },
+      "right": 0,
+      "gained": 0,
+      "lost": 116,
+      "abstained": 288,
+      "wrong_copy": 0,
+      "later_source_status": {},
+      "earlier_source_status": {
+        "abstained": 136
+      },
+      "tied_index_changed_wrong_id": 123,
+      "changed_source": 276
+    }
+  },
+  "joint_vs_word": {
+    "rows": 288,
+    "moves": {
+      "earlier": 136,
+      "tied": 152
+    },
+    "index_transitions": {
+      "0->0": 152,
+      "1->0": 74,
+      "2->0": 20,
+      "3->0": 42
+    },
+    "right": 0,
+    "gained": 0,
+    "lost": 116,
+    "abstained": 288,
+    "wrong_copy": 0,
+    "later_source_status": {},
+    "earlier_source_status": {
+      "abstained": 136
+    },
+    "tied_index_changed_wrong_id": 140,
+    "changed_source": 276
+  },
+  "joint_vs_order": {
+    "rows": 288,
+    "moves": {
+      "tied": 288
+    },
+    "index_transitions": {
+      "0->0": 288
+    },
+    "right": 0,
+    "gained": 0,
+    "lost": 0,
+    "abstained": 288,
+    "wrong_copy": 0,
+    "later_source_status": {},
+    "earlier_source_status": {},
+    "tied_index_changed_wrong_id": 0,
+    "changed_source": 0
+  },
+  "length": [
+    {
+      "length": 1,
+      "rows": 288,
+      "moves": {
+        "WordStart": {
+          "rows": 288,
+          "moves": {
+            "tied": 288
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->1": 74,
+            "2->2": 20,
+            "3->3": 42
+          },
+          "right": 116,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 160,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 40,
+          "changed_source": 40
+        },
+        "Ordered": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        },
+        "Both": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        }
+      },
+      "corresponding": {
+        "rows": 147,
+        "arms": {
+          "Current": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "WordStart": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          }
+        }
+      }
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": "none",
+      "rows": 288,
+      "moves": {
+        "WordStart": {
+          "rows": 288,
+          "moves": {
+            "tied": 288
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->1": 74,
+            "2->2": 20,
+            "3->3": 42
+          },
+          "right": 116,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 160,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 40,
+          "changed_source": 40
+        },
+        "Ordered": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        },
+        "Both": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        }
+      },
+      "corresponding": {
+        "rows": 147,
+        "arms": {
+          "Current": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "WordStart": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          }
+        }
+      }
+    }
+  ],
+  "family_by_length": [
+    {
+      "family": "historical",
+      "length": 1,
+      "rows": 288,
+      "moves": {
+        "WordStart": {
+          "rows": 288,
+          "moves": {
+            "tied": 288
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->1": 74,
+            "2->2": 20,
+            "3->3": 42
+          },
+          "right": 116,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 160,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 40,
+          "changed_source": 40
+        },
+        "Ordered": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        },
+        "Both": {
+          "rows": 288,
+          "moves": {
+            "earlier": 136,
+            "tied": 152
+          },
+          "index_transitions": {
+            "0->0": 152,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 288,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 123,
+          "changed_source": 276
+        }
+      },
+      "corresponding": {
+        "rows": 147,
+        "arms": {
+          "Current": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "WordStart": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          }
+        }
+      }
+    }
+  ],
+  "current_source_class": [
+    {
+      "class": "abstain",
+      "rows": 12,
+      "moves": {
+        "WordStart": {
+          "rows": 12,
+          "moves": {
+            "tied": 12
+          },
+          "index_transitions": {
+            "0->0": 12
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 0
+        },
+        "Ordered": {
+          "rows": 12,
+          "moves": {
+            "tied": 12
+          },
+          "index_transitions": {
+            "0->0": 12
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 0
+        },
+        "Both": {
+          "rows": 12,
+          "moves": {
+            "tied": 12
+          },
+          "index_transitions": {
+            "0->0": 12
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 0
+        }
+      },
+      "corresponding": {
+        "rows": 0,
+        "arms": {
+          "Current": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "WordStart": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          }
+        }
+      }
+    },
+    {
+      "class": "continuation",
+      "rows": 23,
+      "moves": {
+        "WordStart": {
+          "rows": 23,
+          "moves": {
+            "tied": 23
+          },
+          "index_transitions": {
+            "0->0": 23
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 0,
+          "wrong_copy": 23,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 23,
+          "changed_source": 23
+        },
+        "Ordered": {
+          "rows": 23,
+          "moves": {
+            "tied": 23
+          },
+          "index_transitions": {
+            "0->0": 23
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 23,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 23,
+          "changed_source": 23
+        },
+        "Both": {
+          "rows": 23,
+          "moves": {
+            "tied": 23
+          },
+          "index_transitions": {
+            "0->0": 23
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 23,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 23,
+          "changed_source": 23
+        }
+      },
+      "corresponding": {
+        "rows": 0,
+        "arms": {
+          "Current": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "WordStart": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          }
+        }
+      }
+    },
+    {
+      "class": "other",
+      "rows": 17,
+      "moves": {
+        "WordStart": {
+          "rows": 17,
+          "moves": {
+            "tied": 17
+          },
+          "index_transitions": {
+            "0->0": 17
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 0,
+          "wrong_copy": 17,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 17,
+          "changed_source": 17
+        },
+        "Ordered": {
+          "rows": 17,
+          "moves": {
+            "tied": 17
+          },
+          "index_transitions": {
+            "0->0": 17
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 17,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 17
+        },
+        "Both": {
+          "rows": 17,
+          "moves": {
+            "tied": 17
+          },
+          "index_transitions": {
+            "0->0": 17
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 17,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 17
+        }
+      },
+      "corresponding": {
+        "rows": 0,
+        "arms": {
+          "Current": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "WordStart": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 0,
+            "displacement": {},
+            "reliable": null
+          }
+        }
+      }
+    },
+    {
+      "class": "start",
+      "rows": 236,
+      "moves": {
+        "WordStart": {
+          "rows": 236,
+          "moves": {
+            "tied": 236
+          },
+          "index_transitions": {
+            "0->0": 100,
+            "1->1": 74,
+            "2->2": 20,
+            "3->3": 42
+          },
+          "right": 116,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 0,
+          "wrong_copy": 120,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 0
+        },
+        "Ordered": {
+          "rows": 236,
+          "moves": {
+            "earlier": 136,
+            "tied": 100
+          },
+          "index_transitions": {
+            "0->0": 100,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 236,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 100,
+          "changed_source": 236
+        },
+        "Both": {
+          "rows": 236,
+          "moves": {
+            "earlier": 136,
+            "tied": 100
+          },
+          "index_transitions": {
+            "0->0": 100,
+            "1->0": 74,
+            "2->0": 20,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 236,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 136
+          },
+          "tied_index_changed_wrong_id": 100,
+          "changed_source": 236
+        }
+      },
+      "corresponding": {
+        "rows": 147,
+        "arms": {
+          "Current": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "WordStart": {
+            "correct": 116,
+            "abstained": 0,
+            "displacement": {
+              "0": 116,
+              "2": 31
+            },
+            "reliable": true
+          },
+          "Ordered": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          },
+          "Both": {
+            "correct": 0,
+            "abstained": 147,
+            "displacement": {
+              "abstain": 147
+            },
+            "reliable": false
+          }
+        }
+      }
+    }
+  ],
+  "historical_ose": [],
+  "endpoint_groups": [
+    {
+      "corresponding": false,
+      "rows": 141,
+      "moves": {
+        "WordStart": {
+          "rows": 141,
+          "moves": {
+            "tied": 141
+          },
+          "index_transitions": {
+            "0->0": 121,
+            "2->2": 20
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 12,
+          "wrong_copy": 129,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 40,
+          "changed_source": 40
+        },
+        "Ordered": {
+          "rows": 141,
+          "moves": {
+            "earlier": 20,
+            "tied": 121
+          },
+          "index_transitions": {
+            "0->0": 121,
+            "2->0": 20
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 141,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 20
+          },
+          "tied_index_changed_wrong_id": 92,
+          "changed_source": 129
+        },
+        "Both": {
+          "rows": 141,
+          "moves": {
+            "earlier": 20,
+            "tied": 121
+          },
+          "index_transitions": {
+            "0->0": 121,
+            "2->0": 20
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 141,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 20
+          },
+          "tied_index_changed_wrong_id": 92,
+          "changed_source": 129
+        }
+      }
+    },
+    {
+      "corresponding": true,
+      "rows": 147,
+      "moves": {
+        "WordStart": {
+          "rows": 147,
+          "moves": {
+            "tied": 147
+          },
+          "index_transitions": {
+            "0->0": 31,
+            "1->1": 74,
+            "3->3": 42
+          },
+          "right": 116,
+          "gained": 0,
+          "lost": 0,
+          "abstained": 0,
+          "wrong_copy": 31,
+          "later_source_status": {},
+          "earlier_source_status": {},
+          "tied_index_changed_wrong_id": 0,
+          "changed_source": 0
+        },
+        "Ordered": {
+          "rows": 147,
+          "moves": {
+            "earlier": 116,
+            "tied": 31
+          },
+          "index_transitions": {
+            "0->0": 31,
+            "1->0": 74,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 147,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 116
+          },
+          "tied_index_changed_wrong_id": 31,
+          "changed_source": 147
+        },
+        "Both": {
+          "rows": 147,
+          "moves": {
+            "earlier": 116,
+            "tied": 31
+          },
+          "index_transitions": {
+            "0->0": 31,
+            "1->0": 74,
+            "3->0": 42
+          },
+          "right": 0,
+          "gained": 0,
+          "lost": 116,
+          "abstained": 147,
+          "wrong_copy": 0,
+          "later_source_status": {},
+          "earlier_source_status": {
+            "abstained": 116
+          },
+          "tied_index_changed_wrong_id": 31,
+          "changed_source": 147
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "arm": "Ordered",
+      "move": "earlier",
+      "case": "held-0-0-0-early-after-long-ask-Kim",
+      "expected": [
+        1074,
+        1
+      ],
+      "asked": 6,
+      "current_source": 6,
+      "treatment_source": null,
+      "current": [
+        1074,
+        16,
+        1
+      ],
+      "treatment": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ]
+    },
+    {
+      "arm": "Both",
+      "move": "earlier",
+      "case": "held-0-0-0-early-after-long-ask-Kim",
+      "expected": [
+        1074,
+        1
+      ],
+      "asked": 6,
+      "current_source": 6,
+      "treatment_source": null,
+      "current": [
+        1074,
+        16,
+        1
+      ],
+      "treatment": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ]
+    }
+  ],
+  "bars": {
+    "WordStart": {
+      "directional": false,
+      "pair_nondecrease": true,
+      "extraction": false
+    },
+    "Ordered": {
+      "directional": false,
+      "pair_nondecrease": false,
+      "extraction": false
+    },
+    "Both": {
+      "directional": false,
+      "pair_nondecrease": false,
+      "extraction": false
+    }
+  },
+  "schema": "uor-r4.value-boundary-comparison/1",
+  "split": "prior",
+  "differential_steps": 12558,
+  "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+  "grade_sha256": "3570822f2d8e1cf16197c27aa44401291a9c2d2ccbc2ad10194c45a0fb56f6ec"
+}

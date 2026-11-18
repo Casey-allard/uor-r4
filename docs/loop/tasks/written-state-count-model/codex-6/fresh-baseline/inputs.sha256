@@ -1,0 +1,7 @@
+a4fca5567cc41ad2c096dc4261351f3821322a8f8f1edb0768cb21814e3861ed  ../20261118-content-selector/bin/content-selector-02
+1798f711853bd93f979f2b9e9327931c21410bacb8a89a1cd945206000711a55  ../20261118-span-connectors/bin/span-selector-02
+a9e340c153975b7ac3d8d9157283d78e3c5040d053e052f0fefec570f35b9317  ../20261118-content-selector/results/selector-run-01/seed1/trained.json
+41ff82f106f3e051dfa55406aea4f0fb5e63804210b5a339fe99dfc59b4cf72d  ../20261118-content-selector/results/selector-run-01/seed2/trained.json
+3451b35c018687cd4ae37f80f306ffe2af3724eb4969d2f7271828cf1c67f870  ../20261118-span-connectors/results/span-01/seed1-state.json
+090c53c07a3c16e7d017c931b02e6749bca98affe71c5f8ca19e89f55d57436f  ../20261118-span-connectors/results/span-01/seed2-state.json
+d5c475ac9197938a27284c9ca1a5cc7355ee557741deff78af6c42cb890bb6e0  panels/fresh-blind.json
