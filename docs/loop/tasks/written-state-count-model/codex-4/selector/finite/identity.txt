@@ -1,0 +1,3 @@
+4db9e81dcd716b119c47f9bb224b5f8e928adf0808443668ffbbc2dc6e68f7bb  selector-target/x86_64-unknown-linux-gnu/debug/content-selector
+a8def6ce3ea6293ecba59dfc7e14a89a444992ab1dfe2d5d7f32e84e37ed1c31  selector-target/x86_64-unknown-linux-gnu/debug/build/m1-d11-artifact-scorer-instrument-d5dbf9933db69c47/out/content.ptx
+21ab129febd17ab7250898c2084104e8e657f53babda48eb942a64420ee9d764  selector-target/x86_64-unknown-linux-gnu/debug/build/m1-d11-artifact-scorer-instrument-d5dbf9933db69c47/out/content.cubin

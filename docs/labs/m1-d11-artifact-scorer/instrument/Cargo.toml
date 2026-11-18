@@ -30,7 +30,13 @@ name = "occurrence-selector"
 path = "src/bin/occurrence-selector.rs"
 required-features = ["occurrence-selector"]
 
+[[bin]]
+name = "content-selector"
+path = "src/bin/content-selector.rs"
+required-features = ["content-selector"]
+
 [features]
+content-selector = ["cuda"]
 occurrence-selector = ["cuda"]
 default = []
 # The GPU scorer: nvcc builds src/scorer.cu ahead of time (UOR_NVCC_ARCH).

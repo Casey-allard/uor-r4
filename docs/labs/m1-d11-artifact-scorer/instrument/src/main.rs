@@ -31,6 +31,8 @@ use uor_r4_discrete::training::DriverConfig;
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
 #[cfg(feature = "cuda")]
+mod content_rollout;
+#[cfg(feature = "cuda")]
 mod copy_rollout;
 #[cfg(feature = "cuda")]
 mod role_swap;
@@ -66,6 +68,13 @@ fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
 
 fn run(args: &[String]) -> Result<(), String> {
     match args {
+        #[cfg(feature = "cuda")]
+        [command, artifact, grade, paths, out] if command == "content-rollout" => {
+            refuse_existing(&[out])?;
+            let result = content_rollout::run(artifact, grade, paths)?;
+            // Batch traces can be large. Preserve every raw word in compact JSON.
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
         #[cfg(feature = "cuda")]
         [command, artifact, panel, state, picks, prior, out] if command == "copy-rollout" => {
             refuse_existing(&[out])?;
@@ -256,7 +265,9 @@ fn score_two_seeds(
     two_seed_gate(&receipt, &tables1.artifact_sha256, &config, panel)?;
     two_seed_gate(&receipt, &tables2.artifact_sha256, &config, panel)?;
     let command = if panel { "panel-score" } else { "fresh-score" };
-    Err(format!("{command} runs on the GPU: build with --features cuda (and UOR_NVCC_ARCH)"))
+    Err(format!(
+        "{command} runs on the GPU: build with --features cuda (and UOR_NVCC_ARCH)"
+    ))
 }
 
 #[cfg(feature = "cuda")]

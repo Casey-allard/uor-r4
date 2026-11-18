@@ -269,9 +269,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if image.len() < 64 || !image.starts_with(b"\x7fELF") {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
-    if env::var_os("CARGO_FEATURE_OCCURRENCE_SELECTOR").is_some() {
-        println!("cargo:rerun-if-changed=src/occurrence.cu");
-        let ptx = out.join("occurrence.ptx");
+    let selectors = [
+        (
+            "CARGO_FEATURE_OCCURRENCE_SELECTOR",
+            "occurrence",
+            [
+                "occurrence_positions",
+                "occurrence_fit",
+                "occurrence_winners",
+            ],
+        ),
+        (
+            "CARGO_FEATURE_CONTENT_SELECTOR",
+            "content",
+            ["content_sites", "content_fit", "content_bind"],
+        ),
+    ];
+    for (feature, name, kernels) in selectors {
+        if env::var_os(feature).is_none() {
+            continue;
+        }
+        let source = format!("src/{name}.cu");
+        println!("cargo:rerun-if-changed={source}");
+        let ptx = out.join(format!("{name}.ptx"));
         let status = Command::new(&nvcc)
             .args(["-ptx", "-std=c++17"])
             .arg(format!("-arch={arch}"))
@@ -279,29 +299,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .arg(&out)
             .arg("-o")
             .arg(&ptx)
-            .arg("src/occurrence.cu")
+            .arg(&source)
             .status()?;
         if !status.success() {
-            return Err("occurrence selector PTX compilation failed".into());
+            return Err(format!("{name} selector PTX compilation failed").into());
         }
-        admit_ptx(
-            &fs::read_to_string(&ptx)?,
-            &[
-                "occurrence_positions",
-                "occurrence_fit",
-                "occurrence_winners",
-            ],
-        )?;
+        admit_ptx(&fs::read_to_string(&ptx)?, &kernels)?;
+        let cubin = out.join(format!("{name}.cubin"));
         let status = Command::new(&nvcc)
             .arg("-cubin")
             .arg(format!("-arch={arch}"))
             .arg(format!("--gpu-code={image_target}"))
             .arg("-o")
-            .arg(out.join("occurrence.cubin"))
+            .arg(&cubin)
             .arg(&ptx)
             .status()?;
-        if !status.success() {
-            return Err("occurrence selector cubin assembly failed".into());
+        if !status.success() || !fs::read(cubin)?.starts_with(b"\x7fELF") {
+            return Err(format!("{name} selector cubin assembly failed").into());
         }
     }
     fs::write(out.join("cuda-image-target.txt"), image_target)?;

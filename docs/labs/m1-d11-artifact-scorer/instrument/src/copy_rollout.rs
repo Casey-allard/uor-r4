@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs;
 use uor_r4_discrete::corpus::sha256;
-use uor_r4_integer::discrete_d11::ExactCopyState;
+use uor_r4_integer::discrete_d11::{ExactCopyState, IntegerDiscreteModel};
 use uor_r4_integer::occurrence_selector::select;
 
 const PRIOR_TRACES: [&str; 2] = [
@@ -19,7 +19,7 @@ const PRIOR_TRACES: [&str; 2] = [
 ];
 const STOPS: [u32; 4] = [16, EOS, 0, 201];
 // Byte identities from the blind TRAIN-only fit, sealed before writer rollout.
-const TRAINED_STATES: [&str; 2] = [
+pub(super) const TRAINED_STATES: [&str; 2] = [
     "5981d5716bb9674646cb5292da5455abf349dea7367be682ef310974c88f1c07",
     "c54dc669339bc22a57a8ee676141ec780b5ba5ea3185940de65a96811ca94944",
 ];
@@ -58,31 +58,34 @@ struct HistoricRow {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Arm {
+pub(super) enum Arm {
+    Content,
+    QueryAblated,
+    Offset,
     Oracle,
     Learned,
     Disabled,
 }
 
-struct Rollout<'a> {
-    case: &'a Case,
-    arm: Arm,
-    source: Option<u32>,
-    state: ExactCopyState,
-    prefix: Vec<u32>,
-    first_free: Option<(usize, u32)>,
-    steps: Vec<Value>,
+pub(super) struct Rollout<'a> {
+    pub(super) case: &'a Case,
+    pub(super) arm: Arm,
+    pub(super) source: Option<u32>,
+    pub(super) state: ExactCopyState,
+    pub(super) prefix: Vec<u32>,
+    pub(super) first_free: Option<(usize, u32)>,
+    pub(super) steps: Vec<Value>,
 }
 
-fn contents(path: &str) -> Result<Vec<u8>, String> {
+pub(super) fn contents(path: &str) -> Result<Vec<u8>, String> {
     fs::read(path).map_err(|e| format!("{path}: {e}"))
 }
 
-fn parse<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, String> {
+pub(super) fn parse<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, String> {
     serde_json::from_slice(bytes).map_err(|e| e.to_string())
 }
 
-fn first_wrong(generated: &[u32], expected: &[u32]) -> Option<usize> {
+pub(super) fn first_wrong(generated: &[u32], expected: &[u32]) -> Option<usize> {
     generated
         .iter()
         .zip(expected)
@@ -179,6 +182,54 @@ pub fn run(
         return Err("unexpected prefix coverage".into());
     }
     let device = DeviceScorer::new(0, &tables)?;
+    let transitions = replay(&mut runs, &model, &device)?;
+    let mut rows = Vec::new();
+    for r in runs {
+        let emitted = &r.prefix[r.case.prefix.len()..];
+        let old = native
+            .get(&r.case.id)
+            .ok_or("missing historical native row")?;
+        if r.arm == Arm::Disabled && emitted != old {
+            return Err(format!("{} disabled drifted from #4084", r.case.id));
+        }
+        let value = &r.case.prefix[r.case.asked_start..r.case.asked_end];
+        let wrong = first_wrong(emitted, &r.case.expected);
+        let selector_match = if r.arm == Arm::Learned {
+            r.source.and_then(|source| {
+                let anchor = r.case.prefix.len().checked_sub(1 + usize::from(fitted.anchor_back))?;
+                let key = (source as usize).checked_sub(usize::from(fitted.lookback))?;
+                let query_id = *r.case.prefix.get(anchor)?;
+                let key_id = *r.case.prefix.get(key)?;
+                Some(json!({"query_position":anchor,"query_id":query_id,"query_roots":roots[query_id as usize],
+                    "matched_position":key,"matched_id":key_id,"matched_roots":roots[key_id as usize]}))
+            })
+        } else {
+            None
+        };
+        rows.push(json!({"case":r.case.id,"pair":r.case.pair,"role":r.case.role,"arm":format!("{:?}",r.arm),
+            "selector_match":selector_match,
+            "asked_start":r.case.asked_start,"selected":r.source,"right_source":r.source==Some(r.case.asked_start as u32),
+            "expected":r.case.expected,"generated":emitted,"whole_value":emitted.starts_with(value),"exact":wrong.is_none(),
+            "first_wrong":wrong,"previous_first_wrong":first_wrong(old,&r.case.expected),"previous_generated":old,
+            "first_change_from_disabled":first_wrong(emitted,old),"first_free_step_and_id":r.first_free,
+            "wrong_expected":wrong.and_then(|i|r.case.expected.get(i)),"wrong_emitted":wrong.and_then(|i|emitted.get(i)),
+            "stop":if emitted.last()==Some(&EOS){"eos"}else{"cap"},"steps":r.steps}));
+    }
+    Ok(
+        json!({"schema":"uor-r4.exact-copy-rollout/1","artifact_sha256":artifact_hash,"fixture_sha256":PANEL,
+        "selector_state_sha256":state_hash,"selector_predictions_sha256":sha256(&picks_bytes),
+        "previous_trace_sha256":PRIOR_TRACES[seed],"lookback":fitted.lookback,"anchor_back":fitted.anchor_back,
+        "aot_cubin_sha256":scorer::device::cubin_sha256(),"aot_ptx_sha256":scorer::device::ptx_sha256(),
+        "cuda_target":scorer::device::IMAGE_TARGET,"differential_steps":transitions,"rows":rows}),
+    )
+}
+
+/// Drive the frozen writer from each arm’s actual emitted IDs.
+pub(super) fn replay(
+    runs: &mut [Rollout],
+    model: &IntegerDiscreteModel,
+    device: &DeviceScorer,
+) -> Result<usize, String> {
     let mut transitions = 0;
     for _ in 0..CAP {
         let active: Vec<_> = runs
@@ -240,43 +291,5 @@ pub fn run(
             transitions += 1;
         }
     }
-    let mut rows = Vec::new();
-    for r in runs {
-        let emitted = &r.prefix[r.case.prefix.len()..];
-        let old = native
-            .get(&r.case.id)
-            .ok_or("missing historical native row")?;
-        if r.arm == Arm::Disabled && emitted != old {
-            return Err(format!("{} disabled drifted from #4084", r.case.id));
-        }
-        let value = &r.case.prefix[r.case.asked_start..r.case.asked_end];
-        let wrong = first_wrong(emitted, &r.case.expected);
-        let selector_match = if r.arm == Arm::Learned {
-            r.source.and_then(|source| {
-                let anchor = r.case.prefix.len().checked_sub(1 + usize::from(fitted.anchor_back))?;
-                let key = (source as usize).checked_sub(usize::from(fitted.lookback))?;
-                let query_id = *r.case.prefix.get(anchor)?;
-                let key_id = *r.case.prefix.get(key)?;
-                Some(json!({"query_position":anchor,"query_id":query_id,"query_roots":roots[query_id as usize],
-                    "matched_position":key,"matched_id":key_id,"matched_roots":roots[key_id as usize]}))
-            })
-        } else {
-            None
-        };
-        rows.push(json!({"case":r.case.id,"pair":r.case.pair,"role":r.case.role,"arm":format!("{:?}",r.arm),
-            "selector_match":selector_match,
-            "asked_start":r.case.asked_start,"selected":r.source,"right_source":r.source==Some(r.case.asked_start as u32),
-            "expected":r.case.expected,"generated":emitted,"whole_value":emitted.starts_with(value),"exact":wrong.is_none(),
-            "first_wrong":wrong,"previous_first_wrong":first_wrong(old,&r.case.expected),"previous_generated":old,
-            "first_change_from_disabled":first_wrong(emitted,old),"first_free_step_and_id":r.first_free,
-            "wrong_expected":wrong.and_then(|i|r.case.expected.get(i)),"wrong_emitted":wrong.and_then(|i|emitted.get(i)),
-            "stop":if emitted.last()==Some(&EOS){"eos"}else{"cap"},"steps":r.steps}));
-    }
-    Ok(
-        json!({"schema":"uor-r4.exact-copy-rollout/1","artifact_sha256":artifact_hash,"fixture_sha256":PANEL,
-        "selector_state_sha256":state_hash,"selector_predictions_sha256":sha256(&picks_bytes),
-        "previous_trace_sha256":PRIOR_TRACES[seed],"lookback":fitted.lookback,"anchor_back":fitted.anchor_back,
-        "aot_cubin_sha256":scorer::device::cubin_sha256(),"aot_ptx_sha256":scorer::device::ptx_sha256(),
-        "cuda_target":scorer::device::IMAGE_TARGET,"differential_steps":transitions,"rows":rows}),
-    )
+    Ok(transitions)
 }

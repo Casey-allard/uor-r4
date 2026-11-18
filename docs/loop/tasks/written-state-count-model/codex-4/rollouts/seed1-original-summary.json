@@ -1,0 +1,432 @@
+{
+  "arms": {
+    "Content": {
+      "rows": 16,
+      "pairs": 8,
+      "both_sources": 0,
+      "correct_query": 9,
+      "annotated_query": 16,
+      "correct_fact": 9,
+      "annotated_fact": 16,
+      "correct_source": 0,
+      "correct_opening": 1,
+      "whole_value": 0,
+      "strict_reply": 0,
+      "later_than_offset": 1,
+      "tied_with_offset": 15,
+      "earlier_than_offset": 0,
+      "first_wrong": {
+        "0": 15,
+        "1": 1
+      },
+      "stop": {
+        "eos": 16
+      },
+      "source_type": {
+        "distractor": 1,
+        "other": 15
+      },
+      "stage": {
+        "right_query_and_fact_wrong_value_start": 9,
+        "wrong_query": 7
+      },
+      "query_type": {
+        "asked_query": 9,
+        "other_token": 7
+      },
+      "fact_type": {
+        "asked_fact": 9,
+        "other_token": 7
+      },
+      "rank_delta_vs_offset": {
+        "0": 15,
+        "1": 1
+      },
+      "first_free_token": {
+        "3": 3,
+        "16": 10,
+        "1155": 3
+      },
+      "first_free_release": {
+        "1": 16
+      },
+      "whole_value_then_wrong": 0,
+      "right_source_with_wrong_query": 0
+    },
+    "Disabled": {
+      "rows": 16,
+      "pairs": 8,
+      "both_sources": 0,
+      "correct_query": 0,
+      "annotated_query": 0,
+      "correct_fact": 0,
+      "annotated_fact": 0,
+      "correct_source": 0,
+      "correct_opening": 0,
+      "whole_value": 0,
+      "strict_reply": 0,
+      "later_than_offset": 0,
+      "tied_with_offset": 16,
+      "earlier_than_offset": 0,
+      "first_wrong": {
+        "0": 16
+      },
+      "stop": {
+        "eos": 16
+      },
+      "source_type": {
+        "none": 16
+      },
+      "stage": {
+        "unannotated": 16
+      },
+      "query_type": {
+        "unannotated": 16
+      },
+      "fact_type": {
+        "unannotated": 16
+      },
+      "rank_delta_vs_offset": {
+        "0": 16
+      },
+      "first_free_token": {
+        "1155": 16
+      },
+      "first_free_release": {
+        "0": 16
+      },
+      "whole_value_then_wrong": 0,
+      "right_source_with_wrong_query": 0
+    },
+    "Offset": {
+      "rows": 16,
+      "pairs": 8,
+      "both_sources": 0,
+      "correct_query": 0,
+      "annotated_query": 0,
+      "correct_fact": 0,
+      "annotated_fact": 0,
+      "correct_source": 0,
+      "correct_opening": 0,
+      "whole_value": 0,
+      "strict_reply": 0,
+      "later_than_offset": 0,
+      "tied_with_offset": 16,
+      "earlier_than_offset": 0,
+      "first_wrong": {
+        "0": 16
+      },
+      "stop": {
+        "eos": 16
+      },
+      "source_type": {
+        "other": 16
+      },
+      "stage": {
+        "unannotated": 16
+      },
+      "query_type": {
+        "unannotated": 16
+      },
+      "fact_type": {
+        "unannotated": 16
+      },
+      "rank_delta_vs_offset": {
+        "0": 16
+      },
+      "first_free_token": {
+        "3": 3,
+        "16": 13
+      },
+      "first_free_release": {
+        "1": 16
+      },
+      "whole_value_then_wrong": 0,
+      "right_source_with_wrong_query": 0
+    },
+    "Oracle": {
+      "rows": 16,
+      "pairs": 8,
+      "both_sources": 8,
+      "correct_query": 0,
+      "annotated_query": 0,
+      "correct_fact": 0,
+      "annotated_fact": 0,
+      "correct_source": 16,
+      "correct_opening": 16,
+      "whole_value": 16,
+      "strict_reply": 0,
+      "later_than_offset": 16,
+      "tied_with_offset": 0,
+      "earlier_than_offset": 0,
+      "first_wrong": {
+        "1": 8,
+        "2": 8
+      },
+      "stop": {
+        "eos": 16
+      },
+      "source_type": {
+        "asked": 16
+      },
+      "stage": {
+        "unannotated": 16
+      },
+      "query_type": {
+        "unannotated": 16
+      },
+      "fact_type": {
+        "unannotated": 16
+      },
+      "rank_delta_vs_offset": {
+        "1": 8,
+        "2": 8
+      },
+      "first_free_token": {
+        "3": 4,
+        "16": 12
+      },
+      "first_free_release": {
+        "1": 16
+      },
+      "whole_value_then_wrong": 16,
+      "right_source_with_wrong_query": 0
+    },
+    "QueryAblated": {
+      "rows": 16,
+      "pairs": 8,
+      "both_sources": 0,
+      "correct_query": 8,
+      "annotated_query": 16,
+      "correct_fact": 8,
+      "annotated_fact": 16,
+      "correct_source": 0,
+      "correct_opening": 0,
+      "whole_value": 0,
+      "strict_reply": 0,
+      "later_than_offset": 0,
+      "tied_with_offset": 16,
+      "earlier_than_offset": 0,
+      "first_wrong": {
+        "0": 16
+      },
+      "stop": {
+        "eos": 16
+      },
+      "source_type": {
+        "other": 16
+      },
+      "stage": {
+        "right_query_and_fact_wrong_value_start": 8,
+        "wrong_query": 8
+      },
+      "query_type": {
+        "asked_query": 8,
+        "excluded_query": 8
+      },
+      "fact_type": {
+        "asked_fact": 8,
+        "other_fact": 8
+      },
+      "rank_delta_vs_offset": {
+        "0": 16
+      },
+      "first_free_token": {
+        "3": 4,
+        "16": 12
+      },
+      "first_free_release": {
+        "1": 16
+      },
+      "whole_value_then_wrong": 0,
+      "right_source_with_wrong_query": 0
+    }
+  },
+  "marginals": {},
+  "by_requested_entity": [
+    {
+      "role": "Ann",
+      "rows": 8,
+      "correct_query": 5,
+      "annotated_query": 8,
+      "correct_source": 0,
+      "correct_opening": 1,
+      "whole_value": 0,
+      "strict_reply": 0
+    },
+    {
+      "role": "Ben",
+      "rows": 8,
+      "correct_query": 4,
+      "annotated_query": 8,
+      "correct_source": 0,
+      "correct_opening": 0,
+      "whole_value": 0,
+      "strict_reply": 0
+    }
+  ],
+  "examples": [
+    {
+      "case": "distinct-direct-ann-first-ask-ann",
+      "role": "Ann",
+      "asked_start": 7,
+      "other_start": 12,
+      "choice": {
+        "fact": 4,
+        "query": 16,
+        "source": 6
+      },
+      "gold_positions": {
+        "fact": 4,
+        "query": 16,
+        "other_fact": 9,
+        "query_other": 23
+      },
+      "selected": 6,
+      "source_type": "other",
+      "query_type": "asked_query",
+      "fact_type": "asked_fact",
+      "stage": "right_query_and_fact_wrong_value_start",
+      "expected": [
+        677,
+        1
+      ],
+      "generated": [
+        1935,
+        677,
+        16,
+        1
+      ],
+      "first_wrong": 0,
+      "wrong_expected": 677,
+      "wrong_emitted": 1935,
+      "first_free": [
+        2,
+        16
+      ],
+      "first_free_release": 1,
+      "offset_first_wrong": 0,
+      "offset_generated": [
+        2241,
+        641,
+        1935,
+        677,
+        16,
+        1
+      ]
+    },
+    {
+      "case": "shared-direct-ben-first-ask-ann",
+      "role": "Ann",
+      "asked_start": 13,
+      "other_start": 7,
+      "choice": {
+        "fact": 5,
+        "query": 11,
+        "source": 7
+      },
+      "gold_positions": {
+        "fact": 10,
+        "query": 18,
+        "other_fact": 4,
+        "query_other": 25
+      },
+      "selected": 7,
+      "source_type": "distractor",
+      "query_type": "other_token",
+      "fact_type": "other_token",
+      "stage": "wrong_query",
+      "expected": [
+        677,
+        1710,
+        1
+      ],
+      "generated": [
+        677,
+        1999,
+        3,
+        1
+      ],
+      "first_wrong": 1,
+      "wrong_expected": 1710,
+      "wrong_emitted": 1999,
+      "first_free": [
+        2,
+        3
+      ],
+      "first_free_release": 1,
+      "offset_first_wrong": 0,
+      "offset_generated": [
+        546,
+        641,
+        1935,
+        677,
+        1999,
+        3,
+        1
+      ]
+    },
+    {
+      "case": "distinct-direct-ann-first-ask-ben",
+      "role": "Ben",
+      "asked_start": 12,
+      "other_start": 7,
+      "choice": {
+        "fact": 6,
+        "query": 11,
+        "source": 8
+      },
+      "gold_positions": {
+        "fact": 9,
+        "query": 16,
+        "other_fact": 4,
+        "query_other": 23
+      },
+      "selected": 8,
+      "source_type": "other",
+      "query_type": "other_token",
+      "fact_type": "other_token",
+      "stage": "wrong_query",
+      "expected": [
+        924,
+        1
+      ],
+      "generated": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "first_wrong": 0,
+      "wrong_expected": 924,
+      "wrong_emitted": 1155,
+      "first_free": [
+        0,
+        1155
+      ],
+      "first_free_release": 1,
+      "offset_first_wrong": 0,
+      "offset_generated": [
+        2241,
+        641,
+        1935,
+        677,
+        16,
+        1
+      ]
+    }
+  ],
+  "seed": 1,
+  "split": "original",
+  "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "grade_sha256": "783d3b43a3ab082ae36496626ff350b9613d623d7f696a72f5e6ab2fb1767a3f",
+  "differential_steps": 497,
+  "anchor_annotations": "post_hoc_original_name_occurrences",
+  "registered": null
+}

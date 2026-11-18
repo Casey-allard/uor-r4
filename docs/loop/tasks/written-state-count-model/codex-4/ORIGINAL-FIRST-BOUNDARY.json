@@ -1,0 +1,119 @@
+{
+  "scope": "Post-run reconstruction on the original 16 frozen diagnostic rows. For each requested Ann/Ben the bound tokenizer emits one leading-space ID, which occurs exactly twice, first in the written fact and then in the question. The other entity occurs first in its fact and after the question in its exclusion. Both role labels and all regenerated prefixes matched the frozen key. All reconstructed and observed positions below are absolute, zero-based; each row was identical on seeds 1 and 2.",
+  "schema": "uor-r4.original-role-selection-first-boundary/1",
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "panel_sha256": "68357e20e1dd5e17854e6b124a1de20239508fa7371f73a7fb725a9fd80d9098",
+  "key_sha256": "049dead24c560caab912e5866a67c9524a0cbf96ce7045db01efe96a3cc00af6",
+  "receipts": [
+    "0b03921377bdb850747a0cdb9637ffc53fbcb9658797739922c3da4519866d33",
+    "256af44b31bb826e5886b4610f4ec533c865fababe46d1f4468f69294a46ff20"
+  ],
+  "per_seed_counts": [
+    {
+      "arm": "Content",
+      "n": 16,
+      "first_failure": {
+        "payload_offset": 9,
+        "query": 7
+      },
+      "query_correct": 9,
+      "fact_correct": 9,
+      "source_correct": 0,
+      "other_query_chosen": 0,
+      "chosen_delta": {
+        "2": 16
+      },
+      "required_delta": {
+        "3": 16
+      },
+      "source_minus_gold": {
+        "1": 1,
+        "-1": 9,
+        "-4": 2,
+        "-5": 2,
+        "-6": 1,
+        "-2": 1
+      },
+      "chosen_pieces": {
+        "ose": 9,
+        ".": 3,
+        " fox": 2,
+        " red": 1,
+        " ch": 1
+      }
+    },
+    {
+      "arm": "QueryAblated",
+      "n": 16,
+      "first_failure": {
+        "payload_offset": 8,
+        "query": 8
+      },
+      "query_correct": 8,
+      "fact_correct": 8,
+      "source_correct": 0,
+      "other_query_chosen": 8,
+      "chosen_delta": {
+        "2": 16
+      },
+      "required_delta": {
+        "3": 16
+      },
+      "source_minus_gold": {
+        "-1": 8,
+        "-6": 4,
+        "-7": 4
+      },
+      "chosen_pieces": {
+        "ose": 16
+      }
+    }
+  ],
+  "columns": [
+    "arm",
+    "case",
+    "expected_query",
+    "expected_fact",
+    "expected_payload",
+    "observed_query",
+    "observed_fact",
+    "observed_payload",
+    "observed_query_id",
+    "observed_payload_id"
+  ]
+,
+  "rows": [
+    ["Content","distinct-direct-ann-first-ask-ann",16,4,7,16,4,6,2241,1935],
+    ["Content","distinct-direct-ann-first-ask-ben",16,9,12,11,6,8,1935,16],
+    ["Content","distinct-direct-ben-first-ask-ann",16,9,12,16,9,11,2241,1935],
+    ["Content","distinct-direct-ben-first-ask-ben",16,4,7,16,4,6,546,1935],
+    ["Content","distinct-swap-ann-first-ask-ann",16,4,7,16,4,6,2241,1935],
+    ["Content","distinct-swap-ann-first-ask-ben",16,9,12,16,9,11,546,1935],
+    ["Content","distinct-swap-ben-first-ask-ann",16,9,12,11,6,8,1935,16],
+    ["Content","distinct-swap-ben-first-ask-ben",16,4,7,11,6,8,1935,16],
+    ["Content","shared-direct-ann-first-ask-ann",18,4,7,18,4,6,2241,1935],
+    ["Content","shared-direct-ann-first-ask-ben",18,10,13,12,6,8,1935,1710],
+    ["Content","shared-direct-ben-first-ask-ann",18,10,13,11,5,7,641,677],
+    ["Content","shared-direct-ben-first-ask-ben",18,4,7,18,4,6,546,1935],
+    ["Content","shared-swap-ann-first-ask-ann",18,4,7,18,4,6,2241,1935],
+    ["Content","shared-swap-ann-first-ask-ben",18,10,13,15,9,11,16,641],
+    ["Content","shared-swap-ben-first-ask-ann",18,10,13,12,6,8,1935,1710],
+    ["Content","shared-swap-ben-first-ask-ben",18,4,7,18,4,6,546,1935],
+    ["QueryAblated","distinct-direct-ann-first-ask-ann",16,4,7,16,4,6,2241,1935],
+    ["QueryAblated","distinct-direct-ann-first-ask-ben",16,9,12,23,4,6,2241,1935],
+    ["QueryAblated","distinct-direct-ben-first-ask-ann",16,9,12,23,4,6,546,1935],
+    ["QueryAblated","distinct-direct-ben-first-ask-ben",16,4,7,16,4,6,546,1935],
+    ["QueryAblated","distinct-swap-ann-first-ask-ann",16,4,7,16,4,6,2241,1935],
+    ["QueryAblated","distinct-swap-ann-first-ask-ben",16,9,12,23,4,6,2241,1935],
+    ["QueryAblated","distinct-swap-ben-first-ask-ann",16,9,12,23,4,6,546,1935],
+    ["QueryAblated","distinct-swap-ben-first-ask-ben",16,4,7,16,4,6,546,1935],
+    ["QueryAblated","shared-direct-ann-first-ask-ann",18,4,7,18,4,6,2241,1935],
+    ["QueryAblated","shared-direct-ann-first-ask-ben",18,10,13,25,4,6,2241,1935],
+    ["QueryAblated","shared-direct-ben-first-ask-ann",18,10,13,25,4,6,546,1935],
+    ["QueryAblated","shared-direct-ben-first-ask-ben",18,4,7,18,4,6,546,1935],
+    ["QueryAblated","shared-swap-ann-first-ask-ann",18,4,7,18,4,6,2241,1935],
+    ["QueryAblated","shared-swap-ann-first-ask-ben",18,10,13,25,4,6,2241,1935],
+    ["QueryAblated","shared-swap-ben-first-ask-ann",18,10,13,25,4,6,546,1935],
+    ["QueryAblated","shared-swap-ben-first-ask-ben",18,4,7,18,4,6,546,1935]
+  ]
+}

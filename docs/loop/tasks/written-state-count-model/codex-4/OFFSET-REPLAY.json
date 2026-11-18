@@ -1,0 +1,389 @@
+{
+  "scope": "Fixed-offset selector source positions on blinded D11 prefixes. Complete pairs here require correct source on both role reversals. Response IDs and EOS are separately scored by the writer rollout.",
+  "go": "a81d1cf06",
+  "wick_binary_sha256": "5b0515bd3b8bda428b62194c0ffdf37527d6cb02b10da0462c8c54f620b039b7",
+  "wick_cubin_sha256": "9847666304ae7e6eeb158f6c93abba6876a7f51c5e5c6aeb8e64b734962ef1b2",
+  "results": [
+    {
+      "seed": 1,
+      "split": "held",
+      "prefix_count": 288,
+      "complete_pairs": 26,
+      "total_pairs": 144,
+      "source_position": {
+        "asked": 68,
+        "other": 6,
+        "none": 0,
+        "elsewhere": 214
+      },
+      "by_factor": {
+        "lexical_set": {
+          "0": {
+            "asked": 40,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 100
+          },
+          "1": {
+            "asked": 28,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 114
+          }
+        },
+        "assignment": {
+          "0": {
+            "asked": 36,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 104
+          },
+          "1": {
+            "asked": 32,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 110
+          }
+        },
+        "fact_order": {
+          "0": {
+            "asked": 40,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 100
+          },
+          "1": {
+            "asked": 28,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 114
+          }
+        },
+        "asked_role": {
+          "0": {
+            "asked": 30,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 110
+          },
+          "1": {
+            "asked": 38,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 104
+          }
+        },
+        "requested_position": {
+          "early": {
+            "asked": 32,
+            "other": 3,
+            "none": 0,
+            "elsewhere": 109
+          },
+          "late": {
+            "asked": 36,
+            "other": 3,
+            "none": 0,
+            "elsewhere": 105
+          }
+        },
+        "exclusion": {
+          "none": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          },
+          "before": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          },
+          "after": {
+            "asked": 12,
+            "other": 6,
+            "none": 0,
+            "elsewhere": 78
+          }
+        },
+        "exclusion_wording": {
+          "0": {
+            "asked": 18,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 74
+          },
+          "1": {
+            "asked": 22,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 72
+          },
+          "null": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          }
+        },
+        "tail": {
+          "none": {
+            "asked": 34,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 60
+          },
+          "short": {
+            "asked": 34,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 58
+          },
+          "long": {
+            "asked": 0,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 96
+          }
+        }
+      },
+      "blind_sha256": "ba445e69b25f5bdfdcc662023df5d937b6dddba44bd29c6cb877b7d9de7f893f",
+      "grading_sha256": "7c1d5ab8f231dab7660f6d3b811e6dd8190dbbbaccf0dbebed94a772df2ec9e3",
+      "predictions_sha256": "ee98d6e4a579522cfc46715064d7f9a390883fa88d38fc363615517affe2ec31",
+      "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+      "state_sha256": "5981d5716bb9674646cb5292da5455abf349dea7367be682ef310974c88f1c07",
+      "lookback": 2,
+      "anchor_back": 13,
+      "original_bytes_equal_to_4086": null
+    },
+    {
+      "seed": 1,
+      "split": "original",
+      "prefix_count": 16,
+      "complete_pairs": 0,
+      "total_pairs": 8,
+      "source_position": {
+        "asked": 0,
+        "other": 0,
+        "none": 0,
+        "elsewhere": 16
+      },
+      "by_factor": {},
+      "blind_sha256": "311e66d1c75c7e5163e84c893881253508851a760069f0ea71182cb311e04453",
+      "grading_sha256": "783d3b43a3ab082ae36496626ff350b9613d623d7f696a72f5e6ab2fb1767a3f",
+      "predictions_sha256": "8cb83a2b70530045c4efdbd461f0679b9a26ec1e20cf13ef7a89a4b11ff769af",
+      "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+      "state_sha256": "5981d5716bb9674646cb5292da5455abf349dea7367be682ef310974c88f1c07",
+      "lookback": 2,
+      "anchor_back": 13,
+      "original_bytes_equal_to_4086": true
+    },
+    {
+      "seed": 2,
+      "split": "held",
+      "prefix_count": 288,
+      "complete_pairs": 26,
+      "total_pairs": 144,
+      "source_position": {
+        "asked": 68,
+        "other": 6,
+        "none": 0,
+        "elsewhere": 214
+      },
+      "by_factor": {
+        "lexical_set": {
+          "0": {
+            "asked": 40,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 100
+          },
+          "1": {
+            "asked": 28,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 114
+          }
+        },
+        "assignment": {
+          "0": {
+            "asked": 36,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 104
+          },
+          "1": {
+            "asked": 32,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 110
+          }
+        },
+        "fact_order": {
+          "0": {
+            "asked": 40,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 100
+          },
+          "1": {
+            "asked": 28,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 114
+          }
+        },
+        "asked_role": {
+          "0": {
+            "asked": 30,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 110
+          },
+          "1": {
+            "asked": 38,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 104
+          }
+        },
+        "requested_position": {
+          "early": {
+            "asked": 32,
+            "other": 3,
+            "none": 0,
+            "elsewhere": 109
+          },
+          "late": {
+            "asked": 36,
+            "other": 3,
+            "none": 0,
+            "elsewhere": 105
+          }
+        },
+        "exclusion": {
+          "none": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          },
+          "before": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          },
+          "after": {
+            "asked": 12,
+            "other": 6,
+            "none": 0,
+            "elsewhere": 78
+          }
+        },
+        "exclusion_wording": {
+          "0": {
+            "asked": 18,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 74
+          },
+          "1": {
+            "asked": 22,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 72
+          },
+          "null": {
+            "asked": 28,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 68
+          }
+        },
+        "tail": {
+          "none": {
+            "asked": 34,
+            "other": 2,
+            "none": 0,
+            "elsewhere": 60
+          },
+          "short": {
+            "asked": 34,
+            "other": 4,
+            "none": 0,
+            "elsewhere": 58
+          },
+          "long": {
+            "asked": 0,
+            "other": 0,
+            "none": 0,
+            "elsewhere": 96
+          }
+        }
+      },
+      "blind_sha256": "ba445e69b25f5bdfdcc662023df5d937b6dddba44bd29c6cb877b7d9de7f893f",
+      "grading_sha256": "7c1d5ab8f231dab7660f6d3b811e6dd8190dbbbaccf0dbebed94a772df2ec9e3",
+      "predictions_sha256": "ecf2490d625b59fdf3fceaf5660ec366bf18611761d266fbc24b75fa2ce7a15d",
+      "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+      "state_sha256": "c54dc669339bc22a57a8ee676141ec780b5ba5ea3185940de65a96811ca94944",
+      "lookback": 2,
+      "anchor_back": 13,
+      "original_bytes_equal_to_4086": null
+    },
+    {
+      "seed": 2,
+      "split": "original",
+      "prefix_count": 16,
+      "complete_pairs": 0,
+      "total_pairs": 8,
+      "source_position": {
+        "asked": 0,
+        "other": 0,
+        "none": 0,
+        "elsewhere": 16
+      },
+      "by_factor": {},
+      "blind_sha256": "311e66d1c75c7e5163e84c893881253508851a760069f0ea71182cb311e04453",
+      "grading_sha256": "783d3b43a3ab082ae36496626ff350b9613d623d7f696a72f5e6ab2fb1767a3f",
+      "predictions_sha256": "acf58644e592bd54715ebed38e6aa303736b505904c395a812263eb8ccd7ec48",
+      "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+      "state_sha256": "c54dc669339bc22a57a8ee676141ec780b5ba5ea3185940de65a96811ca94944",
+      "lookback": 2,
+      "anchor_back": 13,
+      "original_bytes_equal_to_4086": true
+    }
+  ],
+  "original_writer_4086_crosscheck": {
+    "method": "Joined by seed, case and arm. Current Offset corresponds to prior Learned. Compared all per-step fields (before/after cursor words, emitted, copied, native ID and top 8, release and source ID), complete generated and expected IDs, selected source, first wrong, wrong expected and emitted, stop, whole-value and case identities. Both new per-seed original receipts also matched their new repeat byte-for-byte on Wick.",
+    "results": [
+      {
+        "seed": 1,
+        "matched_cases": 16,
+        "matched_case_arms": 48,
+        "matched_steps_by_arm": {
+          "Offset": 104,
+          "Oracle": 56,
+          "Disabled": 179
+        },
+        "matched_steps": 339,
+        "previous_writer_receipt_sha256": "05bbf87ed47c2b45554967239c4fc6a0b421a28bacc34cf4a05524a31bb511cd",
+        "current_writer_receipt_sha256": "0b03921377bdb850747a0cdb9637ffc53fbcb9658797739922c3da4519866d33"
+      },
+      {
+        "seed": 2,
+        "matched_cases": 16,
+        "matched_case_arms": 48,
+        "matched_steps_by_arm": {
+          "Offset": 104,
+          "Oracle": 56,
+          "Disabled": 166
+        },
+        "matched_steps": 326,
+        "previous_writer_receipt_sha256": "e71a829007b7666723af7ef6f007d8e229717ef7557670dd5fd323c657ada909",
+        "current_writer_receipt_sha256": "256af44b31bb826e5886b4610f4ec533c865fababe46d1f4468f69294a46ff20"
+      }
+    ]
+  }
+}
