@@ -270,6 +270,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
     let selectors: &[(&str, &str, &[&str])] = &[
+        ("CARGO_FEATURE_ENTITY_PAIR_CHAIN", "entity", &["content_sites","content_fit","entity_bind"]),
         ("CARGO_FEATURE_COPY_COMPLETION", "completion", &["copy_completion"]),
         (
             "CARGO_FEATURE_VALUE_SELECTOR",

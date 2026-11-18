@@ -82,7 +82,11 @@ extern "C" __global__ void content_sites(const u32 *data, const u32 *roots,
     scores[2*i+1] = nearest(site,banks+2*CAP*WORDS,counts[2]);
 }
 extern "C" __global__ void content_bind(const u32 *data, const u32 *roots,
-        u32 rows, const u32 *banks, const u32 *counts, const u32 *scores, u32 *out) {
+        u32 rows, const u32 *banks, const u32 *counts, const u32 *scores, u32 *out
+#ifdef ENTITY_PAIR_CLASS_GATE
+        , const u32 *classes, u32 gated
+#endif
+        ) {
     const u32 r = blockIdx.x*blockDim.x + threadIdx.x;
     if (r >= rows) return;
     const u32 *row = data+r*STRIDE;
@@ -91,6 +95,9 @@ extern "C" __global__ void content_bind(const u32 *data, const u32 *roots,
     for (u32 q = 0; q < row[WIDTH]; ++q) {
         for (u32 f = 0; f+1 < q; ++f) {
             if (row[f] != row[q]) continue;
+#ifdef ENTITY_PAIR_CLASS_GATE
+            if (gated && !entity_pair_matches(row,row[WIDTH],classes,q,f)) continue;
+#endif
             const u32 cost = scores[2*q] + scores[2*f+1];
             if (cost < best) { best=cost; query=q; fact=f; }
         }

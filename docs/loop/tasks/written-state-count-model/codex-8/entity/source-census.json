@@ -1,0 +1,98 @@
+[
+  {
+    "rows": 1728,
+    "B": 1068,
+    "null": 563,
+    "R": 1509,
+    "Og": 1614,
+    "null_to_requested": 441,
+    "null_to_distractor_or_other": 122,
+    "still_null": 0,
+    "panel": "transfer",
+    "seed": 1
+  },
+  {
+    "rows": 1728,
+    "B": 1068,
+    "null": 563,
+    "R": 1509,
+    "Og": 1614,
+    "null_to_requested": 441,
+    "null_to_distractor_or_other": 122,
+    "still_null": 0,
+    "panel": "transfer",
+    "seed": 2
+  },
+  {
+    "rows": 1728,
+    "B": 1070,
+    "null": 555,
+    "R": 1503,
+    "Og": 1602,
+    "null_to_requested": 433,
+    "null_to_distractor_or_other": 122,
+    "still_null": 0,
+    "panel": "challenge",
+    "seed": 1
+  },
+  {
+    "rows": 1728,
+    "B": 1070,
+    "null": 555,
+    "R": 1503,
+    "Og": 1602,
+    "null_to_requested": 433,
+    "null_to_distractor_or_other": 122,
+    "still_null": 0,
+    "panel": "challenge",
+    "seed": 2
+  },
+  {
+    "rows": 1728,
+    "B": 545,
+    "null": 461,
+    "R": 811,
+    "Og": 1344,
+    "null_to_requested": 266,
+    "null_to_distractor_or_other": 195,
+    "still_null": 0,
+    "panel": "primary",
+    "seed": 1
+  },
+  {
+    "rows": 1728,
+    "B": 545,
+    "null": 461,
+    "R": 811,
+    "Og": 1344,
+    "null_to_requested": 266,
+    "null_to_distractor_or_other": 195,
+    "still_null": 0,
+    "panel": "primary",
+    "seed": 2
+  },
+  {
+    "rows": 1728,
+    "B": 801,
+    "null": 452,
+    "R": 979,
+    "Og": 1104,
+    "null_to_requested": 178,
+    "null_to_distractor_or_other": 274,
+    "still_null": 0,
+    "panel": "fresh",
+    "seed": 1
+  },
+  {
+    "rows": 1728,
+    "B": 801,
+    "null": 452,
+    "R": 979,
+    "Og": 1104,
+    "null_to_requested": 178,
+    "null_to_distractor_or_other": 274,
+    "still_null": 0,
+    "panel": "fresh",
+    "seed": 2
+  }
+]

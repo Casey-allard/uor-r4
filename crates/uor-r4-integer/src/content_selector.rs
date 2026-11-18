@@ -55,6 +55,23 @@ pub fn select(
     model: &Prototypes,
     query_ablated: bool,
 ) -> Result<Choice> {
+    Ok(rank(prefix, roots, model, query_ablated, None)?.0)
+}
+
+/// Rank exact-token pairs, optionally requiring the span resolver's identity
+/// predicate before minimization. The score and its (query, fact) tie order
+/// are invariant; the two site costs support a blind diagnostic trace.
+pub fn rank(
+    prefix: &[u32],
+    roots: &[u32],
+    model: &Prototypes,
+    query_ablated: bool,
+    classes: Option<&[u32]>,
+) -> Result<(Choice, Vec<[u32; 2]>)> {
+    use crate::span_selector::{bounds, matched, CONT};
+    if classes.is_some_and(|c| c.len() != 4096 || c.iter().any(|&k| k > CONT)) {
+        return Err(invalid("invalid entity classes"));
+    }
     model.validate()?;
     if prefix.is_empty()
         || prefix.len() > WIDTH
@@ -88,7 +105,7 @@ pub fn select(
             .map(|k| lut[((a >> (4 * k)) & 15) as usize][((b >> (4 * k)) & 15) as usize])
             .sum()
     };
-    let mut fact_scores = Vec::with_capacity(prefix.len());
+    let mut scores = Vec::with_capacity(prefix.len());
     let mut best = None;
     for q in 0..prefix.len() {
         let site = OFFSETS.map(|offset| {
@@ -108,15 +125,21 @@ pub fn select(
                 .min()
                 .unwrap()
         };
-        fact_scores.push(near(&model.fact));
+        let fact_cost = near(&model.fact);
         let query_cost = if query_ablated {
             0
         } else {
             near(&model.requested) + 48u32.saturating_sub(near(&model.excluded))
         };
+        scores.push([query_cost, fact_cost]);
         for f in 0..q.saturating_sub(1) {
             if prefix[f] == prefix[q] {
-                let candidate = (query_cost + fact_scores[f], q, f);
+                if classes.is_some_and(|c| {
+                    !matched(prefix, q, f, bounds(prefix, c, q), bounds(prefix, c, f))
+                }) {
+                    continue;
+                }
+                let candidate = (query_cost + scores[f][1], q, f);
                 if best.is_none_or(|v| candidate < v) {
                     best = Some(candidate);
                 }
@@ -124,7 +147,7 @@ pub fn select(
         }
     }
     let Some((_, q, f)) = best else {
-        return Ok(Choice::default());
+        return Ok((Choice::default(), scores));
     };
     let source = (f + 1..q.min(f + BRIDGE + 2))
         .min_by_key(|&s| {
@@ -143,9 +166,12 @@ pub fn select(
                 .unwrap()
         })
         .ok_or_else(|| invalid("empty relation domain"))?;
-    Ok(Choice {
-        query: Some(q as u32),
-        fact: Some(f as u32),
-        source: Some(source as u32),
-    })
+    Ok((
+        Choice {
+            query: Some(q as u32),
+            fact: Some(f as u32),
+            source: Some(source as u32),
+        },
+        scores,
+    ))
 }

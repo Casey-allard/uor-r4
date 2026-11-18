@@ -1,0 +1,338 @@
+{
+  "grade_sha256": "1e765323a2761cf2228c2700bb6904eb9799feecfa668bc8eb9248406f256b3f",
+  "artifact": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+  "bare": "6a8d6a143374fe97a4d3a1c08ca2b2f18aad8216f95734b39b4829c2b15d936b",
+  "transitions": 18461,
+  "historical_transitions": 9244,
+  "all": {
+    "cases": 1728,
+    "arms": {
+      "baseline": {
+        "exact": 1068,
+        "source": {
+          "abstain": 563,
+          "distractor": 28,
+          "other": 69,
+          "requested": 1068
+        },
+        "wrong_index": {
+          "0": 660,
+          "exact": 1068
+        },
+        "exact_origin": {
+          "requested": 1068
+        }
+      },
+      "repair": {
+        "exact": 1509,
+        "source": {
+          "distractor": 103,
+          "other": 116,
+          "requested": 1509
+        },
+        "wrong_index": {
+          "0": 165,
+          "1": 54,
+          "exact": 1509
+        },
+        "exact_origin": {
+          "requested": 1509
+        }
+      },
+      "oracle": {
+        "exact": 1614,
+        "source": {
+          "other": 114,
+          "requested": 1614
+        },
+        "wrong_index": {
+          "0": 114,
+          "exact": 1614
+        },
+        "exact_origin": {
+          "requested": 1614
+        }
+      }
+    },
+    "paired": {
+      "repair": {
+        "moves": {
+          "later": 495,
+          "same": 1233
+        },
+        "matrix": {
+          "0->0": 165,
+          "0->1": 54,
+          "0->exact": 441,
+          "exact->exact": 1068
+        },
+        "source_recovered": 441,
+        "source_lost": 0,
+        "source_changed": 563,
+        "later_source": {
+          "distractor": 54,
+          "requested": 441
+        },
+        "exact_gained": 441,
+        "exact_lost": 0
+      },
+      "oracle": {
+        "moves": {
+          "later": 546,
+          "same": 1182
+        },
+        "matrix": {
+          "0->0": 114,
+          "0->exact": 546,
+          "exact->exact": 1068
+        },
+        "source_recovered": 546,
+        "source_lost": 0,
+        "source_changed": 591,
+        "later_source": {
+          "requested": 546
+        },
+        "exact_gained": 546,
+        "exact_lost": 0
+      }
+    },
+    "repair_vs_oracle": {
+      "moves": {
+        "earlier": 2,
+        "later": 107,
+        "same": 1619
+      },
+      "matrix": {
+        "0->0": 112,
+        "0->exact": 53,
+        "1->exact": 54,
+        "exact->0": 2,
+        "exact->exact": 1507
+      },
+      "source_recovered": 107,
+      "source_lost": 2,
+      "source_changed": 118,
+      "later_source": {
+        "requested": 107
+      },
+      "exact_gained": 107,
+      "exact_lost": 2
+    }
+  },
+  "null_cohort": {
+    "cases": 563,
+    "arms": {
+      "baseline": {
+        "exact": 0,
+        "source": {
+          "abstain": 563
+        },
+        "wrong_index": {
+          "0": 563
+        },
+        "exact_origin": {}
+      },
+      "repair": {
+        "exact": 441,
+        "source": {
+          "distractor": 75,
+          "other": 47,
+          "requested": 441
+        },
+        "wrong_index": {
+          "0": 68,
+          "1": 54,
+          "exact": 441
+        },
+        "exact_origin": {
+          "requested": 441
+        }
+      },
+      "oracle": {
+        "exact": 527,
+        "source": {
+          "other": 36,
+          "requested": 527
+        },
+        "wrong_index": {
+          "0": 36,
+          "exact": 527
+        },
+        "exact_origin": {
+          "requested": 527
+        }
+      }
+    },
+    "paired": {
+      "repair": {
+        "moves": {
+          "later": 495,
+          "same": 68
+        },
+        "matrix": {
+          "0->0": 68,
+          "0->1": 54,
+          "0->exact": 441
+        },
+        "source_recovered": 441,
+        "source_lost": 0,
+        "source_changed": 563,
+        "later_source": {
+          "distractor": 54,
+          "requested": 441
+        },
+        "exact_gained": 441,
+        "exact_lost": 0
+      },
+      "oracle": {
+        "moves": {
+          "later": 527,
+          "same": 36
+        },
+        "matrix": {
+          "0->0": 36,
+          "0->exact": 527
+        },
+        "source_recovered": 527,
+        "source_lost": 0,
+        "source_changed": 563,
+        "later_source": {
+          "requested": 527
+        },
+        "exact_gained": 527,
+        "exact_lost": 0
+      }
+    },
+    "repair_vs_oracle": {
+      "moves": {
+        "earlier": 2,
+        "later": 88,
+        "same": 473
+      },
+      "matrix": {
+        "0->0": 34,
+        "0->exact": 34,
+        "1->exact": 54,
+        "exact->0": 2,
+        "exact->exact": 439
+      },
+      "source_recovered": 88,
+      "source_lost": 2,
+      "source_changed": 90,
+      "later_source": {
+        "requested": 88
+      },
+      "exact_gained": 88,
+      "exact_lost": 2
+    }
+  },
+  "complement": {
+    "cases": 1165,
+    "arms": {
+      "baseline": {
+        "exact": 1068,
+        "source": {
+          "distractor": 28,
+          "other": 69,
+          "requested": 1068
+        },
+        "wrong_index": {
+          "0": 97,
+          "exact": 1068
+        },
+        "exact_origin": {
+          "requested": 1068
+        }
+      },
+      "repair": {
+        "exact": 1068,
+        "source": {
+          "distractor": 28,
+          "other": 69,
+          "requested": 1068
+        },
+        "wrong_index": {
+          "0": 97,
+          "exact": 1068
+        },
+        "exact_origin": {
+          "requested": 1068
+        }
+      },
+      "oracle": {
+        "exact": 1087,
+        "source": {
+          "other": 78,
+          "requested": 1087
+        },
+        "wrong_index": {
+          "0": 78,
+          "exact": 1087
+        },
+        "exact_origin": {
+          "requested": 1087
+        }
+      }
+    },
+    "paired": {
+      "repair": {
+        "moves": {
+          "same": 1165
+        },
+        "matrix": {
+          "0->0": 97,
+          "exact->exact": 1068
+        },
+        "source_recovered": 0,
+        "source_lost": 0,
+        "source_changed": 0,
+        "later_source": {},
+        "exact_gained": 0,
+        "exact_lost": 0
+      },
+      "oracle": {
+        "moves": {
+          "later": 19,
+          "same": 1146
+        },
+        "matrix": {
+          "0->0": 78,
+          "0->exact": 19,
+          "exact->exact": 1068
+        },
+        "source_recovered": 19,
+        "source_lost": 0,
+        "source_changed": 28,
+        "later_source": {
+          "requested": 19
+        },
+        "exact_gained": 19,
+        "exact_lost": 0
+      }
+    },
+    "repair_vs_oracle": {
+      "moves": {
+        "later": 19,
+        "same": 1146
+      },
+      "matrix": {
+        "0->0": 78,
+        "0->exact": 19,
+        "exact->exact": 1068
+      },
+      "source_recovered": 19,
+      "source_lost": 0,
+      "source_changed": 28,
+      "later_source": {
+        "requested": 19
+      },
+      "exact_gained": 19,
+      "exact_lost": 0
+    }
+  },
+  "both_role_exact": {
+    "baseline": 378,
+    "repair": 654,
+    "oracle": 750
+  }
+}

@@ -1,0 +1,6 @@
+# [codex] ORDER — first entity loss in the 563 #4093 abstentions
+
+Lab: codex
+Item: [written-state-count-model](../../../../roadmap/items/written-state-count-model.md) (#4063).
+
+The owner requests a Wick trace and causal repair of the first entity-selection loss, holding continuation, exact copy, and EOS fixed. Cancel probe: #4093 produced 563 null CE sources on transfer and recorded endpoints but did not intervene in entity selection. Audit all 1,728 rows and the original null cohort at both seeds. Trace the first divergence from a requested compatible query/fact span, separate it from the gate that finally returns null, freeze a blind correction before testing, and compare complete self-fed replies with identical downstream operators. Use an isolated oracle only as a diagnostic if feasible. Include honest regressions and a transfer check. No promotion, extra training, or paid compute. Native state carries bounded token IDs, anchors, query and fact endpoints, witness masks, source, exact cursor, copy/release and committed token. Reuse frozen integer bank, shared Rust/AOT CUDA typed paths, serialize without translation; verify decisions and actual decoding on Wick against serving and byte repeats. No gradient or optimizer update. Stop and repair on baseline drift, grading leakage or parity failure.

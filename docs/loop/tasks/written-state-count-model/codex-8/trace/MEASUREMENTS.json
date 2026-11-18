@@ -1,0 +1,898 @@
+{
+  "schema": "uor-r4.anchor-rank-audit/1",
+  "seeds": [
+    1,
+    2
+  ],
+  "identical_at_both_seeds": true,
+  "transfer": {
+    "n": 1728,
+    "all": {
+      "n": 1728,
+      "movement": {
+        "later": 495,
+        "tied": 1233
+      },
+      "old_exact": 1068,
+      "new_exact": 1509,
+      "oracle_exact": 1614,
+      "new_source": 1509,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 593,
+        "requested_source": 1066,
+        "value_address": 69
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 120,
+        "requested_source": 1505,
+        "value_address": 103
+      },
+      "old_gate": {
+        "source_present": 1165,
+        "unequal_whole_words": 563
+      },
+      "new_gate": {
+        "source_present": 1728
+      },
+      "anchor_comparison": {
+        "cost_tie": 64,
+        "requested": 1135,
+        "strictly_lower_cost": 529
+      },
+      "baseline_asked_rank": {
+        "1": 1135,
+        "2": 342,
+        "3": 141,
+        "4": 70,
+        "5": 26,
+        "6": 14
+      },
+      "repair_asked_rank": {
+        "1": 1608,
+        "2": 105,
+        "3": 15
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 185,
+        "asked_query/asked_fact": 1135,
+        "asked_query/other_fact": 216,
+        "excluded_query/asked_fact": 27,
+        "excluded_query/other_fact": 27,
+        "other_fact/asked_fact": 135,
+        "outside_entities/outside_entities": 3
+      },
+      "q_position": {
+        "early": 864,
+        "late": 864
+      },
+      "n_asked_pair_available": 1728,
+      "old_compatible_pair_winner": 1165
+    },
+    "nulls": {
+      "n": 563,
+      "movement": {
+        "later": 495,
+        "tied": 68
+      },
+      "old_exact": 0,
+      "new_exact": 441,
+      "oracle_exact": 527,
+      "new_source": 441,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 563
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 90,
+        "requested_source": 439,
+        "value_address": 34
+      },
+      "old_gate": {
+        "unequal_whole_words": 563
+      },
+      "new_gate": {
+        "source_present": 563
+      },
+      "anchor_comparison": {
+        "cost_tie": 62,
+        "strictly_lower_cost": 501
+      },
+      "baseline_asked_rank": {
+        "2": 340,
+        "3": 137,
+        "4": 68,
+        "5": 5,
+        "6": 13
+      },
+      "repair_asked_rank": {
+        "1": 473,
+        "2": 77,
+        "3": 13
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 185,
+        "asked_query/other_fact": 216,
+        "excluded_query/asked_fact": 27,
+        "other_fact/asked_fact": 135
+      },
+      "q_position": {
+        "early": 216,
+        "late": 347
+      },
+      "n_asked_pair_available": 563,
+      "old_compatible_pair_winner": 0
+    },
+    "others": {
+      "n": 1165,
+      "movement": {
+        "tied": 1165
+      },
+      "old_exact": 1068,
+      "new_exact": 1068,
+      "oracle_exact": 1087,
+      "new_source": 1068,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 30,
+        "requested_source": 1066,
+        "value_address": 69
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 30,
+        "requested_source": 1066,
+        "value_address": 69
+      },
+      "old_gate": {
+        "source_present": 1165
+      },
+      "new_gate": {
+        "source_present": 1165
+      },
+      "anchor_comparison": {
+        "cost_tie": 2,
+        "requested": 1135,
+        "strictly_lower_cost": 28
+      },
+      "baseline_asked_rank": {
+        "1": 1135,
+        "2": 2,
+        "3": 4,
+        "4": 2,
+        "5": 21,
+        "6": 1
+      },
+      "repair_asked_rank": {
+        "1": 1135,
+        "2": 28,
+        "3": 2
+      },
+      "old_occurrences": {
+        "asked_query/asked_fact": 1135,
+        "excluded_query/other_fact": 27,
+        "outside_entities/outside_entities": 3
+      },
+      "q_position": {
+        "early": 648,
+        "late": 517
+      },
+      "n_asked_pair_available": 1165,
+      "old_compatible_pair_winner": 1165
+    },
+    "by_role": [
+      {
+        "role": "Sam",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 408
+      },
+      {
+        "role": "Tava",
+        "rows": 432,
+        "original_nulls": 293,
+        "repair_exact": 348
+      },
+      {
+        "role": "Tavi",
+        "rows": 432,
+        "original_nulls": 270,
+        "repair_exact": 354
+      },
+      {
+        "role": "Tom",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 399
+      }
+    ],
+    "by_lexical_set": [
+      {
+        "lexical_set": 0,
+        "rows": 864,
+        "original_nulls": 0,
+        "repair_exact": 807
+      },
+      {
+        "lexical_set": 1,
+        "rows": 864,
+        "original_nulls": 563,
+        "repair_exact": 702
+      }
+    ],
+    "pairs": {
+      "n": 864,
+      "baseline": 378,
+      "repair": 654,
+      "oracle": 750
+    }
+  },
+  "challenge": {
+    "n": 1728,
+    "all": {
+      "n": 1728,
+      "movement": {
+        "later": 487,
+        "tied": 1241
+      },
+      "old_exact": 1070,
+      "new_exact": 1503,
+      "oracle_exact": 1602,
+      "new_source": 1503,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 585,
+        "requested_source": 1068,
+        "value_address": 75
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 112,
+        "requested_source": 1501,
+        "value_address": 115
+      },
+      "old_gate": {
+        "source_present": 1173,
+        "unequal_whole_words": 555
+      },
+      "new_gate": {
+        "source_present": 1728
+      },
+      "anchor_comparison": {
+        "cost_tie": 72,
+        "requested": 1143,
+        "strictly_lower_cost": 513
+      },
+      "baseline_asked_rank": {
+        "1": 1143,
+        "2": 345,
+        "3": 141,
+        "4": 69,
+        "5": 23,
+        "6": 7
+      },
+      "repair_asked_rank": {
+        "1": 1616,
+        "2": 103,
+        "3": 9
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 177,
+        "asked_query/asked_fact": 1143,
+        "asked_query/other_fact": 216,
+        "excluded_query/asked_fact": 27,
+        "excluded_query/other_fact": 27,
+        "other_fact/asked_fact": 135,
+        "outside_entities/outside_entities": 3
+      },
+      "q_position": {
+        "early": 864,
+        "late": 864
+      },
+      "n_asked_pair_available": 1728,
+      "old_compatible_pair_winner": 1173
+    },
+    "nulls": {
+      "n": 555,
+      "movement": {
+        "later": 487,
+        "tied": 68
+      },
+      "old_exact": 0,
+      "new_exact": 433,
+      "oracle_exact": 513,
+      "new_source": 433,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 555
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 82,
+        "requested_source": 433,
+        "value_address": 40
+      },
+      "old_gate": {
+        "unequal_whole_words": 555
+      },
+      "new_gate": {
+        "source_present": 555
+      },
+      "anchor_comparison": {
+        "cost_tie": 66,
+        "strictly_lower_cost": 489
+      },
+      "baseline_asked_rank": {
+        "2": 342,
+        "3": 136,
+        "4": 62,
+        "5": 8,
+        "6": 7
+      },
+      "repair_asked_rank": {
+        "1": 473,
+        "2": 74,
+        "3": 8
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 177,
+        "asked_query/other_fact": 216,
+        "excluded_query/asked_fact": 27,
+        "other_fact/asked_fact": 135
+      },
+      "q_position": {
+        "early": 216,
+        "late": 339
+      },
+      "n_asked_pair_available": 555,
+      "old_compatible_pair_winner": 0
+    },
+    "others": {
+      "n": 1173,
+      "movement": {
+        "tied": 1173
+      },
+      "old_exact": 1070,
+      "new_exact": 1070,
+      "oracle_exact": 1089,
+      "new_source": 1070,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 30,
+        "requested_source": 1068,
+        "value_address": 75
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 30,
+        "requested_source": 1068,
+        "value_address": 75
+      },
+      "old_gate": {
+        "source_present": 1173
+      },
+      "new_gate": {
+        "source_present": 1173
+      },
+      "anchor_comparison": {
+        "cost_tie": 6,
+        "requested": 1143,
+        "strictly_lower_cost": 24
+      },
+      "baseline_asked_rank": {
+        "1": 1143,
+        "2": 3,
+        "3": 5,
+        "4": 7,
+        "5": 15
+      },
+      "repair_asked_rank": {
+        "1": 1143,
+        "2": 29,
+        "3": 1
+      },
+      "old_occurrences": {
+        "asked_query/asked_fact": 1143,
+        "excluded_query/other_fact": 27,
+        "outside_entities/outside_entities": 3
+      },
+      "q_position": {
+        "early": 648,
+        "late": 525
+      },
+      "n_asked_pair_available": 1173,
+      "old_compatible_pair_winner": 1173
+    },
+    "by_role": [
+      {
+        "role": "Jen",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 399
+      },
+      {
+        "role": "Jim",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 408
+      },
+      {
+        "role": "Zava",
+        "rows": 432,
+        "original_nulls": 285,
+        "repair_exact": 354
+      },
+      {
+        "role": "Zavi",
+        "rows": 432,
+        "original_nulls": 270,
+        "repair_exact": 342
+      }
+    ],
+    "by_lexical_set": [
+      {
+        "lexical_set": 0,
+        "rows": 864,
+        "original_nulls": 0,
+        "repair_exact": 807
+      },
+      {
+        "lexical_set": 1,
+        "rows": 864,
+        "original_nulls": 555,
+        "repair_exact": 696
+      }
+    ],
+    "pairs": {
+      "n": 864,
+      "baseline": 380,
+      "repair": 650,
+      "oracle": 738
+    }
+  },
+  "primary": {
+    "n": 1728,
+    "all": {
+      "n": 1728,
+      "movement": {
+        "later": 308,
+        "tied": 1420
+      },
+      "old_exact": 545,
+      "new_exact": 811,
+      "oracle_exact": 1344,
+      "new_source": 811,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 1101,
+        "requested_source": 499,
+        "value_address": 128
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 811,
+        "requested_source": 731,
+        "value_address": 186
+      },
+      "old_gate": {
+        "source_present": 1267,
+        "unequal_whole_words": 461
+      },
+      "new_gate": {
+        "source_present": 1728
+      },
+      "anchor_comparison": {
+        "cost_tie": 45,
+        "requested": 627,
+        "strictly_lower_cost": 1056
+      },
+      "baseline_asked_rank": {
+        "1": 627,
+        "2": 395,
+        "3": 227,
+        "4": 218,
+        "5": 173,
+        "6": 30,
+        "7": 40,
+        "8": 15,
+        "9": 3
+      },
+      "repair_asked_rank": {
+        "1": 917,
+        "2": 542,
+        "3": 162,
+        "4": 98,
+        "5": 9
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 75,
+        "asked_query/asked_fact": 627,
+        "asked_query/other_fact": 37,
+        "excluded_query/asked_fact": 277,
+        "excluded_query/other_fact": 531,
+        "other_fact/asked_fact": 72,
+        "outside_entities/outside_entities": 109
+      },
+      "q_position": {
+        "early": 864,
+        "late": 864
+      },
+      "n_asked_pair_available": 1728,
+      "old_compatible_pair_winner": 1267
+    },
+    "nulls": {
+      "n": 461,
+      "movement": {
+        "later": 308,
+        "tied": 153
+      },
+      "old_exact": 0,
+      "new_exact": 266,
+      "oracle_exact": 353,
+      "new_source": 266,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 461
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 171,
+        "requested_source": 232,
+        "value_address": 58
+      },
+      "old_gate": {
+        "unequal_whole_words": 461
+      },
+      "new_gate": {
+        "source_present": 461
+      },
+      "anchor_comparison": {
+        "cost_tie": 30,
+        "strictly_lower_cost": 431
+      },
+      "baseline_asked_rank": {
+        "2": 157,
+        "3": 155,
+        "4": 105,
+        "5": 41,
+        "6": 3
+      },
+      "repair_asked_rank": {
+        "1": 290,
+        "2": 126,
+        "3": 42,
+        "4": 3
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 75,
+        "asked_query/other_fact": 37,
+        "excluded_query/asked_fact": 277,
+        "other_fact/asked_fact": 72
+      },
+      "q_position": {
+        "early": 228,
+        "late": 233
+      },
+      "n_asked_pair_available": 461,
+      "old_compatible_pair_winner": 0
+    },
+    "others": {
+      "n": 1267,
+      "movement": {
+        "tied": 1267
+      },
+      "old_exact": 545,
+      "new_exact": 545,
+      "oracle_exact": 991,
+      "new_source": 545,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 640,
+        "requested_source": 499,
+        "value_address": 128
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 640,
+        "requested_source": 499,
+        "value_address": 128
+      },
+      "old_gate": {
+        "source_present": 1267
+      },
+      "new_gate": {
+        "source_present": 1267
+      },
+      "anchor_comparison": {
+        "cost_tie": 15,
+        "requested": 627,
+        "strictly_lower_cost": 625
+      },
+      "baseline_asked_rank": {
+        "1": 627,
+        "2": 238,
+        "3": 72,
+        "4": 113,
+        "5": 132,
+        "6": 27,
+        "7": 40,
+        "8": 15,
+        "9": 3
+      },
+      "repair_asked_rank": {
+        "1": 627,
+        "2": 416,
+        "3": 120,
+        "4": 95,
+        "5": 9
+      },
+      "old_occurrences": {
+        "asked_query/asked_fact": 627,
+        "excluded_query/other_fact": 531,
+        "outside_entities/outside_entities": 109
+      },
+      "q_position": {
+        "early": 636,
+        "late": 631
+      },
+      "n_asked_pair_available": 1267,
+      "old_compatible_pair_winner": 1267
+    },
+    "by_role": [
+      {
+        "role": "Joe",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 255
+      },
+      {
+        "role": "Leo",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 193
+      },
+      {
+        "role": "Rana",
+        "rows": 432,
+        "original_nulls": 234,
+        "repair_exact": 150
+      },
+      {
+        "role": "Rani",
+        "rows": 432,
+        "original_nulls": 227,
+        "repair_exact": 213
+      }
+    ],
+    "by_lexical_set": [
+      {
+        "lexical_set": 0,
+        "rows": 864,
+        "original_nulls": 0,
+        "repair_exact": 448
+      },
+      {
+        "lexical_set": 1,
+        "rows": 864,
+        "original_nulls": 461,
+        "repair_exact": 363
+      }
+    ],
+    "pairs": {
+      "n": 864,
+      "baseline": 151,
+      "repair": 209,
+      "oracle": 580
+    }
+  },
+  "earlier_transfer": {
+    "n": 1728,
+    "all": {
+      "n": 1728,
+      "movement": {
+        "later": 194,
+        "tied": 1534
+      },
+      "old_exact": 801,
+      "new_exact": 979,
+      "oracle_exact": 1104,
+      "new_source": 979,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 597,
+        "requested_source": 801,
+        "value_address": 330
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 197,
+        "requested_source": 979,
+        "value_address": 552
+      },
+      "old_gate": {
+        "source_present": 1276,
+        "unequal_whole_words": 452
+      },
+      "new_gate": {
+        "source_present": 1728
+      },
+      "anchor_comparison": {
+        "cost_tie": 107,
+        "requested": 1131,
+        "strictly_lower_cost": 490
+      },
+      "baseline_asked_rank": {
+        "1": 1131,
+        "2": 359,
+        "3": 177,
+        "4": 43,
+        "5": 14,
+        "6": 4
+      },
+      "repair_asked_rank": {
+        "1": 1531,
+        "2": 179,
+        "3": 17,
+        "4": 1
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 229,
+        "asked_query/asked_fact": 1131,
+        "excluded_query/other_fact": 145,
+        "other_fact/asked_fact": 223
+      },
+      "q_position": {
+        "early": 864,
+        "late": 864
+      },
+      "n_asked_pair_available": 1728,
+      "old_compatible_pair_winner": 1276
+    },
+    "nulls": {
+      "n": 452,
+      "movement": {
+        "later": 194,
+        "tied": 258
+      },
+      "old_exact": 0,
+      "new_exact": 178,
+      "oracle_exact": 200,
+      "new_source": 178,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 452
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 52,
+        "requested_source": 178,
+        "value_address": 222
+      },
+      "old_gate": {
+        "unequal_whole_words": 452
+      },
+      "new_gate": {
+        "source_present": 452
+      },
+      "anchor_comparison": {
+        "cost_tie": 100,
+        "strictly_lower_cost": 352
+      },
+      "baseline_asked_rank": {
+        "2": 233,
+        "3": 168,
+        "4": 40,
+        "5": 10,
+        "6": 1
+      },
+      "repair_asked_rank": {
+        "1": 400,
+        "2": 44,
+        "3": 8
+      },
+      "old_occurrences": {
+        "asked_fact/other_fact": 229,
+        "other_fact/asked_fact": 223
+      },
+      "q_position": {
+        "early": 272,
+        "late": 180
+      },
+      "n_asked_pair_available": 452,
+      "old_compatible_pair_winner": 0
+    },
+    "others": {
+      "n": 1276,
+      "movement": {
+        "tied": 1276
+      },
+      "old_exact": 801,
+      "new_exact": 801,
+      "oracle_exact": 904,
+      "new_source": 801,
+      "new_wrong_source_exact": 0,
+      "old_loss": {
+        "joint_anchor_ranking": 145,
+        "requested_source": 801,
+        "value_address": 330
+      },
+      "new_loss": {
+        "joint_anchor_ranking": 145,
+        "requested_source": 801,
+        "value_address": 330
+      },
+      "old_gate": {
+        "source_present": 1276
+      },
+      "new_gate": {
+        "source_present": 1276
+      },
+      "anchor_comparison": {
+        "cost_tie": 7,
+        "requested": 1131,
+        "strictly_lower_cost": 138
+      },
+      "baseline_asked_rank": {
+        "1": 1131,
+        "2": 126,
+        "3": 9,
+        "4": 3,
+        "5": 4,
+        "6": 3
+      },
+      "repair_asked_rank": {
+        "1": 1131,
+        "2": 135,
+        "3": 9,
+        "4": 1
+      },
+      "old_occurrences": {
+        "asked_query/asked_fact": 1131,
+        "excluded_query/other_fact": 145
+      },
+      "q_position": {
+        "early": 592,
+        "late": 684
+      },
+      "n_asked_pair_available": 1276,
+      "old_compatible_pair_winner": 1276
+    },
+    "by_role": [
+      {
+        "role": "Jen",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 232
+      },
+      {
+        "role": "Jim",
+        "rows": 432,
+        "original_nulls": 0,
+        "repair_exact": 262
+      },
+      {
+        "role": "Mira",
+        "rows": 432,
+        "original_nulls": 229,
+        "repair_exact": 247
+      },
+      {
+        "role": "Miri",
+        "rows": 432,
+        "original_nulls": 223,
+        "repair_exact": 238
+      }
+    ],
+    "by_lexical_set": [
+      {
+        "lexical_set": 0,
+        "rows": 864,
+        "original_nulls": 0,
+        "repair_exact": 494
+      },
+      {
+        "lexical_set": 1,
+        "rows": 864,
+        "original_nulls": 452,
+        "repair_exact": 485
+      }
+    ],
+    "pairs": {
+      "n": 864,
+      "baseline": 291,
+      "repair": 365,
+      "oracle": 468
+    }
+  }
+}

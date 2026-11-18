@@ -50,8 +50,14 @@ name = "continuation-selector"
 path = "src/bin/continuation-selector.rs"
 required-features = ["continuation-selector"]
 
+[[bin]]
+name = "entity-pair-chain"
+path = "src/bin/entity-pair-chain.rs"
+required-features = ["entity-pair-chain"]
+
 
 [features]
+entity-pair-chain = ["content-selector", "span-selector", "value-selector", "continuation-selector"]
 continuation-selector = ["cuda"]
 copy-completion = ["cuda"]
 value-selector = ["cuda"]

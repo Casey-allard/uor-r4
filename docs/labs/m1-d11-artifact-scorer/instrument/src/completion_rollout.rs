@@ -1,5 +1,7 @@
 //! Self-fed, paired continuation × end-of-copy measurement. Only the oracle
 //! receives a labeled address. Every other source decision replays on bare IDs.
+#[path = "entity_writer.rs"]
+pub(crate) mod entity_writer;
 use super::{Digests, Predictions, SpanPredictions, State};
 use crate::content_rollout::grade_case;
 use crate::copy_rollout::{

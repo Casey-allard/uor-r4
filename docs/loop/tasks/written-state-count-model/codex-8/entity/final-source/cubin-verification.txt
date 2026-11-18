@@ -1,0 +1,4 @@
+independent-target/x86_64-unknown-linux-gnu/release/build/m1-d11-artifact-scorer-instrument-6c474866e8364b70/out/entity.cubin: OK
+independent-target/x86_64-unknown-linux-gnu/release/build/m1-d11-artifact-scorer-instrument-6c474866e8364b70/out/span.cubin: OK
+independent-target/x86_64-unknown-linux-gnu/release/build/m1-d11-artifact-scorer-instrument-6c474866e8364b70/out/value.cubin: OK
+independent-target/x86_64-unknown-linux-gnu/release/build/m1-d11-artifact-scorer-instrument-6c474866e8364b70/out/continuation.cubin: OK

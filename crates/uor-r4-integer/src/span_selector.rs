@@ -74,7 +74,7 @@ pub struct Arms {
     pub connector_only: SpanChoice,
 }
 
-fn bounds(ids: &[u32], classes: &[u32], at: usize) -> (usize, usize) {
+pub(crate) fn bounds(ids: &[u32], classes: &[u32], at: usize) -> (usize, usize) {
     let class = |i: usize| classes[ids[i] as usize];
     let (mut l, mut r) = (at, at);
     if class(at) != NONWORD {
@@ -86,6 +86,16 @@ fn bounds(ids: &[u32], classes: &[u32], at: usize) -> (usize, usize) {
         }
     }
     (l, r)
+}
+
+pub(crate) fn matched(
+    ids: &[u32],
+    q: usize,
+    f: usize,
+    (ql, qr): (usize, usize),
+    (fl, fr): (usize, usize),
+) -> bool {
+    fr < ql && f - fl == q - ql && ids[fl..=fr] == ids[ql..=qr]
 }
 
 pub fn resolve(
@@ -160,7 +170,7 @@ pub fn resolve(
     };
     let (ql, qr) = bounds(ids, &bank.classes, q);
     let (fl, fr) = bounds(ids, &bank.classes, f);
-    let matched = fr < ql && f - fl == q - ql && ids[fl..=fr] == ids[ql..=qr];
+    let matched = matched(ids, q, f, (ql, qr), (fl, fr));
     let endpoint_source = if matched {
         // Frozen one-token relation: gap zero costs 64, gap one costs the root
         // distance, and every larger gap adds 64 per word to that latter cost.

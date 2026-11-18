@@ -1,0 +1,263 @@
+[
+  {
+    "id": "transfer-f1-a0-o0-c11-late-before-none-shared-Tavi",
+    "prompt": "Tava has green box. Tavi has green bag. Leave out Tava. What item did the record mention for Tavi?",
+    "asked_query": [
+      34,
+      36
+    ],
+    "asked_fact": [
+      11,
+      13
+    ],
+    "source": 15,
+    "old": {
+      "first_loss": "joint_anchor_ranking",
+      "gate": "unequal_whole_words",
+      "q_occurrence": "asked_fact",
+      "f_occurrence": "other_fact",
+      "span_source": null,
+      "word_start": null,
+      "source": null,
+      "hit": false
+    },
+    "new": {
+      "first_loss": "joint_anchor_ranking",
+      "gate": "source_present",
+      "q_occurrence": "excluded_query",
+      "f_occurrence": "other_fact",
+      "span_source": 8,
+      "word_start": 8,
+      "source": 8,
+      "hit": false
+    },
+    "baseline_pick": {
+      "cost": 144,
+      "q_cost": 88,
+      "f_cost": 56,
+      "q": 11,
+      "f": 4,
+      "anchor_id": 273,
+      "q_word": [
+        273,
+        1410,
+        75
+      ],
+      "f_word": [
+        273,
+        1410,
+        67
+      ]
+    },
+    "repair_pick": {
+      "cost": 148,
+      "q_cost": 92,
+      "f_cost": 56,
+      "q": 21,
+      "f": 4,
+      "anchor_id": 273,
+      "q_word": [
+        273,
+        1410,
+        67
+      ],
+      "f_word": [
+        273,
+        1410,
+        67
+      ]
+    },
+    "asked_pick": {
+      "cost": 172,
+      "q_cost": 60,
+      "f_cost": 112,
+      "q": 36,
+      "f": 13,
+      "anchor_id": 75,
+      "q_word": [
+        273,
+        1410,
+        75
+      ],
+      "f_word": [
+        273,
+        1410,
+        75
+      ]
+    },
+    "asked_rank": 4,
+    "asked_compatible_rank": 2,
+    "target": [
+      1074,
+      1216,
+      1
+    ],
+    "baseline_writer": {
+      "gen": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "wrong": 0,
+      "hit": false
+    },
+    "repair_writer": {
+      "gen": [
+        1074,
+        616,
+        1
+      ],
+      "wrong": 1,
+      "hit": false
+    },
+    "oracle_writer": {
+      "gen": [
+        1074,
+        1216,
+        1
+      ],
+      "wrong": null,
+      "hit": true
+    }
+  },
+  {
+    "id": "transfer-f1-a0-o0-c11-early-none-none-shared-Tavi",
+    "prompt": "Tava has green box. Tavi has green bag. For Tavi, what item did the record mention?",
+    "asked_query": [
+      20,
+      22
+    ],
+    "asked_fact": [
+      11,
+      13
+    ],
+    "source": 15,
+    "old": {
+      "first_loss": "joint_anchor_ranking",
+      "gate": "unequal_whole_words",
+      "q_occurrence": "asked_query",
+      "f_occurrence": "other_fact",
+      "span_source": null,
+      "word_start": null,
+      "source": null,
+      "hit": false
+    },
+    "new": {
+      "first_loss": "requested_source",
+      "gate": "source_present",
+      "q_occurrence": "asked_query",
+      "f_occurrence": "asked_fact",
+      "span_source": 15,
+      "word_start": 15,
+      "source": 15,
+      "hit": true
+    },
+    "baseline_pick": {
+      "cost": 100,
+      "q_cost": 44,
+      "f_cost": 56,
+      "q": 20,
+      "f": 4,
+      "anchor_id": 273,
+      "q_word": [
+        273,
+        1410,
+        75
+      ],
+      "f_word": [
+        273,
+        1410,
+        67
+      ]
+    },
+    "repair_pick": {
+      "cost": 136,
+      "q_cost": 44,
+      "f_cost": 92,
+      "q": 20,
+      "f": 11,
+      "anchor_id": 273,
+      "q_word": [
+        273,
+        1410,
+        75
+      ],
+      "f_word": [
+        273,
+        1410,
+        75
+      ]
+    },
+    "asked_pick": {
+      "cost": 136,
+      "q_cost": 44,
+      "f_cost": 92,
+      "q": 20,
+      "f": 11,
+      "anchor_id": 273,
+      "q_word": [
+        273,
+        1410,
+        75
+      ],
+      "f_word": [
+        273,
+        1410,
+        75
+      ]
+    },
+    "asked_rank": 2,
+    "asked_compatible_rank": 1,
+    "target": [
+      1074,
+      1216,
+      1
+    ],
+    "baseline_writer": {
+      "gen": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        915,
+        261,
+        561,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "wrong": 0,
+      "hit": false
+    },
+    "repair_writer": {
+      "gen": [
+        1074,
+        1216,
+        1
+      ],
+      "wrong": null,
+      "hit": true
+    },
+    "oracle_writer": {
+      "gen": [
+        1074,
+        1216,
+        1
+      ],
+      "wrong": null,
+      "hit": true
+    }
+  }
+]

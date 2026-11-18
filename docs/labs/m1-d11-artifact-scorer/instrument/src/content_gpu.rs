@@ -41,6 +41,9 @@ impl Gpu {
         Ok(())
     }
     pub fn new() -> Result<Self, Fail> {
+        Self::load(CUBIN)
+    }
+    fn load(cubin: &[u8]) -> Result<Self, Fail> {
         let context = CudaContext::new(0)?;
         let (a, b) = context.compute_capability()?;
         if TARGET.trim() != format!("sm_{a}{b}") {
@@ -49,7 +52,7 @@ impl Gpu {
         let stream = context.default_stream();
         context.bind_to_thread()?;
         // SAFETY: build.rs admits PTX then assembles and checks the ELF cubin.
-        let module = unsafe { result::module::load_data(CUBIN.as_ptr().cast()) }?;
+        let module = unsafe { result::module::load_data(cubin.as_ptr().cast()) }?;
         Ok(Self {
             stream,
             module,
@@ -107,6 +110,36 @@ impl Gpu {
         m: &Prototypes,
         ablated: bool,
     ) -> Result<Vec<Choice>, Fail> {
+        let (choices, _) = self.rank(data, roots, m, ablated, None)?;
+        Ok(choices)
+    }
+    #[cfg(feature = "entity-pair-chain")]
+    pub fn traced(
+        data: &[u32],
+        roots: &[u32],
+        m: &Prototypes,
+        classes: &[u32],
+        gated: bool,
+    ) -> Result<(Vec<Choice>, Vec<u32>), Fail> {
+        if classes.len() != 4096 || classes.iter().any(|&v| v > 2) {
+            return Err("invalid entity rank classes".into());
+        }
+        Self::load(include_bytes!(concat!(env!("OUT_DIR"), "/entity.cubin")))?.rank(
+            data,
+            roots,
+            m,
+            false,
+            Some((classes, gated)),
+        )
+    }
+    fn rank(
+        &self,
+        data: &[u32],
+        roots: &[u32],
+        m: &Prototypes,
+        ablated: bool,
+        gate: Option<(&[u32], bool)>,
+    ) -> Result<(Vec<Choice>, Vec<u32>), Fail> {
         let rows = validate(data, roots, false)?;
         m.validate()?;
         let mut packed = vec![0u32; 4 * CAP * 16];
@@ -131,6 +164,7 @@ impl Gpu {
         let data = self.stream.clone_htod(data)?;
         let roots = self.stream.clone_htod(roots)?;
         let mut scores = self.stream.alloc_zeros::<u32>(rows as usize * WIDTH * 2)?;
+        let class_buf = gate.map(|(c, _)| self.stream.clone_htod(c)).transpose()?;
         let mut out = self.stream.alloc_zeros::<u32>(rows as usize * 3)?;
         {
             let (data, _d) = data.device_ptr(&self.stream);
@@ -155,32 +189,43 @@ impl Gpu {
                         param(&score),
                     ],
                 )?;
-                self.launch(
-                    "content_bind",
-                    rows,
-                    &mut [
-                        param(&data),
-                        param(&roots),
-                        param(&rows),
-                        param(&bank),
-                        param(&counts),
-                        param(&score),
-                        param(&out),
-                    ],
-                )?;
+                let mut params = vec![
+                    param(&data),
+                    param(&roots),
+                    param(&rows),
+                    param(&bank),
+                    param(&counts),
+                    param(&score),
+                    param(&out),
+                ];
+                if let (Some(buf), Some((_, gated))) = (&class_buf, gate) {
+                    let (classes, _c) = buf.device_ptr(&self.stream);
+                    let enabled = u32::from(gated);
+                    params.extend([param(&classes), param(&enabled)]);
+                    self.launch("entity_bind", rows, &mut params)?;
+                } else {
+                    self.launch("content_bind", rows, &mut params)?;
+                }
             }
         }
         let pos = |n: u32| (n != BOUNDARY).then_some(n);
-        Ok(self
-            .stream
-            .clone_dtoh(&out)?
-            .chunks_exact(3)
-            .map(|w| Choice {
-                query: pos(w[0]),
-                fact: pos(w[1]),
-                source: pos(w[2]),
-            })
-            .collect())
+        let traces = if gate.is_some() {
+            self.stream.clone_dtoh(&scores)?
+        } else {
+            Vec::new()
+        };
+        Ok((
+            self.stream
+                .clone_dtoh(&out)?
+                .chunks_exact(3)
+                .map(|w| Choice {
+                    query: pos(w[0]),
+                    fact: pos(w[1]),
+                    source: pos(w[2]),
+                })
+                .collect(),
+            traces,
+        ))
     }
 }
 pub const STRIDE: usize = WIDTH + 5;

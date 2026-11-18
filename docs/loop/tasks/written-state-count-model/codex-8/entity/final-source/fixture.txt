@@ -1,0 +1,1 @@
+PASS identical pair energies and stable ties; unequal BPE ending rejected, later exact span restored, no viable match abstains, compatible winner retained, overlapping interior offsets rejected, singleton punctuation preserved. AOT and native site and choice words match.
