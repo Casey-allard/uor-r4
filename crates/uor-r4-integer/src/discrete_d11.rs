@@ -495,6 +495,20 @@ pub struct ExactCopyStep {
 }
 
 impl ExactCopyStep {
+    /// A delimiter was observed after at least one exact source token. A fence,
+    /// eight-token cap, inactive cursor or delimiter at the start is insufficient.
+    pub fn completed_span(self) -> bool {
+        self.release == 1 && self.state.cursor > self.state.source
+    }
+
+    /// Opt-in final emission for bounded short answers after a completed copy.
+    pub fn finish_with_eos(mut self, enabled: bool, eos: u32) -> Self {
+        if enabled && self.completed_span() {
+            self.emitted = eos;
+        }
+        self
+    }
+
     pub fn words(self) -> [u32; 8] {
         [
             self.state.active,

@@ -269,11 +269,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if image.len() < 64 || !image.starts_with(b"\x7fELF") {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
-    let selectors: [(&str, &str, &[&str]); 4] = [
+    let selectors: &[(&str, &str, &[&str])] = &[
+        ("CARGO_FEATURE_COPY_COMPLETION", "completion", &["copy_completion"]),
         (
             "CARGO_FEATURE_VALUE_SELECTOR",
             "value",
             &["value_fit", "value_predict"],
+        ),
+        (
+            "CARGO_FEATURE_CONTINUATION_SELECTOR",
+            "continuation",
+            &["continuation_predict"],
         ),
         (
             "CARGO_FEATURE_SPAN_SELECTOR",
@@ -295,7 +301,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &["content_sites", "content_fit", "content_bind"],
         ),
     ];
-    for (feature, name, kernels) in selectors {
+    for &(feature, name, kernels) in selectors {
         if env::var_os(feature).is_none() {
             continue;
         }

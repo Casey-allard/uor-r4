@@ -15,6 +15,7 @@ pub mod discrete_d11;
 pub mod content_selector;
 pub mod span_selector;
 pub mod value_selector;
+pub mod continuation_selector;
 pub mod occurrence_selector;
 pub mod fbs_address;
 pub mod fbs_pair_rows;

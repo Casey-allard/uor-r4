@@ -1,0 +1,69 @@
+{
+  "all": {
+    "total": 288,
+    "word_start": 116,
+    "continuation": 74,
+    "gained": 0,
+    "lost": 42,
+    "exact_witness": 0,
+    "geometric_witness": 62
+  },
+  "per_witness": [
+    {
+      "reason": 0,
+      "total": 226,
+      "word_start": 74,
+      "continuation": 74,
+      "gained": 0,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 0
+    },
+    {
+      "reason": 2,
+      "total": 62,
+      "word_start": 42,
+      "continuation": 0,
+      "gained": 0,
+      "lost": 42,
+      "exact_witness": 0,
+      "geometric_witness": 62
+    }
+  ],
+  "aligned_per_surface": [
+    {
+      "surface": "IDs 614",
+      "total": {
+        "total": 147,
+        "word_start": 116,
+        "continuation": 74,
+        "gained": 0,
+        "lost": 42,
+        "exact_witness": 0,
+        "geometric_witness": 42
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 105,
+          "word_start": 74,
+          "continuation": 74,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 2,
+          "total": 42,
+          "word_start": 42,
+          "continuation": 0,
+          "gained": 0,
+          "lost": 42,
+          "exact_witness": 0,
+          "geometric_witness": 42
+        }
+      ]
+    }
+  ]
+}

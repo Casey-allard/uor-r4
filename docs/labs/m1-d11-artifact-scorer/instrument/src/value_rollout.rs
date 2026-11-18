@@ -13,6 +13,10 @@ use uor_r4_integer::{
     value_selector::{decide, Decisions, ExactBank},
 };
 
+#[cfg(feature = "copy-completion")]
+#[path = "completion_rollout.rs"]
+pub(crate) mod completion;
+
 const SEALED: &str =
     include_str!("../../../../loop/tasks/written-state-count-model/codex-6/BLIND-INPUTS.json");
 const ARMS: [Arm; 6] = [

@@ -21,6 +21,9 @@ enum Suite {
     Shared,
     ShortPrefix,
     Unseen,
+    TransferShared,
+    TransferPrefix,
+    TransferUnseen,
 }
 
 impl Suite {
@@ -28,12 +31,13 @@ impl Suite {
         match self {
             Self::Train => "train",
             Self::Held => "held",
+            Self::TransferShared | Self::TransferPrefix | Self::TransferUnseen => "transfer",
             _ => "fresh",
         }
     }
 
     fn is_fresh(self) -> bool {
-        matches!(self, Self::Shared | Self::ShortPrefix | Self::Unseen)
+        matches!(self.split(), "fresh" | "transfer")
     }
 }
 
@@ -157,12 +161,14 @@ fn row(
     let names = match suite {
         Suite::Train => [["Tim", "Sue"], ["Nala", "Navi"]],
         Suite::Held => [["Joe", "Leo"], ["Rana", "Rani"]],
+        _ if split == "transfer" => [["Sam", "Tom"], ["Tava", "Tavi"]],
         _ => [["Jim", "Jen"], ["Mira", "Miri"]],
     }[family];
     let value_set = family ^ order;
     let values = match suite {
         Suite::Train => [["gray", "blue"], ["small cup", "small hat"]],
         Suite::Held => [["yellow", "pink"], ["round stone", "round coin"]],
+        _ if split == "transfer" => [["red", "black"], ["green box", "green bag"]],
         _ => [["white", "gold"], ["old lamp", "old ring"]],
     }[value_set];
     let (set, connectors) = match suite {
@@ -170,6 +176,8 @@ fn row(
         Suite::Held if assignment != 0 => ("split_specific", HELD_ONLY),
         Suite::ShortPrefix => ("short_prefix", EXTENDS_TRAIN),
         Suite::Unseen => ("unseen", FRESH_ONLY),
+        Suite::TransferPrefix => ("short_prefix", ["found", "found just", "found and hid"]),
+        Suite::TransferUnseen => ("unseen", ["held", "once held", "once again held"]),
         _ => ("shared", COMMON),
     };
     let verb = |who: usize| connectors[lengths[who] - 1];
@@ -182,10 +190,16 @@ fn row(
         (Suite::Train, _) => format!("Which item is listed for {name}?"),
         (Suite::Held, "early") => format!("About {name}, which item was listed?"),
         (Suite::Held, _) => format!("What is the item that {name} has?"),
+        (_, "early") if split == "transfer" => {
+            format!("For {name}, what item did the record mention?")
+        }
+        (_, _) if split == "transfer" => format!("What item did the record mention for {name}?"),
         (_, "early") => format!("About {name}, which item did the note list?"),
         (_, _) => format!("Which item did the note list for {name}?"),
     };
-    let neg = if fresh {
+    let neg = if split == "transfer" {
+        format!("Leave out {other}.")
+    } else if fresh {
         format!("Skip {other}.")
     } else if train {
         format!("Ignore {other}.")
@@ -460,7 +474,7 @@ fn run() -> Result<()> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     let [tok, previous, out] = args.as_slice() else {
         return Err(
-            "usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR|--fresh NEW_OUT".into(),
+            "usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR|--fresh|--continuation-transfer NEW_OUT".into(),
         );
     };
     let t = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(tok)?)
@@ -470,6 +484,19 @@ fn run() -> Result<()> {
     let root = Path::new(out);
     fs::create_dir(root)?;
     let mut census = BTreeSet::new();
+    if previous == "--continuation-transfer" {
+        return generated(
+            root,
+            &t,
+            &encoder,
+            &[
+                Suite::TransferShared,
+                Suite::TransferPrefix,
+                Suite::TransferUnseen,
+            ],
+            &mut census,
+        );
+    }
     if previous == "--fresh" {
         return generated(
             root,

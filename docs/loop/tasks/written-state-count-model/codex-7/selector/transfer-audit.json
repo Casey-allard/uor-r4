@@ -1,0 +1,271 @@
+{
+  "all": {
+    "total": 1728,
+    "word_start": 878,
+    "continuation": 1068,
+    "gained": 190,
+    "lost": 0,
+    "exact_witness": 0,
+    "geometric_witness": 196
+  },
+  "per_witness": [
+    {
+      "reason": 0,
+      "total": 1532,
+      "word_start": 878,
+      "continuation": 878,
+      "gained": 0,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 0
+    },
+    {
+      "reason": 2,
+      "total": 196,
+      "word_start": 0,
+      "continuation": 190,
+      "gained": 190,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 196
+    }
+  ],
+  "aligned_per_surface": [
+    {
+      "surface": "found",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "found and hid",
+      "total": {
+        "total": 126,
+        "word_start": 0,
+        "continuation": 96,
+        "gained": 96,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 96
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 30,
+          "word_start": 0,
+          "continuation": 0,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 2,
+          "total": 96,
+          "word_start": 0,
+          "continuation": 96,
+          "gained": 96,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 96
+        }
+      ]
+    },
+    {
+      "surface": "found just",
+      "total": {
+        "total": 124,
+        "word_start": 0,
+        "continuation": 94,
+        "gained": 94,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 94
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 30,
+          "word_start": 0,
+          "continuation": 0,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 2,
+          "total": 94,
+          "word_start": 0,
+          "continuation": 94,
+          "gained": 94,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 94
+        }
+      ]
+    },
+    {
+      "surface": "has",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "has just kept",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "has kept",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "held",
+      "total": {
+        "total": 129,
+        "word_start": 120,
+        "continuation": 120,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 129,
+          "word_start": 120,
+          "continuation": 120,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "once again held",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "once held",
+      "total": {
+        "total": 126,
+        "word_start": 126,
+        "continuation": 126,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 126,
+          "word_start": 126,
+          "continuation": 126,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    }
+  ]
+}

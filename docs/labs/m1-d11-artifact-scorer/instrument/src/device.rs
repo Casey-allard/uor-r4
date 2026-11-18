@@ -16,6 +16,8 @@ use std::sync::Arc;
 use uor_r4_integer::discrete_d11::{ExactCopyState, ExactCopyStep};
 
 const CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/d11_scorer.cubin"));
+#[cfg(feature = "copy-completion")]
+pub const COMPLETION_CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/completion.cubin"));
 /// The admitted PTX the cubin was assembled from.
 pub const PTX: &str = include_str!(concat!(env!("OUT_DIR"), "/d11_scorer.ptx"));
 /// The `sm_` target the cubin was assembled for; there is no PTX fallback.
@@ -58,6 +60,65 @@ impl Drop for Module {
     }
 }
 
+#[cfg(feature = "copy-completion")]
+struct CompletionKernel {
+    _module: Module,
+    function: sys::CUfunction,
+}
+
+#[cfg(feature = "copy-completion")]
+impl CompletionKernel {
+    fn new(context: &Arc<CudaContext>) -> Result<Self, String> {
+        // SAFETY: build.rs admits and assembles this complete immutable ELF.
+        let raw =
+            unsafe { result::module::load_data(COMPLETION_CUBIN.as_ptr().cast()) }.map_err(cuda)?;
+        let module = Module {
+            raw,
+            context: Arc::clone(context),
+        };
+        let name = CString::new("copy_completion").map_err(|e| e.to_string())?;
+        // SAFETY: the name is in the admitted module's exact inventory.
+        let function = unsafe { result::module::get_function(raw, name) }.map_err(cuda)?;
+        Ok(Self {
+            _module: module,
+            function,
+        })
+    }
+
+    fn apply(
+        &self,
+        stream: &Arc<CudaStream>,
+        steps: &mut CudaSlice<u32>,
+        policies: &[u32],
+        eos: u32,
+    ) -> Result<(), String> {
+        let count = u32::try_from(policies.len()).map_err(cuda)?;
+        let flags = stream.clone_htod(policies).map_err(cuda)?;
+        let (flags_ptr, _flags_guard) = flags.device_ptr(stream);
+        let (steps_ptr, _steps_guard) = steps.device_ptr_mut(stream);
+        let mut args = [
+            std::ptr::from_ref(&steps_ptr).cast_mut().cast(),
+            std::ptr::from_ref(&flags_ptr).cast_mut().cast(),
+            std::ptr::from_ref(&eos).cast_mut().cast(),
+            std::ptr::from_ref(&count).cast_mut().cast(),
+        ];
+        // SAFETY: the caller's exact-copy kernel just wrote eight u32 words
+        // per row. The flags have one word per row; both are on this stream.
+        unsafe {
+            result::launch_kernel(
+                self.function,
+                (count.div_ceil(THREADS), 1, 1),
+                (THREADS, 1, 1),
+                0,
+                stream.cu_stream(),
+                &mut args,
+            )
+        }
+        .map_err(cuda)?;
+        stream.synchronize().map_err(cuda)
+    }
+}
+
 /// One artifact resident on one device.
 pub struct DeviceScorer {
     table: CudaSlice<i32>,
@@ -70,6 +131,8 @@ pub struct DeviceScorer {
     has_pointer_trunk: bool,
     function: sys::CUfunction,
     module: Module,
+    #[cfg(feature = "copy-completion")]
+    completion: CompletionKernel,
     stream: Arc<CudaStream>,
     blocks: usize,
     /// The device's compute capability, `(major, minor)`.
@@ -104,6 +167,8 @@ impl DeviceScorer {
         let function = unsafe { result::module::get_function(module.raw, name) }.map_err(cuda)?;
         let stream = context.default_stream();
         Ok(Self {
+            #[cfg(feature = "copy-completion")]
+            completion: CompletionKernel::new(&context)?,
             table: stream.clone_htod(&tables.table).map_err(cuda)?,
             cells: stream.clone_htod(&tables.cells).map_err(cuda)?,
             routes: stream.clone_htod(&tables.routes).map_err(cuda)?,
@@ -160,6 +225,32 @@ impl DeviceScorer {
         states: &[ExactCopyState],
         stops: [u32; 4],
     ) -> Result<(Vec<RowScore>, Vec<ExactCopyStep>), String> {
+        self.score_copy_inner(rows, states, stops, None)
+    }
+
+    /// Apply an optional final emission on device to the unchanged exact-copy output.
+    #[cfg(feature = "copy-completion")]
+    pub fn score_copy_with_completion(
+        &self,
+        rows: &PackedRows,
+        states: &[ExactCopyState],
+        stops: [u32; 4],
+        flags: &[u32],
+        eos: u32,
+    ) -> Result<(Vec<RowScore>, Vec<ExactCopyStep>), String> {
+        if flags.len() != states.len() || flags.iter().any(|&x| x > 1) {
+            return Err("invalid per-row copy-completion flags".into());
+        }
+        self.score_copy_inner(rows, states, stops, Some((flags, eos)))
+    }
+
+    fn score_copy_inner(
+        &self,
+        rows: &PackedRows,
+        states: &[ExactCopyState],
+        stops: [u32; 4],
+        policy: Option<(&[u32], u32)>,
+    ) -> Result<(Vec<RowScore>, Vec<ExactCopyStep>), String> {
         if states.len() != rows.lengths.len()
             || !states
                 .iter()
@@ -168,7 +259,7 @@ impl DeviceScorer {
         {
             return Err("invalid exact-copy state or original prompt fence".into());
         }
-        let (scores, _, steps) = self.score_inner(rows, None, Some((states, stops)))?;
+        let (scores, _, steps) = self.score_inner(rows, None, Some((states, stops, policy)))?;
         if scores.iter().any(|row| row.status != 0) {
             return Err("native scorer refused an exact-copy row".into());
         }
@@ -179,7 +270,7 @@ impl DeviceScorer {
         &self,
         rows: &PackedRows,
         interventions: Option<&[[i32; 2]]>,
-        copy: Option<(&[ExactCopyState], [u32; 4])>,
+        copy: Option<(&[ExactCopyState], [u32; 4], Option<(&[u32], u32)>)>,
     ) -> Result<
         (
             Vec<RowScore>,
@@ -233,7 +324,7 @@ impl DeviceScorer {
                 })
                 .transpose()?;
             let mut copy_buf = copy
-                .map(|(states, stops)| {
+                .map(|(states, stops, _)| {
                     let mut words = Vec::with_capacity(8 * n);
                     for state in &states[start..start + n] {
                         words.extend(state.words());
@@ -310,6 +401,11 @@ impl DeviceScorer {
                     )
                 }
                 .map_err(cuda)?;
+            }
+            #[cfg(feature = "copy-completion")]
+            if let (Some(buf), Some((_, _, Some((flags, eos))))) = (copy_buf.as_mut(), copy) {
+                self.completion
+                    .apply(&self.stream, buf, &flags[start..start + n], eos)?;
             }
             self.stream.synchronize().map_err(cuda)?;
             let words = self.stream.clone_dtoh(&out).map_err(cuda)?;

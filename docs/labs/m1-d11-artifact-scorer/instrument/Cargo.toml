@@ -45,7 +45,15 @@ name = "value-selector"
 path = "src/bin/value-selector.rs"
 required-features = ["value-selector"]
 
+[[bin]]
+name = "continuation-selector"
+path = "src/bin/continuation-selector.rs"
+required-features = ["continuation-selector"]
+
+
 [features]
+continuation-selector = ["cuda"]
+copy-completion = ["cuda"]
 value-selector = ["cuda"]
 span-selector = ["cuda"]
 content-selector = ["cuda"]

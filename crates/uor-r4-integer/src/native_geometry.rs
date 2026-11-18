@@ -27,6 +27,8 @@ pub mod span_selector;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod value_selector;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod continuation_selector;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod occurrence_selector;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod fbs_address;

@@ -1,0 +1,1433 @@
+{
+  "cases": 1728,
+  "identical_historical_steps": 33525,
+  "family_deletion": [
+    {
+      "omitted": "shared",
+      "cases": 1152,
+      "pairs": 576,
+      "contrasts": {
+        "WordStart->Continuation": {
+          "net_later": 94,
+          "net_exact": 0
+        },
+        "WordStart->WordStartEos": {
+          "net_later": 394,
+          "net_exact": 394
+        },
+        "WordStart->ContinuationEos": {
+          "net_later": 447,
+          "net_exact": 494
+        },
+        "Continuation->ContinuationEos": {
+          "net_later": 494,
+          "net_exact": 494
+        },
+        "WordStartEos->ContinuationEos": {
+          "net_later": 94,
+          "net_exact": 100
+        }
+      }
+    },
+    {
+      "omitted": "short_prefix",
+      "cases": 1152,
+      "pairs": 576,
+      "contrasts": {
+        "WordStart->Continuation": {
+          "net_later": 48,
+          "net_exact": 0
+        },
+        "WordStart->WordStartEos": {
+          "net_later": 525,
+          "net_exact": 525
+        },
+        "WordStart->ContinuationEos": {
+          "net_later": 531,
+          "net_exact": 567
+        },
+        "Continuation->ContinuationEos": {
+          "net_later": 567,
+          "net_exact": 567
+        },
+        "WordStartEos->ContinuationEos": {
+          "net_later": 48,
+          "net_exact": 42
+        }
+      }
+    },
+    {
+      "omitted": "unseen",
+      "cases": 1152,
+      "pairs": 576,
+      "contrasts": {
+        "WordStart->Continuation": {
+          "net_later": 142,
+          "net_exact": 0
+        },
+        "WordStart->WordStartEos": {
+          "net_later": 399,
+          "net_exact": 399
+        },
+        "WordStart->ContinuationEos": {
+          "net_later": 458,
+          "net_exact": 541
+        },
+        "Continuation->ContinuationEos": {
+          "net_later": 541,
+          "net_exact": 541
+        },
+        "WordStartEos->ContinuationEos": {
+          "net_later": 142,
+          "net_exact": 142
+        }
+      }
+    }
+  ],
+  "exact_count_interaction": 142,
+  "per_case_exact_interaction": {
+    "-1": 83,
+    "0": 1420,
+    "1": 225
+  },
+  "joint_vs_eos_exact_overlap": {
+    "both": 576,
+    "joint_only": 225,
+    "eos_only": 83,
+    "neither": 844
+  },
+  "arms": {
+    "WordStart": {
+      "requested": 659,
+      "exact": 0,
+      "whole_value": 659,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 1050,
+        "1": 529,
+        "2": 149
+      },
+      "source": {
+        "abstain": 452,
+        "distractor": 85,
+        "other": 532,
+        "requested": 659
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 452,
+        "1": 1276
+      },
+      "both_role_addresses": 199,
+      "both_role_exact": 0
+    },
+    "Continuation": {
+      "requested": 801,
+      "exact": 0,
+      "whole_value": 801,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 908,
+        "1": 670,
+        "2": 150
+      },
+      "source": {
+        "abstain": 452,
+        "distractor": 97,
+        "other": 378,
+        "requested": 801
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 452,
+        "1": 1276
+      },
+      "both_role_addresses": 291,
+      "both_role_exact": 0
+    },
+    "WordStartEos": {
+      "requested": 659,
+      "exact": 659,
+      "whole_value": 659,
+      "exact_by_source": {
+        "requested_address": 659
+      },
+      "wrong_index": {
+        "0": 1050,
+        "1": 19,
+        "exact": 659
+      },
+      "source": {
+        "abstain": 452,
+        "distractor": 85,
+        "other": 532,
+        "requested": 659
+      },
+      "terminal_action": 1276,
+      "releases": {
+        "0": 452,
+        "1": 1276
+      },
+      "both_role_addresses": 199,
+      "both_role_exact": 199
+    },
+    "ContinuationEos": {
+      "requested": 801,
+      "exact": 801,
+      "whole_value": 801,
+      "exact_by_source": {
+        "requested_address": 801
+      },
+      "wrong_index": {
+        "0": 908,
+        "1": 19,
+        "exact": 801
+      },
+      "source": {
+        "abstain": 452,
+        "distractor": 97,
+        "other": 378,
+        "requested": 801
+      },
+      "terminal_action": 1276,
+      "releases": {
+        "0": 452,
+        "1": 1276
+      },
+      "both_role_addresses": 291,
+      "both_role_exact": 291
+    },
+    "Oracle": {
+      "requested": 1728,
+      "exact": 0,
+      "whole_value": 1728,
+      "exact_by_source": {},
+      "wrong_index": {
+        "1": 864,
+        "2": 864
+      },
+      "source": {
+        "requested": 1728
+      },
+      "terminal_action": 0,
+      "releases": {
+        "1": 1728
+      },
+      "both_role_addresses": 864,
+      "both_role_exact": 0
+    },
+    "OracleEos": {
+      "requested": 1728,
+      "exact": 1728,
+      "whole_value": 1728,
+      "exact_by_source": {
+        "requested_address": 1728
+      },
+      "wrong_index": {
+        "exact": 1728
+      },
+      "source": {
+        "requested": 1728
+      },
+      "terminal_action": 1728,
+      "releases": {
+        "1": 1728
+      },
+      "both_role_addresses": 864,
+      "both_role_exact": 864
+    },
+    "Disabled": {
+      "requested": 0,
+      "exact": 0,
+      "whole_value": 0,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 1728
+      },
+      "source": {
+        "abstain": 1728
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 1728
+      },
+      "both_role_addresses": 0,
+      "both_role_exact": 0
+    }
+  },
+  "paired": {
+    "WordStart->Continuation": {
+      "moves": {
+        "earlier": 95,
+        "later": 237,
+        "same": 1396
+      },
+      "transitions": {
+        "0->0": 813,
+        "0->1": 153,
+        "0->2": 84,
+        "1->0": 12,
+        "1->1": 517,
+        "2->0": 83,
+        "2->2": 66
+      },
+      "exact_gain": 0,
+      "exact_loss": 0,
+      "address_gain": 225,
+      "address_loss": 83,
+      "source_changed": 418,
+      "tied_index_changed_id": 86,
+      "later_by_source": {
+        "distractor": 12,
+        "requested": 225
+      }
+    },
+    "WordStart->WordStartEos": {
+      "moves": {
+        "later": 659,
+        "same": 1069
+      },
+      "transitions": {
+        "0->0": 1050,
+        "1->1": 19,
+        "1->exact": 510,
+        "2->exact": 149
+      },
+      "exact_gain": 659,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 659
+      }
+    },
+    "WordStart->ContinuationEos": {
+      "moves": {
+        "earlier": 95,
+        "later": 813,
+        "same": 820
+      },
+      "transitions": {
+        "0->0": 813,
+        "0->1": 12,
+        "0->exact": 225,
+        "1->0": 12,
+        "1->1": 7,
+        "1->exact": 510,
+        "2->0": 83,
+        "2->exact": 66
+      },
+      "exact_gain": 801,
+      "exact_loss": 0,
+      "address_gain": 225,
+      "address_loss": 83,
+      "source_changed": 418,
+      "tied_index_changed_id": 86,
+      "later_by_source": {
+        "distractor": 12,
+        "requested": 801
+      }
+    },
+    "Continuation->ContinuationEos": {
+      "moves": {
+        "later": 801,
+        "same": 927
+      },
+      "transitions": {
+        "0->0": 908,
+        "1->1": 19,
+        "1->exact": 651,
+        "2->exact": 150
+      },
+      "exact_gain": 801,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 801
+      }
+    },
+    "WordStartEos->ContinuationEos": {
+      "moves": {
+        "earlier": 95,
+        "later": 237,
+        "same": 1396
+      },
+      "transitions": {
+        "0->0": 813,
+        "0->1": 12,
+        "0->exact": 225,
+        "1->0": 12,
+        "1->1": 7,
+        "exact->0": 83,
+        "exact->exact": 576
+      },
+      "exact_gain": 225,
+      "exact_loss": 83,
+      "address_gain": 225,
+      "address_loss": 83,
+      "source_changed": 418,
+      "tied_index_changed_id": 86,
+      "later_by_source": {
+        "distractor": 12,
+        "requested": 225
+      }
+    }
+  },
+  "by_connector": [
+    {
+      "family": "shared",
+      "length": 1,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 134,
+          "exact": 0,
+          "whole_value": 134,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 56,
+            "1": 94,
+            "2": 42
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 6,
+            "other": 4,
+            "requested": 134
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "Continuation": {
+          "requested": 92,
+          "exact": 0,
+          "whole_value": 92,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 96,
+            "1": 96
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 8,
+            "other": 44,
+            "requested": 92
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "WordStartEos": {
+          "requested": 134,
+          "exact": 134,
+          "whole_value": 134,
+          "exact_by_source": {
+            "requested_address": 134
+          },
+          "wrong_index": {
+            "0": 56,
+            "1": 2,
+            "exact": 134
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 6,
+            "other": 4,
+            "requested": 134
+          },
+          "terminal_action": 144,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "ContinuationEos": {
+          "requested": 92,
+          "exact": 92,
+          "whole_value": 92,
+          "exact_by_source": {
+            "requested_address": 92
+          },
+          "wrong_index": {
+            "0": 96,
+            "1": 4,
+            "exact": 92
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 8,
+            "other": 44,
+            "requested": 92
+          },
+          "terminal_action": 144,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        }
+      }
+    },
+    {
+      "family": "shared",
+      "length": 2,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 74,
+          "exact": 0,
+          "whole_value": 74,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 116,
+            "1": 76
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 46,
+            "requested": 74
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "Continuation": {
+          "requested": 116,
+          "exact": 0,
+          "whole_value": 116,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 72,
+            "1": 78,
+            "2": 42
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 16,
+            "other": 2,
+            "requested": 116
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "WordStartEos": {
+          "requested": 74,
+          "exact": 74,
+          "whole_value": 74,
+          "exact_by_source": {
+            "requested_address": 74
+          },
+          "wrong_index": {
+            "0": 116,
+            "1": 2,
+            "exact": 74
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 46,
+            "requested": 74
+          },
+          "terminal_action": 134,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "ContinuationEos": {
+          "requested": 116,
+          "exact": 116,
+          "whole_value": 116,
+          "exact_by_source": {
+            "requested_address": 116
+          },
+          "wrong_index": {
+            "0": 72,
+            "1": 4,
+            "exact": 116
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 16,
+            "other": 2,
+            "requested": 116
+          },
+          "terminal_action": 134,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        }
+      }
+    },
+    {
+      "family": "shared",
+      "length": 3,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 57,
+          "exact": 0,
+          "whole_value": 57,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 133,
+            "1": 59
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 16,
+            "other": 46,
+            "requested": 57
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "Continuation": {
+          "requested": 99,
+          "exact": 0,
+          "whole_value": 99,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 89,
+            "1": 61,
+            "2": 42
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 18,
+            "other": 2,
+            "requested": 99
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "WordStartEos": {
+          "requested": 57,
+          "exact": 57,
+          "whole_value": 57,
+          "exact_by_source": {
+            "requested_address": 57
+          },
+          "wrong_index": {
+            "0": 133,
+            "1": 2,
+            "exact": 57
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 16,
+            "other": 46,
+            "requested": 57
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "ContinuationEos": {
+          "requested": 99,
+          "exact": 99,
+          "whole_value": 99,
+          "exact_by_source": {
+            "requested_address": 99
+          },
+          "wrong_index": {
+            "0": 89,
+            "1": 4,
+            "exact": 99
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 18,
+            "other": 2,
+            "requested": 99
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        }
+      }
+    },
+    {
+      "family": "short_prefix",
+      "length": 1,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 134,
+          "exact": 0,
+          "whole_value": 134,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 56,
+            "1": 95,
+            "2": 41
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 4,
+            "other": 6,
+            "requested": 134
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "Continuation": {
+          "requested": 93,
+          "exact": 0,
+          "whole_value": 93,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 99,
+            "1": 93
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 3,
+            "other": 48,
+            "requested": 93
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "WordStartEos": {
+          "requested": 134,
+          "exact": 134,
+          "whole_value": 134,
+          "exact_by_source": {
+            "requested_address": 134
+          },
+          "wrong_index": {
+            "0": 56,
+            "1": 2,
+            "exact": 134
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 4,
+            "other": 6,
+            "requested": 134
+          },
+          "terminal_action": 144,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        },
+        "ContinuationEos": {
+          "requested": 93,
+          "exact": 93,
+          "whole_value": 93,
+          "exact_by_source": {
+            "requested_address": 93
+          },
+          "wrong_index": {
+            "0": 99,
+            "exact": 93
+          },
+          "source": {
+            "abstain": 48,
+            "distractor": 3,
+            "other": 48,
+            "requested": 93
+          },
+          "terminal_action": 144,
+          "releases": {
+            "0": 48,
+            "1": 144
+          }
+        }
+      }
+    },
+    {
+      "family": "short_prefix",
+      "length": 2,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 190,
+            "1": 2
+          },
+          "source": {
+            "abstain": 24,
+            "distractor": 9,
+            "other": 159
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 24,
+            "1": 168
+          }
+        },
+        "Continuation": {
+          "requested": 86,
+          "exact": 0,
+          "whole_value": 86,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 106,
+            "1": 86
+          },
+          "source": {
+            "abstain": 24,
+            "distractor": 10,
+            "other": 72,
+            "requested": 86
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 24,
+            "1": 168
+          }
+        },
+        "WordStartEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 190,
+            "1": 2
+          },
+          "source": {
+            "abstain": 24,
+            "distractor": 9,
+            "other": 159
+          },
+          "terminal_action": 168,
+          "releases": {
+            "0": 24,
+            "1": 168
+          }
+        },
+        "ContinuationEos": {
+          "requested": 86,
+          "exact": 86,
+          "whole_value": 86,
+          "exact_by_source": {
+            "requested_address": 86
+          },
+          "wrong_index": {
+            "0": 106,
+            "exact": 86
+          },
+          "source": {
+            "abstain": 24,
+            "distractor": 10,
+            "other": 72,
+            "requested": 86
+          },
+          "terminal_action": 168,
+          "releases": {
+            "0": 24,
+            "1": 168
+          }
+        }
+      }
+    },
+    {
+      "family": "short_prefix",
+      "length": 3,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 190,
+            "1": 2
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 10,
+            "other": 109
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "Continuation": {
+          "requested": 55,
+          "exact": 0,
+          "whole_value": 55,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 137,
+            "1": 55
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 16,
+            "other": 48,
+            "requested": 55
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "WordStartEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 190,
+            "1": 2
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 10,
+            "other": 109
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        },
+        "ContinuationEos": {
+          "requested": 55,
+          "exact": 55,
+          "whole_value": 55,
+          "exact_by_source": {
+            "requested_address": 55
+          },
+          "wrong_index": {
+            "0": 137,
+            "exact": 55
+          },
+          "source": {
+            "abstain": 73,
+            "distractor": 16,
+            "other": 48,
+            "requested": 55
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 73,
+            "1": 119
+          }
+        }
+      }
+    },
+    {
+      "family": "unseen",
+      "length": 1,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 48,
+          "exact": 0,
+          "whole_value": 48,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 142,
+            "1": 50
+          },
+          "source": {
+            "abstain": 36,
+            "distractor": 5,
+            "other": 103,
+            "requested": 48
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 36,
+            "1": 156
+          }
+        },
+        "Continuation": {
+          "requested": 48,
+          "exact": 0,
+          "whole_value": 48,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 142,
+            "1": 50
+          },
+          "source": {
+            "abstain": 36,
+            "distractor": 5,
+            "other": 103,
+            "requested": 48
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 36,
+            "1": 156
+          }
+        },
+        "WordStartEos": {
+          "requested": 48,
+          "exact": 48,
+          "whole_value": 48,
+          "exact_by_source": {
+            "requested_address": 48
+          },
+          "wrong_index": {
+            "0": 142,
+            "1": 2,
+            "exact": 48
+          },
+          "source": {
+            "abstain": 36,
+            "distractor": 5,
+            "other": 103,
+            "requested": 48
+          },
+          "terminal_action": 156,
+          "releases": {
+            "0": 36,
+            "1": 156
+          }
+        },
+        "ContinuationEos": {
+          "requested": 48,
+          "exact": 48,
+          "whole_value": 48,
+          "exact_by_source": {
+            "requested_address": 48
+          },
+          "wrong_index": {
+            "0": 142,
+            "1": 2,
+            "exact": 48
+          },
+          "source": {
+            "abstain": 36,
+            "distractor": 5,
+            "other": 103,
+            "requested": 48
+          },
+          "terminal_action": 156,
+          "releases": {
+            "0": 36,
+            "1": 156
+          }
+        }
+      }
+    },
+    {
+      "family": "unseen",
+      "length": 2,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 70,
+          "exact": 0,
+          "whole_value": 70,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 119,
+            "1": 73
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 50,
+            "requested": 70
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "Continuation": {
+          "requested": 70,
+          "exact": 0,
+          "whole_value": 70,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 119,
+            "1": 73
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 50,
+            "requested": 70
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "WordStartEos": {
+          "requested": 70,
+          "exact": 70,
+          "whole_value": 70,
+          "exact_by_source": {
+            "requested_address": 70
+          },
+          "wrong_index": {
+            "0": 119,
+            "1": 3,
+            "exact": 70
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 50,
+            "requested": 70
+          },
+          "terminal_action": 134,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        },
+        "ContinuationEos": {
+          "requested": 70,
+          "exact": 70,
+          "whole_value": 70,
+          "exact_by_source": {
+            "requested_address": 70
+          },
+          "wrong_index": {
+            "0": 119,
+            "1": 3,
+            "exact": 70
+          },
+          "source": {
+            "abstain": 58,
+            "distractor": 14,
+            "other": 50,
+            "requested": 70
+          },
+          "terminal_action": 134,
+          "releases": {
+            "0": 58,
+            "1": 134
+          }
+        }
+      }
+    },
+    {
+      "family": "unseen",
+      "length": 3,
+      "cases": 192,
+      "arms": {
+        "WordStart": {
+          "requested": 142,
+          "exact": 0,
+          "whole_value": 142,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 48,
+            "1": 78,
+            "2": 66
+          },
+          "source": {
+            "abstain": 34,
+            "distractor": 7,
+            "other": 9,
+            "requested": 142
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 34,
+            "1": 158
+          }
+        },
+        "Continuation": {
+          "requested": 142,
+          "exact": 0,
+          "whole_value": 142,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 48,
+            "1": 78,
+            "2": 66
+          },
+          "source": {
+            "abstain": 34,
+            "distractor": 7,
+            "other": 9,
+            "requested": 142
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 34,
+            "1": 158
+          }
+        },
+        "WordStartEos": {
+          "requested": 142,
+          "exact": 142,
+          "whole_value": 142,
+          "exact_by_source": {
+            "requested_address": 142
+          },
+          "wrong_index": {
+            "0": 48,
+            "1": 2,
+            "exact": 142
+          },
+          "source": {
+            "abstain": 34,
+            "distractor": 7,
+            "other": 9,
+            "requested": 142
+          },
+          "terminal_action": 158,
+          "releases": {
+            "0": 34,
+            "1": 158
+          }
+        },
+        "ContinuationEos": {
+          "requested": 142,
+          "exact": 142,
+          "whole_value": 142,
+          "exact_by_source": {
+            "requested_address": 142
+          },
+          "wrong_index": {
+            "0": 48,
+            "1": 2,
+            "exact": 142
+          },
+          "source": {
+            "abstain": 34,
+            "distractor": 7,
+            "other": 9,
+            "requested": 142
+          },
+          "terminal_action": 158,
+          "releases": {
+            "0": 34,
+            "1": 158
+          }
+        }
+      }
+    }
+  ],
+  "anchor_location": [
+    {
+      "correct_entity_offsets": false,
+      "cases": 597,
+      "arms": {
+        "WordStart": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 578,
+            "1": 19
+          },
+          "source": {
+            "abstain": 452,
+            "distractor": 85,
+            "other": 60
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 452,
+            "1": 145
+          }
+        },
+        "Continuation": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 578,
+            "1": 19
+          },
+          "source": {
+            "abstain": 452,
+            "distractor": 97,
+            "other": 48
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 452,
+            "1": 145
+          }
+        },
+        "WordStartEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 578,
+            "1": 19
+          },
+          "source": {
+            "abstain": 452,
+            "distractor": 85,
+            "other": 60
+          },
+          "terminal_action": 145,
+          "releases": {
+            "0": 452,
+            "1": 145
+          }
+        },
+        "ContinuationEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 578,
+            "1": 19
+          },
+          "source": {
+            "abstain": 452,
+            "distractor": 97,
+            "other": 48
+          },
+          "terminal_action": 145,
+          "releases": {
+            "0": 452,
+            "1": 145
+          }
+        }
+      }
+    },
+    {
+      "correct_entity_offsets": true,
+      "cases": 1131,
+      "arms": {
+        "WordStart": {
+          "requested": 659,
+          "exact": 0,
+          "whole_value": 659,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 472,
+            "1": 510,
+            "2": 149
+          },
+          "source": {
+            "other": 472,
+            "requested": 659
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 1131
+          }
+        },
+        "Continuation": {
+          "requested": 801,
+          "exact": 0,
+          "whole_value": 801,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 330,
+            "1": 651,
+            "2": 150
+          },
+          "source": {
+            "other": 330,
+            "requested": 801
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 1131
+          }
+        },
+        "WordStartEos": {
+          "requested": 659,
+          "exact": 659,
+          "whole_value": 659,
+          "exact_by_source": {
+            "requested_address": 659
+          },
+          "wrong_index": {
+            "0": 472,
+            "exact": 659
+          },
+          "source": {
+            "other": 472,
+            "requested": 659
+          },
+          "terminal_action": 1131,
+          "releases": {
+            "1": 1131
+          }
+        },
+        "ContinuationEos": {
+          "requested": 801,
+          "exact": 801,
+          "whole_value": 801,
+          "exact_by_source": {
+            "requested_address": 801
+          },
+          "wrong_index": {
+            "0": 330,
+            "exact": 801
+          },
+          "source": {
+            "other": 330,
+            "requested": 801
+          },
+          "terminal_action": 1131,
+          "releases": {
+            "1": 1131
+          }
+        }
+      }
+    }
+  ],
+  "split": "fresh",
+  "differential_steps": 62914,
+  "inputs": {
+    "artifact": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+    "bare": "d5c475ac9197938a27284c9ca1a5cc7355ee557741deff78af6c42cb890bb6e0",
+    "continuation_picks": "75b8583b55a0b821b1a4296b73cbc3b6d6b94428758837210796a071ae34a8ea",
+    "exact_state": "fbf10ca11af34784a2f489fbb7de9d4d3c8fa04623e9cea7364bf3f33d0d6a62",
+    "grade": "eb600b3669fe45e92c12591a8cf3c3175db21d82f544013f8308f5af0f48663f",
+    "span_picks": "290e17bf1177d781327f34bf614efcf9efe39a27c00668cd80c332db49671abf",
+    "span_state": "090c53c07a3c16e7d017c931b02e6749bca98affe71c5f8ca19e89f55d57436f",
+    "value_picks": "11c7ece314da8d3223076f54ffff4005ddcf29fd04de1373a5af91e6c07d5d34"
+  }
+}

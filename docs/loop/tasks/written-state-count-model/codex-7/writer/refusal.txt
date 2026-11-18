@@ -1,0 +1,1 @@
+refused: bare writer refused unsealed inputs

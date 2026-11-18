@@ -1,0 +1,569 @@
+{
+  "cases": 288,
+  "identical_historical_steps": 5354,
+  "family_deletion": [],
+  "exact_count_interaction": -42,
+  "per_case_exact_interaction": {
+    "-1": 42,
+    "0": 246
+  },
+  "joint_vs_eos_exact_overlap": {
+    "both": 74,
+    "joint_only": 0,
+    "eos_only": 42,
+    "neither": 172
+  },
+  "arms": {
+    "WordStart": {
+      "requested": 116,
+      "exact": 0,
+      "whole_value": 116,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 152,
+        "1": 74,
+        "2": 20,
+        "3": 42
+      },
+      "source": {
+        "abstain": 12,
+        "distractor": 60,
+        "other": 100,
+        "requested": 116
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 12,
+        "1": 266,
+        "3": 10
+      },
+      "both_role_addresses": 18,
+      "both_role_exact": 0
+    },
+    "Continuation": {
+      "requested": 74,
+      "exact": 0,
+      "whole_value": 74,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 214,
+        "1": 74
+      },
+      "source": {
+        "abstain": 12,
+        "distractor": 40,
+        "other": 162,
+        "requested": 74
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 12,
+        "1": 266,
+        "3": 10
+      },
+      "both_role_addresses": 18,
+      "both_role_exact": 0
+    },
+    "WordStartEos": {
+      "requested": 116,
+      "exact": 116,
+      "whole_value": 116,
+      "exact_by_source": {
+        "requested_address": 116
+      },
+      "wrong_index": {
+        "0": 152,
+        "2": 20,
+        "exact": 116
+      },
+      "source": {
+        "abstain": 12,
+        "distractor": 60,
+        "other": 100,
+        "requested": 116
+      },
+      "terminal_action": 266,
+      "releases": {
+        "0": 12,
+        "1": 266,
+        "3": 10
+      },
+      "both_role_addresses": 18,
+      "both_role_exact": 18
+    },
+    "ContinuationEos": {
+      "requested": 74,
+      "exact": 74,
+      "whole_value": 74,
+      "exact_by_source": {
+        "requested_address": 74
+      },
+      "wrong_index": {
+        "0": 214,
+        "exact": 74
+      },
+      "source": {
+        "abstain": 12,
+        "distractor": 40,
+        "other": 162,
+        "requested": 74
+      },
+      "terminal_action": 266,
+      "releases": {
+        "0": 12,
+        "1": 266,
+        "3": 10
+      },
+      "both_role_addresses": 18,
+      "both_role_exact": 18
+    },
+    "Oracle": {
+      "requested": 288,
+      "exact": 0,
+      "whole_value": 288,
+      "exact_by_source": {},
+      "wrong_index": {
+        "1": 144,
+        "3": 144
+      },
+      "source": {
+        "requested": 288
+      },
+      "terminal_action": 0,
+      "releases": {
+        "1": 288
+      },
+      "both_role_addresses": 144,
+      "both_role_exact": 0
+    },
+    "OracleEos": {
+      "requested": 288,
+      "exact": 288,
+      "whole_value": 288,
+      "exact_by_source": {
+        "requested_address": 288
+      },
+      "wrong_index": {
+        "exact": 288
+      },
+      "source": {
+        "requested": 288
+      },
+      "terminal_action": 288,
+      "releases": {
+        "1": 288
+      },
+      "both_role_addresses": 144,
+      "both_role_exact": 144
+    },
+    "Disabled": {
+      "requested": 0,
+      "exact": 0,
+      "whole_value": 0,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 288
+      },
+      "source": {
+        "abstain": 288
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 288
+      },
+      "both_role_addresses": 0,
+      "both_role_exact": 0
+    }
+  },
+  "paired": {
+    "WordStart->Continuation": {
+      "moves": {
+        "earlier": 62,
+        "same": 226
+      },
+      "transitions": {
+        "0->0": 152,
+        "1->1": 74,
+        "2->0": 20,
+        "3->0": 42
+      },
+      "exact_gain": 0,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 42,
+      "source_changed": 62,
+      "tied_index_changed_id": 0,
+      "later_by_source": {}
+    },
+    "WordStart->WordStartEos": {
+      "moves": {
+        "later": 116,
+        "same": 172
+      },
+      "transitions": {
+        "0->0": 152,
+        "1->exact": 74,
+        "2->2": 20,
+        "3->exact": 42
+      },
+      "exact_gain": 116,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 116
+      }
+    },
+    "WordStart->ContinuationEos": {
+      "moves": {
+        "earlier": 62,
+        "later": 74,
+        "same": 152
+      },
+      "transitions": {
+        "0->0": 152,
+        "1->exact": 74,
+        "2->0": 20,
+        "3->0": 42
+      },
+      "exact_gain": 74,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 42,
+      "source_changed": 62,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 74
+      }
+    },
+    "Continuation->ContinuationEos": {
+      "moves": {
+        "later": 74,
+        "same": 214
+      },
+      "transitions": {
+        "0->0": 214,
+        "1->exact": 74
+      },
+      "exact_gain": 74,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 74
+      }
+    },
+    "WordStartEos->ContinuationEos": {
+      "moves": {
+        "earlier": 62,
+        "same": 226
+      },
+      "transitions": {
+        "0->0": 152,
+        "2->0": 20,
+        "exact->0": 42,
+        "exact->exact": 74
+      },
+      "exact_gain": 0,
+      "exact_loss": 42,
+      "address_gain": 0,
+      "address_loss": 42,
+      "source_changed": 62,
+      "tied_index_changed_id": 0,
+      "later_by_source": {}
+    }
+  },
+  "by_connector": [
+    {
+      "family": "historical",
+      "length": 1,
+      "cases": 288,
+      "arms": {
+        "WordStart": {
+          "requested": 116,
+          "exact": 0,
+          "whole_value": 116,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 152,
+            "1": 74,
+            "2": 20,
+            "3": 42
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 60,
+            "other": 100,
+            "requested": 116
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 12,
+            "1": 266,
+            "3": 10
+          }
+        },
+        "Continuation": {
+          "requested": 74,
+          "exact": 0,
+          "whole_value": 74,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 214,
+            "1": 74
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 40,
+            "other": 162,
+            "requested": 74
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 12,
+            "1": 266,
+            "3": 10
+          }
+        },
+        "WordStartEos": {
+          "requested": 116,
+          "exact": 116,
+          "whole_value": 116,
+          "exact_by_source": {
+            "requested_address": 116
+          },
+          "wrong_index": {
+            "0": 152,
+            "2": 20,
+            "exact": 116
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 60,
+            "other": 100,
+            "requested": 116
+          },
+          "terminal_action": 266,
+          "releases": {
+            "0": 12,
+            "1": 266,
+            "3": 10
+          }
+        },
+        "ContinuationEos": {
+          "requested": 74,
+          "exact": 74,
+          "whole_value": 74,
+          "exact_by_source": {
+            "requested_address": 74
+          },
+          "wrong_index": {
+            "0": 214,
+            "exact": 74
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 40,
+            "other": 162,
+            "requested": 74
+          },
+          "terminal_action": 266,
+          "releases": {
+            "0": 12,
+            "1": 266,
+            "3": 10
+          }
+        }
+      }
+    }
+  ],
+  "anchor_location": [
+    {
+      "correct_entity_offsets": false,
+      "cases": 141,
+      "arms": {
+        "WordStart": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 121,
+            "2": 20
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 60,
+            "other": 69
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 12,
+            "1": 119,
+            "3": 10
+          }
+        },
+        "Continuation": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 141
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 40,
+            "other": 89
+          },
+          "terminal_action": 0,
+          "releases": {
+            "0": 12,
+            "1": 119,
+            "3": 10
+          }
+        },
+        "WordStartEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 121,
+            "2": 20
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 60,
+            "other": 69
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 12,
+            "1": 119,
+            "3": 10
+          }
+        },
+        "ContinuationEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 141
+          },
+          "source": {
+            "abstain": 12,
+            "distractor": 40,
+            "other": 89
+          },
+          "terminal_action": 119,
+          "releases": {
+            "0": 12,
+            "1": 119,
+            "3": 10
+          }
+        }
+      }
+    },
+    {
+      "correct_entity_offsets": true,
+      "cases": 147,
+      "arms": {
+        "WordStart": {
+          "requested": 116,
+          "exact": 0,
+          "whole_value": 116,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 31,
+            "1": 74,
+            "3": 42
+          },
+          "source": {
+            "other": 31,
+            "requested": 116
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 147
+          }
+        },
+        "Continuation": {
+          "requested": 74,
+          "exact": 0,
+          "whole_value": 74,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 73,
+            "1": 74
+          },
+          "source": {
+            "other": 73,
+            "requested": 74
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 147
+          }
+        },
+        "WordStartEos": {
+          "requested": 116,
+          "exact": 116,
+          "whole_value": 116,
+          "exact_by_source": {
+            "requested_address": 116
+          },
+          "wrong_index": {
+            "0": 31,
+            "exact": 116
+          },
+          "source": {
+            "other": 31,
+            "requested": 116
+          },
+          "terminal_action": 147,
+          "releases": {
+            "1": 147
+          }
+        },
+        "ContinuationEos": {
+          "requested": 74,
+          "exact": 74,
+          "whole_value": 74,
+          "exact_by_source": {
+            "requested_address": 74
+          },
+          "wrong_index": {
+            "0": 73,
+            "exact": 74
+          },
+          "source": {
+            "other": 73,
+            "requested": 74
+          },
+          "terminal_action": 147,
+          "releases": {
+            "1": 147
+          }
+        }
+      }
+    }
+  ],
+  "split": "prior",
+  "differential_steps": 9053,
+  "inputs": {
+    "artifact": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "bare": "ba445e69b25f5bdfdcc662023df5d937b6dddba44bd29c6cb877b7d9de7f893f",
+    "continuation_picks": "186eb1fc9788816488441390fb1cdcc26f2f2d2ad7217cf7f4981661c067b966",
+    "exact_state": "c208bdc55a9df266e59ab19c4e930813c63522619a6734936d58040b73c3f726",
+    "grade": "3570822f2d8e1cf16197c27aa44401291a9c2d2ccbc2ad10194c45a0fb56f6ec",
+    "span_picks": "a07338519611204028b6f39eaf63296f1939d24fc1ba33880c1b638bf083fb67",
+    "span_state": "3451b35c018687cd4ae37f80f306ffe2af3724eb4969d2f7271828cf1c67f870",
+    "value_picks": "fdecf04d7a57bea2f8ee533ad6194be76b42ab3b8bd24e8239d1baa19452fe01"
+  }
+}

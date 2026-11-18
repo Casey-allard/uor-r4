@@ -72,6 +72,23 @@ fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
 
 fn run(args: &[String]) -> Result<(), String> {
     match args {
+        #[cfg(feature = "copy-completion")]
+        [cmd, artifact] if cmd == "completion-finite" => {
+            println!("{}", value_rollout::completion::finite(artifact)?);
+            Ok(())
+        }
+        #[cfg(feature = "copy-completion")]
+        [cmd, artifact, bare, picks, out] if cmd == "completion-blind" => {
+            refuse_existing(&[out])?;
+            let result = value_rollout::completion::blind(artifact, bare, picks)?;
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
+        #[cfg(feature = "copy-completion")]
+        [cmd, paths, blind, out] if cmd == "completion-rollout" => {
+            refuse_existing(&[out])?;
+            let result = value_rollout::completion::run(paths, blind)?;
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
         #[cfg(feature = "cuda")]
         [cmd, artifact, grade, span_state, span_picks, state, picks, out] if cmd == "value-rollout" => {
             refuse_existing(&[out])?;

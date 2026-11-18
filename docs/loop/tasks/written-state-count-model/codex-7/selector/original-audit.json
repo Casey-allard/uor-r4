@@ -1,0 +1,49 @@
+{
+  "all": {
+    "total": 16,
+    "word_start": 5,
+    "continuation": 5,
+    "gained": 0,
+    "lost": 0,
+    "exact_witness": 0,
+    "geometric_witness": 0
+  },
+  "per_witness": [
+    {
+      "reason": 0,
+      "total": 16,
+      "word_start": 5,
+      "continuation": 5,
+      "gained": 0,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 0
+    }
+  ],
+  "aligned_per_surface": [
+    {
+      "surface": "IDs 641 1935",
+      "total": {
+        "total": 9,
+        "word_start": 5,
+        "continuation": 5,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 9,
+          "word_start": 5,
+          "continuation": 5,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    }
+  ]
+}

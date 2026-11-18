@@ -1,0 +1,2 @@
+name, driver_version, memory.free [MiB]
+NVIDIA GeForce RTX 4090, 595.99.02, 18213 MiB

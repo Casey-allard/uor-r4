@@ -1,0 +1,500 @@
+{
+  "cases": 16,
+  "identical_historical_steps": 282,
+  "family_deletion": [],
+  "exact_count_interaction": 0,
+  "per_case_exact_interaction": {
+    "0": 16
+  },
+  "joint_vs_eos_exact_overlap": {
+    "both": 5,
+    "joint_only": 0,
+    "eos_only": 0,
+    "neither": 11
+  },
+  "arms": {
+    "WordStart": {
+      "requested": 5,
+      "exact": 0,
+      "whole_value": 5,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 11,
+        "1": 5
+      },
+      "source": {
+        "other": 11,
+        "requested": 5
+      },
+      "terminal_action": 0,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 2,
+      "both_role_exact": 0
+    },
+    "Continuation": {
+      "requested": 5,
+      "exact": 0,
+      "whole_value": 5,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 11,
+        "1": 5
+      },
+      "source": {
+        "other": 11,
+        "requested": 5
+      },
+      "terminal_action": 0,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 2,
+      "both_role_exact": 0
+    },
+    "WordStartEos": {
+      "requested": 5,
+      "exact": 5,
+      "whole_value": 5,
+      "exact_by_source": {
+        "requested_address": 5
+      },
+      "wrong_index": {
+        "0": 11,
+        "exact": 5
+      },
+      "source": {
+        "other": 11,
+        "requested": 5
+      },
+      "terminal_action": 16,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 2,
+      "both_role_exact": 2
+    },
+    "ContinuationEos": {
+      "requested": 5,
+      "exact": 5,
+      "whole_value": 5,
+      "exact_by_source": {
+        "requested_address": 5
+      },
+      "wrong_index": {
+        "0": 11,
+        "exact": 5
+      },
+      "source": {
+        "other": 11,
+        "requested": 5
+      },
+      "terminal_action": 16,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 2,
+      "both_role_exact": 2
+    },
+    "Oracle": {
+      "requested": 16,
+      "exact": 0,
+      "whole_value": 16,
+      "exact_by_source": {},
+      "wrong_index": {
+        "1": 8,
+        "2": 8
+      },
+      "source": {
+        "requested": 16
+      },
+      "terminal_action": 0,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 8,
+      "both_role_exact": 0
+    },
+    "OracleEos": {
+      "requested": 16,
+      "exact": 16,
+      "whole_value": 16,
+      "exact_by_source": {
+        "requested_address": 16
+      },
+      "wrong_index": {
+        "exact": 16
+      },
+      "source": {
+        "requested": 16
+      },
+      "terminal_action": 16,
+      "releases": {
+        "1": 16
+      },
+      "both_role_addresses": 8,
+      "both_role_exact": 8
+    },
+    "Disabled": {
+      "requested": 0,
+      "exact": 0,
+      "whole_value": 0,
+      "exact_by_source": {},
+      "wrong_index": {
+        "0": 16
+      },
+      "source": {
+        "abstain": 16
+      },
+      "terminal_action": 0,
+      "releases": {
+        "0": 16
+      },
+      "both_role_addresses": 0,
+      "both_role_exact": 0
+    }
+  },
+  "paired": {
+    "WordStart->Continuation": {
+      "moves": {
+        "same": 16
+      },
+      "transitions": {
+        "0->0": 11,
+        "1->1": 5
+      },
+      "exact_gain": 0,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {}
+    },
+    "WordStart->WordStartEos": {
+      "moves": {
+        "later": 5,
+        "same": 11
+      },
+      "transitions": {
+        "0->0": 11,
+        "1->exact": 5
+      },
+      "exact_gain": 5,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 5
+      }
+    },
+    "WordStart->ContinuationEos": {
+      "moves": {
+        "later": 5,
+        "same": 11
+      },
+      "transitions": {
+        "0->0": 11,
+        "1->exact": 5
+      },
+      "exact_gain": 5,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 5
+      }
+    },
+    "Continuation->ContinuationEos": {
+      "moves": {
+        "later": 5,
+        "same": 11
+      },
+      "transitions": {
+        "0->0": 11,
+        "1->exact": 5
+      },
+      "exact_gain": 5,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {
+        "requested": 5
+      }
+    },
+    "WordStartEos->ContinuationEos": {
+      "moves": {
+        "same": 16
+      },
+      "transitions": {
+        "0->0": 11,
+        "exact->exact": 5
+      },
+      "exact_gain": 0,
+      "exact_loss": 0,
+      "address_gain": 0,
+      "address_loss": 0,
+      "source_changed": 0,
+      "tied_index_changed_id": 0,
+      "later_by_source": {}
+    }
+  },
+  "by_connector": [
+    {
+      "family": "historical",
+      "length": 2,
+      "cases": 16,
+      "arms": {
+        "WordStart": {
+          "requested": 5,
+          "exact": 0,
+          "whole_value": 5,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 11,
+            "1": 5
+          },
+          "source": {
+            "other": 11,
+            "requested": 5
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 16
+          }
+        },
+        "Continuation": {
+          "requested": 5,
+          "exact": 0,
+          "whole_value": 5,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 11,
+            "1": 5
+          },
+          "source": {
+            "other": 11,
+            "requested": 5
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 16
+          }
+        },
+        "WordStartEos": {
+          "requested": 5,
+          "exact": 5,
+          "whole_value": 5,
+          "exact_by_source": {
+            "requested_address": 5
+          },
+          "wrong_index": {
+            "0": 11,
+            "exact": 5
+          },
+          "source": {
+            "other": 11,
+            "requested": 5
+          },
+          "terminal_action": 16,
+          "releases": {
+            "1": 16
+          }
+        },
+        "ContinuationEos": {
+          "requested": 5,
+          "exact": 5,
+          "whole_value": 5,
+          "exact_by_source": {
+            "requested_address": 5
+          },
+          "wrong_index": {
+            "0": 11,
+            "exact": 5
+          },
+          "source": {
+            "other": 11,
+            "requested": 5
+          },
+          "terminal_action": 16,
+          "releases": {
+            "1": 16
+          }
+        }
+      }
+    }
+  ],
+  "anchor_location": [
+    {
+      "correct_entity_offsets": false,
+      "cases": 7,
+      "arms": {
+        "WordStart": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 7
+          },
+          "source": {
+            "other": 7
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 7
+          }
+        },
+        "Continuation": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 7
+          },
+          "source": {
+            "other": 7
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 7
+          }
+        },
+        "WordStartEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 7
+          },
+          "source": {
+            "other": 7
+          },
+          "terminal_action": 7,
+          "releases": {
+            "1": 7
+          }
+        },
+        "ContinuationEos": {
+          "requested": 0,
+          "exact": 0,
+          "whole_value": 0,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 7
+          },
+          "source": {
+            "other": 7
+          },
+          "terminal_action": 7,
+          "releases": {
+            "1": 7
+          }
+        }
+      }
+    },
+    {
+      "correct_entity_offsets": true,
+      "cases": 9,
+      "arms": {
+        "WordStart": {
+          "requested": 5,
+          "exact": 0,
+          "whole_value": 5,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 4,
+            "1": 5
+          },
+          "source": {
+            "other": 4,
+            "requested": 5
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 9
+          }
+        },
+        "Continuation": {
+          "requested": 5,
+          "exact": 0,
+          "whole_value": 5,
+          "exact_by_source": {},
+          "wrong_index": {
+            "0": 4,
+            "1": 5
+          },
+          "source": {
+            "other": 4,
+            "requested": 5
+          },
+          "terminal_action": 0,
+          "releases": {
+            "1": 9
+          }
+        },
+        "WordStartEos": {
+          "requested": 5,
+          "exact": 5,
+          "whole_value": 5,
+          "exact_by_source": {
+            "requested_address": 5
+          },
+          "wrong_index": {
+            "0": 4,
+            "exact": 5
+          },
+          "source": {
+            "other": 4,
+            "requested": 5
+          },
+          "terminal_action": 9,
+          "releases": {
+            "1": 9
+          }
+        },
+        "ContinuationEos": {
+          "requested": 5,
+          "exact": 5,
+          "whole_value": 5,
+          "exact_by_source": {
+            "requested_address": 5
+          },
+          "wrong_index": {
+            "0": 4,
+            "exact": 5
+          },
+          "source": {
+            "other": 4,
+            "requested": 5
+          },
+          "terminal_action": 9,
+          "releases": {
+            "1": 9
+          }
+        }
+      }
+    }
+  ],
+  "split": "original",
+  "differential_steps": 470,
+  "inputs": {
+    "artifact": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+    "bare": "311e66d1c75c7e5163e84c893881253508851a760069f0ea71182cb311e04453",
+    "continuation_picks": "8adf59bf2712f84d077363ec4a41415ce220cd458a59089fa3edfdb126ff1920",
+    "exact_state": "fbf10ca11af34784a2f489fbb7de9d4d3c8fa04623e9cea7364bf3f33d0d6a62",
+    "grade": "d36695502404048706507277063fa6f38d6f68b29525cca030c48902ebf44b35",
+    "span_picks": "a5344aa045c82afafd6e80c6de5dcbfe6e2daca1ee1ae3e6c50e9d6c46d935c1",
+    "span_state": "090c53c07a3c16e7d017c931b02e6749bca98affe71c5f8ca19e89f55d57436f",
+    "value_picks": "640a6acc0f995717f6d3335594839a74e06f4b12c0c17a8408d6037fe034ec0e"
+  }
+}

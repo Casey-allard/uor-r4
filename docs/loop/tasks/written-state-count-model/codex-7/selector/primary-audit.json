@@ -1,0 +1,219 @@
+{
+  "all": {
+    "total": 1728,
+    "word_start": 423,
+    "continuation": 545,
+    "gained": 122,
+    "lost": 0,
+    "exact_witness": 185,
+    "geometric_witness": 44
+  },
+  "per_witness": [
+    {
+      "reason": 0,
+      "total": 1499,
+      "word_start": 423,
+      "continuation": 423,
+      "gained": 0,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 0
+    },
+    {
+      "reason": 1,
+      "total": 185,
+      "word_start": 0,
+      "continuation": 102,
+      "gained": 102,
+      "lost": 0,
+      "exact_witness": 185,
+      "geometric_witness": 0
+    },
+    {
+      "reason": 2,
+      "total": 44,
+      "word_start": 0,
+      "continuation": 20,
+      "gained": 20,
+      "lost": 0,
+      "exact_witness": 0,
+      "geometric_witness": 44
+    }
+  ],
+  "aligned_per_surface": [
+    {
+      "surface": "IDs 1067 641 1935",
+      "total": {
+        "total": 99,
+        "word_start": 0,
+        "continuation": 20,
+        "gained": 20,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 20
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 79,
+          "word_start": 0,
+          "continuation": 0,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 2,
+          "total": 20,
+          "word_start": 0,
+          "continuation": 20,
+          "gained": 20,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 20
+        }
+      ]
+    },
+    {
+      "surface": "IDs 1139",
+      "total": {
+        "total": 109,
+        "word_start": 109,
+        "continuation": 109,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 109,
+          "word_start": 109,
+          "continuation": 109,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "IDs 1139 1095",
+      "total": {
+        "total": 103,
+        "word_start": 49,
+        "continuation": 103,
+        "gained": 54,
+        "lost": 0,
+        "exact_witness": 54,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 49,
+          "word_start": 49,
+          "continuation": 49,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 1,
+          "total": 54,
+          "word_start": 0,
+          "continuation": 54,
+          "gained": 54,
+          "lost": 0,
+          "exact_witness": 54,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "IDs 1139 801 1095",
+      "total": {
+        "total": 84,
+        "word_start": 36,
+        "continuation": 84,
+        "gained": 48,
+        "lost": 0,
+        "exact_witness": 48,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 36,
+          "word_start": 36,
+          "continuation": 36,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        },
+        {
+          "reason": 1,
+          "total": 48,
+          "word_start": 0,
+          "continuation": 48,
+          "gained": 48,
+          "lost": 0,
+          "exact_witness": 48,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "IDs 614",
+      "total": {
+        "total": 127,
+        "word_start": 123,
+        "continuation": 123,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 127,
+          "word_start": 123,
+          "continuation": 123,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    },
+    {
+      "surface": "IDs 641 1935",
+      "total": {
+        "total": 105,
+        "word_start": 60,
+        "continuation": 60,
+        "gained": 0,
+        "lost": 0,
+        "exact_witness": 0,
+        "geometric_witness": 0
+      },
+      "witnesses": [
+        {
+          "reason": 0,
+          "total": 105,
+          "word_start": 60,
+          "continuation": 60,
+          "gained": 0,
+          "lost": 0,
+          "exact_witness": 0,
+          "geometric_witness": 0
+        }
+      ]
+    }
+  ]
+}

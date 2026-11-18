@@ -17,7 +17,7 @@ const PRIOR_TRACES: [&str; 2] = [
     "d4b08939083163a6d6213de5a812226cff96bec94ad779d7aa681b68fca9c05b",
     "ce39bae0ccc4ef72e9dba937a672cd5b615a34aa5e30819306b3c5cd0ddd0055",
 ];
-const STOPS: [u32; 4] = [16, EOS, 0, 201];
+pub(super) const STOPS: [u32; 4] = [16, EOS, 0, 201];
 // Byte identities from the blind TRAIN-only fit, sealed before writer rollout.
 pub(super) const TRAINED_STATES: [&str; 2] = [
     "5981d5716bb9674646cb5292da5455abf349dea7367be682ef310974c88f1c07",
@@ -59,6 +59,14 @@ struct HistoricRow {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum Arm {
+    #[cfg(feature = "copy-completion")]
+    Continuation,
+    #[cfg(feature = "copy-completion")]
+    WordStartEos,
+    #[cfg(feature = "copy-completion")]
+    ContinuationEos,
+    #[cfg(feature = "copy-completion")]
+    OracleEos,
     Current,
     WordStart,
     Ordered,
@@ -74,8 +82,33 @@ pub(super) enum Arm {
     Disabled,
 }
 
-pub(super) struct Rollout<'a> {
-    pub(super) case: &'a Case,
+#[cfg(feature = "copy-completion")]
+impl Arm {
+    pub(super) fn finishes_copy(self) -> bool {
+        matches!(
+            self,
+            Self::WordStartEos | Self::ContinuationEos | Self::OracleEos
+        )
+    }
+}
+
+/// The closed-loop writer can see only a row identifier and its original prefix.
+pub(super) trait WriterPrompt {
+    fn id(&self) -> &str;
+    fn tokens(&self) -> &[u32];
+}
+
+impl WriterPrompt for Case {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    fn tokens(&self) -> &[u32] {
+        &self.prefix
+    }
+}
+
+pub(super) struct Rollout<'a, P = Case> {
+    pub(super) case: &'a P,
     pub(super) arm: Arm,
     pub(super) source: Option<u32>,
     pub(super) state: ExactCopyState,
@@ -232,8 +265,8 @@ pub fn run(
 }
 
 /// Drive the frozen writer from each arm’s actual emitted IDs.
-pub(super) fn replay(
-    runs: &mut [Rollout],
+pub(super) fn replay<P: WriterPrompt>(
+    runs: &mut [Rollout<P>],
     model: &IntegerDiscreteModel,
     device: &DeviceScorer,
 ) -> Result<usize, String> {
@@ -255,7 +288,16 @@ pub(super) fn replay(
                 .map(|&i| runs[i].prefix.as_slice())
                 .collect::<Vec<_>>(),
         )?;
+        #[cfg(not(feature = "copy-completion"))]
         let (scores, steps) = device.score_copy(&batch, &states, STOPS)?;
+        #[cfg(feature = "copy-completion")]
+        let (scores, steps) = {
+            let flags: Vec<_> = active
+                .iter()
+                .map(|&i| u32::from(runs[i].arm.finishes_copy()))
+                .collect();
+            device.score_copy_with_completion(&batch, &states, STOPS, &flags, EOS)?
+        };
         if steps.len() != active.len() || scores.len() != active.len() {
             return Err("CUDA returned incomplete batch".into());
         }
@@ -264,6 +306,8 @@ pub(super) fn replay(
             let (ordinary, cpu) = model
                 .evaluate_prefix_with_exact_copy(&r.prefix, r.state, STOPS)
                 .map_err(|e| e.to_string())?;
+            #[cfg(feature = "copy-completion")]
+            let cpu = cpu.finish_with_eos(r.arm.finishes_copy(), EOS);
             if cpu.words() != step.words()
                 || score.status != 0
                 || score.prediction != ordinary.prediction
@@ -273,19 +317,23 @@ pub(super) fn replay(
             {
                 return Err(format!(
                     "{} {:?} step {}: source, cursor, emission or ordinary path differs",
-                    r.case.id,
+                    r.case.id(),
                     r.arm,
                     r.steps.len()
                 ));
             }
             if step.copied == 1
                 && (r.state.cursor >= r.state.prompt_end
-                    || r.case.prefix.get(r.state.cursor as usize) != Some(&step.emitted)
+                    || r.case.tokens().get(r.state.cursor as usize) != Some(&step.emitted)
                     || step.exact_id != step.emitted)
             {
                 return Err("exact copy lost source identity".into());
             }
-            if step.copied == 0 && r.first_free.is_none() {
+            let native_generation = step.copied == 0;
+            #[cfg(feature = "copy-completion")]
+            let native_generation =
+                native_generation && !(r.arm.finishes_copy() && step.completed_span());
+            if native_generation && r.first_free.is_none() {
                 r.first_free = Some((r.steps.len(), step.emitted));
             }
             r.steps.push(
