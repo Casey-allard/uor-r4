@@ -98,6 +98,8 @@ impl KnQuery {
     pub fn filter(&self, k: u32) -> Result<KnFilter> {
         Ok(KnFilter {
             order: self.order(k)?,
+            pair_at: 0,
+            context_at: 0,
             last_triple: None,
             last_context: None,
             triples: Vec::new(),
@@ -108,8 +110,15 @@ impl KnQuery {
 
 /// Keeps one order's records that a query looks up. A refused partition
 /// leaves the filter unusable; the caller drops the whole count.
+///
+/// claude-426: records and query keys both ascend, so the filter walks the
+/// query lists with forward cursors (a merge join) instead of a binary
+/// search per record. `pair_at` and `context_at` index the first query key
+/// not below the last record seen, and carry across partitions.
 pub struct KnFilter {
     order: QueryOrder,
+    pair_at: usize,
+    context_at: usize,
     last_triple: Option<(u128, u16)>,
     last_context: Option<u128>,
     triples: Vec<NgramTriple>,
@@ -122,6 +131,7 @@ impl KnFilter {
     /// across partitions as within one. An equal context key (the order-0
     /// straddle of a seam) is added field by field into the last kept record.
     pub fn keep(&mut self, partition: &NgramPartition) -> Result<()> {
+        let pairs = &self.order.pairs;
         for triple in &partition.triples {
             let at = (triple.key, triple.next);
             if self.last_triple.is_some_and(|before| before >= at) {
@@ -130,16 +140,26 @@ impl KnFilter {
                 ));
             }
             self.last_triple = Some(at);
-            if self.order.pairs.binary_search(&at).is_ok() {
+            while pairs.get(self.pair_at).is_some_and(|&wanted| wanted < at) {
+                self.pair_at += 1;
+            }
+            if pairs.get(self.pair_at) == Some(&at) {
                 self.triples.push(*triple);
             }
         }
+        let wanted_contexts = &self.order.contexts;
         for context in &partition.contexts {
             if self.last_context.is_some_and(|before| before > context.key) {
                 return Err(invalid("KN filter: contexts are not in ascending order"));
             }
             self.last_context = Some(context.key);
-            if self.order.contexts.binary_search(&context.key).is_err() {
+            while wanted_contexts
+                .get(self.context_at)
+                .is_some_and(|&wanted| wanted < context.key)
+            {
+                self.context_at += 1;
+            }
+            if wanted_contexts.get(self.context_at) != Some(&context.key) {
                 continue;
             }
             match self.contexts.last_mut() {
@@ -378,6 +398,75 @@ mod tests {
             by_order.push(want);
         }
         assert_ne!(by_order[2], by_order[0], "orders above 0 change the masses");
+    }
+
+    /// claude-426: the cursor filter keeps exactly the records a binary search
+    /// into the query lists keeps. The query adds keys absent from TRAIN (ids
+    /// 1..4 and 4095 never occur there), keys after the last record, and, when
+    /// the filter is fed from the second partition on, keys before the first
+    /// record it sees. Order 0's empty context straddles the seams.
+    #[test]
+    fn kn_filter_cursor_keeps_as_a_binary_search() {
+        let train = kn_filter_stream(0x426a, 5_000);
+        let mut query = vec![NGRAM_BOS, 1, 2, 3, 4, 1, 2];
+        query.extend(kn_filter_stream(0x426b, 1_200));
+        query.extend_from_slice(&train[900..1_400]);
+        query.extend([4095u16; 12]);
+        let lookups = KnQuery::from_stream(&query, 4).expect("query");
+        for (k, from) in (0..=4u32).flat_map(|k| [(k, 0usize), (k, 1)]) {
+            let (_, all, _) = oracle_adjusted(&train, k, 4).expect("adjusted");
+            let parts = &partitions(k, &all)[from..];
+            let triples: Vec<NgramTriple> = parts
+                .iter()
+                .flat_map(|p| p.triples.iter().copied())
+                .collect();
+            let wanted = lookups.order(k).expect("order lists");
+            let mut filter = lookups.filter(k).expect("filter");
+            let (mut want_triples, mut want_contexts) = (Vec::new(), Vec::<NgramContext>::new());
+            for part in parts {
+                filter.keep(part).expect("kept");
+                for triple in &part.triples {
+                    if wanted
+                        .pairs
+                        .binary_search(&(triple.key, triple.next))
+                        .is_ok()
+                    {
+                        want_triples.push(*triple);
+                    }
+                }
+                for context in &part.contexts {
+                    if wanted.contexts.binary_search(&context.key).is_err() {
+                        continue;
+                    }
+                    match want_contexts.last_mut() {
+                        Some(kept) if kept.key == context.key => {
+                            add_context(kept, context).expect("sum")
+                        }
+                        _ => want_contexts.push(*context),
+                    }
+                }
+            }
+            let (kept_triples, kept_contexts) = filter.finish();
+            let at = format!("order {k} from partition {from}");
+            assert!(!want_triples.is_empty(), "{at}: the query hits no triple");
+            assert!(want_triples.len() < triples.len(), "{at}: every triple hit");
+            assert_eq!(kept_triples, want_triples, "{at} triples");
+            assert_eq!(kept_contexts, want_contexts, "{at} contexts");
+            let first = triples.first().map(|t| t.key).expect("records");
+            let last = triples.last().map(|t| t.key).expect("records");
+            if k >= 1 {
+                assert!(
+                    wanted.contexts.last().is_some_and(|&key| key > last),
+                    "{at}"
+                );
+                if from == 1 {
+                    assert!(
+                        wanted.contexts.first().is_some_and(|&key| key < first),
+                        "{at}"
+                    );
+                }
+            }
+        }
     }
 
     /// The census, against a count rebuilt from tokens: each order-k+1

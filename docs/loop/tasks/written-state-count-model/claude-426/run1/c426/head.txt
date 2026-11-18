@@ -1,0 +1,21 @@
+code 66e812bb9 (claude-426 cursor keep + threaded hash), budget 16777216
+load:  13:41:24 up 4 days, 16:39,  0 user,  load average: 5.36, 2.28, 1.66
+test result: ok. 21 passed; 0 failed; 4 ignored; 0 measured; 423 filtered out; finished in 55.75s
+G2 PASS
+GPU before: 3946 MiB, 24564 MiB
+rc=0 wall s: 904 peak rss KiB: 11637152 peak GPU used MiB (whole device): 20017
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 889348 | own count 290584 extension count 0 | histogram 220 select 29162 sort 111086 emit 18762 download 40558 records 89096 | runs 287312 adjust 119603 | push 148158 keep 15800 | 1408 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 27 keep 8
+order 2 sink ms: push 398 keep 100
+order 3 sink ms: push 2254 keep 435
+order 4 sink ms: push 6587 keep 921
+order 5 sink ms: push 12308 keep 1446
+order 6 sink ms: push 17741 keep 1928
+order 7 sink ms: push 22375 keep 2338
+order 8 sink ms: push 25961 keep 2648
+order 9 sink ms: push 28870 keep 2900
+order 10 sink ms: push 31632 keep 3073
+unit new claude-426 old claude-425; orders new 11 old 11
+G4 cmp PASS

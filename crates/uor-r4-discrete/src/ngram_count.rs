@@ -13,6 +13,8 @@
 
 use crate::{Error, Result};
 use sha2::{Digest, Sha256};
+use std::sync::mpsc::{sync_channel, SyncSender};
+use std::thread::JoinHandle;
 
 /// Token ids are 12-bit: V = 4,096.
 pub const NGRAM_VOCABULARY: u32 = 4096;
@@ -170,6 +172,87 @@ pub struct NgramPartition {
     pub count_of_counts: [u64; 4],
 }
 
+/// The bytes a [`StreamHasher`] buffers before it sends them to its thread.
+const HASH_CHUNK_BYTES: usize = 4 << 20;
+/// Chunks in flight per stream before the sender waits on its hasher.
+const HASH_CHANNEL_DEPTH: usize = 4;
+
+/// claude-426: one SHA-256 stream, hashed on its own thread. The caller
+/// encodes records into a buffer; each full buffer goes over a bounded
+/// channel to the thread, which updates the hash in arrival order. SHA-256 of
+/// a byte stream does not depend on where the stream is cut, so the digest
+/// equals hashing the same bytes inline. A hasher thread can only stop by
+/// panicking; `finish` then re-raises that panic on the caller's thread.
+struct StreamHasher {
+    chunk: usize,
+    buffer: Vec<u8>,
+    sender: Option<SyncSender<Vec<u8>>>,
+    thread: Option<JoinHandle<Sha256>>,
+}
+
+impl StreamHasher {
+    fn new(domain: &[u8], order: u32, chunk: usize) -> Result<Self> {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update([order as u8]);
+        let (sender, receiver) = sync_channel::<Vec<u8>>(HASH_CHANNEL_DEPTH);
+        let thread = std::thread::Builder::new()
+            .name(format!("ngram-hash-{order}"))
+            .spawn(move || {
+                for bytes in receiver {
+                    hash.update(&bytes);
+                }
+                hash
+            })
+            .map_err(|error| invalid(format!("an n-gram hasher thread did not start: {error}")))?;
+        Ok(Self {
+            chunk: chunk.max(1),
+            buffer: Vec::with_capacity(chunk.max(1)),
+            sender: Some(sender),
+            thread: Some(thread),
+        })
+    }
+
+    fn update(&mut self, bytes: &[u8]) {
+        self.buffer.extend_from_slice(bytes);
+        if self.buffer.len() >= self.chunk {
+            self.send();
+        }
+    }
+
+    /// A failed send means the thread has stopped; `finish` reports why.
+    fn send(&mut self) {
+        let full = std::mem::replace(&mut self.buffer, Vec::with_capacity(self.chunk));
+        if let Some(sender) = &self.sender {
+            if sender.send(full).is_err() {
+                self.sender = None;
+            }
+        }
+    }
+
+    fn finish(mut self) -> String {
+        if !self.buffer.is_empty() {
+            self.send();
+        }
+        let sent_all = self.sender.take().is_some();
+        let joined = self.thread.take().map(JoinHandle::join);
+        match joined {
+            Some(Ok(hash)) if sent_all => format!("{:x}", hash.finalize()),
+            Some(Err(panic)) => std::panic::resume_unwind(panic),
+            _ => panic!("an n-gram hasher thread stopped before its stream ended"),
+        }
+    }
+}
+
+impl Drop for StreamHasher {
+    fn drop(&mut self) {
+        self.sender = None;
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
 /// Assembles one order's partitions, in canonical order, into the canonical
 /// streams and their SHA-256. Partitions cover disjoint ascending key ranges,
 /// so the triple stream is their concatenation. A context may straddle a
@@ -180,8 +263,8 @@ pub struct NgramPartition {
 pub struct NgramAssembler {
     order: u32,
     keep: bool,
-    triple_hash: Sha256,
-    context_hash: Sha256,
+    triple_hash: StreamHasher,
+    context_hash: StreamHasher,
     last_triple: Option<(u128, u16)>,
     pending_context: Option<NgramContext>,
     targets: u64,
@@ -195,7 +278,7 @@ pub struct NgramAssembler {
 impl NgramAssembler {
     /// `keep` retains the streams in memory (tests); otherwise only hashes.
     pub fn new(order: u32, keep: bool) -> Result<Self> {
-        Self::with_domains(order, keep, TRIPLE_DOMAIN, CONTEXT_DOMAIN)
+        Self::with_domains(order, keep, TRIPLE_DOMAIN, CONTEXT_DOMAIN, HASH_CHUNK_BYTES)
     }
 
     /// The assembler of adjusted counts (claude-418): the same checks and
@@ -203,24 +286,30 @@ impl NgramAssembler {
     /// never hashes like a raw one. Its digest's `targets` is the sum of the
     /// adjusted counts.
     pub fn new_adjusted(order: u32, keep: bool) -> Result<Self> {
-        Self::with_domains(order, keep, ADJUSTED_TRIPLE_DOMAIN, ADJUSTED_CONTEXT_DOMAIN)
+        Self::with_domains(
+            order,
+            keep,
+            ADJUSTED_TRIPLE_DOMAIN,
+            ADJUSTED_CONTEXT_DOMAIN,
+            HASH_CHUNK_BYTES,
+        )
     }
 
-    fn with_domains(order: u32, keep: bool, triples: &[u8], contexts: &[u8]) -> Result<Self> {
+    fn with_domains(
+        order: u32,
+        keep: bool,
+        triples: &[u8],
+        contexts: &[u8],
+        chunk: usize,
+    ) -> Result<Self> {
         if order > NGRAM_MAX_ORDER {
             return Err(invalid(format!("n-gram order {order} exceeds {NGRAM_MAX_ORDER}")));
         }
-        let mut triple_hash = Sha256::new();
-        triple_hash.update(triples);
-        triple_hash.update([order as u8]);
-        let mut context_hash = Sha256::new();
-        context_hash.update(contexts);
-        context_hash.update([order as u8]);
         Ok(Self {
             order,
             keep,
-            triple_hash,
-            context_hash,
+            triple_hash: StreamHasher::new(triples, order, chunk)?,
+            context_hash: StreamHasher::new(contexts, order, chunk)?,
             last_triple: None,
             pending_context: None,
             targets: 0,
@@ -273,7 +362,7 @@ impl NgramAssembler {
         }
         self.last_triple = last;
         for triple in &partition.triples {
-            self.triple_hash.update(triple_bytes(triple));
+            self.triple_hash.update(&triple_bytes(triple));
             self.targets += u64::from(triple.count);
             self.grams += 1;
         }
@@ -307,7 +396,7 @@ impl NgramAssembler {
     }
 
     fn emit_context(&mut self, context: NgramContext) {
-        self.context_hash.update(context_bytes(&context));
+        self.context_hash.update(&context_bytes(&context));
         self.contexts += 1;
         if self.keep {
             self.context_records.push(context);
@@ -324,8 +413,8 @@ impl NgramAssembler {
             grams: self.grams,
             contexts: self.contexts,
             count_of_counts: self.count_of_counts,
-            triple_sha256: format!("{:x}", self.triple_hash.finalize()),
-            context_sha256: format!("{:x}", self.context_hash.finalize()),
+            triple_sha256: self.triple_hash.finish(),
+            context_sha256: self.context_hash.finish(),
         };
         (digest, self.triples, self.context_records)
     }
@@ -1099,6 +1188,71 @@ mod tests {
         assert_eq!(triples.len(), 4);
         assert!(check_tokens(&[0, 4095]).is_ok());
         assert!(check_tokens(&[0, 4096]).is_err());
+    }
+
+    /// claude-426: the threaded hashers give the digest of SHA-256 computed
+    /// inline over the domain, the order byte and the encoded records, for
+    /// raw and adjusted domains, at chunk sizes that cut records mid-way and
+    /// one that sends the whole stream at `finish`.
+    #[test]
+    fn ngram_count_threaded_hash_equals_inline_sha() {
+        let stream: Vec<u16> = (0..3_000u32)
+            .map(|i| {
+                if i % 97 == 0 {
+                    NGRAM_BOS
+                } else {
+                    (5 + (i * i * 7 + i) % 41) as u16
+                }
+            })
+            .collect();
+        let domains = [
+            (TRIPLE_DOMAIN, CONTEXT_DOMAIN),
+            (ADJUSTED_TRIPLE_DOMAIN, ADJUSTED_CONTEXT_DOMAIN),
+        ];
+        for order in 0..=3u32 {
+            let parts = [(0u32, 20u32), (20, 30), (30, 4096)]
+                .map(|(lo, hi)| oracle_partition(&stream, order, lo, hi).expect("partition"));
+            for (triple_domain, context_domain) in domains {
+                for chunk in [1, 7, TRIPLE_BYTES, CONTEXT_BYTES, 1 << 20] {
+                    let mut assembler = NgramAssembler::with_domains(
+                        order,
+                        true,
+                        triple_domain,
+                        context_domain,
+                        chunk,
+                    )
+                    .expect("assembler");
+                    for part in &parts {
+                        assembler.push(part).expect("canonical partition");
+                    }
+                    let (digest, triples, contexts) = assembler.finish();
+                    assert!(triples.len() > 10 && !contexts.is_empty(), "order {order}");
+                    let mut inline = Sha256::new();
+                    inline.update(triple_domain);
+                    inline.update([order as u8]);
+                    for triple in &triples {
+                        inline.update(triple_bytes(triple));
+                    }
+                    let mut inline_contexts = Sha256::new();
+                    inline_contexts.update(context_domain);
+                    inline_contexts.update([order as u8]);
+                    for context in &contexts {
+                        inline_contexts.update(context_bytes(context));
+                    }
+                    let at = format!("order {order} chunk {chunk}");
+                    assert_eq!(
+                        digest.triple_sha256,
+                        format!("{:x}", inline.finalize()),
+                        "{at}"
+                    );
+                    assert_eq!(
+                        digest.context_sha256,
+                        format!("{:x}", inline_contexts.finalize()),
+                        "{at}"
+                    );
+                }
+            }
+        }
     }
 
     fn refusal(order: u32, partitions: &[NgramPartition]) -> String {

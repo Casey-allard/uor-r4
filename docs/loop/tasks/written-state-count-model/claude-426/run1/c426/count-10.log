@@ -1,0 +1,28 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 5516 ms
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 889348 | own count 290584 extension count 0 | histogram 220 select 29162 sort 111086 emit 18762 download 40558 records 89096 | runs 287312 adjust 119603 | push 148158 keep 15800 | 1408 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 27 keep 8
+order 2 sink ms: push 398 keep 100
+order 3 sink ms: push 2254 keep 435
+order 4 sink ms: push 6587 keep 921
+order 5 sink ms: push 12308 keep 1446
+order 6 sink ms: push 17741 keep 1928
+order 7 sink ms: push 22375 keep 2338
+order 8 sink ms: push 25961 keep 2648
+order 9 sink ms: push 28870 keep 2900
+order 10 sink ms: push 31632 keep 3073
+order 0: 1 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 904469 ms
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 904471 ms
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 904476 ms
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 2853741 contexts 1719653, 904483 ms
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 3295997 contexts 2852734, 904494 ms
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 3230893 contexts 3294901, 904506 ms
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 2927518 contexts 3229874, 904516 ms
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 2588113 contexts 2926491, 904527 ms
+order 8: 128 partitions, grams 1113001553 contexts 988659209, kept triples 2286472 contexts 2587153, 904540 ms
+order 9: 128 partitions, grams 1209995770 contexts 1112709780, kept triples 2038746 contexts 2285619, 904551 ms
+order 10: 128 partitions, grams 1286910428 contexts 1209683953, kept triples 1842098 contexts 2037983, 904562 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+wrote the counts /workspace/out/c426/count-10.json, 904679 ms; nothing was scored
+rc=0 wall s: 904 peak rss KiB: 11637152 peak GPU used MiB (whole device): 20017
