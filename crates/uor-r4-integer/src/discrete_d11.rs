@@ -400,6 +400,127 @@ pub struct DiscretePrefixEvaluation {
     pub relation_scores: Option<Vec<i32>>,
 }
 
+/// Persistent u32 words of the opt-in occurrence-addressed writer. The source
+/// is fixed when a rollout starts; cursor and source index the immutable
+/// original prompt, even after generated tokens are appended to the prefix.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExactCopyState {
+    pub active: u32,
+    pub source: u32,
+    pub cursor: u32,
+    pub prompt_end: u32,
+}
+
+impl ExactCopyState {
+    pub fn new(source: Option<u32>, prompt_end: u32) -> Self {
+        let position = source.unwrap_or(u32::MAX);
+        Self {
+            active: u32::from(source.is_some()),
+            source: position,
+            cursor: position,
+            prompt_end,
+        }
+    }
+
+    /// Raw serving and CUDA ABI, suitable for lossless replay.
+    pub fn words(self) -> [u32; 4] {
+        [self.active, self.source, self.cursor, self.prompt_end]
+    }
+
+    pub fn from_words([active, source, cursor, prompt_end]: [u32; 4]) -> Self {
+        Self {
+            active,
+            source,
+            cursor,
+            prompt_end,
+        }
+    }
+
+    pub fn valid_for(self, prefix_length: usize) -> bool {
+        self.prompt_end as usize <= prefix_length
+            && self.active <= 1
+            && ((self.source == u32::MAX && self.cursor == u32::MAX && self.active == 0)
+                || (self.source < self.prompt_end
+                    && self.source <= self.cursor
+                    && self.cursor <= self.prompt_end
+                    && self.cursor - self.source <= 8))
+    }
+
+    /// Apply the final writer to a scored causal prefix. A terminator releases
+    /// the cursor on its own step, which emits the ordinary native prediction.
+    pub fn write(self, prefix: &[u32], prediction: u32, stops: [u32; 4]) -> Result<ExactCopyStep> {
+        if !self.valid_for(prefix.len()) {
+            return Err(invalid("invalid exact-copy state or original prompt fence"));
+        }
+        let mut step = ExactCopyStep {
+            state: self,
+            emitted: prediction,
+            exact_id: u32::MAX,
+            copied: 0,
+            release: 0,
+        };
+        if self.active == 0 {
+            return Ok(step);
+        }
+        step.release = if self.cursor - self.source == 8 {
+            3
+        } else if self.cursor == self.prompt_end {
+            2
+        } else if stops.contains(&prefix[self.cursor as usize]) {
+            1
+        } else {
+            let id = prefix[self.cursor as usize];
+            step.state.cursor += 1;
+            step.emitted = id;
+            step.exact_id = id;
+            step.copied = 1;
+            0
+        };
+        if step.release != 0 {
+            step.state.active = 0;
+        }
+        Ok(step)
+    }
+}
+
+/// One committed writer action. On Generate, exact_id is u32::MAX. Release is
+/// 0 (none), 1 (delimiter), 2 (original prompt fence), or 3 (eight-token cap).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExactCopyStep {
+    pub state: ExactCopyState,
+    pub emitted: u32,
+    pub exact_id: u32,
+    pub copied: u32,
+    pub release: u32,
+}
+
+impl ExactCopyStep {
+    pub fn words(self) -> [u32; 8] {
+        [
+            self.state.active,
+            self.state.source,
+            self.state.cursor,
+            self.state.prompt_end,
+            self.emitted,
+            self.exact_id,
+            self.copied,
+            self.release,
+        ]
+    }
+
+    pub fn from_words(
+        [active, source, cursor, prompt_end, emitted, exact_id, copied, release]: [u32; 8],
+    ) -> Self {
+        Self {
+            state: ExactCopyState::from_words([active, source, cursor, prompt_end]),
+            emitted,
+            exact_id,
+            copied,
+            release,
+        }
+    }
+}
+
 /// A production-prefix evaluation plus the exact read-decision words.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscreteTracedPrefixEvaluation {
@@ -1958,6 +2079,20 @@ impl IntegerDiscreteModel {
             .map(|traced| traced.evaluation)
     }
 
+    /// Score through the native geometric generator, then commit either its
+    /// prediction or the addressed occurrence's exact vocabulary ID. Callers
+    /// feed the returned step's emitted ID and state into the next step.
+    pub fn evaluate_prefix_with_exact_copy(
+        &self,
+        prefix: &[u32],
+        state: ExactCopyState,
+        stops: [u32; 4],
+    ) -> Result<(DiscretePrefixEvaluation, ExactCopyStep)> {
+        let evaluation = self.evaluate_prefix(prefix)?;
+        let step = state.write(prefix, evaluation.prediction, stops)?;
+        Ok((evaluation, step))
+    }
+
     /// Evaluate a causal token prefix and retain the exact read decisions made
     /// by the same production path. This is a qualification observation only.
     pub fn evaluate_prefix_traced(&self, prefix: &[u32]) -> Result<DiscreteTracedPrefixEvaluation> {
@@ -2191,6 +2326,76 @@ impl IntegerDiscreteModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const COPY_STOPS: [u32; 4] = [16, 1, 0, 201];
+
+    #[test]
+    fn exact_copy_preserves_id_and_replays_the_address_until_release() {
+        let mut prefix = vec![0, 677, 1999, 16, 677, 878, 16];
+        let state = ExactCopyState::new(Some(1), prefix.len() as u32);
+        let first = state.write(&prefix, 1155, COPY_STOPS).unwrap();
+        assert_eq!(first.words(), [1, 1, 2, 7, 677, 677, 1, 0]);
+        prefix.push(first.emitted);
+        let restored = ExactCopyState::from_words(first.state.words());
+        let second = restored.write(&prefix, 878, COPY_STOPS).unwrap();
+        assert_eq!(second.words(), [1, 1, 3, 7, 1999, 1999, 1, 0]);
+        assert_eq!(ExactCopyStep::from_words(second.words()), second);
+        prefix.push(second.emitted);
+        let release = second.state.write(&prefix, 41, COPY_STOPS).unwrap();
+        assert_eq!(release.words(), [0, 1, 3, 7, 41, u32::MAX, 0, 1]);
+        assert_eq!(
+            release.state.write(&prefix, 1, COPY_STOPS).unwrap().words(),
+            [0, 1, 3, 7, 1, u32::MAX, 0, 0]
+        );
+    }
+
+    #[test]
+    fn exact_copy_stops_at_each_delimiter_cap_and_original_fence() {
+        for delimiter in COPY_STOPS {
+            let step = ExactCopyState::new(Some(0), 1)
+                .write(&[delimiter], 42, COPY_STOPS)
+                .unwrap();
+            assert_eq!(step.words(), [0, 0, 0, 1, 42, u32::MAX, 0, 1]);
+        }
+        let prefix = [7; 12];
+        let mut state = ExactCopyState::new(Some(1), 12);
+        for _ in 0..8 {
+            state = state.write(&prefix, 42, COPY_STOPS).unwrap().state;
+        }
+        assert_eq!(
+            state.write(&prefix, 42, COPY_STOPS).unwrap().words(),
+            [0, 1, 9, 12, 42, u32::MAX, 0, 3]
+        );
+        let first = ExactCopyState::new(Some(0), 1)
+            .write(&[7], 42, COPY_STOPS)
+            .unwrap();
+        assert_eq!(
+            first.state.write(&[7, 7], 42, COPY_STOPS).unwrap().words(),
+            [0, 0, 1, 1, 42, u32::MAX, 0, 2]
+        );
+        let off = ExactCopyState::new(None, 1)
+            .write(&[7], 42, COPY_STOPS)
+            .unwrap();
+        assert_eq!(off.words(), [0, u32::MAX, u32::MAX, 1, 42, u32::MAX, 0, 0]);
+    }
+
+    #[test]
+    fn exact_copy_rejects_corrupt_restored_words() {
+        for corrupted in [
+            [1, 2, 2, 32],
+            [1, 1, 0, 12],
+            [2, 0, 2, 12],
+            [1, 0, 9, 12],
+            [1, 11, 13, 12],
+            [1, 12, 12, 12],
+            [1, u32::MAX, u32::MAX, 12],
+            [0, u32::MAX, 1, 12],
+        ] {
+            assert!(ExactCopyState::from_words(corrupted)
+                .write(&[7; 12], 42, COPY_STOPS)
+                .is_err());
+        }
+    }
 
     const A: [i32; 8] = [2, 2, 0, 0, 0, 0, 0, 0];
     const NEG_A: [i32; 8] = [-2, -2, 0, 0, 0, 0, 0, 0];

@@ -13,6 +13,7 @@ use crate::kernel::{decode_rows, PackedRows, RowScore, PLAN_WORDS, ROW_OUT_WORDS
 use cudarc::driver::{result, sys, CudaContext, CudaSlice, CudaStream, DevicePtr, DevicePtrMut};
 use std::ffi::{c_void, CString};
 use std::sync::Arc;
+use uor_r4_integer::discrete_d11::{ExactCopyState, ExactCopyStep};
 
 const CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/d11_scorer.cubin"));
 /// The admitted PTX the cubin was assembled from.
@@ -121,7 +122,8 @@ impl DeviceScorer {
 
     /// Scores every packed row on the device.
     pub fn score(&self, rows: &PackedRows) -> Result<Vec<RowScore>, String> {
-        self.score_inner(rows, None).map(|(scores, _)| scores)
+        self.score_inner(rows, None, None)
+            .map(|(scores, _, _)| scores)
     }
 
     /// Trace the native pointer (mode 0), replace it with an identity-Pick
@@ -145,20 +147,54 @@ impl DeviceScorer {
         {
             return Err("invalid pointer interventions".into());
         }
-        self.score_inner(rows, Some(interventions))
+        self.score_inner(rows, Some(interventions), None)
+            .map(|(scores, traces, _)| (scores, traces))
+    }
+
+    /// Commit the optional exact copy action on device, after the normal native
+    /// writer. Each step's emitted ID is the feedback for the next causal step;
+    /// the accompanying RowScore exposes the unmodified generator prediction.
+    pub fn score_copy(
+        &self,
+        rows: &PackedRows,
+        states: &[ExactCopyState],
+        stops: [u32; 4],
+    ) -> Result<(Vec<RowScore>, Vec<ExactCopyStep>), String> {
+        if states.len() != rows.lengths.len()
+            || !states
+                .iter()
+                .zip(&rows.lengths)
+                .all(|(state, &len)| usize::try_from(len).is_ok_and(|n| state.valid_for(n)))
+        {
+            return Err("invalid exact-copy state or original prompt fence".into());
+        }
+        let (scores, _, steps) = self.score_inner(rows, None, Some((states, stops)))?;
+        if scores.iter().any(|row| row.status != 0) {
+            return Err("native scorer refused an exact-copy row".into());
+        }
+        Ok((scores, steps))
     }
 
     fn score_inner(
         &self,
         rows: &PackedRows,
         interventions: Option<&[[i32; 2]]>,
-    ) -> Result<(Vec<RowScore>, Vec<[i32; POINTER_TRACE_WORDS]>), String> {
+        copy: Option<(&[ExactCopyState], [u32; 4])>,
+    ) -> Result<
+        (
+            Vec<RowScore>,
+            Vec<[i32; POINTER_TRACE_WORDS]>,
+            Vec<ExactCopyStep>,
+        ),
+        String,
+    > {
         rows.check()?;
         let count = rows.lengths.len();
         let stride = rows.stride as usize;
         self.module.context.bind_to_thread().map_err(cuda)?;
         let mut scores = Vec::with_capacity(count);
         let mut traces = Vec::new();
+        let mut steps = Vec::new();
         let mut start = 0;
         while start < count {
             let n = CHUNK.min(count - start);
@@ -196,6 +232,16 @@ impl DeviceScorer {
                         .map_err(cuda)
                 })
                 .transpose()?;
+            let mut copy_buf = copy
+                .map(|(states, stops)| {
+                    let mut words = Vec::with_capacity(8 * n);
+                    for state in &states[start..start + n] {
+                        words.extend(state.words());
+                        words.extend(stops);
+                    }
+                    self.stream.clone_htod(&words).map_err(cuda)
+                })
+                .transpose()?;
             {
                 let (table, _g0) = self.table.device_ptr(&self.stream);
                 let (cells, _g1) = self.cells.device_ptr(&self.stream);
@@ -215,11 +261,13 @@ impl DeviceScorer {
                 let trace_arg = trace_buf.as_mut().map(|b| b.device_ptr_mut(&self.stream));
                 let intervention_ptr = intervention_arg.as_ref().map_or(0, |(p, _)| *p);
                 let trace_ptr = trace_arg.as_ref().map_or(0, |(p, _)| *p);
+                let copy_arg = copy_buf.as_mut().map(|b| b.device_ptr_mut(&self.stream));
+                let copy_ptr = copy_arg.as_ref().map_or(0, |(p, _)| *p);
                 let mut n_rows = n as i32;
                 let mut row_stride = rows.stride;
                 let arg =
                     |value: &sys::CUdeviceptr| value as *const sys::CUdeviceptr as *mut c_void;
-                let mut params: [*mut c_void; 16] = [
+                let mut params: [*mut c_void; 17] = [
                     arg(&table),
                     arg(&cells),
                     arg(&routes),
@@ -236,6 +284,7 @@ impl DeviceScorer {
                     arg(&out_ptr),
                     arg(&intervention_ptr),
                     arg(&trace_ptr),
+                    arg(&copy_ptr),
                 ];
                 let threads = THREADS.min(n as u32).max(1);
                 let grid = ((n as u32).div_ceil(threads), 1, 1);
@@ -248,7 +297,8 @@ impl DeviceScorer {
                 // (rows.check above); scratch holds n D11Scratch and out n
                 // D11RowOut records; each thread with row < n touches only its
                 // own. When present, interventions/traces have two/thirteen
-                // 32-bit words per row and live through synchronization.
+                // 32-bit words per row; copy_io has eight u32s per row.
+                // All buffers live through synchronization.
                 unsafe {
                     result::launch_kernel(
                         self.function,
@@ -274,8 +324,15 @@ impl DeviceScorer {
                     traces.push(record.try_into().map_err(|_| "bad trace record")?);
                 }
             }
+            if let Some(buf) = copy_buf {
+                for row in self.stream.clone_dtoh(&buf).map_err(cuda)?.chunks_exact(8) {
+                    steps.push(ExactCopyStep::from_words(
+                        row.try_into().map_err(|_| "bad exact-copy record")?,
+                    ));
+                }
+            }
             start += n;
         }
-        Ok((scores, traces))
+        Ok((scores, traces, steps))
     }
 }

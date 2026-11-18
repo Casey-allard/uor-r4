@@ -116,6 +116,39 @@ typedef struct {
     uint32_t target_in_pool;
 } D11PointerTrace;
 
+// Final occurrence-addressed writer. The host validates the four state words
+// and the original prompt fence before launch; the ordinary scorer validates
+// token IDs/length. io starts with state + four stop IDs and ends with the
+// ExactCopyStep words. No read crosses into the appended continuation.
+D11_HD static void d11_exact_copy_write(const uint32_t* prefix, uint32_t prediction,
+                                        uint32_t* io) {
+    uint32_t active = io[0], source = io[1], cursor = io[2], fence = io[3];
+    uint32_t emitted = prediction, exact_id = UINT32_MAX, copied = 0, release = 0;
+    if (active != 0) {
+        if (cursor - source == 8) {
+            release = 3;
+        } else if (cursor == fence) {
+            release = 2;
+        } else {
+            uint32_t id = prefix[cursor];
+            if (id == io[4] || id == io[5] || id == io[6] || id == io[7]) {
+                release = 1;
+            } else {
+                ++cursor;
+                emitted = id;
+                exact_id = id;
+                copied = 1;
+            }
+        }
+    }
+    io[0] = release == 0 ? active : 0;
+    io[2] = cursor;
+    io[4] = emitted;
+    io[5] = exact_id;
+    io[6] = copied;
+    io[7] = release;
+}
+
 D11_HD static uint32_t d11_abs_diff(int32_t a, int32_t b) {
     return a >= b ? (uint32_t)(a - b) : (uint32_t)(b - a);
 }

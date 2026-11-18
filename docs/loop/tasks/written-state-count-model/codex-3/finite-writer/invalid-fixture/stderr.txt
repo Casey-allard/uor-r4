@@ -1,0 +1,4 @@
+
+thread 'exact_copy_cuda_fixture_checks_delimiters_fence_cap_and_closed_replay' (1552394) panicked at tests/parity.rs:145:45:
+export_d11: Invalid("requires vocabulary2..8192, whole8D blocks2..16, context1..243, kept cells1..min(16,vocabulary)")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

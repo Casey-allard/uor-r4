@@ -12,6 +12,7 @@ pub mod capability_api;
 pub mod codec;
 pub mod config;
 pub mod discrete_d11;
+pub mod occurrence_selector;
 pub mod fbs_address;
 pub mod fbs_pair_rows;
 pub mod fbs_snapshot;

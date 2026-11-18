@@ -1,0 +1,7 @@
+# [codex] Non-author FIT before Wick collection
+
+The independent reviewer read the charter, P3 and M2 chain, previous M1 results and this ORDER, without access to new outcomes. The reviewer returned FIT for the oracle/disabled arms and required fitted provenance, frozen controls and a held-out design before learned attribution. With the separate selector sheet, the reviewer returned FIT for the bounded diagnostic. Keep exact source-offset, value and EOS scores separate, including on shared opening IDs. The original role panel was known during design. A positive transfer claim is limited to the constructed held-out grammar.
+
+The main sheet hash is 359e9b12e817981cecb474e54b1273f165258431267556126a3752b7ba730602. The selector sheet the reviewer saw was b3ac7d9dcc5ac89082df9eb2596217dcf8dc4b60c0f65fe5d1d39cfad0af99aa. Its hash after adopting the success criterion is 43936331f81e58209947fd91bedef579a2e6070d96d91da5743f8ceb2ed7836a. The final paragraph adopts both FIT conditions: bind the exact inputs and lexical generator before fitting; require strictly more source hits and strictly more both-correct pairs than each control on each seed for the bounded selector success claim. A miss is retained and reported. Finite AOT controls and frozen input identities must pass before release of the two empirical jobs.
+
+Pre-fit attachment of the input checksum table yielded selector sheet SHA-256 8bc7162be067d326ef7c13a180317bbc22a3b9d80f9ee13b317975e32f5a2d14. The criteria are identical.

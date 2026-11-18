@@ -356,3 +356,50 @@ pub fn host_score(tables: &ArtifactTables, rows: &PackedRows) -> Result<Vec<RowS
     }
     decode_rows(&out, count, tables.shape[1] as usize)
 }
+
+#[cfg(test)]
+mod exact_copy_tests {
+    use uor_r4_integer::discrete_d11::ExactCopyState;
+
+    extern "C" {
+        fn d11_host_exact_copy(prefix: *const u32, prediction: u32, io: *mut u32);
+    }
+
+    #[test]
+    fn exact_copy_shared_device_body_matches_every_rust_action_word() {
+        let stops = [16, 1, 0, 201];
+        let prefix = [677, 1999, 16, 1, 0, 201, 878, 13, 42, 7, 1];
+        let mut observed = [false; 4];
+        for fence in 1..=prefix.len() as u32 {
+            for source in (0..fence).map(Some).chain(std::iter::once(None)) {
+                let mut state = ExactCopyState::new(source, fence);
+                loop {
+                    let prediction = 1155;
+                    let expected = state.write(&prefix, prediction, stops).unwrap();
+                    let mut io = [0; 8];
+                    io[..4].copy_from_slice(&state.words());
+                    io[4..].copy_from_slice(&stops);
+                    // SAFETY: state.write has checked the fence, original source,
+                    // and cursor; io spans all eight words consumed and returned.
+                    unsafe { d11_host_exact_copy(prefix.as_ptr(), prediction, io.as_mut_ptr()) };
+                    assert_eq!(io, expected.words());
+                    observed[expected.release as usize] = true;
+                    state = expected.state;
+                    if state.active == 0 {
+                        break;
+                    }
+                }
+            }
+        }
+        // A valid restored position due for the eight-token cap, behind no delimiter.
+        let prefix = [7; 10];
+        let state = ExactCopyState::from_words([1, 0, 8, 10]);
+        let mut io = [1, 0, 8, 10, 16, 1, 0, 201];
+        let step = state.write(&prefix, 1155, stops).unwrap();
+        // SAFETY: io is eight words, the restored state was validated above.
+        unsafe { d11_host_exact_copy(prefix.as_ptr(), 1155, io.as_mut_ptr()) };
+        assert_eq!(step.words(), io);
+        observed[step.release as usize] = true;
+        assert_eq!(observed, [true; 4]);
+    }
+}

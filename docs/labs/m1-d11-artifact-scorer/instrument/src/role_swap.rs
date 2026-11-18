@@ -9,30 +9,30 @@ use std::fs;
 use uor_r4_discrete::corpus::sha256;
 use uor_r4_integer::discrete_d11::{spiralcore_orbit_roots, IntegerDiscreteModel};
 
-const PANEL: &str = "68357e20e1dd5e17854e6b124a1de20239508fa7371f73a7fb725a9fd80d9098";
-const RELEASED: [&str; 2] = [
+pub(super) const PANEL: &str = "68357e20e1dd5e17854e6b124a1de20239508fa7371f73a7fb725a9fd80d9098";
+pub(super) const RELEASED: [&str; 2] = [
     "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
     "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
 ];
-const EOS: u32 = 1;
-const CAP: usize = 16;
+pub(super) const EOS: u32 = 1;
+pub(super) const CAP: usize = 16;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Case {
-    id: String,
-    pair: String,
-    role: String,
-    prefix: Vec<u32>,
-    asked_start: usize,
-    asked_end: usize,
-    other_start: usize,
-    other_end: usize,
-    expected: Vec<u32>,
+pub(super) struct Case {
+    pub(super) id: String,
+    pub(super) pair: String,
+    pub(super) role: String,
+    pub(super) prefix: Vec<u32>,
+    pub(super) asked_start: usize,
+    pub(super) asked_end: usize,
+    pub(super) other_start: usize,
+    pub(super) other_end: usize,
+    pub(super) expected: Vec<u32>,
 }
 
 impl Case {
-    fn validate(&self, model: &IntegerDiscreteModel) -> Result<(), String> {
+    pub(super) fn validate(&self, model: &IntegerDiscreteModel) -> Result<(), String> {
         let asked = self
             .prefix
             .get(self.asked_start..self.asked_end)

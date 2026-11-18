@@ -508,3 +508,76 @@ fn a_tampered_artifact_is_refused_before_scoring() {
         .expect_err("refused")
         .contains("integer reader"));
 }
+
+/// Finite AOT device fixture. All 2,000 IDs have the same cell and coordinates;
+/// ID 1999 must survive an occurrence copy even though native distance ties
+/// choose ID 0. Every continuation consumes the word emitted by the device.
+#[cfg(feature = "cuda")]
+#[test]
+fn exact_copy_cuda_fixture_checks_delimiters_fence_cap_and_closed_replay() {
+    use m1_d11_artifact_scorer_instrument::device::DeviceScorer;
+    use uor_r4_integer::discrete_d11::ExactCopyState;
+
+    let case = Case {
+        name: "exact-copy-same-cell",
+        seed: 17,
+        read_spec: ReadSpec::Route,
+        vocabulary: 2000,
+        blocks: 2,
+        context: 27,
+        kept_cells: 1,
+        rows: 1,
+        roots: 1,
+    };
+    let (tables, model, _, _) = fixture(&case);
+    let device = DeviceScorer::new(0, &tables).unwrap();
+    let stops = [16, 1, 0, 201];
+    let cases: &[(&str, &[u32], Option<u32>, &[u32], u32)] = &[
+        (
+            "period",
+            &[878, 677, 1999, 16, 878],
+            Some(1),
+            &[677, 1999],
+            1,
+        ),
+        ("eos", &[878, 1999, 1, 878], Some(1), &[1999], 1),
+        ("bos", &[878, 0, 1999], Some(1), &[], 1),
+        ("newline", &[201, 878], Some(0), &[], 1),
+        ("fence", &[878, 1999], Some(1), &[1999], 2),
+        ("cap", &[7; 12], Some(1), &[7; 8], 3),
+        ("disabled", &[1999, 878, 16], None, &[], 0),
+    ];
+    for &(name, original, source, copied_ids, release) in cases {
+        let mut prefix = original.to_vec();
+        let mut state = ExactCopyState::new(source, original.len() as u32);
+        let mut observed = Vec::new();
+        for pos in 0..copied_ids.len() + 2 {
+            let packed = pack_rows(&[&prefix]).unwrap();
+            let (rows, steps) = device.score_copy(&packed, &[state], stops).unwrap();
+            let (native, replay) = model
+                .evaluate_prefix_with_exact_copy(&prefix, state, stops)
+                .unwrap();
+            let step = steps[0];
+            assert_eq!(rows[0].prediction, native.prediction);
+            assert_eq!(native.prediction, 0);
+            assert_eq!(step.words(), replay.words(), "{name} step {pos}");
+            if let Some(&id) = copied_ids.get(pos) {
+                assert_eq!(
+                    (step.copied, step.release, step.exact_id, step.emitted),
+                    (1, 0, id, id)
+                );
+            } else {
+                let release_word = if pos == copied_ids.len() { release } else { 0 };
+                assert_eq!(
+                    (step.copied, step.release, step.exact_id, step.emitted),
+                    (0, release_word, u32::MAX, native.prediction)
+                );
+                assert_eq!(step.state.active, 0);
+            }
+            observed.push(step.words());
+            prefix.push(step.emitted);
+            state = step.state;
+        }
+        println!("device exact-copy fixture {name} {observed:?}");
+    }
+}

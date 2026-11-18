@@ -1,5 +1,6 @@
 [package]
 name = "m1-d11-artifact-scorer-instrument"
+default-run = "d11-scorer"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -24,7 +25,13 @@ publish = false
 name = "d11-scorer"
 path = "src/main.rs"
 
+[[bin]]
+name = "occurrence-selector"
+path = "src/bin/occurrence-selector.rs"
+required-features = ["occurrence-selector"]
+
 [features]
+occurrence-selector = ["cuda"]
 default = []
 # The GPU scorer: nvcc builds src/scorer.cu ahead of time (UOR_NVCC_ARCH).
 cuda = ["dep:cudarc"]
@@ -35,6 +42,7 @@ serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
 uor-r4-integer = { path = "../../../../crates/uor-r4-integer" }
+uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
 
 [build-dependencies]
 cc = "1"

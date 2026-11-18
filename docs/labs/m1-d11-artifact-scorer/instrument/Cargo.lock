@@ -156,6 +156,7 @@ dependencies = [
  "serde_json",
  "uor-r4-discrete",
  "uor-r4-integer",
+ "uor-r4-tokenizer",
 ]
 
 [[package]]

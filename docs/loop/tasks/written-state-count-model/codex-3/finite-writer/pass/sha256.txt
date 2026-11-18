@@ -1,0 +1,2 @@
+134dedad8fd1d5f04bd47e4960119a0ffa5d07f852d6c5f0c9b653314983f130  writer-target/x86_64-unknown-linux-gnu/release/deps/parity-f47a95c514758c95
+ac1a7f3440ba0be71136264d7809c74c3fcdfbf9c876b70e79bc072dbd49feba  src/docs/labs/m1-d11-artifact-scorer/instrument/tests/parity.rs

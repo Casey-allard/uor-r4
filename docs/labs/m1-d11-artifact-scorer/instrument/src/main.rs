@@ -6,6 +6,7 @@
 //! `d11-scorer panel-score SEED1_LUT SEED2_LUT PANEL_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON`
 //! `d11-scorer m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON`
 //! `d11-scorer toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]`
+//! `d11-scorer copy-rollout ARTIFACT PANEL TRAINED_STATE PREDICTIONS PREVIOUS_TRACE REPORT` (CUDA)
 //! `d11-scorer role-swap ARTIFACT_LUT CASES_JSON REPORT_JSON` (CUDA)
 //!
 //! `toks` times `IntegerDiscreteModel` serving on this machine by the step-6
@@ -29,6 +30,8 @@ use serde_json::Value;
 use uor_r4_discrete::training::DriverConfig;
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
 
+#[cfg(feature = "cuda")]
+mod copy_rollout;
 #[cfg(feature = "cuda")]
 mod role_swap;
 
@@ -63,6 +66,12 @@ fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
 
 fn run(args: &[String]) -> Result<(), String> {
     match args {
+        #[cfg(feature = "cuda")]
+        [command, artifact, panel, state, picks, prior, out] if command == "copy-rollout" => {
+            refuse_existing(&[out])?;
+            let result = copy_rollout::run(artifact, panel, state, picks, prior)?;
+            write_new(out, &json_bytes(&result)?)
+        }
         #[cfg(feature = "cuda")]
         [command, artifact, fixture, report] if command == "role-swap" => {
             refuse_existing(&[report])?;
@@ -172,7 +181,7 @@ fn run(args: &[String]) -> Result<(), String> {
                   | fresh-score SEED1_LUT SEED2_LUT FRESH_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON \
                   | panel-score SEED1_LUT SEED2_LUT PANEL_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON \
                   | m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON \
-                  | toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]"
+                  | copy-rollout ARTIFACT PANEL TRAINED_STATE PREDICTIONS PREVIOUS_TRACE REPORT | toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]"
             .into()),
     }
 }

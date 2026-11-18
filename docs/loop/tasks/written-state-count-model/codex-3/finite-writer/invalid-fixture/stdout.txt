@@ -1,0 +1,12 @@
+
+running 1 test
+test exact_copy_cuda_fixture_checks_delimiters_fence_cap_and_closed_replay ... FAILED
+
+failures:
+
+failures:
+    exact_copy_cuda_fixture_checks_delimiters_fence_cap_and_closed_replay
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+Original stdout SHA-256 f4c396e90977ae836c991733537f6dbb4175dbff7d5af79f814f5f3a9659cdc1 (raw bytes in the Wick evidence bundle).

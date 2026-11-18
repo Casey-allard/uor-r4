@@ -269,6 +269,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if image.len() < 64 || !image.starts_with(b"\x7fELF") {
         return Err("scorer assembly did not emit a nonempty ELF cubin".into());
     }
+    if env::var_os("CARGO_FEATURE_OCCURRENCE_SELECTOR").is_some() {
+        println!("cargo:rerun-if-changed=src/occurrence.cu");
+        let ptx = out.join("occurrence.ptx");
+        let status = Command::new(&nvcc)
+            .args(["-ptx", "-std=c++17"])
+            .arg(format!("-arch={arch}"))
+            .arg("-I")
+            .arg(&out)
+            .arg("-o")
+            .arg(&ptx)
+            .arg("src/occurrence.cu")
+            .status()?;
+        if !status.success() {
+            return Err("occurrence selector PTX compilation failed".into());
+        }
+        admit_ptx(
+            &fs::read_to_string(&ptx)?,
+            &[
+                "occurrence_positions",
+                "occurrence_fit",
+                "occurrence_winners",
+            ],
+        )?;
+        let status = Command::new(&nvcc)
+            .arg("-cubin")
+            .arg(format!("-arch={arch}"))
+            .arg(format!("--gpu-code={image_target}"))
+            .arg("-o")
+            .arg(out.join("occurrence.cubin"))
+            .arg(&ptx)
+            .status()?;
+        if !status.success() {
+            return Err("occurrence selector cubin assembly failed".into());
+        }
+    }
     fs::write(out.join("cuda-image-target.txt"), image_target)?;
     Ok(())
 }

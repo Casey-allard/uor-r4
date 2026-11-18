@@ -19,3 +19,8 @@ extern "C" void d11_host_score_rows(const D11Model* model, const uint32_t* prefi
                          scratch, &out[row]);
     }
 }
+
+// Link the same final writer used by the AOT device entry into finite ABI tests.
+extern "C" void d11_host_exact_copy(const uint32_t* prefix, uint32_t prediction, uint32_t* io) {
+    d11_exact_copy_write(prefix, prediction, io);
+}
