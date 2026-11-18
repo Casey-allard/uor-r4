@@ -16,7 +16,8 @@ extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* 
                                           const uint32_t* prefixes,
                                           const int32_t* lengths, const uint32_t* targets,
                                           int32_t rows, int32_t stride, D11Scratch* scratch,
-                                          D11RowOut* out) {
+                                          D11RowOut* out, const int32_t* interventions,
+                                          D11PointerTrace* traces) {
     int32_t row = (int32_t)(blockIdx.x * blockDim.x + threadIdx.x);
     if (row >= rows) {
         return;
@@ -36,6 +37,12 @@ extern "C" __global__ void d11_score_rows(const int32_t* table, const uint32_t* 
     model.gates = gates;
     model.plans = plans;
     model.trunk = trunk;
-    d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
-                     &scratch[row], &out[row]);
+    if (traces == 0) {
+        d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
+                         &scratch[row], &out[row]);
+    } else {
+        d11_evaluate_row(&model, prefixes + (int64_t)row * stride, lengths[row], targets[row],
+                         &scratch[row], &out[row], interventions[2 * row],
+                         interventions[2 * row + 1], &traces[row]);
+    }
 }

@@ -1186,6 +1186,7 @@ version = "0.1.0"
 dependencies = [
  "cc",
  "cudarc",
+ "serde",
  "serde_json",
  "uor-r4-discrete",
  "uor-r4-integer",

@@ -474,6 +474,20 @@ fn rows_the_reference_refuses_are_refused() {
         .contains("0..=stride"));
 }
 
+#[cfg(feature = "cuda")]
+#[test]
+#[ignore = "uses the AOT CUDA scorer"]
+fn pointer_diagnostics_refuse_an_artifact_without_the_pointer_trunk() {
+    use m1_d11_artifact_scorer_instrument::device::DeviceScorer;
+    let (tables, _, _, _) = fixture(&CASES[0]);
+    let scorer = DeviceScorer::new(0, &tables).expect("device scorer");
+    let row = pack_rows(&[&[0, 1]]).expect("packed test row");
+    assert_eq!(
+        scorer.score_pointers(&row, &[[2, 0]]).unwrap_err(),
+        "pointer diagnostics require the four-block 19-table trunk"
+    );
+}
+
 #[test]
 fn a_tampered_artifact_is_refused_before_scoring() {
     let case = Case {

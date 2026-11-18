@@ -40,6 +40,9 @@ pub mod metadata;
 pub mod native_vector;
 #[cfg(feature = "cuda")]
 pub mod native_vector_device;
+pub mod equal_count;
+#[cfg(feature = "cuda")]
+pub mod equal_count_device;
 pub mod kn_filter;
 pub mod kn_score;
 #[cfg(all(test, feature = "cuda"))]

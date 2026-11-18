@@ -100,6 +100,22 @@ typedef struct {
     int32_t rel[D11_MAX_NODES];
 } D11Scratch;
 
+// Diagnostic only. Position indices refer to the source token emitted by a copy
+// (the successor, not its preceding key). -1 denotes an absent source.
+typedef struct {
+    int32_t orbit_source;
+    int32_t pair_source;
+    int32_t pair_distance;
+    int32_t effective_source;
+    uint32_t read_code;
+    uint32_t rec_code;
+    uint32_t mixed_token;
+    uint32_t writer_token;
+    uint32_t winning_score_lo, winning_score_hi;
+    uint32_t target_score_lo, target_score_hi;
+    uint32_t target_in_pool;
+} D11PointerTrace;
+
 D11_HD static uint32_t d11_abs_diff(int32_t a, int32_t b) {
     return a >= b ? (uint32_t)(a - b) : (uint32_t)(b - a);
 }
@@ -545,14 +561,9 @@ D11_HD static void d11_trunk_sparse_key_range(const uint32_t* trunk, int32_t voc
     *out_hi = lo;
 }
 
-D11_HD static void d11_trunk_consider_candidate(const uint32_t* trunk, int32_t vocab,
+D11_HD static uint64_t d11_trunk_candidate_score(const uint32_t* trunk, int32_t vocab,
                                                 uint32_t q_key, uint32_t r_key, uint32_t c_key,
-                                                int32_t has_ptr, uint32_t ptr_tok, uint32_t tok,
-                                                uint64_t* best_s, uint32_t* best_u,
-                                                uint32_t* best_tok) {
-    if (tok >= (uint32_t)vocab) {
-        return;
-    }
+                                                int32_t has_ptr, uint32_t ptr_tok, uint32_t tok) {
     uint32_t qr_key = (q_key << 16) | r_key;
     uint32_t qc_key = (q_key << 16) | c_key;
     uint32_t rc_key = (r_key << 16) | c_key;
@@ -562,7 +573,17 @@ D11_HD static void d11_trunk_consider_candidate(const uint32_t* trunk, int32_t v
     uint64_t c_qc = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 9, qc_key, tok);
     uint64_t c_rr = (uint64_t)d11_trunk_sparse_get(trunk, vocab, 2, rc_key, tok);
     uint64_t ptr_boost = (has_ptr && ptr_tok == tok) ? (1ULL << 8) : 0ULL;
-    uint64_t s = (c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + ptr_boost;
+    return (c_qr << 6) + (c_qc << 5) + (c_rr << 3) + (c_r << 1) + c_q + ptr_boost;
+}
+
+D11_HD static void d11_trunk_consider_candidate(const uint32_t* trunk, int32_t vocab,
+                                                uint32_t q_key, uint32_t r_key, uint32_t c_key,
+                                                int32_t has_ptr, uint32_t ptr_tok, uint32_t tok,
+                                                uint64_t* best_s, uint32_t* best_u,
+                                                uint32_t* best_tok) {
+    if (tok >= (uint32_t)vocab) return;
+    uint64_t s = d11_trunk_candidate_score(trunk, vocab, q_key, r_key, c_key,
+                                           has_ptr, ptr_tok, tok);
     uint32_t u = trunk[70 + (int32_t)tok];
     if (s > *best_s || (s == *best_s && s > 0ULL && u > *best_u)
         || (s == *best_s && s > 0ULL && u == *best_u && tok < *best_tok)) {
@@ -574,7 +595,8 @@ D11_HD static void d11_trunk_consider_candidate(const uint32_t* trunk, int32_t v
 
 // DiscreteTrunkTables::apply_joint_pointer_gate (discrete_d11.rs:627-662).
 D11_HD static int32_t d11_trunk_apply_joint_pointer_gate(
-    const D11Model* m, const uint32_t* prefix, int32_t length, int32_t* q) {
+    const D11Model* m, const uint32_t* prefix, int32_t length, int32_t* q,
+    int32_t mode, int32_t source, uint32_t target, D11PointerTrace* trace) {
     if (m->blocks != 4) {
         return D11_ERR_SHAPE;
     }
@@ -659,18 +681,57 @@ D11_HD static int32_t d11_trunk_apply_joint_pointer_gate(
         c_key |= ((uint32_t)norm_root & 0xFu) << (4 * b);
     }
 
-    int32_t has_ptr = 0;
-    uint32_t ptr_tok = 0u;
+    int32_t natural_source = -1;
     if (length >= 2) {
         uint32_t q_code = packed_roots[prefix[last_pos]];
         for (int32_t i = 0; i < last_pos; ++i) {
             if (packed_roots[prefix[i]] == q_code) {
-                has_ptr = 1;
-                ptr_tok = prefix[i + 1];
+                natural_source = i + 1;
             }
         }
     }
 
+    int32_t effective = natural_source;
+    if (trace != 0) {
+        // Identity-transport variant of claude-408 Pick: sign-code XOR
+        // popcount equals half root L1. On ties the latest predecessor wins.
+        // Keep the trained Relation read vector and intervene only on the
+        // source-id path. This does not turn the artifact into a Pick model.
+        int32_t pair_source = -1;
+        int32_t pair_distance = -1;
+        for (int32_t i = 1; i < last_pos; ++i) {
+            uint32_t l1 = 0;
+            for (int32_t back = 0; back <= 1; ++back) {
+                uint32_t prior = packed_roots[prefix[i - back]];
+                uint32_t query = packed_roots[prefix[last_pos - back]];
+                for (int32_t b = 0; b < m->blocks; ++b) {
+                    for (int32_t d = 0; d < 8; ++d) {
+                        l1 += d11_abs_diff(D11_ROOTS[(prior >> (4*b)) & 15][d],
+                                           D11_ROOTS[(query >> (4*b)) & 15][d]);
+                    }
+                }
+            }
+            int32_t distance = (int32_t)(l1 >> 1);
+            if (pair_distance < 0 || distance <= pair_distance) {
+                pair_distance = distance;
+                pair_source = i + 1;
+            }
+        }
+        if (mode == 1) effective = pair_source;
+        if (mode == 4) effective = -1;
+        if (mode == 2 || mode == 3) {
+            if (source < 0 || source >= length) return D11_ERR_PREFIX_LENGTH;
+            if (mode == 2) effective = source;
+        }
+        trace->orbit_source = natural_source;
+        trace->pair_source = pair_source;
+        trace->pair_distance = pair_distance;
+        trace->effective_source = effective;
+        trace->read_code = r_key;
+        trace->rec_code = c_key;
+    }
+    int32_t has_ptr = effective >= 0;
+    uint32_t ptr_tok = has_ptr ? prefix[effective] : 0u;
     uint32_t q_key = prefix[last_pos];
     uint32_t best_tok = m->trunk[69];
     uint64_t best_s = 0ULL;
@@ -698,6 +759,22 @@ D11_HD static int32_t d11_trunk_apply_joint_pointer_gate(
     if (best_tok >= (uint32_t)m->vocabulary) {
         return D11_ERR_SHAPE;
     }
+    if (trace != 0) {
+        trace->mixed_token = best_tok;
+        // Observe the scored target only after the winning token is fixed.
+        uint64_t score = d11_trunk_candidate_score(m->trunk, m->vocabulary, q_key, r_key,
+                                                    c_key, has_ptr, ptr_tok, target);
+        trace->winning_score_lo = (uint32_t)best_s;
+        trace->winning_score_hi = (uint32_t)(best_s >> 32);
+        trace->target_score_lo = (uint32_t)score;
+        trace->target_score_hi = (uint32_t)(score >> 32);
+        trace->target_in_pool = (has_ptr && ptr_tok == target)
+            || d11_trunk_sparse_get(m->trunk, m->vocabulary, 7, q_key, target)
+            || d11_trunk_sparse_get(m->trunk, m->vocabulary, 0, r_key, target)
+            || d11_trunk_sparse_get(m->trunk, m->vocabulary, 1, c_key, target);
+        if (mode == 3) best_tok = prefix[source];
+        trace->writer_token = best_tok;
+    }
     uint32_t target_packed = packed_roots[best_tok];
     for (int32_t b = 0; b < 4; ++b) {
         int32_t src = read_roots[b];
@@ -716,7 +793,7 @@ D11_HD static int32_t d11_trunk_apply_joint_pointer_gate(
 // evaluate_prefix (:1165-1256) and observe_target (:1278-1378).
 D11_HD static void d11_evaluate_row(
     const D11Model* m, const uint32_t* prefix, int32_t length, uint32_t target, D11Scratch* s,
-    D11RowOut* out) {
+    D11RowOut* out, int32_t mode = 0, int32_t source = -1, D11PointerTrace* trace = 0) {
     out->status = D11_OK;
     out->admitted_count = 0;
     out->top8_count = 0;
@@ -766,7 +843,8 @@ D11_HD static void d11_evaluate_row(
         }
     }
     if (m->trunk != 0 && m->trunk[0] != 0u) {
-        status = d11_trunk_apply_joint_pointer_gate(m, prefix, length, out->read_vector);
+        status = d11_trunk_apply_joint_pointer_gate(m, prefix, length, out->read_vector,
+                                                   mode, source, target, trace);
         if (status != D11_OK) {
             out->status = status;
             return;

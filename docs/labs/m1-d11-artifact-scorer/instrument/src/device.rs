@@ -24,6 +24,7 @@ pub const RESOURCES: &str = include_str!(concat!(env!("OUT_DIR"), "/d11_scorer-r
 /// Rows per launch; bounds the scratch to CHUNK x 22,528 bytes.
 const CHUNK: usize = 4096;
 const THREADS: u32 = 64;
+const POINTER_TRACE_WORDS: usize = 13;
 
 fn cuda(error: impl std::fmt::Display) -> String {
     format!("CUDA: {error}")
@@ -65,6 +66,7 @@ pub struct DeviceScorer {
     shape: CudaSlice<i32>,
     plans: CudaSlice<i32>,
     trunk: CudaSlice<u32>,
+    has_pointer_trunk: bool,
     function: sys::CUfunction,
     module: Module,
     stream: Arc<CudaStream>,
@@ -108,6 +110,7 @@ impl DeviceScorer {
             shape: stream.clone_htod(&tables.shape).map_err(cuda)?,
             plans: stream.clone_htod(&tables.plans).map_err(cuda)?,
             trunk: stream.clone_htod(&tables.trunk).map_err(cuda)?,
+            has_pointer_trunk: tables.trunk.first() == Some(&1) && tables.shape[1] == 4,
             function,
             module,
             stream,
@@ -118,11 +121,44 @@ impl DeviceScorer {
 
     /// Scores every packed row on the device.
     pub fn score(&self, rows: &PackedRows) -> Result<Vec<RowScore>, String> {
+        self.score_inner(rows, None).map(|(scores, _)| scores)
+    }
+
+    /// Trace the native pointer (mode 0), replace it with an identity-Pick
+    /// successor (1), or intervene at the pointer (2) or writer input (3).
+    pub fn score_pointers(
+        &self,
+        rows: &PackedRows,
+        interventions: &[[i32; 2]],
+    ) -> Result<(Vec<RowScore>, Vec<[i32; POINTER_TRACE_WORDS]>), String> {
+        if !self.has_pointer_trunk {
+            return Err("pointer diagnostics require the four-block 19-table trunk".into());
+        }
+        if interventions.len() != rows.lengths.len()
+            || interventions
+                .iter()
+                .zip(&rows.lengths)
+                .any(|(&[mode, position], &length)| {
+                    !(0..=4).contains(&mode)
+                        || ((mode == 2 || mode == 3) && !(0..length).contains(&position))
+                })
+        {
+            return Err("invalid pointer interventions".into());
+        }
+        self.score_inner(rows, Some(interventions))
+    }
+
+    fn score_inner(
+        &self,
+        rows: &PackedRows,
+        interventions: Option<&[[i32; 2]]>,
+    ) -> Result<(Vec<RowScore>, Vec<[i32; POINTER_TRACE_WORDS]>), String> {
         rows.check()?;
         let count = rows.lengths.len();
         let stride = rows.stride as usize;
         self.module.context.bind_to_thread().map_err(cuda)?;
         let mut scores = Vec::with_capacity(count);
+        let mut traces = Vec::new();
         let mut start = 0;
         while start < count {
             let n = CHUNK.min(count - start);
@@ -146,6 +182,20 @@ impl DeviceScorer {
                 .stream
                 .alloc_zeros::<u32>(n * ROW_OUT_WORDS)
                 .map_err(cuda)?;
+            let intervention_buf = interventions
+                .map(|v| {
+                    self.stream
+                        .clone_htod(v[start..start + n].as_flattened())
+                        .map_err(cuda)
+                })
+                .transpose()?;
+            let mut trace_buf = interventions
+                .map(|_| {
+                    self.stream
+                        .alloc_zeros::<i32>(POINTER_TRACE_WORDS * n)
+                        .map_err(cuda)
+                })
+                .transpose()?;
             {
                 let (table, _g0) = self.table.device_ptr(&self.stream);
                 let (cells, _g1) = self.cells.device_ptr(&self.stream);
@@ -159,11 +209,17 @@ impl DeviceScorer {
                 let (target_ptr, _g8) = targets.device_ptr(&self.stream);
                 let (scratch_ptr, _g9) = scratch.device_ptr_mut(&self.stream);
                 let (out_ptr, _g10) = out.device_ptr_mut(&self.stream);
+                let intervention_arg = intervention_buf
+                    .as_ref()
+                    .map(|b| b.device_ptr(&self.stream));
+                let trace_arg = trace_buf.as_mut().map(|b| b.device_ptr_mut(&self.stream));
+                let intervention_ptr = intervention_arg.as_ref().map_or(0, |(p, _)| *p);
+                let trace_ptr = trace_arg.as_ref().map_or(0, |(p, _)| *p);
                 let mut n_rows = n as i32;
                 let mut row_stride = rows.stride;
                 let arg =
                     |value: &sys::CUdeviceptr| value as *const sys::CUdeviceptr as *mut c_void;
-                let mut params: [*mut c_void; 14] = [
+                let mut params: [*mut c_void; 16] = [
                     arg(&table),
                     arg(&cells),
                     arg(&routes),
@@ -178,10 +234,12 @@ impl DeviceScorer {
                     (&mut row_stride as *mut i32).cast(),
                     arg(&scratch_ptr),
                     arg(&out_ptr),
+                    arg(&intervention_ptr),
+                    arg(&trace_ptr),
                 ];
                 let threads = THREADS.min(n as u32).max(1);
                 let grid = ((n as u32).div_ceil(threads), 1, 1);
-                // SAFETY: the thirteen parameters point at values of the types
+                // SAFETY: the parameters point at values of the types
                 // d11_score_rows takes, in its order, and outlive the launch;
                 // the model sections and plans come from a reader-checked
                 // artifact, and plans covers every length up to the context
@@ -189,7 +247,8 @@ impl DeviceScorer {
                 // lengths and targets n words, each length within 0..=stride
                 // (rows.check above); scratch holds n D11Scratch and out n
                 // D11RowOut records; each thread with row < n touches only its
-                // own.
+                // own. When present, interventions/traces have two/thirteen
+                // 32-bit words per row and live through synchronization.
                 unsafe {
                     result::launch_kernel(
                         self.function,
@@ -205,8 +264,18 @@ impl DeviceScorer {
             self.stream.synchronize().map_err(cuda)?;
             let words = self.stream.clone_dtoh(&out).map_err(cuda)?;
             scores.extend(decode_rows(&words, n, self.blocks)?);
+            if let Some(buf) = trace_buf {
+                for record in self
+                    .stream
+                    .clone_dtoh(&buf)
+                    .map_err(cuda)?
+                    .chunks_exact(POINTER_TRACE_WORDS)
+                {
+                    traces.push(record.try_into().map_err(|_| "bad trace record")?);
+                }
+            }
             start += n;
         }
-        Ok(scores)
+        Ok((scores, traces))
     }
 }

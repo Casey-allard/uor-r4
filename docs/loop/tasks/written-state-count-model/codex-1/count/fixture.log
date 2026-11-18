@@ -1,0 +1,7 @@
+fixture (0, 12): 131072 bytes, 1344 target masses equal
+fixture (1, 12): 131072 bytes, 1344 target masses equal
+fixture normalized occupied=true, Q32 deficit 127
+fixture normalized occupied=false, Q32 deficit 207
+fixture (2, 1): 131072 bytes, 1344 target masses equal
+fixture (2, 12): 131072 bytes, 1344 target masses equal
+fixture (3, 12): 131072 bytes, 1344 target masses equal

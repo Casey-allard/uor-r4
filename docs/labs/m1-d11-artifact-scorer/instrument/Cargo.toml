@@ -32,6 +32,7 @@ cuda = ["dep:cudarc"]
 [dependencies]
 cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
 uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
 uor-r4-integer = { path = "../../../../crates/uor-r4-integer" }
 

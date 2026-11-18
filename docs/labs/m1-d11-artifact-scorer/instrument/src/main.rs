@@ -6,6 +6,7 @@
 //! `d11-scorer panel-score SEED1_LUT SEED2_LUT PANEL_CONFIG_JSON DECISION_RECEIPT_JSON REPORT_JSON`
 //! `d11-scorer m1-close-grade OUT_GRADE_JSON OUT_FRESH_GATE_JSON`
 //! `d11-scorer toks ARTIFACT_LUT REPORT_JSON [--prompt TOKENS_JSON]`
+//! `d11-scorer role-swap ARTIFACT_LUT CASES_JSON REPORT_JSON` (CUDA)
 //!
 //! `toks` times `IntegerDiscreteModel` serving on this machine by the step-6
 //! protocol (1 warmup, 20 runs, 192-token prefill, 64-token decode).
@@ -27,6 +28,9 @@ use m1_d11_artifact_scorer_instrument as inst;
 use serde_json::Value;
 use uor_r4_discrete::training::DriverConfig;
 use uor_r4_integer::discrete_d11::IntegerDiscreteModel;
+
+#[cfg(feature = "cuda")]
+mod role_swap;
 
 fn read_json(path: &str) -> Result<Value, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
@@ -59,6 +63,12 @@ fn json_bytes(value: &Value) -> Result<Vec<u8>, String> {
 
 fn run(args: &[String]) -> Result<(), String> {
     match args {
+        #[cfg(feature = "cuda")]
+        [command, artifact, fixture, report] if command == "role-swap" => {
+            refuse_existing(&[report])?;
+            let result = role_swap::run(artifact, fixture)?;
+            write_new(report, &json_bytes(&result)?)
+        }
         [command, checkpoint, out, report] if command == "export" => {
             refuse_existing(&[out, report])?;
             let exported = inst::export_checkpoint(&read_json(checkpoint)?)?;

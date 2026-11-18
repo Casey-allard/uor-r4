@@ -1,0 +1,251 @@
+{
+  "schema": "uor-r4.written-state-role-swap-fixture-key/1",
+  "fixture_sha256": "68357e20e1dd5e17854e6b124a1de20239508fa7371f73a7fb725a9fd80d9098",
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "tokenizer_source": "public M1 seed-1 predictor, tokenizer.json",
+  "encoder": "web/studio/assets/js/uor_tokenizer_artifact.js, encodeTextWithArtifact / decodeTokenIdsWithArtifact, UOR commit 6ff49d5700ab3579a7d89dc9e7db724a785bc2cb",
+  "protocol": "uor-r4.literal-role-dialogue/2, crates/uor-r4-tokenizer/src/dialogue.rs. Diagnostic prompt convention chosen for this panel. Encode BOS(0), literal User:, one-space-prefixed user content, newline, literal Assistant: as separate segments. Encode one-space-prefixed reply followed by native EOS(1).",
+  "offset_unit": "Zero-based token offsets into prefix, inclusive start and exclusive end. Both offsets cover complete, unique value occurrences in the supplied facts.",
+  "design": "Two value families crossed with both entity-value assignments, both written fact orders, and both requested entities. Each family has exactly the same full prefix token multiset across its eight rows. The target vocabulary is a fixed diagnostic set. The eight direct question contrasts share an identical factual setup. Record actual generated token IDs for each answer position, EOS included, and distinguish naturally generated continuations from teacher forcing.",
+  "used_vocabulary": {
+    "0": "<|bos|>",
+    "1": "<|eos|>",
+    "16": ".",
+    "28": ":",
+    "33": "?",
+    "35": "A",
+    "55": "U",
+    "73": "g",
+    "80": "n",
+    "201": "\n",
+    "340": " I",
+    "443": "ore",
+    "454": " did",
+    "546": " Ben",
+    "560": "ss",
+    "641": " ch",
+    "652": "ist",
+    "677": " red",
+    "714": "ant",
+    "924": " blue",
+    "1601": " What",
+    "1710": " fox",
+    "1935": "ose",
+    "1999": " kite",
+    "2241": " Ann",
+    "2728": "ser",
+    "3241": " choose"
+  },
+  "rows": [
+    {
+      "id": "distinct-direct-ann-first-ask-ann",
+      "user_text": "Ann chose red. Ben chose blue. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red",
+      "other_text": "blue",
+      "other_response_ids": [
+        924,
+        1
+      ]
+    },
+    {
+      "id": "distinct-direct-ann-first-ask-ben",
+      "user_text": "Ann chose red. Ben chose blue. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "blue",
+      "other_text": "red",
+      "other_response_ids": [
+        677,
+        1
+      ]
+    },
+    {
+      "id": "distinct-direct-ben-first-ask-ann",
+      "user_text": "Ben chose blue. Ann chose red. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red",
+      "other_text": "blue",
+      "other_response_ids": [
+        924,
+        1
+      ]
+    },
+    {
+      "id": "distinct-direct-ben-first-ask-ben",
+      "user_text": "Ben chose blue. Ann chose red. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "blue",
+      "other_text": "red",
+      "other_response_ids": [
+        677,
+        1
+      ]
+    },
+    {
+      "id": "distinct-swap-ann-first-ask-ann",
+      "user_text": "Ann chose blue. Ben chose red. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "blue",
+      "other_text": "red",
+      "other_response_ids": [
+        677,
+        1
+      ]
+    },
+    {
+      "id": "distinct-swap-ann-first-ask-ben",
+      "user_text": "Ann chose blue. Ben chose red. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red",
+      "other_text": "blue",
+      "other_response_ids": [
+        924,
+        1
+      ]
+    },
+    {
+      "id": "distinct-swap-ben-first-ask-ann",
+      "user_text": "Ben chose red. Ann chose blue. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "blue",
+      "other_text": "red",
+      "other_response_ids": [
+        677,
+        1
+      ]
+    },
+    {
+      "id": "distinct-swap-ben-first-ask-ben",
+      "user_text": "Ben chose red. Ann chose blue. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red",
+      "other_text": "blue",
+      "other_response_ids": [
+        924,
+        1
+      ]
+    },
+    {
+      "id": "shared-direct-ann-first-ask-ann",
+      "user_text": "Ann chose red fox. Ben chose red kite. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red fox",
+      "other_text": "red kite",
+      "other_response_ids": [
+        677,
+        1999,
+        1
+      ]
+    },
+    {
+      "id": "shared-direct-ann-first-ask-ben",
+      "user_text": "Ann chose red fox. Ben chose red kite. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red kite",
+      "other_text": "red fox",
+      "other_response_ids": [
+        677,
+        1710,
+        1
+      ]
+    },
+    {
+      "id": "shared-direct-ben-first-ask-ann",
+      "user_text": "Ben chose red kite. Ann chose red fox. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red fox",
+      "other_text": "red kite",
+      "other_response_ids": [
+        677,
+        1999,
+        1
+      ]
+    },
+    {
+      "id": "shared-direct-ben-first-ask-ben",
+      "user_text": "Ben chose red kite. Ann chose red fox. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red kite",
+      "other_text": "red fox",
+      "other_response_ids": [
+        677,
+        1710,
+        1
+      ]
+    },
+    {
+      "id": "shared-swap-ann-first-ask-ann",
+      "user_text": "Ann chose red kite. Ben chose red fox. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red kite",
+      "other_text": "red fox",
+      "other_response_ids": [
+        677,
+        1710,
+        1
+      ]
+    },
+    {
+      "id": "shared-swap-ann-first-ask-ben",
+      "user_text": "Ann chose red kite. Ben chose red fox. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red fox",
+      "other_text": "red kite",
+      "other_response_ids": [
+        677,
+        1999,
+        1
+      ]
+    },
+    {
+      "id": "shared-swap-ben-first-ask-ann",
+      "user_text": "Ben chose red fox. Ann chose red kite. What did Ann choose? Ignore Ben.",
+      "asked_entity": "Ann",
+      "other_entity": "Ben",
+      "answer_text": "red kite",
+      "other_text": "red fox",
+      "other_response_ids": [
+        677,
+        1710,
+        1
+      ]
+    },
+    {
+      "id": "shared-swap-ben-first-ask-ben",
+      "user_text": "Ben chose red fox. Ann chose red kite. What did Ben choose? Ignore Ann.",
+      "asked_entity": "Ben",
+      "other_entity": "Ann",
+      "answer_text": "red fox",
+      "other_text": "red kite",
+      "other_response_ids": [
+        677,
+        1999,
+        1
+      ]
+    }
+  ],
+  "seed2_crosscheck": {
+    "artifact_sha256": "1b49e8bd823a1021e31de55c767111f9cf43807d3e6d007644e49281935877de",
+    "tokenizer_sha256": "f804ecbee34e3c4e0001a737d003e3d620ba2c40722d416e7f3dd64843e2b30e",
+    "source": "wick:/home/callard/uor-codex/20261118-diagnostics/inputs/tokenizer-seed-2.json",
+    "comparison": "All parsed artifact fields are identical except stack_sha256. Full model.vocab, rank-ordered model.merges, added tokens, pretokenizer and unknown ID match. The public Studio tokenizer separately reproduced all 16 frozen prefix arrays and expected arrays on seed 2. Both source spans on all rows decoded to named values.",
+    "vocabulary_entries": 4096,
+    "merge_entries": 3837,
+    "matching_rows": 16
+  }
+}
