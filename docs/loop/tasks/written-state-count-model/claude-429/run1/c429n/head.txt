@@ -1,0 +1,19 @@
+code 4373d5ab4 (claude-429), G3 device negatives; each expects ngram_count_cuda_device_sweep_matches_the_oracle to FAIL
+== no-left-pass: crates/uor-r4-discrete/src/ngram_count_device.rs, matches before 1 after 0
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 455 filtered out; finished in 2.17s
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (9307) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:541:17:
+assertion `left == right` failed: digest, len 1000000 BOS every 61 N 3 order 1 budget 18446744073709551615
+  left: NgramOrderDigest { order: 1, targets: 941584, grams: 116516, contexts: 1045, count_of_counts: [57054, 4225, 4969, 7649], triple_sha256: "a20faca2cd23af5cfcd8516df74c07a202dcc62f2f25012540124db4b4f06daa", context_sha256: "0c673826f10241912219632ef01721b4b847592f81b1f925f3a404f222abf72e" }
+ right: NgramOrderDigest { order: 1, targets: 565753, grams: 116516, contexts: 1045, count_of_counts: [57054, 4339, 5324, 8396], triple_sha256: "e060a4c6921d9e671d4b1fc83b701d082c7a2f4c2f047944ce84a1db1b53329f", context_sha256: "1c42959e18b239d6b828aa55a09523bfedf295cdc29a7a1862f4f8780cb11b72" }
+no-left-pass: FAILED as expected
+== left-ignores-bos: crates/uor-r4-discrete/src/ngram_count.cu, matches before 1 after 0
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 455 filtered out; finished in 2.11s
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (9703) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:530:77:
+sweep: Invalid("adjusted counts: an order-3 triple extends an order-2 gram whose oldest slot is BOS")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+left-ignores-bos: FAILED as expected

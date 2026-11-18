@@ -1,8 +1,10 @@
 // Exact n-gram counting over a resident u16 token stream (claude-412).
 // Its own module: built ahead of time by nvcc into an admitted PTX and cubin,
-// independent of discrete.cu. Integer only. The only atomics are shared-memory
-// integer adds in the planning histogram, whose sum does not depend on order;
-// every array that reaches the output is written by exactly one thread.
+// independent of discrete.cu. Integer only. The atomics are shared-memory
+// integer adds in the planning histogram and, in the adjust mode (claude-429),
+// global integer adds and mins on four violation words; none of their results
+// depends on order, and every array that reaches the output is written by
+// exactly one thread.
 //
 // Order k counts target j (k <= j < n) under context t[j-k..j]. Positions are
 // sorted by their gram with a stable LSD radix sort that reads each digit from
@@ -19,8 +21,20 @@ typedef unsigned long long u64;
 #define SCAN_ITEMS 8u
 #define SCAN_BLOCK (SCAN_THREADS * SCAN_ITEMS)
 #define FULL_MASK 0xffffffffu
+// A radix `back` with this bit set reads the left digit of order (back & 0xff).
+#define LEFT_DIGIT 0x100u
+
+// claude-429: the left digit of order-k target j. Order k+1 admits j as well
+// when j >= k+1 and the slot t[j-k] that becomes interior is not BOS; then
+// L(j) = t[j-k-1] + 1 (1..=4096, 13 bits), the distinct left token of the
+// order-(k+1) gram ending at j. Otherwise L(j) = 0. Reads t[j-k] and
+// t[j-k-1] only when j > k.
+__device__ __forceinline__ u32 left_digit(const u16 *tokens, u32 j, u32 k) {
+    return (j > k && tokens[j - k] != 0u) ? (u32)tokens[j - k - 1u] + 1u : 0u;
+}
 
 __device__ __forceinline__ u32 radix_digit(const u16 *tokens, u32 j, u32 back, u32 shift) {
+    if (back & LEFT_DIGIT) return (left_digit(tokens, j, back & 0xffu) >> shift) & 63u;
     return ((u32)tokens[j - back] >> shift) & 63u;
 }
 
@@ -294,20 +308,31 @@ extern "C" __global__ void ngram_scan64_apply(u64 *data, u32 n, const u64 *sums,
 // ---------------------------------------------------------------- reduce
 
 // gram_flag[r]: the gram at sorted r differs from r-1; context_flag[r]: its context does.
-extern "C" __global__ void ngram_boundaries(const u16 *tokens, const u32 *sorted, u32 n, u32 order,
-                                            u32 *gram_flag, u32 *context_flag) {
+// With `left` nonzero (claude-429), also left_flag[r] = 1 where r's left digit
+// of `order` is nonzero and differs from r-1's in the same gram. The sort put
+// the left digit least significant, so equal digits of one gram are adjacent
+// and the flags of a gram's run count its distinct left tokens, N1+(. gram).
+// With `left` zero, left_flag is not touched.
+extern "C" __global__ void ngram_boundaries(const u16 *tokens, const u32 *sorted, u32 n, u32 order, u32 left,
+                                            u32 *gram_flag, u32 *context_flag, u32 *left_flag) {
     u32 r = blockIdx.x * blockDim.x + threadIdx.x;
     if (r >= n) return;
     if (r == 0) {
         gram_flag[0] = 1u;
         context_flag[0] = 1u;
+        if (left) left_flag[0] = left_digit(tokens, sorted[0], order) != 0u ? 1u : 0u;
         return;
     }
     u32 a = sorted[r], b = sorted[r - 1];
     u32 context_differs = 0;
     for (u32 s = 1; s <= order; ++s) context_differs |= (u32)(tokens[a - s] != tokens[b - s]);
     context_flag[r] = context_differs;
-    gram_flag[r] = context_differs | (u32)(tokens[a] != tokens[b]);
+    u32 gram_differs = context_differs | (u32)(tokens[a] != tokens[b]);
+    gram_flag[r] = gram_differs;
+    if (left) {
+        u32 l = left_digit(tokens, a, order);
+        left_flag[r] = (l != 0u && (gram_differs || l != left_digit(tokens, b, order))) ? 1u : 0u;
+    }
 }
 
 // starts[index[r]] = r wherever flag[r]; starts[total] = n.
@@ -319,15 +344,39 @@ extern "C" __global__ void ngram_run_starts(const u32 *flag, const u32 *index, u
 
 // One gram: its key (lo, hi words), next token, count, context-start flag and
 // the packed indicators (count==1 | count==2 << 32), (count==3 | count==4 << 32).
+// With `adjust` nonzero (claude-429, order 1 <= k < N), the count is the
+// modified Kneser-Ney adjusted count: N1+(. gram) from left_scan (the
+// exclusive scan of ngram_boundaries' left flags, n + 1 words), or the raw
+// count when the gram's oldest slot t[j-k] is BOS. violations[0], [1] count
+// the grams that break rule 4 (not a document start, N1+ = 0) and the
+// document starts with N1+ != 0; violations[2], [3] hold the least such gram
+// index of each (the host sets them to 0xffffffff). With `adjust` zero,
+// left_scan and violations are not touched.
 extern "C" __global__ void ngram_emit_grams(const u16 *tokens, const u32 *sorted, const u32 *gram_start,
-                                            const u32 *context_flag, u32 grams, u32 order, u64 *keys,
-                                            u16 *next, u32 *counts, u32 *gram_context_flag, u64 *ind12,
-                                            u64 *ind34) {
+                                            const u32 *context_flag, const u32 *left_scan, u32 grams,
+                                            u32 order, u32 adjust, u64 *keys, u16 *next, u32 *counts,
+                                            u32 *gram_context_flag, u64 *ind12, u64 *ind34,
+                                            u32 *violations) {
     u32 g = blockIdx.x * blockDim.x + threadIdx.x;
     if (g >= grams) return;
     u32 r0 = gram_start[g], r1 = gram_start[g + 1u];
     u32 j = sorted[r0];
     u32 count = r1 - r0;
+    if (adjust) {
+        u32 types = left_scan[r1] - left_scan[r0];
+        if (tokens[j - order] == 0u) {
+            if (types != 0u) {
+                atomicAdd(&violations[1], 1u);
+                atomicMin(&violations[3], g);
+            }
+        } else {
+            if (types == 0u) {
+                atomicAdd(&violations[0], 1u);
+                atomicMin(&violations[2], g);
+            }
+            count = types;
+        }
+    }
     u64 lo = 0, hi = (u64)order << 56;
     for (u32 s = 1; s <= order; ++s) {
         u64 v = tokens[j - s];

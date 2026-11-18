@@ -25,7 +25,12 @@ use std::time::Instant;
 /// `own_count_ns` and
 /// `extension_count_ns` split [`NgramCounter::count_partition`]'s wall time
 /// in the adjusted counter between order k itself and the order k+1 it
-/// counts for its extension runs; the six inner phases cover both.
+/// counts for its extension runs; the six inner phases cover both. The
+/// device sweep (claude-429) counts adjusted partitions under `own_count_ns`
+/// alone, with its left-digit sort passes in `sort_ns` and its left flags,
+/// their scan and the adjust in `emit_ns`; its `runs_ns` and `adjust_ns`
+/// stay zero, and only the host-runs sweep and the per-order adjusted
+/// counter record them.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CountPhases {
     pub histogram_ns: u64,
@@ -96,6 +101,9 @@ const HIST_BLOCKS: u32 = 256;
 const SELECT_WINDOW: u32 = 1 << 26;
 /// Positions per warp tile of the slot-1 bucket sort (`BUCKET_TILE` in the .cu).
 const BUCKET_TILE: u32 = 1 << 20;
+/// A radix `back` with this bit reads the left digit of order `back & 0xff`
+/// (`LEFT_DIGIT` in the .cu, claude-429).
+const LEFT_DIGIT: u32 = 0x100;
 
 fn cuda(error: impl std::fmt::Display) -> Error {
     Error::Cuda(error.to_string())
@@ -139,6 +147,9 @@ pub struct NgramCounter {
     n: u32,
     clock: Option<[AtomicU64; PHASES]>,
     buckets: OnceLock<Buckets>,
+    /// Test-only: the next adjusted partition loses every left flag.
+    #[cfg(test)]
+    plant_rule4: std::sync::atomic::AtomicBool,
 }
 
 impl NgramCounter {
@@ -171,6 +182,8 @@ impl NgramCounter {
             n,
             clock: None,
             buckets: OnceLock::new(),
+            #[cfg(test)]
+            plant_rule4: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -450,14 +463,25 @@ impl NgramCounter {
     }
 
     /// Stable LSD radix sort of positions by gram: next token first, then
-    /// slot k .. slot 1, low 6 bits before high 6 bits of each.
-    fn sort(&self, order: u32, mut pos: CudaSlice<u32>, n: u32) -> Result<CudaSlice<u32>> {
+    /// slot k .. slot 1, low 6 bits before high 6 bits of each. With `left`
+    /// (claude-429), three passes on the 13-bit left digit L(j) come first, so
+    /// L is the least significant key and equal digits of one gram are adjacent.
+    fn sort(
+        &self,
+        order: u32,
+        mut pos: CudaSlice<u32>,
+        n: u32,
+        left: bool,
+    ) -> Result<CudaSlice<u32>> {
         let tiles = n.div_ceil(RADIX_TILE);
         let blocks = tiles.div_ceil(RADIX_WARPS);
         let config = LaunchConfig { grid_dim: (blocks, 1, 1), block_dim: (RADIX_WARPS * 32, 1, 1), shared_mem_bytes: 0 };
         let mut other = self.zeros::<u32>(n as usize)?;
         let mut hist = self.zeros::<u32>((64 * tiles + 1) as usize)?;
         let mut passes = Vec::new();
+        if left {
+            passes.extend([0u32, 6, 12].map(|shift| (LEFT_DIGIT | order, shift)));
+        }
         for back in std::iter::once(0).chain((1..=order).rev()) {
             passes.push((back, 0u32));
             passes.push((back, 6u32));
@@ -465,7 +489,8 @@ impl NgramCounter {
         for (back, shift) in passes {
             let mut launch = self.stream.launch_builder(self.function("ngram_radix_hist"));
             launch.arg(&self.tokens).arg(&pos).arg(&n).arg(&back).arg(&shift).arg(&tiles).arg(&mut hist);
-            // SAFETY: hist holds 64 x tiles + 1 words; positions j >= back.
+            // SAFETY: hist holds 64 x tiles + 1 words; positions j >= back, and a
+            // left digit reads t[j-k] and t[j-k-1] only when j > k.
             unsafe { launch.launch(config) }.map_err(cuda)?;
             self.scan32(&mut hist, 64 * tiles)?;
             let mut launch = self.stream.launch_builder(self.function("ngram_radix_scatter"));
@@ -479,6 +504,74 @@ impl NgramCounter {
 
     /// Count one partition on the device and copy out its canonical records.
     pub fn count_partition(&self, order: u32, range: &PartitionRange) -> Result<NgramPartition> {
+        self.count(order, range, false)
+    }
+
+    /// Count one partition of order k's modified Kneser-Ney adjusted counts
+    /// under highest order N = `highest` (claude-429), equal to
+    /// `adjust_partition` over the raw order-k and order-(k+1) partitions of
+    /// the same tokens. At k = N the raw counts are kept. For 1 <= k < N the
+    /// order-k sort takes the left digit L as its least significant key, so a
+    /// gram's distinct nonzero digits are its N1+(. gram); a gram whose oldest
+    /// slot is BOS keeps its raw count. A gram that is not a document start
+    /// with N1+ = 0 (rule 4), or a document start with N1+ != 0, is refused
+    /// with the host path's message. Order 0 is not counted here.
+    pub fn count_partition_adjusted(
+        &self,
+        order: u32,
+        highest: u32,
+        range: &PartitionRange,
+    ) -> Result<NgramPartition> {
+        if order == 0 || order > highest || highest > NGRAM_MAX_ORDER {
+            return Err(invalid(format!(
+                "device adjusted counts need 1 <= order <= highest <= {NGRAM_MAX_ORDER}, got order {order} under N = {highest}"
+            )));
+        }
+        self.count(order, range, order < highest)
+    }
+
+    /// Whether a planted rule-4 violation is pending; clears it.
+    #[cfg(test)]
+    fn take_planted_rule4(&self) -> bool {
+        self.plant_rule4.swap(false, Ordering::Relaxed)
+    }
+
+    #[cfg(not(test))]
+    fn take_planted_rule4(&self) -> bool {
+        false
+    }
+
+    /// The refusal of a partition whose adjust kernel counted a violation:
+    /// the least violating gram of the two kinds, as the host path, walking
+    /// the triples in order, would meet it first.
+    fn adjust_violation(
+        &self,
+        order: u32,
+        found: &[u32],
+        keys: &CudaSlice<u64>,
+        next: &CudaSlice<u16>,
+    ) -> Result<Error> {
+        let &[rule4, document, first_rule4, first_document] = found else {
+            return Err(invalid("adjust violations hold four words"));
+        };
+        if rule4 != 0 && (document == 0 || first_rule4 < first_document) {
+            let g = first_rule4 as usize;
+            let key = u128::from(self.read_one(keys, 2 * g)?)
+                | (u128::from(self.read_one(keys, 2 * g + 1)?) << 64);
+            let next = self.read_one(next, g)?;
+            return Ok(invalid(format!(
+                "adjusted counts: order-{order} gram (key {key:#x}, next {next}) has no counted left extension, adjusted count 0 (rule 4)"
+            )));
+        }
+        Ok(invalid(format!(
+            "adjusted counts: an order-{} triple extends an order-{order} gram whose oldest slot is BOS",
+            order + 1
+        )))
+    }
+
+    /// [`Self::count_partition`], or with `adjust` the adjusted counts of an
+    /// order 1 <= k < N ([`Self::count_partition_adjusted`]).
+    fn count(&self, order: u32, range: &PartitionRange, adjust: bool) -> Result<NgramPartition> {
         if order > NGRAM_MAX_ORDER || range.lo >= range.hi || range.hi > NGRAM_VOCABULARY {
             return Err(invalid("n-gram partition needs order <= 10 and 0 <= lo < hi <= 4096"));
         }
@@ -493,15 +586,26 @@ impl NgramCounter {
         let selected = self.select(order, range)?;
         self.finish_device_phase(SELECT, started)?;
         let started = self.start_phase();
-        let sorted = self.sort(order, selected, n)?;
+        let sorted = self.sort(order, selected, n, adjust)?;
         self.finish_device_phase(SORT, started)?;
         let started = self.start_phase();
         let mut gram_flag = self.zeros::<u32>(n as usize + 1)?;
         let mut context_flag = self.zeros::<u32>(n as usize)?;
+        // claude-429: the left flags of an adjusted partition, n + 1 words for
+        // their scan; one untouched word otherwise. A planted rule-4 violation
+        // (tests only) leaves them all zero.
+        let mut left_flag = self.zeros::<u32>(if adjust { n as usize + 1 } else { 1 })?;
+        let left = u32::from(adjust && !self.take_planted_rule4());
         let mut launch = self.stream.launch_builder(self.function("ngram_boundaries"));
-        launch.arg(&self.tokens).arg(&sorted).arg(&n).arg(&order).arg(&mut gram_flag).arg(&mut context_flag);
-        // SAFETY: n flags each; sorted positions j >= order.
+        launch
+            .arg(&self.tokens).arg(&sorted).arg(&n).arg(&order).arg(&left)
+            .arg(&mut gram_flag).arg(&mut context_flag).arg(&mut left_flag);
+        // SAFETY: n flags each, and n left flags only when `left` is set (left_flag
+        // then holds n + 1 words); sorted positions j >= order.
         unsafe { launch.launch(grid(n)) }.map_err(cuda)?;
+        if adjust {
+            self.scan32(&mut left_flag, n)?;
+        }
         let flags = gram_flag.clone();
         let grams = self.scan32(&mut gram_flag, n)?;
         let mut gram_start = self.zeros::<u32>(grams as usize + 1)?;
@@ -513,18 +617,50 @@ impl NgramCounter {
         drop(gram_flag);
         let mut keys = self.zeros::<u64>(2 * grams as usize)?;
         let mut next = self.zeros::<u16>(grams as usize)?;
-        let mut counts = self.zeros::<u32>(grams as usize)?;
+        // An adjusted partition scans its counts for the context totals, so
+        // they take one more word.
+        let mut counts = self.zeros::<u32>(grams as usize + usize::from(adjust))?;
         let mut gram_context = self.zeros::<u32>(grams as usize + 1)?;
         let mut ind12 = self.zeros::<u64>(grams as usize + 1)?;
         let mut ind34 = self.zeros::<u64>(grams as usize + 1)?;
+        let mut violations = match adjust {
+            true => self
+                .stream
+                .clone_htod(&[0u32, 0, u32::MAX, u32::MAX])
+                .map_err(cuda)?,
+            false => self.zeros::<u32>(1)?,
+        };
+        let adjust_word = u32::from(adjust);
         let mut launch = self.stream.launch_builder(self.function("ngram_emit_grams"));
         launch
-            .arg(&self.tokens).arg(&sorted).arg(&gram_start).arg(&context_flag).arg(&grams).arg(&order)
-            .arg(&mut keys).arg(&mut next).arg(&mut counts).arg(&mut gram_context).arg(&mut ind12).arg(&mut ind34);
-        // SAFETY: one thread per gram; every output holds at least `grams` words.
+            .arg(&self.tokens).arg(&sorted).arg(&gram_start).arg(&context_flag).arg(&left_flag)
+            .arg(&grams).arg(&order).arg(&adjust_word)
+            .arg(&mut keys).arg(&mut next).arg(&mut counts).arg(&mut gram_context).arg(&mut ind12).arg(&mut ind34)
+            .arg(&mut violations);
+        // SAFETY: one thread per gram; every output holds at least `grams` words; in
+        // the adjust mode left_flag holds n + 1 scanned words (gram_start values are
+        // <= n), violations four, and j - order >= 0.
         unsafe { launch.launch(grid(grams)) }.map_err(cuda)?;
+        drop(left_flag);
         drop(context_flag);
         drop(sorted);
+        if adjust {
+            let found = self.stream.clone_dtoh(&violations).map_err(cuda)?;
+            if found[0] != 0 || found[1] != 0 {
+                return Err(self.adjust_violation(order, &found, &keys, &next)?);
+            }
+        }
+        drop(violations);
+        // The context totals: prefix differences of the raw counts' run starts,
+        // or of the scanned adjusted counts.
+        let count_scan = match adjust {
+            true => {
+                let mut scan = self.stream.clone_dtod(&counts).map_err(cuda)?;
+                self.scan32(&mut scan, grams)?;
+                Some(scan)
+            }
+            false => None,
+        };
         let context_flags = gram_context.clone();
         let contexts = self.scan32(&mut gram_context, grams)?;
         let mut context_start = self.zeros::<u32>(contexts as usize + 1)?;
@@ -537,14 +673,21 @@ impl NgramCounter {
         let t34 = self.scan64(&mut ind34, grams)?;
         let mut records = self.zeros::<u32>(4 * contexts as usize)?;
         let mut launch = self.stream.launch_builder(self.function("ngram_emit_contexts"));
-        launch.arg(&context_start).arg(&gram_start).arg(&ind12).arg(&contexts).arg(&mut records);
-        // SAFETY: one thread per context; records hold 4 x contexts words.
+        launch
+            .arg(&context_start).arg(count_scan.as_ref().unwrap_or(&gram_start)).arg(&ind12).arg(&contexts)
+            .arg(&mut records);
+        // SAFETY: one thread per context; records hold 4 x contexts words; both
+        // start arrays hold grams + 1 words.
         unsafe { launch.launch(grid(contexts)) }.map_err(cuda)?;
+        drop(count_scan);
         self.finish_device_phase(EMIT, started)?;
         let started = self.start_phase();
         let keys = self.stream.clone_dtoh(&keys).map_err(cuda)?;
         let next = self.stream.clone_dtoh(&next).map_err(cuda)?;
-        let counts = self.stream.clone_dtoh(&counts).map_err(cuda)?;
+        let counts = self
+            .stream
+            .clone_dtoh(&counts.slice(0..grams as usize))
+            .map_err(cuda)?;
         let records = self.stream.clone_dtoh(&records).map_err(cuda)?;
         self.tick(DOWNLOAD, started);
         let started = self.start_phase();
@@ -703,10 +846,12 @@ impl NgramCounter {
     /// order k+1 again for order k's runs; here one plan, cut from order 1's
     /// histogram, serves every k >= 1 (order k+1's bins never exceed order
     /// k's, since both key on t[j-1]), and per range the orders run from
-    /// `highest` down to 1: order k's raw partition is adjusted against the
-    /// runs of order k+1's raw partition over the same tokens, then reduced to
-    /// order k-1's runs, or at k = 1 added to the unigram continuation. Order
-    /// 0 is counted last on its own plan. `sink(k, partition)` receives each
+    /// `highest` down to 1, each counted already adjusted on the device by
+    /// [`Self::count_partition_adjusted`] (claude-429): no runs are carried
+    /// between orders, and the runs and adjust phases stay zero. At k = 1 the
+    /// adjusted partition, whose keys and next tokens are the raw partition's,
+    /// is added to the unigram continuation before the sink takes it. Order 0
+    /// is counted last on its own plan. `sink(k, partition)` receives each
     /// order's adjusted partitions in ascending key order (the ranges ascend
     /// in slot 1); calls of different orders interleave, so the caller keeps
     /// one assembler per order. Returns the shared plan (order 0's when N = 0).
@@ -716,13 +861,78 @@ impl NgramCounter {
         budget: u64,
         mut sink: impl FnMut(u32, NgramPartition) -> Result<()>,
     ) -> Result<Vec<PartitionRange>> {
-        self.sweep(highest, budget, &mut |_, _| {}, &mut sink)
+        if highest > NGRAM_MAX_ORDER {
+            return Err(invalid(format!(
+                "adjusted counts need N <= {NGRAM_MAX_ORDER}, got {highest}"
+            )));
+        }
+        let mut continuation = UnigramContinuation::new();
+        let mut plan = Vec::new();
+        if highest >= 1 {
+            let histograms = (1..=highest)
+                .map(|order| self.timed_histogram(order))
+                .collect::<Result<Vec<_>>>()?;
+            plan = plan_partitions(&histograms[0], budget)?;
+            for range in &plan {
+                for order in (1..=highest).rev() {
+                    let histogram = &histograms[order as usize - 1];
+                    let targets = histogram[range.lo as usize..range.hi as usize].iter().sum();
+                    let same_tokens = PartitionRange {
+                        lo: range.lo,
+                        hi: range.hi,
+                        targets,
+                    };
+                    let started = self.start_phase();
+                    let adjusted = self.count_partition_adjusted(order, highest, &same_tokens)?;
+                    self.tick(OWN_COUNT, started);
+                    if order == 1 {
+                        continuation.add(&adjusted)?;
+                    }
+                    sink(order, adjusted)?;
+                }
+            }
+        }
+        let unigram_plan = self.sweep_unigrams(highest, budget, &continuation, &mut sink)?;
+        Ok(if highest >= 1 { plan } else { unigram_plan })
     }
 
-    /// [`Self::count_adjusted_sweep`] with `tamper(k, raw)` applied to each
-    /// raw partition before it is adjusted or reduced to runs: the identity
-    /// outside tests.
-    fn sweep(
+    /// The sweep's last step: order 0 counted on its own plan and adjusted by
+    /// the continuation of every order-1 partition. Returns order 0's plan.
+    fn sweep_unigrams(
+        &self,
+        highest: u32,
+        budget: u64,
+        continuation: &UnigramContinuation,
+        sink: &mut dyn FnMut(u32, NgramPartition) -> Result<()>,
+    ) -> Result<Vec<PartitionRange>> {
+        let mut raw = NgramAssembler::new(0, true)?;
+        let started = self.start_phase();
+        let unigram_plan = self.count_order(0, budget, &mut raw)?;
+        self.tick(OWN_COUNT, started);
+        let (_, unigrams, _) = raw.finish();
+        sink(0, continuation.adjust(highest, &unigrams)?)?;
+        Ok(unigram_plan)
+    }
+
+    /// [`Self::count_adjusted_sweep`] on the host-runs path of claude-425 to
+    /// claude-428: per range, order k's raw partition is adjusted on the host
+    /// against the runs of order k+1's raw partition over the same tokens, then
+    /// reduced to order k-1's runs, or at k = 1 added to the unigram
+    /// continuation. The tests' reference for the device sweep (claude-429);
+    /// no production caller uses it.
+    pub fn count_adjusted_sweep_host(
+        &self,
+        highest: u32,
+        budget: u64,
+        mut sink: impl FnMut(u32, NgramPartition) -> Result<()>,
+    ) -> Result<Vec<PartitionRange>> {
+        self.sweep_host(highest, budget, &mut |_, _| {}, &mut sink)
+    }
+
+    /// [`Self::count_adjusted_sweep_host`] with `tamper(k, raw)` applied to
+    /// each raw partition before it is adjusted or reduced to runs: the
+    /// identity outside tests.
+    fn sweep_host(
         &self,
         highest: u32,
         budget: u64,
@@ -766,12 +976,7 @@ impl NgramCounter {
                 }
             }
         }
-        let mut raw = NgramAssembler::new(0, true)?;
-        let started = self.start_phase();
-        let unigram_plan = self.count_order(0, budget, &mut raw)?;
-        self.tick(OWN_COUNT, started);
-        let (_, unigrams, _) = raw.finish();
-        sink(0, continuation.adjust(highest, &unigrams)?)?;
+        let unigram_plan = self.sweep_unigrams(highest, budget, &continuation, sink)?;
         Ok(if highest >= 1 { plan } else { unigram_plan })
     }
 }
@@ -791,8 +996,8 @@ impl NgramCounter {
         Ok(words)
     }
 
-    /// [`Self::count_adjusted_sweep`] with `tamper(k, raw)` applied to each
-    /// raw order-k partition (k >= 1) before it is adjusted or handed on.
+    /// [`Self::count_adjusted_sweep_host`] with `tamper(k, raw)` applied to
+    /// each raw order-k partition (k >= 1) before it is adjusted or handed on.
     pub(crate) fn count_adjusted_sweep_tampered(
         &self,
         highest: u32,
@@ -800,14 +1005,22 @@ impl NgramCounter {
         tamper: &mut dyn FnMut(u32, &mut NgramPartition),
         sink: &mut dyn FnMut(u32, NgramPartition) -> Result<()>,
     ) -> Result<Vec<PartitionRange>> {
-        self.sweep(highest, budget, tamper, sink)
+        self.sweep_host(highest, budget, tamper, sink)
+    }
+
+    /// Plant a rule-4 violation (claude-429): the next partition counted in
+    /// the adjust mode keeps all its left flags zero, so every gram of it that
+    /// is not a document start has N1+ = 0 and the partition is refused,
+    /// naming its first such gram.
+    pub(crate) fn plant_rule4_violation(&self) {
+        self.plant_rule4.store(true, Ordering::Relaxed);
     }
 
     /// `positions` after the counter's gram sort of `order`.
     pub(crate) fn sorted_positions(&self, order: u32, positions: &[u32]) -> Result<Vec<u32>> {
         let n = u32::try_from(positions.len()).map_err(|_| invalid("positions exceed u32"))?;
         let pos = self.stream.clone_htod(positions).map_err(cuda)?;
-        let sorted = self.sort(order, pos, n)?;
+        let sorted = self.sort(order, pos, n, false)?;
         self.stream.clone_dtoh(&sorted.slice(0..positions.len())).map_err(cuda)
     }
 

@@ -19,6 +19,12 @@ use crate::ngram_count_oracle::{oracle_adjusted, oracle_count, plant_one_count};
 /// Every 61st id is BOS (0), a planted record start, so the device's
 /// document-boundary rule (claude-415) meets BOS in every slot.
 fn stream(len: usize, seed: u64, narrow: u32) -> Vec<u16> {
+    stream_bos_every(len, seed, narrow, 61)
+}
+
+/// [`stream`] with BOS every `every` ids (claude-429: every 7 makes the
+/// document starts and the BOS-interior rule of the left digit dense).
+fn stream_bos_every(len: usize, seed: u64, narrow: u32, every: usize) -> Vec<u16> {
     let mut state = seed | 1;
     (0..len)
         .map(|i| {
@@ -26,7 +32,7 @@ fn stream(len: usize, seed: u64, narrow: u32) -> Vec<u16> {
             state ^= state >> 7;
             state ^= state << 17;
             let r = (state >> 20) as u32;
-            if i % 61 == 0 {
+            if i % every == 0 {
                 return 0;
             }
             (if narrow == 0 || r.is_multiple_of(4) { r % 4096 } else { r % narrow }) as u16
@@ -379,26 +385,50 @@ fn ngram_count_cuda_bucket_offset_miscount_is_refused() {
 /// One order's assembled adjusted counts.
 type Assembled = (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>);
 
+/// One sweep's sink.
+type SweepSink<'a> = dyn FnMut(u32, NgramPartition) -> crate::Result<()> + 'a;
+
 /// claude-425: every order 0..=N from one sweep, one assembler per order;
 /// partitions of orders outside `keep` are not assembled. Returns the
 /// assembled orders and the shared plan's length.
+fn assemble_sweep(
+    highest: u32,
+    keep: &[u32],
+    sweep: impl FnOnce(&mut SweepSink) -> crate::Result<Vec<PartitionRange>>,
+) -> crate::Result<(Vec<Assembled>, usize)> {
+    let mut assemblers = (0..=highest)
+        .map(|order| NgramAssembler::new_adjusted(order, true))
+        .collect::<crate::Result<Vec<_>>>()?;
+    let plan = sweep(&mut |order, partition| match keep.contains(&order) {
+        true => assemblers[order as usize].push_owned(partition),
+        false => Ok(()),
+    })?;
+    Ok((assemblers.into_iter().map(NgramAssembler::finish).collect(), plan.len()))
+}
+
+/// The device sweep (claude-429), assembled.
 fn gpu_sweep(
+    counter: &NgramCounter,
+    highest: u32,
+    budget: u64,
+    keep: &[u32],
+) -> crate::Result<(Vec<Assembled>, usize)> {
+    assemble_sweep(highest, keep, |sink| {
+        counter.count_adjusted_sweep(highest, budget, sink)
+    })
+}
+
+/// The host-runs sweep with `tamper` on each raw partition, assembled.
+fn gpu_sweep_host(
     counter: &NgramCounter,
     highest: u32,
     budget: u64,
     tamper: &mut dyn FnMut(u32, &mut NgramPartition),
     keep: &[u32],
 ) -> crate::Result<(Vec<Assembled>, usize)> {
-    let mut assemblers = (0..=highest)
-        .map(|order| NgramAssembler::new_adjusted(order, true))
-        .collect::<crate::Result<Vec<_>>>()?;
-    let plan = counter.count_adjusted_sweep_tampered(highest, budget, tamper, &mut |order, partition| {
-        match keep.contains(&order) {
-            true => assemblers[order as usize].push_owned(partition),
-            false => Ok(()),
-        }
-    })?;
-    Ok((assemblers.into_iter().map(NgramAssembler::finish).collect(), plan.len()))
+    assemble_sweep(highest, keep, |sink| {
+        counter.count_adjusted_sweep_tampered(highest, budget, tamper, sink)
+    })
 }
 
 fn every_order(highest: u32) -> Vec<u32> {
@@ -418,7 +448,7 @@ fn ngram_count_cuda_sweep_matches_the_oracle() {
                 .collect::<Vec<_>>();
             for budget in [u64::MAX, 60_000, 9_000] {
                 let (orders, partitions) =
-                    gpu_sweep(&counter, highest, budget, &mut |_, _| {}, &every_order(highest)).expect("sweep");
+                    gpu_sweep(&counter, highest, budget, &every_order(highest)).expect("sweep");
                 if budget != u64::MAX {
                     assert!(partitions > 1, "budget {budget} gave one partition, len {len}");
                 }
@@ -433,24 +463,167 @@ fn ngram_count_cuda_sweep_matches_the_oracle() {
 
 /// The sweep counts each order once: the extension phase stays zero, and it
 /// counts no more nonempty partitions than N per shared range plus order 0's
-/// plan. Profiling leaves the records unchanged.
+/// plan. Profiling leaves the records unchanged. The device sweep
+/// (claude-429) records no runs and no adjust time; the host-runs sweep
+/// records both and assembles the same records.
 #[test]
 fn ngram_count_cuda_sweep_counts_no_extension() {
     let tokens = stream(1_000_000, 0x425_3, 29);
     let mut counter = NgramCounter::new(0, &tokens).expect("counter");
-    let (ordinary, _) = gpu_sweep(&counter, 3, 9_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
+    let (ordinary, _) = gpu_sweep(&counter, 3, 9_000, &every_order(3)).expect("sweep");
     let unigram_partitions = counter.plan(0, 9_000).expect("plan").len() as u64;
     counter.enable_phase_timing();
-    let (profiled, shared) = gpu_sweep(&counter, 3, 9_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
+    let (profiled, shared) = gpu_sweep(&counter, 3, 9_000, &every_order(3)).expect("sweep");
     let phases = counter.take_phases();
     assert!(ordinary == profiled, "profiling preserves the sweep's records");
     assert_eq!(phases.extension_count_ns, 0, "{phases:?}");
-    for (name, ns) in [("own count", phases.own_count_ns), ("runs", phases.runs_ns), ("adjust", phases.adjust_ns)] {
+    assert!(
+        phases.own_count_ns > 0,
+        "own count recorded no time: {phases:?}"
+    );
+    assert_eq!((phases.runs_ns, phases.adjust_ns), (0, 0), "{phases:?}");
+    assert!(shared > 1, "budget 9,000 gave one shared partition");
+    assert!(
+        phases.partitions <= 3 * shared as u64 + unigram_partitions,
+        "{phases:?}, {shared} shared ranges"
+    );
+    eprintln!("sweep phase totals under N = 3: {phases:?}");
+    let (host, _) =
+        gpu_sweep_host(&counter, 3, 9_000, &mut |_, _| {}, &every_order(3)).expect("host sweep");
+    let phases = counter.take_phases();
+    assert!(
+        host == ordinary,
+        "the host-runs sweep assembles the device sweep's records"
+    );
+    assert_eq!(phases.extension_count_ns, 0, "{phases:?}");
+    for (name, ns) in [
+        ("own count", phases.own_count_ns),
+        ("runs", phases.runs_ns),
+        ("adjust", phases.adjust_ns),
+    ] {
         assert!(ns > 0, "{name} recorded no time: {phases:?}");
     }
-    assert!(shared > 1, "budget 9,000 gave one shared partition");
-    assert!(phases.partitions <= 3 * shared as u64 + unigram_partitions, "{phases:?}, {shared} shared ranges");
-    eprintln!("sweep phase totals under N = 3: {phases:?}");
+    eprintln!("host-runs sweep phase totals under N = 3: {phases:?}");
+}
+
+/// claude-429: the device sweep's adjusted counts of every order equal the
+/// host oracle's at N in {1, 3, 10}, at one partition and at budgets that force
+/// several, on a stream with BOS every 61 ids and on one with BOS every 7.
+/// N = 10 runs on 200,000 tokens, since its oracle is slow on a million.
+#[test]
+fn ngram_count_cuda_device_sweep_matches_the_oracle() {
+    for (len, seed, every, highest) in [
+        (1_000_000usize, 0x429_1u64, 61usize, 1u32),
+        (1_000_000, 0x429_1, 61, 3),
+        (200_000, 0x429_2, 61, 10),
+        (1_000_000, 0x429_3, 7, 1),
+        (1_000_000, 0x429_3, 7, 3),
+        (200_000, 0x429_4, 7, 10),
+    ] {
+        let tokens = stream_bos_every(len, seed, 29, every);
+        let counter = NgramCounter::new(0, &tokens).expect("counter");
+        let want = (0..=highest)
+            .map(|order| oracle_adjusted(&tokens, order, highest).expect("oracle"))
+            .collect::<Vec<_>>();
+        for budget in [u64::MAX, 60_000, 9_000] {
+            let (orders, partitions) =
+                gpu_sweep(&counter, highest, budget, &every_order(highest)).expect("sweep");
+            if budget != u64::MAX {
+                assert!(
+                    partitions > 1,
+                    "budget {budget} gave one partition, len {len}"
+                );
+            }
+            for (order, (got, want)) in orders.iter().zip(&want).enumerate() {
+                let case = format!(
+                    "len {len} BOS every {every} N {highest} order {order} budget {budget}"
+                );
+                assert_eq!(got.0, want.0, "digest, {case}");
+                assert!(got.1 == want.1 && got.2 == want.2, "records, {case}");
+            }
+        }
+    }
+}
+
+/// claude-429: the device sweep equals the host-runs sweep byte for byte: the
+/// same shared plan, and per order the same digest and records.
+#[test]
+fn ngram_count_cuda_device_sweep_equals_the_host_sweep() {
+    for (len, seed, every, highest) in [
+        (1_000_000usize, 0x429_5u64, 61usize, 3u32),
+        (200_000, 0x429_6, 61, 10),
+        (1_000_000, 0x429_7, 7, 3),
+        (200_000, 0x429_8, 7, 10),
+    ] {
+        let tokens = stream_bos_every(len, seed, 29, every);
+        let counter = NgramCounter::new(0, &tokens).expect("counter");
+        for budget in [u64::MAX, 60_000, 9_000] {
+            let case = format!("len {len} BOS every {every} N {highest} budget {budget}");
+            let keep = every_order(highest);
+            let (device, shared) =
+                gpu_sweep(&counter, highest, budget, &keep).expect("device sweep");
+            let (host, host_shared) =
+                gpu_sweep_host(&counter, highest, budget, &mut |_, _| {}, &keep)
+                    .expect("host sweep");
+            assert_eq!(shared, host_shared, "shared plan, {case}");
+            for (order, (got, want)) in device.iter().zip(&host).enumerate() {
+                assert_eq!(got.0, want.0, "digest, {case} order {order}");
+                assert!(
+                    got.1 == want.1 && got.2 == want.2,
+                    "records, {case} order {order}"
+                );
+            }
+        }
+    }
+}
+
+/// claude-429: a planted rule-4 violation (every left flag of one adjusted
+/// partition left zero) is refused with the host path's message, naming the
+/// partition's first gram whose oldest slot is not BOS; the plant is spent by
+/// that refusal, and the device sweep refuses it as well.
+#[test]
+fn ngram_count_cuda_planted_rule4_is_refused() {
+    let tokens = stream(100_000, 0x429_9, 13);
+    let counter = NgramCounter::new(0, &tokens).expect("counter");
+    let range = counter.plan(2, u64::MAX).expect("plan").remove(0);
+    let raw = counter.count_partition(2, &range).expect("raw");
+    let first = raw
+        .triples
+        .iter()
+        .find(|triple| {
+            PrimeRouteKey::from_word(triple.key).expect("key").slot(2) != Some(NGRAM_BOS)
+        })
+        .expect("a gram that is not a document start");
+    let clean = counter
+        .count_partition_adjusted(2, 3, &range)
+        .expect("unplanted adjust");
+    assert_eq!(clean.triples.len(), raw.triples.len());
+    counter.plant_rule4_violation();
+    let message = format!("{:?}", counter.count_partition_adjusted(2, 3, &range).err());
+    let named = format!(
+        "order-2 gram (key {:#x}, next {}) has no counted left extension",
+        first.key, first.next
+    );
+    assert!(
+        message.contains("(rule 4)") && message.contains(&named),
+        "refused otherwise: {message}"
+    );
+    let again = counter
+        .count_partition_adjusted(2, 3, &range)
+        .expect("the plant is spent");
+    assert!(
+        again.triples == clean.triples && again.contexts == clean.contexts,
+        "an unplanted adjust after the refusal"
+    );
+    counter.plant_rule4_violation();
+    let message = format!(
+        "{:?}",
+        gpu_sweep(&counter, 3, 60_000, &every_order(3)).err()
+    );
+    assert!(
+        message.contains("(rule 4)"),
+        "the sweep refused otherwise: {message}"
+    );
 }
 
 /// Order k reads only the (key, next) of order k+1's raw triples. A planted
@@ -458,12 +631,14 @@ fn ngram_count_cuda_sweep_counts_no_extension() {
 /// order 3's digest and leaves orders 0..2 equal; dropping a raw order-3
 /// triple that is its suffix's only left type moves order 2's digest or is
 /// refused. Only order 2 is assembled in the drop run, so a refusal comes
-/// from the sweep, not from order 3's assembler.
+/// from the sweep, not from order 3's assembler. The tamper hook acts on the
+/// raw partitions of the host-runs sweep (claude-429).
 #[test]
 fn ngram_count_cuda_sweep_orders_read_only_their_extension_types() {
     let tokens = stream(1_000_000, 0x425_4, 29);
     let counter = NgramCounter::new(0, &tokens).expect("counter");
-    let (base, _) = gpu_sweep(&counter, 3, 60_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
+    let (base, _) =
+        gpu_sweep_host(&counter, 3, 60_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
     let mut planted = false;
     let mut plant = |order: u32, raw: &mut NgramPartition| {
         if order == 3 && !planted && !raw.triples.is_empty() {
@@ -471,7 +646,8 @@ fn ngram_count_cuda_sweep_orders_read_only_their_extension_types() {
             planted = true;
         }
     };
-    let (moved, _) = gpu_sweep(&counter, 3, 60_000, &mut plant, &every_order(3)).expect("planted sweep");
+    let (moved, _) =
+        gpu_sweep_host(&counter, 3, 60_000, &mut plant, &every_order(3)).expect("planted sweep");
     assert!(planted, "no order-3 triple was planted");
     let (moved_top, base_top) = (&moved[3], &base[3]);
     assert_ne!(moved_top.0, base_top.0, "a raw order-3 count change must move order 3");
@@ -497,7 +673,7 @@ fn ngram_count_cuda_sweep_orders_read_only_their_extension_types() {
             dropped = true;
         }
     };
-    match gpu_sweep(&counter, 3, 60_000, &mut drop_one, &[2]) {
+    match gpu_sweep_host(&counter, 3, 60_000, &mut drop_one, &[2]) {
         Ok((orders, _)) => {
             let (dropped_two, base_two) = (&orders[2], &base[2]);
             assert_ne!(dropped_two.0, base_two.0, "dropping a lone left type must move order 2");
@@ -522,14 +698,14 @@ fn ngram_count_cuda_real_stream_sweep_matches_the_adjusted_counter() {
     assert!(tokens.len() >= 2_000_000, "stream holds {} tokens", tokens.len());
     let slice = &tokens[..2_000_000];
     let counter = NgramCounter::new(0, slice).expect("counter");
-    let (orders, _) = gpu_sweep(&counter, 3, 1_000_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
+    let (orders, _) = gpu_sweep(&counter, 3, 1_000_000, &every_order(3)).expect("sweep");
     for (order, got) in orders.iter().enumerate() {
         let want = oracle_adjusted(slice, order as u32, 3).expect("oracle");
         assert_eq!(got.0, want.0, "slice digest, order {order}");
         assert!(got.1 == want.1 && got.2 == want.2, "slice records, order {order}");
     }
     let counter = NgramCounter::new(0, &tokens).expect("counter");
-    let (orders, shared) = gpu_sweep(&counter, 3, 1_000_000, &mut |_, _| {}, &every_order(3)).expect("sweep");
+    let (orders, shared) = gpu_sweep(&counter, 3, 1_000_000, &every_order(3)).expect("sweep");
     for (order, got) in orders.iter().enumerate() {
         let (digest, triples, contexts, partitions) = gpu_adjusted(&counter, order as u32, 3, 1_000_000);
         assert_eq!(got.0, digest, "whole-stream digest, order {order}");

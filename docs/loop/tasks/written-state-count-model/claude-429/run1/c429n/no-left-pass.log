@@ -1,0 +1,107 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling version_check v0.9.5
+   Compiling quote v1.0.46
+   Compiling zmij v1.0.23
+   Compiling unicode-ident v1.0.24
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling crossbeam-utils v0.8.22
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling cc v1.2.67
+   Compiling libm v0.2.16
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling crossbeam-epoch v0.9.20
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.3.1
+   Compiling crossbeam-deque v0.8.7
+   Compiling arrayref v0.3.9 (/root/work/c429n-no-left-pass/third_party/arrayref)
+   Compiling rayon-core v1.13.0
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+   Compiling either v1.16.0
+   Compiling uor-r4-native-vector v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-native-vector)
+   Compiling cudarc v0.19.10 (/root/work/c429n-no-left-pass/third_party/cudarc-0.19.10)
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling blake3 v1.5.0
+   Compiling memmap2 v0.9.11
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling libloading v0.9.0
+   Compiling hex v0.4.3
+   Compiling foldhash v0.2.0
+   Compiling rayon v1.12.0
+   Compiling allocator-api2 v0.2.21
+   Compiling uor-addr v0.2.0 (/root/work/c429n-no-left-pass/third_party/uor-addr-0.2.0)
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.16.1
+   Compiling serde_derive v1.0.228
+   Compiling uor-r4-vision v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-vision)
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-tokenizer)
+   Compiling safetensors v0.7.0
+   Compiling uor-r4-source-interface v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-source-interface)
+   Compiling uor-r4-core v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-core)
+   Compiling uor-r4-integer v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-integer)
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-discrete)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-cpu-train v0.1.0 (/root/work/c429n-no-left-pass/crates/uor-r4-cpu-train)
+    Finished `release` profile [optimized] target(s) in 1m 02s
+     Running unittests src/lib.rs (/root/work/c429nt/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 1 test
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+
+failures:
+
+---- ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle stdout ----
+
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (9307) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:541:17:
+assertion `left == right` failed: digest, len 1000000 BOS every 61 N 3 order 1 budget 18446744073709551615
+  left: NgramOrderDigest { order: 1, targets: 941584, grams: 116516, contexts: 1045, count_of_counts: [57054, 4225, 4969, 7649], triple_sha256: "a20faca2cd23af5cfcd8516df74c07a202dcc62f2f25012540124db4b4f06daa", context_sha256: "0c673826f10241912219632ef01721b4b847592f81b1f925f3a404f222abf72e" }
+ right: NgramOrderDigest { order: 1, targets: 565753, grams: 116516, contexts: 1045, count_of_counts: [57054, 4339, 5324, 8396], triple_sha256: "e060a4c6921d9e671d4b1fc83b701d082c7a2f4c2f047944ce84a1db1b53329f", context_sha256: "1c42959e18b239d6b828aa55a09523bfedf295cdc29a7a1862f4f8780cb11b72" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 455 filtered out; finished in 2.17s
+
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`
