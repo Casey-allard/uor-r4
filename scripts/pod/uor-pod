@@ -1511,7 +1511,11 @@ cmd_release() {
 # (count) and the same SHA-256 manifest digest. This is the laptop-path counterpart of the store
 # read-back in vast_archive_store; a failed check returns 1 so down/reap retain the pod.
 verify_laptop_archive() {  # POD DEST DIRS -> 0 when count and digest match
-  local pod=$1 dest=$2 have=$3 pod_line pod_files pod_sum local_files local_sum
+  local pod=$1 dest=$2 have pod_line pod_files pod_sum local_files local_sum
+  # one line: $3 holds one directory per line, and a newline in the remote
+  # command would run the second directory as a command
+  # shellcheck disable=SC2086
+  have=$(echo $3)
   if is_dry; then
     echo "DRY-RUN: verify $pod archive count + SHA-256 manifest before any delete" >&2
     return 0

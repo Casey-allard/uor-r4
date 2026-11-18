@@ -1039,6 +1039,18 @@ rm -rf "$FAKE/vast-ws"; mkdir -p "$FAKE/vast-ws/uor-r4/jobs/codex"
 vexpect "down archives an empty results dir and verifies 0 files" 0 "Archived 0 MB" -- down vast-9001 "${X1[@]}"
 if grep '"event":"vast-archive"' "$UOR_POD_STATE/ledger.jsonl" | jq -e '.verified == true and .files == 0' >/dev/null; then
   ok "an empty results dir verifies 0 files"; else bad "an empty results dir verifies 0 files"; fi
+# a pod that ran jobs holds both jobs/ and pods/: the check must send both
+# directories to the pod on one command line (claude-432: a newline between
+# them ran "uor-r4/pods" as a command, "Is a directory", and down refused)
+vfresh; VO RTX_5090 1 "$OFF5"; echo 7001 > "$FAKE/vast-gone"
+vexpect "Vast up for the two-directory archive case" 0 "SSH ready after" -- up "${X1[@]}" --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA" --no-bootstrap
+rm -rf "$FAKE/vast-ws"; mkdir -p "$FAKE/vast-ws/uor-r4/jobs/codex" "$FAKE/vast-ws/uor-r4/pods/vast-9001"
+echo job > "$FAKE/vast-ws/uor-r4/jobs/codex/j.log"; echo pod > "$FAKE/vast-ws/uor-r4/pods/vast-9001/p.log"
+vexpect "down archives two result directories, then destroys" 0 "Deleted vast-9001" -- down vast-9001 "${X1[@]}"
+hasnt "no result directory is run as a command" "[Ii]s a directory"
+if [ "$(cat "$UOR_POD_STATE/vast-archive/vast-9001/uor-r4/pods/vast-9001/p.log" 2>/dev/null)" = pod ] &&
+   grep '"event":"vast-archive"' "$UOR_POD_STATE/ledger.jsonl" | tail -1 | jq -e '.verified == true and .files == 2' >/dev/null; then
+  ok "both directories are on the laptop and verified as 2 files"; else bad "both directories are on the laptop and verified as 2 files"; fi
 # a bootstrap failure destroys the new Vast pod as well
 vfresh; VO RTX_5090 1 "$OFF5"
 FAKE_BOOT_RC=2 vexpect "a failed Vast bootstrap destroys the instance" 1 "bootstrap failed: deleting pod vast-9001" -- up --lab claude --session vboot --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA"
