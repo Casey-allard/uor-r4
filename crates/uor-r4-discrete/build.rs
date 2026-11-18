@@ -47,7 +47,7 @@ const NATIVE_VECTOR_ENTRIES: [&str; 7] = [
     "native_q31_read_gate_apply",
 ];
 // The exact n-gram counter (claude-412): its own source, PTX and cubin.
-const NGRAM_COUNT_ENTRIES: [&str; 20] = [
+const NGRAM_COUNT_ENTRIES: [&str; 21] = [
     "ngram_token_hist",
     "ngram_token_hist_reduce",
     "ngram_select_flags",
@@ -56,6 +56,7 @@ const NGRAM_COUNT_ENTRIES: [&str; 20] = [
     "ngram_bucket_scatter",
     "ngram_slice_flags",
     "ngram_slice_scatter",
+    "ngram_radix_gather",
     "ngram_radix_hist",
     "ngram_radix_scatter",
     "ngram_scan32_reduce",

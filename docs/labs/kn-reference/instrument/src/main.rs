@@ -509,7 +509,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // the scorer reads a single target; the extension census is count-only.
     if args.count_only {
         let mut summary = serde_json::json!({
-            "unit": "claude-429",
+            "unit": "claude-430",
             "mode": if args.extension_census { "extension-census" } else { "count-only" },
             "highest_order": args.highest,
             "budget": args.budget,

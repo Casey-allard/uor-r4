@@ -1,0 +1,94 @@
+head 2f48351f3d4432a43c88440d2655ff80f27751b8, main = head minus code.patch (34eff518f), budget 16777216
+load:  18:36:49 up  1:21,  0 user,  load average: 1.69, 1.77, 1.69
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test kn_filter::tests::kn_extension_census_counts_as_brute_force ... ok
+test kn_filter::tests::kn_filter_cursor_keeps_as_a_binary_search ... ok
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_offset_miscount_is_refused ... ok
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_sweep_matches_the_adjusted_counter ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test ngram_count_cuda::ngram_count_cuda_planted_rule4_is_refused ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_orders_read_only_their_extension_types ... ok
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_counts_no_extension ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_device_sweep_equals_the_host_sweep has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_device_sweep_equals_the_host_sweep ... ok
+test result: ok. 24 passed; 0 failed; 4 ignored; 0 measured; 428 filtered out; finished in 88.11s
+G2 PASS
+main GPU before: 3402 MiB, 91 %; apps: 
+main rc=0 wall s: 374 peak rss KiB: 8207624 peak GPU used MiB (whole device): 19985
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 363237 | own count 314296 extension count 0 | histogram 222 select 29058 sort 138480 emit 23409 download 40841 records 81143 | runs 0 adjust 0 | push 33021 keep 15699 | 1408 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 19 keep 8
+order 2 sink ms: push 268 keep 106
+order 3 sink ms: push 1039 keep 412
+order 4 sink ms: push 2166 keep 891
+order 5 sink ms: push 3283 keep 1413
+order 6 sink ms: push 4183 keep 1925
+order 7 sink ms: push 4810 keep 2320
+order 8 sink ms: push 5254 keep 2652
+order 9 sink ms: push 5564 keep 2877
+order 10 sink ms: push 6430 keep 3091
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 1 push parts ms: triple checks 2 context checks 0 census 15 triple feed 1 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 39 context 0
+order 2 push parts ms: triple checks 47 context checks 3 census 195 triple feed 22 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 507 context 72
+order 3 push parts ms: triple checks 173 context checks 50 census 699 triple feed 115 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1828 context 1019
+order 4 push parts ms: triple checks 342 context checks 196 census 1378 triple feed 249 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 3689 context 3764
+order 5 push parts ms: triple checks 518 context checks 398 census 1964 triple feed 401 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 5668 context 7697
+order 6 push parts ms: triple checks 681 context checks 622 census 2358 triple feed 521 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 7419 context 11773
+order 7 push parts ms: triple checks 808 context checks 801 census 2577 triple feed 623 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 8854 context 15448
+order 8 push parts ms: triple checks 909 context checks 961 census 2682 triple feed 700 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 9951 context 18362
+order 9 push parts ms: triple checks 986 context checks 1070 census 2742 triple feed 765 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 10790 context 20599
+order 10 push parts ms: triple checks 1045 context checks 1167 census 3404 triple feed 812 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 11456 context 22423
+push parts ms, all orders: triple checks 5514 context checks 5271 census 18018 triple feed 4212 (send wait 5) context feed 2 (send wait 2) | hasher busy triple 60206 context 101162
+head GPU before: 3978 MiB, 98 %; apps: 
+head rc=0 wall s: 300 peak rss KiB: 8207744 peak GPU used MiB (whole device): 20017
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 288025 | own count 239373 extension count 0 | histogram 226 select 29034 sort 59523 emit 24126 download 41872 records 83550 | runs 0 adjust 0 | push 32941 keep 15491 | 1408 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 19 keep 8
+order 2 sink ms: push 257 keep 105
+order 3 sink ms: push 1025 keep 410
+order 4 sink ms: push 2170 keep 882
+order 5 sink ms: push 3284 keep 1402
+order 6 sink ms: push 4177 keep 1894
+order 7 sink ms: push 4806 keep 2291
+order 8 sink ms: push 5242 keep 2608
+order 9 sink ms: push 5550 keep 2841
+order 10 sink ms: push 6406 keep 3048
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 1 push parts ms: triple checks 2 context checks 0 census 15 triple feed 1 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 36 context 0
+order 2 push parts ms: triple checks 45 context checks 2 census 189 triple feed 20 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 508 context 76
+order 3 push parts ms: triple checks 171 context checks 49 census 691 triple feed 112 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1830 context 1013
+order 4 push parts ms: triple checks 343 context checks 196 census 1375 triple feed 254 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 3693 context 3765
+order 5 push parts ms: triple checks 522 context checks 398 census 1960 triple feed 402 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 5667 context 7647
+order 6 push parts ms: triple checks 684 context checks 609 census 2350 triple feed 533 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 7410 context 11769
+order 7 push parts ms: triple checks 814 context checks 797 census 2554 triple feed 638 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 8834 context 15444
+order 8 push parts ms: triple checks 918 context checks 954 census 2658 triple feed 710 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 9958 context 18373
+order 9 push parts ms: triple checks 994 context checks 1066 census 2713 triple feed 774 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 10816 context 20694
+order 10 push parts ms: triple checks 1054 context checks 1170 census 3368 triple feed 812 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 11482 context 22440
+push parts ms, all orders: triple checks 5551 context checks 5246 census 17878 triple feed 4260 (send wait 5) context feed 2 (send wait 2) | hasher busy triple 60237 context 101227
+main unit claude-429, ref unit claude-429
+G4 cmp main PASS
+head unit claude-430, ref unit claude-429
+G4 cmp head PASS

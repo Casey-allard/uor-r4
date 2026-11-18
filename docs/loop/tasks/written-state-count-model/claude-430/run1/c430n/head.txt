@@ -1,0 +1,31 @@
+head 2f48351f3d4432a43c88440d2655ff80f27751b8, G3 negatives; each expects ngram_count_cuda_matches_the_oracle and ngram_count_cuda_device_sweep_matches_the_oracle to FAIL
+== scatter-drops-keys: crates/uor-r4-discrete/src/ngram_count.cu, matches before 1 after 0
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... FAILED
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 454 filtered out; finished in 0.32s
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`
+thread 'ngram_count_cuda::ngram_count_cuda_matches_the_oracle' (23009) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:49:67:
+count: Invalid("n-gram triples are not in strictly ascending order")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+--
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (23008) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:530:77:
+sweep: Invalid("unigram continuation: order-1 triples are not strictly ascending across partitions with counts >= 1")
+
+scatter-drops-keys: ngram_count_cuda_matches_the_oracle FAILED as expected
+scatter-drops-keys: ngram_count_cuda_device_sweep_matches_the_oracle FAILED as expected
+== gather-first-slot-only: crates/uor-r4-discrete/src/ngram_count_device.rs, matches before 1 after 0
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... FAILED
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 454 filtered out; finished in 0.35s
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`
+thread 'ngram_count_cuda::ngram_count_cuda_matches_the_oracle' (23205) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:49:67:
+count: Invalid("n-gram triples are not in strictly ascending order")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+--
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (23204) panicked at crates/uor-r4-discrete/src/ngram_count_cuda.rs:530:77:
+sweep: Invalid("unigram continuation: order-1 triples are not strictly ascending across partitions with counts >= 1")
+
+gather-first-slot-only: ngram_count_cuda_matches_the_oracle FAILED as expected
+gather-first-slot-only: ngram_count_cuda_device_sweep_matches_the_oracle FAILED as expected

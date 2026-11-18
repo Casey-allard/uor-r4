@@ -7,8 +7,9 @@
 // exactly one thread.
 //
 // Order k counts target j (k <= j < n) under context t[j-k..j]. Positions are
-// sorted by their gram with a stable LSD radix sort that reads each digit from
-// the stream (6 bits per pass), then run-length reduced by flags and scans.
+// sorted by their gram with a stable LSD radix sort (6 bits per pass) that
+// reads each slot's keys from the stream once (claude-430), then run-length
+// reduced by flags and scans.
 
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -33,9 +34,10 @@ __device__ __forceinline__ u32 left_digit(const u16 *tokens, u32 j, u32 k) {
     return (j > k && tokens[j - k] != 0u) ? (u32)tokens[j - k - 1u] + 1u : 0u;
 }
 
-__device__ __forceinline__ u32 radix_digit(const u16 *tokens, u32 j, u32 back, u32 shift) {
-    if (back & LEFT_DIGIT) return (left_digit(tokens, j, back & 0xffu) >> shift) & 63u;
-    return ((u32)tokens[j - back] >> shift) & 63u;
+// The whole key word of one radix slot (claude-430): a token, or the left digit.
+__device__ __forceinline__ u32 radix_key(const u16 *tokens, u32 j, u32 back) {
+    if (back & LEFT_DIGIT) return left_digit(tokens, j, back & 0xffu);
+    return (u32)tokens[j - back];
 }
 
 // Document boundaries (claude-415): order k admits target j only when t[j] is
@@ -165,9 +167,17 @@ extern "C" __global__ void ngram_slice_scatter(const u16 *tokens, const u32 *buc
 
 // ---------------------------------------------------------------- radix sort
 
+// claude-430: one gather per slot. Each position's key word is read from the
+// stream once, into keys[i]; the slot's passes then read their digits from
+// keys in order, and the scatter moves each key with its position.
+extern "C" __global__ void ngram_radix_gather(const u16 *tokens, const u32 *pos, u32 n, u32 back, u16 *keys) {
+    u32 i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
+    keys[i] = (u16)radix_key(tokens, pos[i], back);
+}
+
 // One warp per tile of RADIX_TILE positions; hist is digit-major [64][tiles].
-extern "C" __global__ void ngram_radix_hist(const u16 *tokens, const u32 *pos, u32 n, u32 back, u32 shift,
-                                            u32 tiles, u32 *hist) {
+extern "C" __global__ void ngram_radix_hist(const u16 *keys, u32 n, u32 shift, u32 tiles, u32 *hist) {
     __shared__ u32 h[RADIX_WARPS][64];
     u32 warp = threadIdx.x / 32u, lane = threadIdx.x % 32u;
     u32 tile = blockIdx.x * RADIX_WARPS + warp;
@@ -180,7 +190,7 @@ extern "C" __global__ void ngram_radix_hist(const u16 *tokens, const u32 *pos, u
     for (u32 base = begin; base < end; base += 32u) {
         u32 i = base + lane;
         bool valid = i < end;
-        u32 d = valid ? radix_digit(tokens, pos[i], back, shift) : 64u;
+        u32 d = valid ? ((u32)keys[i] >> shift) & 63u : 64u;
         u32 peers = __match_any_sync(FULL_MASK, d);
         if (valid && lane == (u32)(__ffs(peers) - 1)) h[warp][d] += __popc(peers);
         __syncwarp();
@@ -191,8 +201,8 @@ extern "C" __global__ void ngram_radix_hist(const u16 *tokens, const u32 *pos, u
 
 // Stable scatter: within a round, rank = peers with a lower lane; rounds and
 // tiles keep stream order, and offsets come from the digit-major scan.
-extern "C" __global__ void ngram_radix_scatter(const u16 *tokens, const u32 *pos_in, u32 *pos_out, u32 n,
-                                               u32 back, u32 shift, u32 tiles, const u32 *offsets) {
+extern "C" __global__ void ngram_radix_scatter(const u16 *keys_in, u16 *keys_out, const u32 *pos_in, u32 *pos_out,
+                                               u32 n, u32 shift, u32 tiles, const u32 *offsets) {
     __shared__ u32 base_of[RADIX_WARPS][64];
     u32 warp = threadIdx.x / 32u, lane = threadIdx.x % 32u;
     u32 tile = blockIdx.x * RADIX_WARPS + warp;
@@ -206,13 +216,15 @@ extern "C" __global__ void ngram_radix_scatter(const u16 *tokens, const u32 *pos
         u32 i = base + lane;
         bool valid = i < end;
         u32 p = valid ? pos_in[i] : 0u;
-        u32 d = valid ? radix_digit(tokens, p, back, shift) : 64u;
+        u16 key = valid ? keys_in[i] : (u16)0;
+        u32 d = valid ? ((u32)key >> shift) & 63u : 64u;
         u32 peers = __match_any_sync(FULL_MASK, d);
         u32 below = peers & ((1u << lane) - 1u);
         u32 slot = valid ? base_of[warp][d] + __popc(below) : 0u;
         __syncwarp();
         if (valid) {
             pos_out[slot] = p;
+            keys_out[slot] = key;
             if (below == 0u) base_of[warp][d] += __popc(peers);
         }
         __syncwarp();

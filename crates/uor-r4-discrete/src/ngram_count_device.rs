@@ -69,7 +69,7 @@ const CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ngram-count.cubin
 const TARGET: &str = include_str!(concat!(env!("OUT_DIR"), "/cuda-image-target.txt"));
 
 /// The kernel inventory admitted by `build.rs`.
-pub const NGRAM_COUNT_ENTRIES: [&str; 20] = [
+pub const NGRAM_COUNT_ENTRIES: [&str; 21] = [
     "ngram_token_hist",
     "ngram_token_hist_reduce",
     "ngram_select_flags",
@@ -78,6 +78,7 @@ pub const NGRAM_COUNT_ENTRIES: [&str; 20] = [
     "ngram_bucket_scatter",
     "ngram_slice_flags",
     "ngram_slice_scatter",
+    "ngram_radix_gather",
     "ngram_radix_hist",
     "ngram_radix_scatter",
     "ngram_scan32_reduce",
@@ -466,6 +467,8 @@ impl NgramCounter {
     /// slot k .. slot 1, low 6 bits before high 6 bits of each. With `left`
     /// (claude-429), three passes on the 13-bit left digit L(j) come first, so
     /// L is the least significant key and equal digits of one gram are adjacent.
+    /// Each slot's key words are gathered from the stream once (claude-430) and
+    /// move with the positions through that slot's passes.
     fn sort(
         &self,
         order: u32,
@@ -477,27 +480,56 @@ impl NgramCounter {
         let blocks = tiles.div_ceil(RADIX_WARPS);
         let config = LaunchConfig { grid_dim: (blocks, 1, 1), block_dim: (RADIX_WARPS * 32, 1, 1), shared_mem_bytes: 0 };
         let mut other = self.zeros::<u32>(n as usize)?;
+        let mut keys = self.zeros::<u16>(n as usize)?;
+        let mut other_keys = self.zeros::<u16>(n as usize)?;
         let mut hist = self.zeros::<u32>((64 * tiles + 1) as usize)?;
-        let mut passes = Vec::new();
+        let mut slots = Vec::new();
         if left {
-            passes.extend([0u32, 6, 12].map(|shift| (LEFT_DIGIT | order, shift)));
+            slots.push((LEFT_DIGIT | order, &[0u32, 6, 12][..]));
         }
         for back in std::iter::once(0).chain((1..=order).rev()) {
-            passes.push((back, 0u32));
-            passes.push((back, 6u32));
+            slots.push((back, &[0u32, 6][..]));
         }
-        for (back, shift) in passes {
-            let mut launch = self.stream.launch_builder(self.function("ngram_radix_hist"));
-            launch.arg(&self.tokens).arg(&pos).arg(&n).arg(&back).arg(&shift).arg(&tiles).arg(&mut hist);
-            // SAFETY: hist holds 64 x tiles + 1 words; positions j >= back, and a
-            // left digit reads t[j-k] and t[j-k-1] only when j > k.
-            unsafe { launch.launch(config) }.map_err(cuda)?;
-            self.scan32(&mut hist, 64 * tiles)?;
-            let mut launch = self.stream.launch_builder(self.function("ngram_radix_scatter"));
-            launch.arg(&self.tokens).arg(&pos).arg(&mut other).arg(&n).arg(&back).arg(&shift).arg(&tiles).arg(&hist);
-            // SAFETY: offsets partition 0..n; each slot is written once.
-            unsafe { launch.launch(config) }.map_err(cuda)?;
-            std::mem::swap(&mut pos, &mut other);
+        for (back, shifts) in slots {
+            let mut launch = self
+                .stream
+                .launch_builder(self.function("ngram_radix_gather"));
+            launch
+                .arg(&self.tokens)
+                .arg(&pos)
+                .arg(&n)
+                .arg(&back)
+                .arg(&mut keys);
+            // SAFETY: keys holds n words; positions j >= back, and a left digit
+            // reads t[j-k] and t[j-k-1] only when j > k.
+            unsafe { launch.launch(grid(n)) }.map_err(cuda)?;
+            for &shift in shifts {
+                let mut launch = self
+                    .stream
+                    .launch_builder(self.function("ngram_radix_hist"));
+                launch
+                    .arg(&keys)
+                    .arg(&n)
+                    .arg(&shift)
+                    .arg(&tiles)
+                    .arg(&mut hist);
+                // SAFETY: hist holds 64 x tiles + 1 words; keys holds n words.
+                unsafe { launch.launch(config) }.map_err(cuda)?;
+                self.scan32(&mut hist, 64 * tiles)?;
+                let mut launch = self
+                    .stream
+                    .launch_builder(self.function("ngram_radix_scatter"));
+                launch
+                    .arg(&keys)
+                    .arg(&mut other_keys)
+                    .arg(&pos)
+                    .arg(&mut other);
+                launch.arg(&n).arg(&shift).arg(&tiles).arg(&hist);
+                // SAFETY: offsets partition 0..n; each slot of both outputs is written once.
+                unsafe { launch.launch(config) }.map_err(cuda)?;
+                std::mem::swap(&mut pos, &mut other);
+                std::mem::swap(&mut keys, &mut other_keys);
+            }
         }
         Ok(pos)
     }
