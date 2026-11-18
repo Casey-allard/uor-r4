@@ -7,10 +7,13 @@
 //!
 //! Usage (needs `--features cuda`):
 //! `kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json
-//!  [--per-mille P] [--check-host] [--profile-phases]`
+//!  [--per-mille P] [--check-host] [--profile-phases] [--extension-census]`
 //! `--per-mille P` keeps the first P per mille of TRAIN and of the query, each cut at a record
 //! start. `--profile-phases` adds synchronized wall-time diagnostics on stderr.
 //! `--check-host` also scores on the host and refuses at the first mass that differs.
+//! `--extension-census` (claude-424) tallies, for each order k < N, the order-k+1 grams whose
+//! suffix the query's order-k keys read, writes that census to OUT.json and stops after the
+//! count: nothing is scored. It refuses `--check-host` and `--sealed-run`.
 
 // Without `cuda` only the argument parser runs; the tally is still built and tested.
 #![cfg_attr(not(feature = "cuda"), allow(dead_code))]
@@ -199,15 +202,17 @@ struct Args {
     check_host: bool,
     profile_phases: bool,
     sealed_run: bool,
+    extension_census: bool,
 }
 
 fn parse(args: &[String]) -> Result<Args, Failure> {
-    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases]";
+    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases] [--extension-census]";
     let mut positional = Vec::new();
     let mut per_mille = 1000;
     let mut check_host = false;
     let mut profile_phases = false;
     let mut sealed_run = false;
+    let mut extension_census = false;
     let mut at = 0;
     while at < args.len() {
         match args[at].as_str() {
@@ -218,9 +223,15 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
             "--check-host" => check_host = true,
             "--profile-phases" => profile_phases = true,
             "--sealed-run" => sealed_run = true,
+            "--extension-census" => extension_census = true,
             other => positional.push(other.to_string()),
         }
         at += 1;
+    }
+    if extension_census && (check_host || sealed_run) {
+        return Err(fail(
+            "--extension-census scores nothing: it refuses --check-host and --sealed-run",
+        ));
     }
     let [train, query, id_bytes, classes, highest, budget, out]: [String; 7] =
         positional.try_into().map_err(|_| fail(usage))?;
@@ -233,6 +244,7 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
         check_host,
         profile_phases,
         sealed_run,
+        extension_census,
     })
 }
 
@@ -246,7 +258,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
 
 #[cfg(feature = "cuda")]
 fn run(args: &[String]) -> Result<(), Failure> {
-    use uor_r4_discrete::kn_filter::KnQuery;
+    use uor_r4_discrete::kn_filter::{KnExtensionCensus, KnQuery};
     use uor_r4_discrete::kn_score::KnTables;
     use uor_r4_discrete::kn_score_device::KnScorer;
     use uor_r4_discrete::ngram_count::{read_uort_tokens, NgramAssembler, NgramOrderDigest};
@@ -297,6 +309,9 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // claude-422: the counter holds TRAIN on the device and the host copy is
     // never read again, so its 4 GB are freed before the counting.
     drop(train_all);
+    // claude-424: the census of order k-1, fed by order k's partitions.
+    let mut census: Option<KnExtensionCensus> = None;
+    let mut census_json = Vec::new();
     {
         for k in 0..=args.highest {
             let mut assembler = NgramAssembler::new_adjusted(k, false)?;
@@ -323,9 +338,31 @@ fn run(args: &[String]) -> Result<(), Failure> {
                     if let Some(at) = at {
                         keep_ns += nanos(at);
                     }
+                    if let Some(census) = census.as_mut() {
+                        census.observe(partition)?;
+                    }
                     kept
                 },
             )?;
+            if let Some(done) = census.take() {
+                let tally = done.finish();
+                eprintln!(
+                    "order {} extensions: order-{k} grams {}, context extensions {}, pair extensions {}",
+                    k - 1,
+                    tally.grams,
+                    tally.context_extensions,
+                    tally.pair_extensions
+                );
+                census_json.push(serde_json::json!({
+                    "order": k - 1,
+                    "extension_grams": tally.grams,
+                    "context_extensions": tally.context_extensions,
+                    "pair_extensions": tally.pair_extensions,
+                }));
+            }
+            if args.extension_census && k < args.highest {
+                census = Some(wanted.extension_census(k)?);
+            }
             if let Some(order_started) = order_started {
                 let order_ns = nanos(order_started);
                 let p = counter.take_phases();
@@ -375,6 +412,30 @@ fn run(args: &[String]) -> Result<(), Failure> {
         }
     }
     drop(counter);
+    if args.extension_census {
+        let summary = serde_json::json!({
+            "unit": "claude-424",
+            "mode": "extension-census",
+            "highest_order": args.highest,
+            "budget": args.budget,
+            "per_mille": args.per_mille,
+            "inputs": {
+                "train_sha256": train_sha256,
+                "query_sha256": query_sha256,
+                "train_tokens": train_tokens,
+                "query_tokens": query.len(),
+            },
+            "orders": order_json,
+            "extensions": census_json,
+        });
+        std::fs::write(&args.out, serde_json::to_string_pretty(&summary)? + "\n")?;
+        eprintln!(
+            "wrote the extension census {}, {} ms; nothing was scored",
+            args.out,
+            started.elapsed().as_millis()
+        );
+        return Ok(());
+    }
     let tables = KnTables::new(args.highest, orders)?;
     for (k, order) in order_json.iter_mut().enumerate() {
         let k = k as u32;
@@ -460,6 +521,23 @@ mod tests {
         assert!(!parse(&args).unwrap().profile_phases);
         args.push("--profile-phases".into());
         assert!(parse(&args).unwrap().profile_phases);
+    }
+
+    #[test]
+    fn the_extension_census_scores_nothing() {
+        let base: Vec<String> = ["train", "query", "bytes", "classes", "4", "64", "out"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert!(!parse(&base).unwrap().extension_census);
+        let with = |flags: &[&str]| {
+            let mut args = base.clone();
+            args.extend(flags.iter().map(|f| f.to_string()));
+            parse(&args)
+        };
+        assert!(with(&["--extension-census"]).unwrap().extension_census);
+        assert!(with(&["--extension-census", "--check-host"]).is_err());
+        assert!(with(&["--extension-census", "--sealed-run"]).is_err());
     }
 
     #[test]

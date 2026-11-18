@@ -1,0 +1,24 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 4210 ms
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 32485 ms
+order 0 extensions: order-1 grams 3287899, context extensions 3287899, pair extensions 3276487
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 65828 ms
+order 1 extensions: order-2 grams 52997638, context extensions 52962650, pair extensions 35538318
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 116999 ms
+order 2 extensions: order-3 grams 201064161, context extensions 171319317, pair extensions 64165321
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 2853741 contexts 1719653, 208848 ms
+order 3 extensions: order-4 grams 411773607, context extensions 209782069, pair extensions 60970168
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 3295997 contexts 2852734, 354301 ms
+order 4 extensions: order-5 grams 633254327, context extensions 171205591, pair extensions 47148084
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 3230893 contexts 3294901, 546275 ms
+order 5 extensions: order-6 grams 829909716, context extensions 117985058, pair extensions 32892255
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 2927518 contexts 3229874, 789592 ms
+order 6 extensions: order-7 grams 988919928, context extensions 75577667, pair extensions 22609172
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 2588113 contexts 2926491, 1067953 ms
+order 7 extensions: order-8 grams 1113001553, context extensions 48397859, pair extensions 15985509
+order 8: 128 partitions, grams 1113001553 contexts 988659209, kept triples 2286472 contexts 2587153, 1374584 ms
+order 8 extensions: order-9 grams 1209995770, context extensions 32644979, pair extensions 11791960
+order 9: 128 partitions, grams 1209995770 contexts 1112709780, kept triples 2038746 contexts 2285619, 1702635 ms
+order 9 extensions: order-10 grams 1286910428, context extensions 23134389, pair extensions 9150742
+order 10: 128 partitions, grams 1286910428 contexts 1209683953, kept triples 1842098 contexts 2037983, 1929342 ms
+wrote the extension census /workspace/out/c424/census-10.json, 1929542 ms; nothing was scored
+rc=0 wall s: 1929 peak rss KiB: 8934376

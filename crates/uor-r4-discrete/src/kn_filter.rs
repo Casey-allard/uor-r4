@@ -155,6 +155,97 @@ impl KnFilter {
     }
 }
 
+impl KnQuery {
+    /// The census of order k's extensions, fed order k+1's partitions in
+    /// canonical order. Refuses k >= N: the top order has no extension count.
+    pub fn extension_census(&self, k: u32) -> Result<KnExtensionCensus> {
+        if k >= self.highest {
+            return Err(invalid(format!(
+                "a KN query of orders 0..={} has no order-{} extensions of order {k}",
+                self.highest,
+                k + 1
+            )));
+        }
+        Ok(KnExtensionCensus {
+            order: self.order(k)?,
+            k,
+            last: None,
+            tally: KnExtensionTally::default(),
+        })
+    }
+}
+
+/// claude-424: what a query-filtered count of order k < N would still have to
+/// build from order k+1. Below the top order a kept record's adjusted counts
+/// are continuation counts, made from every order-k+1 gram whose suffix
+/// (`back_off` of its key, then its next token) falls in the kept set.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct KnExtensionTally {
+    /// Order-k+1 triples seen.
+    pub grams: u64,
+    /// Those whose order-k suffix context is a query context: the extensions
+    /// a kept context record is built from.
+    pub context_extensions: u64,
+    /// Those whose order-k suffix (context, next) is a query pair: the
+    /// extensions a kept triple is built from. A subset of the above.
+    pub pair_extensions: u64,
+}
+
+/// Counts, over order k+1's triples, the extensions order k's query keys read.
+/// A refused partition leaves the census unusable; the caller drops the count.
+pub struct KnExtensionCensus {
+    order: QueryOrder,
+    k: u32,
+    last: Option<(u128, u16)>,
+    tally: KnExtensionTally,
+}
+
+impl KnExtensionCensus {
+    /// Tally the partition's triples. Refuses triples that do not strictly
+    /// ascend in (key, next), across partitions as within one, and a key that
+    /// is not of order k+1.
+    pub fn observe(&mut self, partition: &NgramPartition) -> Result<()> {
+        for triple in &partition.triples {
+            let at = (triple.key, triple.next);
+            if self.last.is_some_and(|before| before >= at) {
+                return Err(invalid(
+                    "KN extension census: triples are not in strictly ascending order",
+                ));
+            }
+            self.last = Some(at);
+            let key = PrimeRouteKey::from_word(triple.key)?;
+            if key.order() != self.k + 1 {
+                return Err(invalid(format!(
+                    "KN extension census of order {}: a triple of order {}",
+                    self.k,
+                    key.order()
+                )));
+            }
+            let suffix = key
+                .back_off()
+                .ok_or_else(|| invalid("KN extension census: an order-0 key has no suffix"))?
+                .word();
+            self.tally.grams += 1;
+            if self.order.contexts.binary_search(&suffix).is_ok() {
+                self.tally.context_extensions += 1;
+                if self
+                    .order
+                    .pairs
+                    .binary_search(&(suffix, triple.next))
+                    .is_ok()
+                {
+                    self.tally.pair_extensions += 1;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn finish(self) -> KnExtensionTally {
+        self.tally
+    }
+}
+
 /// Every field of a context record is additive over disjoint follower sets.
 fn add_context(kept: &mut NgramContext, part: &NgramContext) -> Result<()> {
     let overflow = || invalid("KN filter: a straddling context's sum overflowed");
@@ -287,6 +378,78 @@ mod tests {
             by_order.push(want);
         }
         assert_ne!(by_order[2], by_order[0], "orders above 0 change the masses");
+    }
+
+    /// The census, against a count rebuilt from tokens: each order-k+1
+    /// triple's suffix context is its context with the oldest token dropped,
+    /// and order k's query keys are listed again from the query stream.
+    #[test]
+    fn kn_extension_census_counts_as_brute_force() {
+        let train = kn_filter_stream(0x424a, 6_000);
+        let query = kn_filter_stream(0x424b, 2_500);
+        let highest = 4u32;
+        let lookups = KnQuery::from_stream(&query, highest).expect("query");
+        let key = |ctx: &[u16]| PrimeRouteKey::from_context(ctx).expect("key").word();
+        for k in 0..highest {
+            let mut contexts = std::collections::BTreeSet::new();
+            let mut pairs = std::collections::BTreeSet::new();
+            for j in k as usize..query.len() {
+                if query[j] != NGRAM_BOS {
+                    contexts.insert(key(&query[j - k as usize..j]));
+                    pairs.insert((key(&query[j - k as usize..j]), query[j]));
+                }
+            }
+            let (_, triples, _) = oracle_adjusted(&train, k + 1, highest).expect("adjusted");
+            let mut want = KnExtensionTally::default();
+            for triple in &triples {
+                let tokens = PrimeRouteKey::from_word(triple.key)
+                    .expect("word")
+                    .context();
+                let suffix = key(&tokens[1..]);
+                want.grams += 1;
+                want.context_extensions += u64::from(contexts.contains(&suffix));
+                want.pair_extensions += u64::from(pairs.contains(&(suffix, triple.next)));
+            }
+            let mut census = lookups.extension_census(k).expect("census");
+            for part in partitions(k + 1, &triples) {
+                census.observe(&part).expect("canonical partition");
+            }
+            let got = census.finish();
+            assert_eq!(got, want, "order {k}");
+            assert!(got.pair_extensions > 0, "order {k}: no pair extension");
+            if k == 0 {
+                // Every order-1 gram extends the one empty context.
+                assert_eq!(got.context_extensions, got.grams);
+            } else {
+                assert!(
+                    got.context_extensions < got.grams,
+                    "order {k}: every extension is read"
+                );
+            }
+        }
+        assert!(lookups.extension_census(highest).is_err(), "the top order");
+        let mut census = lookups.extension_census(1).expect("census");
+        let wrong = partition_from_triples(vec![NgramTriple {
+            key: key(&[5]),
+            next: 6,
+            count: 1,
+        }]);
+        assert!(census.observe(&wrong).is_err(), "an order-1 key at order 2");
+        let mut census = lookups.extension_census(1).expect("census");
+        let falling = partition_from_triples(vec![
+            // The latest token fills the highest slot, so [5 6] sorts above [6 5].
+            NgramTriple {
+                key: key(&[5, 6]),
+                next: 5,
+                count: 1,
+            },
+            NgramTriple {
+                key: key(&[6, 5]),
+                next: 5,
+                count: 1,
+            },
+        ]);
+        assert!(census.observe(&falling).is_err(), "falling keys");
     }
 
     #[test]

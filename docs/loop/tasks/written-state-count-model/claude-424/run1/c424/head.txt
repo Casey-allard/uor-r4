@@ -1,0 +1,24 @@
+code f3bf5dadb (claude-424 extension census), budget 16777216
+rc=0 wall s: 1929 peak rss KiB: 8934376
+order 0 extensions: order-1 grams 3287899, context extensions 3287899, pair extensions 3276487
+order 1 extensions: order-2 grams 52997638, context extensions 52962650, pair extensions 35538318
+order 2 extensions: order-3 grams 201064161, context extensions 171319317, pair extensions 64165321
+order 3 extensions: order-4 grams 411773607, context extensions 209782069, pair extensions 60970168
+order 4 extensions: order-5 grams 633254327, context extensions 171205591, pair extensions 47148084
+order 5 extensions: order-6 grams 829909716, context extensions 117985058, pair extensions 32892255
+order 6 extensions: order-7 grams 988919928, context extensions 75577667, pair extensions 22609172
+order 7 extensions: order-8 grams 1113001553, context extensions 48397859, pair extensions 15985509
+order 8 extensions: order-9 grams 1209995770, context extensions 32644979, pair extensions 11791960
+order 9 extensions: order-10 grams 1286910428, context extensions 23134389, pair extensions 9150742
+wrote the extension census /workspace/out/c424/census-10.json, 1929542 ms; nothing was scored
+order 0: 3287899 = 3287899
+order 1: 52997638 = 52997638
+order 2: 201064161 = 201064161
+order 3: 411773607 = 411773607
+order 4: 633254327 = 633254327
+order 5: 829909716 = 829909716
+order 6: 988919928 = 988919928
+order 7: 1113001553 = 1113001553
+order 8: 1209995770 = 1209995770
+order 9: 1286910428 = 1286910428
+G3 PASS
