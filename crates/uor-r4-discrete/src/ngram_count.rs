@@ -13,8 +13,11 @@
 
 use crate::{Error, Result};
 use sha2::{Digest, Sha256};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, SyncSender};
+use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::Instant;
 
 /// Token ids are 12-bit: V = 4,096.
 pub const NGRAM_VOCABULARY: u32 = 4096;
@@ -187,7 +190,16 @@ struct StreamHasher {
     chunk: usize,
     buffer: Vec<u8>,
     sender: Option<SyncSender<Vec<u8>>>,
-    thread: Option<JoinHandle<Sha256>>,
+    thread: Option<JoinHandle<(Sha256, u64)>>,
+    /// claude-427: shared with the thread, which then times its updates.
+    timed: Arc<AtomicBool>,
+    /// Nanoseconds `send` blocked on a full channel, while timed.
+    wait_ns: u64,
+}
+
+/// Nanoseconds since `start`, saturated to u64.
+fn nanos_since(start: Instant) -> u64 {
+    u64::try_from(start.elapsed().as_nanos()).unwrap_or(u64::MAX)
 }
 
 impl StreamHasher {
@@ -196,13 +208,20 @@ impl StreamHasher {
         hash.update(domain);
         hash.update([order as u8]);
         let (sender, receiver) = sync_channel::<Vec<u8>>(HASH_CHANNEL_DEPTH);
+        let timed = Arc::new(AtomicBool::new(false));
+        let thread_timed = Arc::clone(&timed);
         let thread = std::thread::Builder::new()
             .name(format!("ngram-hash-{order}"))
             .spawn(move || {
+                let mut busy_ns = 0u64;
                 for bytes in receiver {
+                    let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
                     hash.update(&bytes);
+                    if let Some(start) = start {
+                        busy_ns = busy_ns.saturating_add(nanos_since(start));
+                    }
                 }
-                hash
+                (hash, busy_ns)
             })
             .map_err(|error| invalid(format!("an n-gram hasher thread did not start: {error}")))?;
         Ok(Self {
@@ -210,6 +229,8 @@ impl StreamHasher {
             buffer: Vec::with_capacity(chunk.max(1)),
             sender: Some(sender),
             thread: Some(thread),
+            timed,
+            wait_ns: 0,
         })
     }
 
@@ -224,20 +245,26 @@ impl StreamHasher {
     fn send(&mut self) {
         let full = std::mem::replace(&mut self.buffer, Vec::with_capacity(self.chunk));
         if let Some(sender) = &self.sender {
-            if sender.send(full).is_err() {
+            let start = self.timed.load(Ordering::Relaxed).then(Instant::now);
+            let sent = sender.send(full);
+            if let Some(start) = start {
+                self.wait_ns = self.wait_ns.saturating_add(nanos_since(start));
+            }
+            if sent.is_err() {
                 self.sender = None;
             }
         }
     }
 
-    fn finish(mut self) -> String {
+    /// The hex digest, and the thread's busy nanoseconds while timed.
+    fn finish(mut self) -> (String, u64) {
         if !self.buffer.is_empty() {
             self.send();
         }
         let sent_all = self.sender.take().is_some();
         let joined = self.thread.take().map(JoinHandle::join);
         match joined {
-            Some(Ok(hash)) if sent_all => format!("{:x}", hash.finalize()),
+            Some(Ok((hash, busy_ns))) if sent_all => (format!("{:x}", hash.finalize()), busy_ns),
             Some(Err(panic)) => std::panic::resume_unwind(panic),
             _ => panic!("an n-gram hasher thread stopped before its stream ended"),
         }
@@ -249,6 +276,51 @@ impl Drop for StreamHasher {
         self.sender = None;
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
+        }
+    }
+}
+
+/// claude-427: where an assembler's `push` spends its time, summed over its
+/// partitions, in nanoseconds. All zero unless
+/// [`NgramAssembler::enable_timing`] was called. The two `send_wait` fields
+/// are parts of the feed above them; the hasher `busy` fields are time on the
+/// hasher threads, beside the caller's.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct AssemblerTiming {
+    /// The per-triple loop: order, vocabulary, ascent, nonzero count.
+    pub triple_checks_ns: u64,
+    /// The per-context loop: order, followers = n1 + n2 + n3+.
+    pub context_checks_ns: u64,
+    /// `check_census`, the count-of-counts comparison and the seam check.
+    pub census_ns: u64,
+    /// Encoding triples into their stream, with any wait on its channel.
+    pub triple_feed_ns: u64,
+    /// The context merge and encoding, with any wait on its channel.
+    pub context_feed_ns: u64,
+    pub triple_send_wait_ns: u64,
+    pub context_send_wait_ns: u64,
+    /// Filled by [`NgramAssembler::finish_with_timing`].
+    pub triple_hash_busy_ns: u64,
+    pub context_hash_busy_ns: u64,
+}
+
+/// A stopwatch read in splits; a no-op when off.
+struct Splits(Option<Instant>);
+
+impl Splits {
+    fn new(on: bool) -> Self {
+        Self(on.then(Instant::now))
+    }
+
+    /// Nanoseconds since the last split (0 when off), and restart.
+    fn split(&mut self) -> u64 {
+        match self.0.as_mut() {
+            Some(last) => {
+                let ns = nanos_since(*last);
+                *last = Instant::now();
+                ns
+            }
+            None => 0,
         }
     }
 }
@@ -271,11 +343,19 @@ pub struct NgramAssembler {
     grams: u64,
     contexts: u64,
     count_of_counts: [u64; 4],
+    timing: Option<AssemblerTiming>,
     pub triples: Vec<NgramTriple>,
     pub context_records: Vec<NgramContext>,
 }
 
 impl NgramAssembler {
+    /// claude-427: time `push` from now on, and its hasher threads.
+    pub fn enable_timing(&mut self) {
+        self.timing.get_or_insert_with(AssemblerTiming::default);
+        self.triple_hash.timed.store(true, Ordering::Relaxed);
+        self.context_hash.timed.store(true, Ordering::Relaxed);
+    }
+
     /// `keep` retains the streams in memory (tests); otherwise only hashes.
     pub fn new(order: u32, keep: bool) -> Result<Self> {
         Self::with_domains(order, keep, TRIPLE_DOMAIN, CONTEXT_DOMAIN, HASH_CHUNK_BYTES)
@@ -316,6 +396,7 @@ impl NgramAssembler {
             grams: 0,
             contexts: 0,
             count_of_counts: [0; 4],
+            timing: None,
             triples: Vec::new(),
             context_records: Vec::new(),
         })
@@ -324,6 +405,7 @@ impl NgramAssembler {
     /// Append the next partition. Refuses any break of canonical order and any
     /// context record or n1..n4 that differs from the one its triples imply.
     pub fn push(&mut self, partition: &NgramPartition) -> Result<()> {
+        let mut splits = Splits::new(self.timing.is_some());
         let mut last = self.last_triple;
         for triple in &partition.triples {
             if (triple.key >> 120) as u32 != self.order {
@@ -341,6 +423,7 @@ impl NgramAssembler {
             }
             last = Some(at);
         }
+        let triple_checks_ns = splits.split();
         for context in &partition.contexts {
             if (context.key >> 120) as u32 != self.order {
                 return Err(invalid("n-gram context carries another order's key"));
@@ -350,6 +433,7 @@ impl NgramAssembler {
                 return Err(invalid("n-gram context followers differ from n1 + n2 + n3+"));
             }
         }
+        let context_checks_ns = splits.split();
         let derived_count_of_counts = check_census(&partition.triples, &partition.contexts)?;
         if partition.count_of_counts != derived_count_of_counts {
             return Err(invalid("n-gram count-of-counts differ from the ones the triples imply"));
@@ -360,6 +444,7 @@ impl NgramAssembler {
                 return Err(invalid("an order >= 1 n-gram context straddles a partition seam"));
             }
         }
+        let census_ns = splits.split();
         self.last_triple = last;
         for triple in &partition.triples {
             self.triple_hash.update(&triple_bytes(triple));
@@ -369,6 +454,7 @@ impl NgramAssembler {
         for (slot, value) in self.count_of_counts.iter_mut().zip(partition.count_of_counts) {
             *slot += value;
         }
+        let triple_feed_ns = splits.split();
         for context in &partition.contexts {
             match self.pending_context.take() {
                 Some(mut pending) if pending.key == context.key => {
@@ -389,6 +475,14 @@ impl NgramAssembler {
                 None => self.pending_context = Some(*context),
             }
         }
+        let context_feed_ns = splits.split();
+        if let Some(timing) = self.timing.as_mut() {
+            timing.triple_checks_ns += triple_checks_ns;
+            timing.context_checks_ns += context_checks_ns;
+            timing.census_ns += census_ns;
+            timing.triple_feed_ns += triple_feed_ns;
+            timing.context_feed_ns += context_feed_ns;
+        }
         if self.keep {
             self.triples.extend_from_slice(&partition.triples);
         }
@@ -403,20 +497,41 @@ impl NgramAssembler {
         }
     }
 
-    pub fn finish(mut self) -> (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>) {
+    pub fn finish(self) -> (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>) {
+        let (digest, triples, contexts, _) = self.finish_with_timing();
+        (digest, triples, contexts)
+    }
+
+    /// `finish`, with the timing totals; all zero unless timing was enabled.
+    pub fn finish_with_timing(
+        mut self,
+    ) -> (
+        NgramOrderDigest,
+        Vec<NgramTriple>,
+        Vec<NgramContext>,
+        AssemblerTiming,
+    ) {
+        // The waits are read first, so they hold only sends made in `push`.
+        let mut timing = self.timing.unwrap_or_default();
+        timing.triple_send_wait_ns = self.triple_hash.wait_ns;
+        timing.context_send_wait_ns = self.context_hash.wait_ns;
         if let Some(pending) = self.pending_context.take() {
             self.emit_context(pending);
         }
+        let (triple_sha256, triple_busy_ns) = self.triple_hash.finish();
+        let (context_sha256, context_busy_ns) = self.context_hash.finish();
+        timing.triple_hash_busy_ns = triple_busy_ns;
+        timing.context_hash_busy_ns = context_busy_ns;
         let digest = NgramOrderDigest {
             order: self.order,
             targets: self.targets,
             grams: self.grams,
             contexts: self.contexts,
             count_of_counts: self.count_of_counts,
-            triple_sha256: self.triple_hash.finish(),
-            context_sha256: self.context_hash.finish(),
+            triple_sha256,
+            context_sha256,
         };
-        (digest, self.triples, self.context_records)
+        (digest, self.triples, self.context_records, timing)
     }
 }
 
@@ -1252,6 +1367,65 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    /// claude-427: timing changes no digest; with it on, every sub-phase of a
+    /// non-trivial push and both hashers record time, and a channel wait never
+    /// exceeds the feed it is part of; with it off, every total stays zero.
+    #[test]
+    fn ngram_count_push_timing_is_recorded_only_when_enabled() {
+        let stream: Vec<u16> = (0..3_000u32)
+            .map(|i| {
+                if i % 97 == 0 {
+                    NGRAM_BOS
+                } else {
+                    (5 + (i * i * 7 + i) % 41) as u16
+                }
+            })
+            .collect();
+        for order in 1..=3u32 {
+            let parts = [(0u32, 20u32), (20, 30), (30, 4096)]
+                .map(|(lo, hi)| oracle_partition(&stream, order, lo, hi).expect("partition"));
+            let run = |timed: bool| {
+                let mut assembler = NgramAssembler::with_domains(
+                    order,
+                    false,
+                    ADJUSTED_TRIPLE_DOMAIN,
+                    ADJUSTED_CONTEXT_DOMAIN,
+                    7,
+                )
+                .expect("assembler");
+                if timed {
+                    assembler.enable_timing();
+                }
+                for part in &parts {
+                    assembler.push(part).expect("canonical partition");
+                }
+                let (digest, _, _, timing) = assembler.finish_with_timing();
+                (digest, timing)
+            };
+            let (plain, off) = run(false);
+            let (timed, on) = run(true);
+            assert!(plain.grams > 10 && plain.contexts > 1, "order {order}");
+            assert_eq!(timed, plain, "order {order}: timing changed the digest");
+            assert_eq!(off, AssemblerTiming::default(), "order {order}");
+            for (name, ns) in [
+                ("triple checks", on.triple_checks_ns),
+                ("context checks", on.context_checks_ns),
+                ("census", on.census_ns),
+                ("triple feed", on.triple_feed_ns),
+                ("context feed", on.context_feed_ns),
+                ("triple hasher", on.triple_hash_busy_ns),
+                ("context hasher", on.context_hash_busy_ns),
+            ] {
+                assert!(ns > 0, "order {order}: {name} recorded no time");
+            }
+            assert!(on.triple_send_wait_ns <= on.triple_feed_ns, "order {order}");
+            assert!(
+                on.context_send_wait_ns <= on.context_feed_ns,
+                "order {order}"
+            );
         }
     }
 

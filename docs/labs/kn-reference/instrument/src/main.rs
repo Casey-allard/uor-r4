@@ -270,7 +270,9 @@ fn run(args: &[String]) -> Result<(), Failure> {
     use uor_r4_discrete::kn_filter::{KnExtensionCensus, KnQuery};
     use uor_r4_discrete::kn_score::KnTables;
     use uor_r4_discrete::kn_score_device::KnScorer;
-    use uor_r4_discrete::ngram_count::{read_uort_tokens, NgramAssembler, NgramOrderDigest};
+    use uor_r4_discrete::ngram_count::{
+        read_uort_tokens, AssemblerTiming, NgramAssembler, NgramOrderDigest,
+    };
     use uor_r4_discrete::ngram_count_device::NgramCounter;
 
     let args = parse(args)?;
@@ -325,6 +327,12 @@ fn run(args: &[String]) -> Result<(), Failure> {
     let mut assemblers = (0..=args.highest)
         .map(|k| NgramAssembler::new_adjusted(k, false))
         .collect::<Result<Vec<_>, _>>()?;
+    // claude-427: split each push into its sub-phases.
+    if args.profile_phases {
+        assemblers
+            .iter_mut()
+            .for_each(NgramAssembler::enable_timing);
+    }
     let mut filters = (0..=args.highest)
         .map(|k| wanted.filter(k))
         .collect::<Result<Vec<_>, _>>()?;
@@ -413,8 +421,33 @@ fn run(args: &[String]) -> Result<(), Failure> {
             "pair_extensions": tally.pair_extensions,
         }));
     }
+    let mut push_parts = AssemblerTiming::default();
+    let ms = |ns: u64| ns / 1_000_000;
     for (k, (assembler, filter)) in assemblers.into_iter().zip(filters).enumerate() {
-        let (digest, _, _) = assembler.finish();
+        let (digest, _, _, timing) = assembler.finish_with_timing();
+        if args.profile_phases {
+            eprintln!(
+                "order {k} push parts ms: triple checks {} context checks {} census {} triple feed {} (send wait {}) context feed {} (send wait {}) | hasher busy triple {} context {}",
+                ms(timing.triple_checks_ns),
+                ms(timing.context_checks_ns),
+                ms(timing.census_ns),
+                ms(timing.triple_feed_ns),
+                ms(timing.triple_send_wait_ns),
+                ms(timing.context_feed_ns),
+                ms(timing.context_send_wait_ns),
+                ms(timing.triple_hash_busy_ns),
+                ms(timing.context_hash_busy_ns)
+            );
+            push_parts.triple_checks_ns += timing.triple_checks_ns;
+            push_parts.context_checks_ns += timing.context_checks_ns;
+            push_parts.census_ns += timing.census_ns;
+            push_parts.triple_feed_ns += timing.triple_feed_ns;
+            push_parts.triple_send_wait_ns += timing.triple_send_wait_ns;
+            push_parts.context_feed_ns += timing.context_feed_ns;
+            push_parts.context_send_wait_ns += timing.context_send_wait_ns;
+            push_parts.triple_hash_busy_ns += timing.triple_hash_busy_ns;
+            push_parts.context_hash_busy_ns += timing.context_hash_busy_ns;
+        }
         let (triples, contexts) = filter.finish();
         eprintln!(
             "order {k}: {} partitions, grams {} contexts {}, kept triples {} contexts {}, {} ms",
@@ -439,6 +472,21 @@ fn run(args: &[String]) -> Result<(), Failure> {
         }));
         orders.push((digest, triples, contexts));
     }
+    if args.profile_phases {
+        let p = push_parts;
+        eprintln!(
+            "push parts ms, all orders: triple checks {} context checks {} census {} triple feed {} (send wait {}) context feed {} (send wait {}) | hasher busy triple {} context {}",
+            ms(p.triple_checks_ns),
+            ms(p.context_checks_ns),
+            ms(p.census_ns),
+            ms(p.triple_feed_ns),
+            ms(p.triple_send_wait_ns),
+            ms(p.context_feed_ns),
+            ms(p.context_send_wait_ns),
+            ms(p.triple_hash_busy_ns),
+            ms(p.context_hash_busy_ns)
+        );
+    }
     let tables = KnTables::new(args.highest, orders)?;
     for (k, order) in order_json.iter_mut().enumerate() {
         let k = k as u32;
@@ -456,7 +504,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // the scorer reads a single target; the extension census is count-only.
     if args.count_only {
         let mut summary = serde_json::json!({
-            "unit": "claude-426",
+            "unit": "claude-427",
             "mode": if args.extension_census { "extension-census" } else { "count-only" },
             "highest_order": args.highest,
             "budget": args.budget,

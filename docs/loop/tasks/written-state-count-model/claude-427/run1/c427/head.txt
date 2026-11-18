@@ -1,0 +1,31 @@
+code 20ee2f665 (claude-427 push sub-phase timing), budget 16777216
+load:  15:35:32 up 4 days, 18:33,  0 user,  load average: 1.04, 1.03, 1.00
+GPU before: 3498 MiB, 24564 MiB
+rc=0 wall s: 900 peak rss KiB: 11643568 peak GPU used MiB (whole device): 20049
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 887491 | own count 297450 extension count 0 | histogram 206 select 28930 sort 111562 emit 18862 download 42964 records 93101 | runs 268299 adjust 124464 | push 150403 keep 16360 | 1408 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 27 keep 8
+order 2 sink ms: push 408 keep 100
+order 3 sink ms: push 2293 keep 456
+order 4 sink ms: push 6749 keep 963
+order 5 sink ms: push 12414 keep 1488
+order 6 sink ms: push 18096 keep 2039
+order 7 sink ms: push 22737 keep 2394
+order 8 sink ms: push 26452 keep 2783
+order 9 sink ms: push 29187 keep 2952
+order 10 sink ms: push 32037 keep 3173
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 1 push parts ms: triple checks 2 context checks 0 census 13 triple feed 10 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 29 context 0
+order 2 push parts ms: triple checks 46 context checks 3 census 179 triple feed 158 (send wait 5) context feed 20 (send wait 0) | hasher busy triple 462 context 57
+order 3 push parts ms: triple checks 197 context checks 61 census 667 triple feed 981 (send wait 415) context feed 385 (send wait 74) | hasher busy triple 1664 context 824
+order 4 push parts ms: triple checks 382 context checks 223 census 1351 triple feed 2570 (send wait 1431) context feed 2220 (send wait 1097) | hasher busy triple 3374 context 3008
+order 5 push parts ms: triple checks 568 context checks 429 census 1894 triple feed 4284 (send wait 2628) context feed 5237 (send wait 2970) | hasher busy triple 5148 context 6084
+order 6 push parts ms: triple checks 747 context checks 664 census 2320 triple feed 5865 (send wait 3625) context feed 8498 (send wait 4951) | hasher busy triple 6749 context 9363
+order 7 push parts ms: triple checks 874 context checks 840 census 2546 triple feed 7130 (send wait 4495) context feed 11345 (send wait 6748) | hasher busy triple 8022 context 12221
+order 8 push parts ms: triple checks 980 context checks 996 census 2654 triple feed 8122 (send wait 5170) context feed 13697 (send wait 8182) | hasher busy triple 9041 context 14567
+order 9 push parts ms: triple checks 1058 context checks 1108 census 2714 triple feed 8886 (send wait 5657) context feed 15419 (send wait 9431) | hasher busy triple 9794 context 16293
+order 10 push parts ms: triple checks 1118 context checks 1193 census 3395 triple feed 9485 (send wait 5999) context feed 16845 (send wait 10274) | hasher busy triple 10388 context 17713
+push parts ms, all orders: triple checks 5976 context checks 5520 census 17738 triple feed 47495 (send wait 29428) context feed 73671 (send wait 43731) | hasher busy triple 54676 context 80134
+unit new claude-427 old claude-426; orders new 11 old 11
+G2 cmp PASS
