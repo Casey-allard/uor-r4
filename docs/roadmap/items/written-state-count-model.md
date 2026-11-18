@@ -35,3 +35,5 @@ Use the shared native operators and lossless representation specified in D85. Pr
 ## Sources
 
 [Decision card](../../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [D87 corpus receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028) · [Phase order](../../../PLAN.md#approved-sequences)
+
+The [18 November program assessment and closure plan](../../loop/tasks/written-state-count-model/codex-9/CLOSURE-PLAN.md) reconciles the P0 amendments, Wick selector and writer diagnostics, LexLean correspondence and remaining M2–M8 product gates. Its proposed experiments include a crossed role/value-boundary test in parallel with the P1 frozen count baseline.
