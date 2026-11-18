@@ -1,0 +1,31 @@
+code 2d9ade86d (claude-425 item 1, buckets + slice select)
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test kn_filter::tests::kn_extension_census_counts_as_brute_force ... ok
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_offset_miscount_is_refused ... ok
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test result: ok. 17 passed; 0 failed; 3 ignored; 0 measured; 422 filtered out; finished in 37.80s
+G2 PASS
+                .filter(|&total| total <= size)
+        if out_base != size {
+            return Err(invalid(format!("partition selected {out_base} targets, planned {size}")));
+        }
+test ngram_count_cuda::ngram_count_cuda_bucket_offset_miscount_is_refused ... FAILED
+a planted bucket-offset miscount was accepted
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 441 filtered out; finished in 0.15s
+G3 NEGATIVE PASS (test fails without the check)

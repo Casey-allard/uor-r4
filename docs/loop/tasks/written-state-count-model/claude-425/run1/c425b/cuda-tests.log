@@ -1,0 +1,115 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling version_check v0.9.5
+   Compiling zmij v1.0.23
+   Compiling quote v1.0.46
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling typenum v1.20.1
+   Compiling cc v1.2.67
+   Compiling crossbeam-utils v0.8.22
+   Compiling libm v0.2.16
+   Compiling crossbeam-epoch v0.9.20
+   Compiling generic-array v0.14.7
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling constant_time_eq v0.3.1
+   Compiling arrayvec v0.7.8
+   Compiling crossbeam-deque v0.8.7
+   Compiling arrayref v0.3.9 (/root/work/c425b/third_party/arrayref)
+   Compiling rayon-core v1.13.0
+   Compiling syn v2.0.119
+   Compiling ryu v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling either v1.16.0
+   Compiling cudarc v0.19.10 (/root/work/c425b/third_party/cudarc-0.19.10)
+   Compiling uor-r4-native-vector v0.1.0 (/root/work/c425b/crates/uor-r4-native-vector)
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling blake3 v1.5.0
+   Compiling memmap2 v0.9.11
+   Compiling sha2 v0.10.9
+   Compiling libloading v0.9.0
+   Compiling foldhash v0.2.0
+   Compiling rayon v1.12.0
+   Compiling allocator-api2 v0.2.21
+   Compiling equivalent v1.0.2
+   Compiling uor-addr v0.2.0 (/root/work/c425b/third_party/uor-addr-0.2.0)
+   Compiling hex v0.4.3
+   Compiling hashbrown v0.16.1
+   Compiling serde_derive v1.0.228
+   Compiling uor-r4-vision v0.1.0 (/root/work/c425b/crates/uor-r4-vision)
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/work/c425b/crates/uor-r4-tokenizer)
+   Compiling safetensors v0.7.0
+   Compiling uor-r4-source-interface v0.1.0 (/root/work/c425b/crates/uor-r4-source-interface)
+   Compiling uor-r4-core v0.1.0 (/root/work/c425b/crates/uor-r4-core)
+   Compiling uor-r4-integer v0.1.0 (/root/work/c425b/crates/uor-r4-integer)
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c425b/crates/uor-r4-discrete)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-cpu-train v0.1.0 (/root/work/c425b/crates/uor-r4-cpu-train)
+    Finished `release` profile [optimized] target(s) in 1m 02s
+     Running unittests src/lib.rs (/root/work/c425bt/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 24 tests
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test kn_filter::tests::kn_extension_census_counts_as_brute_force ... ok
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_sweep_matches_the_adjusted_counter ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_offset_miscount_is_refused ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_orders_read_only_their_extension_types ... ok
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_counts_no_extension ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+
+test result: ok. 20 passed; 0 failed; 4 ignored; 0 measured; 422 filtered out; finished in 47.15s
+

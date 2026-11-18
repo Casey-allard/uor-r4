@@ -1,0 +1,9 @@
+code 2c22da962 (claude-425 sweep + buckets), budget 16777216
+GPU before: 3946 MiB, 24564 MiB
+rc=0 wall s: 1464 peak rss KiB: 11499308 peak GPU used MiB (whole device): 21095
+sweep: 128 shared ranges for orders 1..=10
+sweep phases ms: wall 1446999 | own count 323544 extension count 0 | histogram 292 select 29273 sort 114443 emit 19168 download 47783 records 110673 | runs 303556 adjust 143174 | push 252862 keep 386800 | 1408 partitions counted
+wrote the counts /workspace/out/c425/count-10.json, 1463866 ms; nothing was scored
+fields per order: new 11 old 11; orders new 11 old 11
+G4 cmp PASS
+partitions new: [1,128,128,128,128,128,128,128,128,128,128] old: [128,128,128,128,128,128,128,128,128,128,128]

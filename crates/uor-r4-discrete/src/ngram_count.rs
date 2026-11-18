@@ -451,6 +451,25 @@ pub fn partition_offset(order: u32) -> usize {
     usize::from(order >= 1)
 }
 
+/// The 4,097 bucket starts of the slot-1 bucket sort (claude-425) from its
+/// exclusively scanned bin-major [4096][tiles] histogram plus its total word:
+/// bucket v holds sorted positions starts[v]..starts[v+1], and starts[4096]
+/// must equal `positions`, the number of positions sorted.
+pub fn bucket_starts(scanned: &[u32], tiles: usize, positions: u32) -> Result<Vec<u32>> {
+    let bins = NGRAM_VOCABULARY as usize;
+    if tiles == 0 || scanned.len() != bins * tiles + 1 {
+        return Err(invalid("bucket histogram needs 4096 x tiles + 1 scanned words"));
+    }
+    let starts: Vec<u32> = (0..=bins).map(|v| scanned[v * tiles]).collect();
+    if starts[0] != 0 || starts[bins] != positions || starts.windows(2).any(|w| w[0] > w[1]) {
+        return Err(invalid(format!(
+            "bucket starts run {}..{} over {positions} positions or decrease",
+            starts[0], starts[bins]
+        )));
+    }
+    Ok(starts)
+}
+
 /// The 64-byte UORT header, then little-endian u16 tokens.
 pub fn read_uort_tokens(bytes: &[u8]) -> Result<Vec<u16>> {
     if bytes.len() < 64 || &bytes[..4] != b"UORT" {
@@ -838,6 +857,41 @@ mod tests {
     use crate::ngram_count_oracle::{
         oracle_adjusted, oracle_count, oracle_partition, plant_one_count,
     };
+
+    /// The device's bin-major histogram and its exclusive scan, on the host.
+    fn scanned_bucket_hist(tokens: &[u16], tile: usize) -> (Vec<u32>, usize) {
+        let positions = tokens.len() - 1;
+        let tiles = positions.div_ceil(tile).max(1);
+        let mut hist = vec![0u32; 4096 * tiles + 1];
+        for j in 1..tokens.len() {
+            hist[usize::from(tokens[j - 1]) * tiles + (j - 1) / tile] += 1;
+        }
+        let mut sum = 0;
+        for word in hist.iter_mut() {
+            let v = *word;
+            *word = sum;
+            sum += v;
+        }
+        (hist, tiles)
+    }
+
+    #[test]
+    fn ngram_count_bucket_starts_bound_each_slot_one_bucket() {
+        let tokens: Vec<u16> = (0..1000u32).map(|i| ((i * 37 + i / 7) % 4096) as u16).collect();
+        let (scanned, tiles) = scanned_bucket_hist(&tokens, 64);
+        let starts = bucket_starts(&scanned, tiles, 999).expect("starts");
+        assert_eq!(starts.len(), 4097);
+        for v in 0..4096usize {
+            let want = tokens[..999].iter().filter(|&&t| usize::from(t) == v).count() as u32;
+            assert_eq!(starts[v + 1] - starts[v], want, "bucket {v}");
+        }
+        // A total that disagrees, a wrong length or a decreasing start is refused.
+        assert!(bucket_starts(&scanned, tiles, 998).is_err());
+        assert!(bucket_starts(&scanned[1..], tiles, 999).is_err());
+        let mut bent = scanned.clone();
+        bent[5 * tiles] = bent[6 * tiles] + 1;
+        assert!(bucket_starts(&bent, tiles, 999).is_err());
+    }
 
     #[test]
     fn ngram_count_key_round_trip_and_back_off() {

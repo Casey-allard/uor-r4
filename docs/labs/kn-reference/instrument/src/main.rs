@@ -7,7 +7,10 @@
 //!
 //! Usage (needs `--features cuda`):
 //! `kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json
-//!  [--per-mille P] [--check-host] [--profile-phases] [--extension-census]`
+//!  [--per-mille P] [--check-host] [--profile-phases] [--extension-census] [--count-only]`
+//! claude-425: every order is counted once, by `NgramCounter::count_adjusted_sweep`.
+//! `--count-only` writes each order's records and discounts to OUT.json and stops before the
+//! scorer; it refuses `--check-host` and `--sealed-run`. `--extension-census` implies it.
 //! `--per-mille P` keeps the first P per mille of TRAIN and of the query, each cut at a record
 //! start. `--profile-phases` adds synchronized wall-time diagnostics on stderr.
 //! `--check-host` also scores on the host and refuses at the first mass that differs.
@@ -203,16 +206,18 @@ struct Args {
     profile_phases: bool,
     sealed_run: bool,
     extension_census: bool,
+    count_only: bool,
 }
 
 fn parse(args: &[String]) -> Result<Args, Failure> {
-    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases] [--extension-census]";
+    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases] [--extension-census] [--count-only]";
     let mut positional = Vec::new();
     let mut per_mille = 1000;
     let mut check_host = false;
     let mut profile_phases = false;
     let mut sealed_run = false;
     let mut extension_census = false;
+    let mut count_only = false;
     let mut at = 0;
     while at < args.len() {
         match args[at].as_str() {
@@ -224,13 +229,16 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
             "--profile-phases" => profile_phases = true,
             "--sealed-run" => sealed_run = true,
             "--extension-census" => extension_census = true,
+            "--count-only" => count_only = true,
             other => positional.push(other.to_string()),
         }
         at += 1;
     }
-    if extension_census && (check_host || sealed_run) {
+    // claude-425: the extension census is a count-only run.
+    count_only |= extension_census;
+    if count_only && (check_host || sealed_run) {
         return Err(fail(
-            "--extension-census scores nothing: it refuses --check-host and --sealed-run",
+            "--count-only and --extension-census score nothing: they refuse --check-host and --sealed-run",
         ));
     }
     let [train, query, id_bytes, classes, highest, budget, out]: [String; 7] =
@@ -245,6 +253,7 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
         profile_phases,
         sealed_run,
         extension_census,
+        count_only,
     })
 }
 
@@ -309,132 +318,126 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // claude-422: the counter holds TRAIN on the device and the host copy is
     // never read again, so its 4 GB are freed before the counting.
     drop(train_all);
-    // claude-424: the census of order k-1, fed by order k's partitions.
-    let mut census: Option<KnExtensionCensus> = None;
-    let mut census_json = Vec::new();
-    {
-        for k in 0..=args.highest {
-            let mut assembler = NgramAssembler::new_adjusted(k, false)?;
-            let mut filter = wanted.filter(k)?;
-            // claude-423: the sink's host time, apart from the counter's phases.
-            let (mut push_ns, mut keep_ns) = (0u64, 0u64);
-            let nanos = |since: std::time::Instant| {
-                u64::try_from(since.elapsed().as_nanos()).unwrap_or(u64::MAX)
-            };
-            let start_phase = || args.profile_phases.then(std::time::Instant::now);
-            let order_started = start_phase();
-            let plan = counter.count_order_adjusted_with(
-                k,
-                args.highest,
-                args.budget,
-                &mut |partition| {
-                    let at = start_phase();
-                    assembler.push(partition)?;
-                    if let Some(at) = at {
-                        push_ns += nanos(at);
-                    }
-                    let at = start_phase();
-                    let kept = filter.keep(partition);
-                    if let Some(at) = at {
-                        keep_ns += nanos(at);
-                    }
-                    if let Some(census) = census.as_mut() {
-                        census.observe(partition)?;
-                    }
-                    kept
-                },
-            )?;
-            if let Some(done) = census.take() {
-                let tally = done.finish();
-                eprintln!(
-                    "order {} extensions: order-{k} grams {}, context extensions {}, pair extensions {}",
-                    k - 1,
-                    tally.grams,
-                    tally.context_extensions,
-                    tally.pair_extensions
-                );
-                census_json.push(serde_json::json!({
-                    "order": k - 1,
-                    "extension_grams": tally.grams,
-                    "context_extensions": tally.context_extensions,
-                    "pair_extensions": tally.pair_extensions,
-                }));
-            }
-            if args.extension_census && k < args.highest {
-                census = Some(wanted.extension_census(k)?);
-            }
-            if let Some(order_started) = order_started {
-                let order_ns = nanos(order_started);
-                let p = counter.take_phases();
-                let ms = |ns: u64| ns / 1_000_000;
-                eprintln!(
-                    "order {k} phases ms: wall {} | own count {} extension count {} | histogram {} select {} sort {} emit {} download {} records {} | runs {} adjust {} | push {} keep {} | {} partitions counted",
-                    ms(order_ns),
-                    ms(p.own_count_ns),
-                    ms(p.extension_count_ns),
-                    ms(p.histogram_ns),
-                    ms(p.select_ns),
-                    ms(p.sort_ns),
-                    ms(p.emit_ns),
-                    ms(p.download_ns),
-                    ms(p.records_ns),
-                    ms(p.runs_ns),
-                    ms(p.adjust_ns),
-                    ms(push_ns),
-                    ms(keep_ns),
-                    p.partitions
-                );
-            }
-            let (digest, _, _) = assembler.finish();
-            let (triples, contexts) = filter.finish();
-            eprintln!(
-                "order {k}: {} partitions, grams {} contexts {}, kept triples {} contexts {}, {} ms",
-                plan.len(),
-                digest.grams,
-                digest.contexts,
-                triples.len(),
-                contexts.len(),
-                started.elapsed().as_millis()
-            );
-            order_json.push(serde_json::json!({
-                "order": digest.order,
-                "targets": digest.targets,
-                "grams": digest.grams,
-                "contexts": digest.contexts,
-                "count_of_counts": digest.count_of_counts,
-                "triple_sha256": digest.triple_sha256,
-                "context_sha256": digest.context_sha256,
-                "partitions": plan.len(),
-                "kept_triples": triples.len(),
-                "kept_contexts": contexts.len(),
-            }));
-            orders.push((digest, triples, contexts));
+    // claude-425: one sweep counts every order once. Its sink calls for
+    // different orders interleave, so each order keeps its own assembler,
+    // filter and sink timings; each order's partitions still ascend.
+    let width = args.highest as usize + 1;
+    let mut assemblers = (0..=args.highest)
+        .map(|k| NgramAssembler::new_adjusted(k, false))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut filters = (0..=args.highest)
+        .map(|k| wanted.filter(k))
+        .collect::<Result<Vec<_>, _>>()?;
+    // claude-424: census k is fed by order k+1's partitions; there is none
+    // for the top order.
+    let mut censuses: Vec<KnExtensionCensus> = if args.extension_census {
+        (0..args.highest)
+            .map(|k| wanted.extension_census(k))
+            .collect::<Result<Vec<_>, _>>()?
+    } else {
+        Vec::new()
+    };
+    // The partitions each order was handed, and claude-423's sink host time.
+    let mut handed = vec![0usize; width];
+    let mut push_ns = vec![0u64; width];
+    let mut keep_ns = vec![0u64; width];
+    let nanos =
+        |since: std::time::Instant| u64::try_from(since.elapsed().as_nanos()).unwrap_or(u64::MAX);
+    let start_phase = || args.profile_phases.then(std::time::Instant::now);
+    let sweep_started = start_phase();
+    let shared = counter.count_adjusted_sweep(args.highest, args.budget, |order, partition| {
+        let k = order as usize;
+        let (Some(assembler), Some(filter)) = (assemblers.get_mut(k), filters.get_mut(k)) else {
+            return Err(uor_r4_discrete::Error::Invalid(format!(
+                "the sweep handed order {order} above N = {}",
+                args.highest
+            )));
+        };
+        handed[k] += 1;
+        let at = start_phase();
+        assembler.push(partition)?;
+        if let Some(at) = at {
+            push_ns[k] += nanos(at);
+        }
+        let at = start_phase();
+        let kept = filter.keep(partition);
+        if let Some(at) = at {
+            keep_ns[k] += nanos(at);
+        }
+        if let Some(census) = k.checked_sub(1).and_then(|below| censuses.get_mut(below)) {
+            census.observe(partition)?;
+        }
+        kept
+    })?;
+    eprintln!("sweep: {} shared ranges for orders 1..={}", shared.len(), args.highest);
+    if let Some(sweep_started) = sweep_started {
+        let sweep_ns = nanos(sweep_started);
+        let p = counter.take_phases();
+        let ms = |ns: u64| ns / 1_000_000;
+        eprintln!(
+            "sweep phases ms: wall {} | own count {} extension count {} | histogram {} select {} sort {} emit {} download {} records {} | runs {} adjust {} | push {} keep {} | {} partitions counted",
+            ms(sweep_ns),
+            ms(p.own_count_ns),
+            ms(p.extension_count_ns),
+            ms(p.histogram_ns),
+            ms(p.select_ns),
+            ms(p.sort_ns),
+            ms(p.emit_ns),
+            ms(p.download_ns),
+            ms(p.records_ns),
+            ms(p.runs_ns),
+            ms(p.adjust_ns),
+            ms(push_ns.iter().sum()),
+            ms(keep_ns.iter().sum()),
+            p.partitions
+        );
+        for k in 0..width {
+            eprintln!("order {k} sink ms: push {} keep {}", ms(push_ns[k]), ms(keep_ns[k]));
         }
     }
     drop(counter);
-    if args.extension_census {
-        let summary = serde_json::json!({
-            "unit": "claude-424",
-            "mode": "extension-census",
-            "highest_order": args.highest,
-            "budget": args.budget,
-            "per_mille": args.per_mille,
-            "inputs": {
-                "train_sha256": train_sha256,
-                "query_sha256": query_sha256,
-                "train_tokens": train_tokens,
-                "query_tokens": query.len(),
-            },
-            "orders": order_json,
-            "extensions": census_json,
-        });
-        std::fs::write(&args.out, serde_json::to_string_pretty(&summary)? + "\n")?;
+    let mut census_json = Vec::new();
+    for (k, census) in censuses.into_iter().enumerate() {
+        let tally = census.finish();
         eprintln!(
-            "wrote the extension census {}, {} ms; nothing was scored",
-            args.out,
+            "order {k} extensions: order-{} grams {}, context extensions {}, pair extensions {}",
+            k + 1,
+            tally.grams,
+            tally.context_extensions,
+            tally.pair_extensions
+        );
+        census_json.push(serde_json::json!({
+            "order": k,
+            "extension_grams": tally.grams,
+            "context_extensions": tally.context_extensions,
+            "pair_extensions": tally.pair_extensions,
+        }));
+    }
+    for (k, (assembler, filter)) in assemblers.into_iter().zip(filters).enumerate() {
+        let (digest, _, _) = assembler.finish();
+        let (triples, contexts) = filter.finish();
+        eprintln!(
+            "order {k}: {} partitions, grams {} contexts {}, kept triples {} contexts {}, {} ms",
+            handed[k],
+            digest.grams,
+            digest.contexts,
+            triples.len(),
+            contexts.len(),
             started.elapsed().as_millis()
         );
-        return Ok(());
+        order_json.push(serde_json::json!({
+            "order": digest.order,
+            "targets": digest.targets,
+            "grams": digest.grams,
+            "contexts": digest.contexts,
+            "count_of_counts": digest.count_of_counts,
+            "triple_sha256": digest.triple_sha256,
+            "context_sha256": digest.context_sha256,
+            "partitions": handed[k],
+            "kept_triples": triples.len(),
+            "kept_contexts": contexts.len(),
+        }));
+        orders.push((digest, triples, contexts));
     }
     let tables = KnTables::new(args.highest, orders)?;
     for (k, order) in order_json.iter_mut().enumerate() {
@@ -448,6 +451,35 @@ fn run(args: &[String]) -> Result<(), Failure> {
         if fallback {
             eprintln!("order {k}: KenLM fallback discounts (1/2, 1, 3/2)");
         }
+    }
+    // claude-425: a count-only run stops here, with the discounts but before
+    // the scorer reads a single target; the extension census is count-only.
+    if args.count_only {
+        let mut summary = serde_json::json!({
+            "unit": "claude-425",
+            "mode": if args.extension_census { "extension-census" } else { "count-only" },
+            "highest_order": args.highest,
+            "budget": args.budget,
+            "per_mille": args.per_mille,
+            "shared_ranges": shared.len(),
+            "inputs": {
+                "train_sha256": train_sha256,
+                "query_sha256": query_sha256,
+                "train_tokens": train_tokens,
+                "query_tokens": query.len(),
+            },
+            "orders": order_json,
+        });
+        if args.extension_census {
+            summary["extensions"] = serde_json::json!(census_json);
+        }
+        std::fs::write(&args.out, serde_json::to_string_pretty(&summary)? + "\n")?;
+        eprintln!(
+            "wrote the counts {}, {} ms; nothing was scored",
+            args.out,
+            started.elapsed().as_millis()
+        );
+        return Ok(());
     }
     let masses = KnScorer::new(0, &tables)?.score(query)?;
     eprintln!(
@@ -536,8 +568,29 @@ mod tests {
             parse(&args)
         };
         assert!(with(&["--extension-census"]).unwrap().extension_census);
+        assert!(with(&["--extension-census"]).unwrap().count_only);
         assert!(with(&["--extension-census", "--check-host"]).is_err());
         assert!(with(&["--extension-census", "--sealed-run"]).is_err());
+    }
+
+    #[test]
+    fn a_count_only_run_scores_nothing() {
+        let base: Vec<String> = ["train", "query", "bytes", "classes", "10", "64", "out"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let with = |flags: &[&str]| {
+            let mut args = base.clone();
+            args.extend(flags.iter().map(|f| f.to_string()));
+            parse(&args)
+        };
+        let plain = with(&[]).unwrap();
+        assert!(!plain.count_only && !plain.extension_census);
+        let counted = with(&["--count-only", "--profile-phases"]).unwrap();
+        assert!(counted.count_only && counted.profile_phases && !counted.extension_census);
+        assert!(with(&["--count-only", "--check-host"]).is_err());
+        assert!(with(&["--count-only", "--sealed-run"]).is_err());
+        assert!(with(&["--check-host"]).is_ok());
     }
 
     #[test]

@@ -1,0 +1,57 @@
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+    Finished `release` profile [optimized] target(s) in 0.03s
+     Running unittests src/lib.rs (/root/work/c425bt/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 3 tests
+real slice order 0: partitions 3 grams 3677 n1..n4 [232, 211, 186, 168] gpu=oracle sha e22838d792c5bed258fe80a31b53cf72752032fe8801470e3631a77b3b845b80
+real tokens 15471412 order 0: partitions 4 grams 3968 contexts 1 n1..n4 [36, 33, 32, 31] gpu=oracle sha 731839e385767ecc870e2914b4524aad31f077d725682a6ebc08aa379a1a8833 ctx 44e0cd61b01cd22dcd171945756dd1c5c3867be55b1f61b0695072e738590e4b
+real slice order 1: partitions 3 grams 165350 n1..n4 [100765, 26154, 11584, 6421] gpu=oracle sha 13d8e6916cc7f0a3363c3230af4a338ad21270d249f673611a8ffd71470331ff
+real slice order 2: partitions 3 grams 527587 n1..n4 [424988, 56954, 18525, 8683] gpu=oracle sha 60220da4196cf47e76c171bc52435b335908ad10ccf4cb1bf1812d736a9bbde1
+real tokens 15471412 order 1: partitions 4 grams 492323 contexts 3968 n1..n4 [184911, 79260, 41169, 27137] gpu=oracle sha 571234c4c9102f0c5113c65161541f57bd24fd4936fca6da5d0ea965f7ebc423 ctx 622007d58e5ed4c36d98cb71655d0bc4a5e9978d6dba6f044ef971c0ca631dd0
+real slice order 3: partitions 3 grams 841608 n1..n4 [602226, 122406, 41821, 21797] gpu=oracle sha 17facf3de8240f3111016e5534efca1b36d4550bb0982214c418a2de64f5ed0b
+real tokens 15471412 order 0: partitions 4 grams 3968 n1..n4 [79, 71, 74, 72] sha f9118c68bdae53e441933526a1eff80e2d0b8813fc6e6f61895f9a5630e5852a ctx 0607ab10fbb1cb6879d97bea010d0fbef19b0ff213bd1c6f1d15d0986fb89ea2
+real tokens 15471412 order 1: partitions 4 grams 492323 n1..n4 [261644, 81888, 38662, 22418] sha b10c21067bd53d6c55c532a4909d28570680906c8d737a5ab8036647912616d0 ctx 1b70b93de891e102d1f8be126836166c0d01143dc3e86449f9ba096a57df10c6
+real tokens 15471412 order 0: sweep 17 shared ranges, adjusted 17 partitions, sha f9118c68bdae53e441933526a1eff80e2d0b8813fc6e6f61895f9a5630e5852a
+real tokens 15471412 order 1: sweep 17 shared ranges, adjusted 17 partitions, sha b10c21067bd53d6c55c532a4909d28570680906c8d737a5ab8036647912616d0
+real tokens 15471412 order 2: partitions 4 grams 2442225 contexts 492172 n1..n4 [1407816, 403130, 168655, 99750] gpu=oracle sha 943af11bd380e94f342bd1c7180724bd6ac6c7df082cf0dd470c1950f99fdbdc ctx 951fab7d288118cb0719be5176676ae11ba919294b79838021842a5625db689f
+real tokens 15471412 order 2: sweep 17 shared ranges, adjusted 17 partitions, sha 48531818b90bc316b5e06d35b63f7b6d5fc94d1adeee2f5c334e84d3aaa03dac
+real tokens 15471412 order 2: partitions 4 grams 2442225 n1..n4 [1835606, 304708, 108277, 54171] sha 48531818b90bc316b5e06d35b63f7b6d5fc94d1adeee2f5c334e84d3aaa03dac ctx 6adae51ab7d216ab52f55d956d7d9388c9958dff2eb46c0633dbcfae3f6b0180
+real tokens 15471412 order 3: sweep 17 shared ranges, adjusted 17 partitions, sha f58434d73f59fde8250b26051ed2f0f0935321cec8719de2590ad4f22ab702fa
+test ngram_count_cuda::ngram_count_cuda_real_stream_sweep_matches_the_adjusted_counter ... ok
+real tokens 15471412 order 3: partitions 4 grams 4842550 n1..n4 [3353723, 702536, 252800, 138227] sha f58434d73f59fde8250b26051ed2f0f0935321cec8719de2590ad4f22ab702fa ctx f5656682718269be1d46678d5b562be02dfda40496298d9ed952632f08ae8aec
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ok
+real tokens 15471412 order 3: partitions 4 grams 4842550 contexts 2441235 n1..n4 [3353723, 702536, 252800, 138227] gpu=oracle sha 5d98983c149b615b81da190c3c836c69ce3d531985a4b94a4904ef9b1b3a4573 ctx 1e4b4a41bc8a106a6e9930e067cd0ff77b4cfa70c4fbabb06d12b4ae17b79471
+real tokens 15471412 order 4: partitions 4 grams 6862392 contexts 4840783 n1..n4 [5243151, 857677, 273044, 141168] gpu=oracle sha c308ccf86e8503822da76e6c7690c0b8c904228a57a6147509653554812ef2c6 ctx 14ee8f13490095785898fff7ddea82af3afa15e5d44cc4bbcd7cb85a8d6bce8b
+real tokens 15471412 order 5: partitions 4 grams 8363157 contexts 6860095 n1..n4 [6782195, 899021, 258470, 128341] gpu=oracle sha bf068dad4aae3d28d08d188fb29a5660a7d2c2ce625c36f680e65d5039f8cc26 ctx 75143a5bc16b7883010d3d29b28340e7b799485f49cce29190a2b95e80a8f3b0
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 443 filtered out; finished in 18.45s
+

@@ -14,6 +14,7 @@ typedef unsigned long long u64;
 
 #define RADIX_TILE 4096u
 #define RADIX_WARPS 8u
+#define BUCKET_TILE 1048576u
 #define SCAN_THREADS 256u
 #define SCAN_ITEMS 8u
 #define SCAN_BLOCK (SCAN_THREADS * SCAN_ITEMS)
@@ -76,6 +77,76 @@ extern "C" __global__ void ngram_select_scatter(const u16 *tokens, u32 begin, u3
     if (i >= count) return;
     u32 d = tokens[begin + i - off];
     if (d >= lo && d < hi && ngram_admitted(tokens, begin + i, k)) pos[out_base + scan[i]] = begin + i;
+}
+
+// ---------------------------------------------------------------- buckets
+
+// claude-425: every position j in 1..n, stably counting-sorted once by its
+// slot-1 token t[j-1] (the partition token of every order k >= 1). One warp
+// per tile of BUCKET_TILE positions; hist is bin-major [4096][tiles], so its
+// exclusive scan gives each (bin, tile) its output offset. Within a round the
+// leader of each distinct bin adds its peer count: distinct addresses, no atomics.
+extern "C" __global__ void ngram_bucket_hist(const u16 *tokens, u32 n, u32 tiles, u32 *hist) {
+    __shared__ u32 h[4096];
+    u32 lane = threadIdx.x % 32u, tile = blockIdx.x;
+    for (u32 v = lane; v < 4096u; v += 32u) h[v] = 0;
+    __syncwarp();
+    u32 begin = 1u + tile * BUCKET_TILE;
+    u32 end = min(begin + BUCKET_TILE, n);
+    for (u32 base = begin; base < end; base += 32u) {
+        u32 j = base + lane;
+        bool valid = j < end;
+        u32 d = valid ? ((u32)tokens[j - 1u] & 4095u) : 4096u;
+        u32 peers = __match_any_sync(FULL_MASK, d);
+        if (valid && lane == (u32)(__ffs(peers) - 1)) h[d] += __popc(peers);
+        __syncwarp();
+    }
+    for (u32 v = lane; v < 4096u; v += 32u) hist[v * tiles + tile] = h[v];
+}
+
+// Stable scatter of the bucket sort: rank = peers with a lower lane; rounds
+// and tiles keep ascending j, so each bucket holds its positions ascending.
+extern "C" __global__ void ngram_bucket_scatter(const u16 *tokens, u32 n, u32 tiles, const u32 *offsets,
+                                                u32 *bucketed) {
+    __shared__ u32 base_of[4096];
+    u32 lane = threadIdx.x % 32u, tile = blockIdx.x;
+    for (u32 v = lane; v < 4096u; v += 32u) base_of[v] = offsets[v * tiles + tile];
+    __syncwarp();
+    u32 begin = 1u + tile * BUCKET_TILE;
+    u32 end = min(begin + BUCKET_TILE, n);
+    for (u32 base = begin; base < end; base += 32u) {
+        u32 j = base + lane;
+        bool valid = j < end;
+        u32 d = valid ? ((u32)tokens[j - 1u] & 4095u) : 4096u;
+        u32 peers = __match_any_sync(FULL_MASK, d);
+        u32 below = peers & ((1u << lane) - 1u);
+        u32 slot = valid ? base_of[d] + __popc(below) : 0u;
+        __syncwarp();
+        if (valid) {
+            bucketed[slot] = j;
+            if (below == 0u) base_of[d] += __popc(peers);
+        }
+        __syncwarp();
+    }
+}
+
+// flags[i] = 1 when bucketed position j = bucketed[begin + i] is a target of
+// order k (j >= k) and admitted. The bin range is the slice's, not re-checked,
+// so a wrong slice shows up in the host's exact-count check.
+extern "C" __global__ void ngram_slice_flags(const u16 *tokens, const u32 *bucketed, u32 begin, u32 count,
+                                             u32 k, u32 *flags) {
+    u32 i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count) return;
+    u32 j = bucketed[begin + i];
+    flags[i] = (j >= k && ngram_admitted(tokens, j, k)) ? 1u : 0u;
+}
+
+extern "C" __global__ void ngram_slice_scatter(const u16 *tokens, const u32 *bucketed, u32 begin, u32 count,
+                                               u32 k, const u32 *scan, u32 out_base, u32 *pos) {
+    u32 i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count) return;
+    u32 j = bucketed[begin + i];
+    if (j >= k && ngram_admitted(tokens, j, k)) pos[out_base + scan[i]] = j;
 }
 
 // ---------------------------------------------------------------- radix sort
