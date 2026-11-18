@@ -7,9 +7,10 @@
 //!
 //! Usage (needs `--features cuda`):
 //! `kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json
-//!  [--per-mille P] [--check-host]`
+//!  [--per-mille P] [--check-host] [--profile-phases]`
 //! `--per-mille P` keeps the first P per mille of TRAIN and of the query, each cut at a record
-//! start. `--check-host` also scores on the host and refuses at the first mass that differs.
+//! start. `--profile-phases` adds synchronized wall-time diagnostics on stderr.
+//! `--check-host` also scores on the host and refuses at the first mass that differs.
 
 // Without `cuda` only the argument parser runs; the tally is still built and tested.
 #![cfg_attr(not(feature = "cuda"), allow(dead_code))]
@@ -196,14 +197,16 @@ struct Args {
     out: String,
     per_mille: u64,
     check_host: bool,
+    profile_phases: bool,
     sealed_run: bool,
 }
 
 fn parse(args: &[String]) -> Result<Args, Failure> {
-    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run]";
+    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases]";
     let mut positional = Vec::new();
     let mut per_mille = 1000;
     let mut check_host = false;
+    let mut profile_phases = false;
     let mut sealed_run = false;
     let mut at = 0;
     while at < args.len() {
@@ -213,6 +216,7 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
                 per_mille = args.get(at).ok_or_else(|| fail(usage))?.parse()?;
             }
             "--check-host" => check_host = true,
+            "--profile-phases" => profile_phases = true,
             "--sealed-run" => sealed_run = true,
             other => positional.push(other.to_string()),
         }
@@ -227,6 +231,7 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
         out,
         per_mille,
         check_host,
+        profile_phases,
         sealed_run,
     })
 }
@@ -285,7 +290,10 @@ fn run(args: &[String]) -> Result<(), Failure> {
     let mut orders: Vec<(NgramOrderDigest, _, _)> = Vec::new();
     let mut order_json = Vec::new();
     let train_tokens = train.len();
-    let counter = NgramCounter::new(0, train)?;
+    let mut counter = NgramCounter::new(0, train)?;
+    if args.profile_phases {
+        counter.enable_phase_timing();
+    }
     // claude-422: the counter holds TRAIN on the device and the host copy is
     // never read again, so its 4 GB are freed before the counting.
     drop(train_all);
@@ -293,15 +301,53 @@ fn run(args: &[String]) -> Result<(), Failure> {
         for k in 0..=args.highest {
             let mut assembler = NgramAssembler::new_adjusted(k, false)?;
             let mut filter = wanted.filter(k)?;
+            // claude-423: the sink's host time, apart from the counter's phases.
+            let (mut push_ns, mut keep_ns) = (0u64, 0u64);
+            let nanos = |since: std::time::Instant| {
+                u64::try_from(since.elapsed().as_nanos()).unwrap_or(u64::MAX)
+            };
+            let start_phase = || args.profile_phases.then(std::time::Instant::now);
+            let order_started = start_phase();
             let plan = counter.count_order_adjusted_with(
                 k,
                 args.highest,
                 args.budget,
                 &mut |partition| {
+                    let at = start_phase();
                     assembler.push(partition)?;
-                    filter.keep(partition)
+                    if let Some(at) = at {
+                        push_ns += nanos(at);
+                    }
+                    let at = start_phase();
+                    let kept = filter.keep(partition);
+                    if let Some(at) = at {
+                        keep_ns += nanos(at);
+                    }
+                    kept
                 },
             )?;
+            if let Some(order_started) = order_started {
+                let order_ns = nanos(order_started);
+                let p = counter.take_phases();
+                let ms = |ns: u64| ns / 1_000_000;
+                eprintln!(
+                    "order {k} phases ms: wall {} | own count {} extension count {} | histogram {} select {} sort {} emit {} download {} records {} | runs {} adjust {} | push {} keep {} | {} partitions counted",
+                    ms(order_ns),
+                    ms(p.own_count_ns),
+                    ms(p.extension_count_ns),
+                    ms(p.histogram_ns),
+                    ms(p.select_ns),
+                    ms(p.sort_ns),
+                    ms(p.emit_ns),
+                    ms(p.download_ns),
+                    ms(p.records_ns),
+                    ms(p.runs_ns),
+                    ms(p.adjust_ns),
+                    ms(push_ns),
+                    ms(keep_ns),
+                    p.partitions
+                );
+            }
             let (digest, _, _) = assembler.finish();
             let (triples, contexts) = filter.finish();
             eprintln!(
@@ -404,6 +450,17 @@ fn run(args: &[String]) -> Result<(), Failure> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn synchronized_phase_profiling_requires_its_flag() {
+        let mut args: Vec<String> = ["train", "query", "bytes", "classes", "4", "64", "out"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        assert!(!parse(&args).unwrap().profile_phases);
+        args.push("--profile-phases".into());
+        assert!(parse(&args).unwrap().profile_phases);
+    }
 
     #[test]
     fn a_prefix_ends_before_a_record_start() {

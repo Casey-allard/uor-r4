@@ -8,7 +8,7 @@
 #![allow(clippy::unusual_byte_groupings)]
 
 use crate::ngram_count::{NgramAssembler, NgramContext, NgramOrderDigest, NgramTriple, NGRAM_BOS};
-use crate::ngram_count_device::NgramCounter;
+use crate::ngram_count_device::{CountPhases, NgramCounter};
 use crate::ngram_count_oracle::{oracle_adjusted, oracle_count, plant_one_count};
 
 /// A deterministic stream: one in four ids uniform over 4,096, the rest over
@@ -261,4 +261,37 @@ fn ngram_count_cuda_real_stream_adjusted_matches_the_oracle() {
             first.context_sha256
         );
     }
+}
+
+/// claude-423: the adjusted counter's phase totals are recorded and reset.
+/// At order 1 under N = 3 every planned range is counted for order 1 itself
+/// and again for order 2's extension runs, so both split totals and the GPU
+/// phases are nonzero, at least one partition is counted per range, and a
+/// second `take_phases` reads all zeros.
+#[test]
+fn ngram_count_cuda_phase_totals_are_recorded_and_reset() {
+    let tokens = stream(1_000_000, 0x423_1, 29);
+    let mut counter = NgramCounter::new(0, &tokens).expect("counter");
+    let (ordinary, ..) = gpu_adjusted(&counter, 1, 3, 9_000);
+    assert_eq!(counter.take_phases(), CountPhases::default(), "default counting has no timing");
+    counter.enable_phase_timing();
+    assert_eq!(counter.take_phases(), CountPhases::default(), "enabling starts at zero");
+    let (profiled, _, _, planned) = gpu_adjusted(&counter, 1, 3, 9_000);
+    assert_eq!(ordinary, profiled, "profiling preserves the order digest");
+    let phases = counter.take_phases();
+    assert!(planned > 1, "budget 9,000 gave one partition");
+    assert!(phases.partitions >= planned as u64, "{phases:?}");
+    for (name, ns) in [
+        ("own count", phases.own_count_ns),
+        ("extension count", phases.extension_count_ns),
+        ("histogram", phases.histogram_ns),
+        ("select", phases.select_ns),
+        ("sort", phases.sort_ns),
+        ("emit", phases.emit_ns),
+        ("download", phases.download_ns),
+    ] {
+        assert!(ns > 0, "{name} recorded no time: {phases:?}");
+    }
+    assert_eq!(counter.take_phases(), CountPhases::default(), "take_phases resets the totals");
+    eprintln!("phase totals at order 1 under N = 3: {phases:?}");
 }

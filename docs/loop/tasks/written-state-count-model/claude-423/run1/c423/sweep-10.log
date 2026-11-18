@@ -1,0 +1,29 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 3339 ms
+order 0 phases ms: wall 29897 | own count 14331 extension count 15543 | histogram 30 select 23817 sort 3386 emit 2632 download 12 records 9 | runs 0 adjust 0 | push 0 keep 0 | 256 partitions counted
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 34327 ms
+order 1 phases ms: wall 34483 | own count 15556 extension count 17444 | histogram 34 select 23458 sort 6432 emit 2716 download 144 records 247 | runs 1163 adjust 32 | push 58 keep 133 | 256 partitions counted
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 69216 ms
+order 2 phases ms: wall 49248 | own count 17136 extension count 21178 | histogram 38 select 23757 sort 9266 emit 2594 download 749 records 1941 | runs 6543 adjust 604 | push 981 keep 2382 | 256 partitions counted
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 118975 ms
+order 3 phases ms: wall 81660 | own count 20987 extension count 26505 | histogram 39 select 23669 sort 12716 emit 2631 download 2222 records 6197 | runs 15221 adjust 3199 | push 4722 keep 9755 | 256 partitions counted
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 2853741 contexts 1719653, 201226 ms
+order 4 phases ms: wall 128966 | own count 27327 extension count 33880 | histogram 44 select 24424 sort 16041 emit 2637 download 5553 records 12373 | runs 24309 adjust 7278 | push 11827 keep 21801 | 256 partitions counted
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 3295997 contexts 2852734, 330831 ms
+order 5 phases ms: wall 176085 | own count 34192 extension count 40163 | histogram 39 select 24864 sort 19521 emit 2752 download 8822 records 18089 | runs 32035 adjust 11214 | push 20462 keep 34619 | 256 partitions counted
+order 5: 128 partitions, grams 633254327 contexts 411651673, kept triples 3230893 contexts 3294901, 507575 ms
+order 6 phases ms: wall 219444 | own count 40536 extension count 46102 | histogram 44 select 24660 sort 22943 emit 3021 download 11972 records 23567 | runs 38335 adjust 14745 | push 28857 keep 46302 | 256 partitions counted
+order 6: 128 partitions, grams 829909716 contexts 633079160, kept triples 2927518 contexts 3229874, 727704 ms
+order 7 phases ms: wall 256114 | own count 46411 extension count 51232 | histogram 53 select 25088 sort 26029 emit 3111 download 14678 records 28130 | runs 43193 adjust 17614 | push 36020 keep 55977 | 256 partitions counted
+order 7: 128 partitions, grams 988919928 contexts 829688875, kept triples 2588113 contexts 2926491, 984519 ms
+order 8 phases ms: wall 299338 | own count 55016 extension count 59019 | histogram 59 select 26561 sort 30054 emit 3474 download 16950 records 36008 | runs 48815 adjust 21051 | push 41794 keep 63767 | 256 partitions counted
+order 8: 128 partitions, grams 1113001553 contexts 988659209, kept triples 2286472 contexts 2587153, 1284575 ms
+order 9 phases ms: wall 324638 | own count 60185 extension count 63930 | histogram 49 select 26881 sort 34064 emit 3732 download 19494 records 38773 | runs 51593 adjust 22515 | push 46221 keep 69810 | 256 partitions counted
+order 9: 128 partitions, grams 1209995770 contexts 1112709780, kept triples 2038746 contexts 2285619, 1609943 ms
+order 10 phases ms: wall 216752 | own count 63792 extension count 0 | histogram 32 select 13761 sort 17693 emit 1878 download 10044 records 19816 | runs 0 adjust 22069 | push 50261 keep 74394 | 128 partitions counted
+order 10: 128 partitions, grams 1286910428 contexts 1209683953, kept triples 1842098 contexts 2037983, 1827439 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 10807417 targets, 1828523 ms
+host = GPU at all 10807417 targets, 1909657 ms
+masses at the one-unit floor: 0
+wrote /workspace/out/c423/sweep-10.json, 1909891 ms
+N=10 rc=0 wall s: 1910 peak rss KiB: 8864644

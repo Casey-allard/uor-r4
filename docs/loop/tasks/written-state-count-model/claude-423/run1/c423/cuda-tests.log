@@ -1,0 +1,206 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling version_check v0.9.5
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.46
+   Compiling zmij v1.0.23
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.150
+   Compiling serde v1.0.228
+   Compiling typenum v1.20.1
+   Compiling libm v0.2.16
+   Compiling cc v1.2.67
+   Compiling crossbeam-utils v0.8.22
+   Compiling generic-array v0.14.7
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling crossbeam-epoch v0.9.20
+   Compiling arrayref v0.3.9 (/root/work/c423/third_party/arrayref)
+   Compiling constant_time_eq v0.3.1
+   Compiling arrayvec v0.7.8
+   Compiling crossbeam-deque v0.8.7
+   Compiling rayon-core v1.13.0
+   Compiling syn v2.0.119
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+   Compiling either v1.16.0
+   Compiling cudarc v0.19.10 (/root/work/c423/third_party/cudarc-0.19.10)
+   Compiling uor-r4-native-vector v0.1.0 (/root/work/c423/crates/uor-r4-native-vector)
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling blake3 v1.5.0
+   Compiling sha2 v0.10.9
+   Compiling memmap2 v0.9.11
+   Compiling libloading v0.9.0
+   Compiling allocator-api2 v0.2.21
+   Compiling foldhash v0.2.0
+   Compiling uor-addr v0.2.0 (/root/work/c423/third_party/uor-addr-0.2.0)
+   Compiling rayon v1.12.0
+   Compiling equivalent v1.0.2
+   Compiling hex v0.4.3
+   Compiling hashbrown v0.16.1
+   Compiling serde_derive v1.0.228
+   Compiling uor-r4-vision v0.1.0 (/root/work/c423/crates/uor-r4-vision)
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/work/c423/crates/uor-r4-tokenizer)
+   Compiling safetensors v0.7.0
+   Compiling uor-r4-source-interface v0.1.0 (/root/work/c423/crates/uor-r4-source-interface)
+   Compiling uor-r4-core v0.1.0 (/root/work/c423/crates/uor-r4-core)
+   Compiling uor-r4-integer v0.1.0 (/root/work/c423/crates/uor-r4-integer)
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c423/crates/uor-r4-discrete)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-cpu-train v0.1.0 (/root/work/c423/crates/uor-r4-cpu-train)
+    Finished `release` profile [optimized] target(s) in 1m 02s
+     Running unittests src/lib.rs (/root/work/c423t/ws/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 17 tests
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+N 5 train: 39787 masses equal
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+N 5 other seed: 19863 masses equal
+N 0 train: 19527 masses equal
+N 0 other seed: 19527 masses equal
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+match len 100000 narrow 0 order 0: grams 4095 contexts 1 n1..n4 [0, 0, 0, 0] sha 5c942f7ed2438a7be7181628d454cea27b36498feb4d7650afb189ea9c2ae44c
+N 0 bos: 495 masses equal
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+N 1 train: 19527 masses equal
+N 6 train: 39787 masses equal
+adjusted len 100000 order 0 budget 18446744073709551615: 1 partitions, grams 1032 n1..n4 [0, 0, 0, 0] sha b2b748f5ad4058e8722bb3e5adbab2ee0f03feb96009ae3450f7e9c1767f755b
+N 1 other seed: 19527 masses equal
+N 1 bos: 495 masses equal
+N 6 other seed: 19863 masses equal
+match len 100000 narrow 0 order 1: grams 97784 contexts 4096 n1..n4 [97268, 478, 34, 4] sha 3fa5c70243efa9deca2efb2d58fedf7d429ecfbc80e61e9c25f48b9e67bc2229
+N 2 train: 19527 masses equal
+N 2 other seed: 19527 masses equal
+N 2 bos: 495 masses equal
+N 7 train: 39787 masses equal
+match len 100000 narrow 0 order 2: grams 96684 contexts 96132 n1..n4 [96684, 0, 0, 0] sha f6f22a3f4bfce5a5413398063b73236f0b37ae9affdba67d4865056365086199
+N 7 other seed: 19863 masses equal
+N 3 train: 19527 masses equal
+N 3 other seed: 19527 masses equal
+N 3 bos: 495 masses equal
+match len 100000 narrow 0 order 3: grams 95027 contexts 95027 n1..n4 [95027, 0, 0, 0] sha d82dbd25f6e96f1289161a27381c7ec30f248e9410eae75dbe6ad83f2c66344a
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+N 8 train: 39787 masses equal
+N 4 train: 19527 masses equal
+N 8 other seed: 19863 masses equal
+N 4 other seed: 19527 masses equal
+N 4 bos: 495 masses equal
+match len 100000 narrow 0 order 4: grams 93370 contexts 93370 n1..n4 [93370, 0, 0, 0] sha 39e88c6fd6eeea4bd2cb5128775e39f78717cfd06f77f1193f8360d29b7fee49
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+match len 100000 narrow 0 order 5: grams 91713 contexts 91713 n1..n4 [91713, 0, 0, 0] sha 1d3384a3476ed659b926dfcfa441e4b8a5116b6025a343ea2d0867ccfe2b25ab
+N 9 train: 39787 masses equal
+N 9 other seed: 19863 masses equal
+match len 100000 narrow 0 order 6: grams 90057 contexts 90057 n1..n4 [90057, 0, 0, 0] sha c0809e8579051d6c2a5c3fd0bc987ff5b5ecbe7e7dbf373ea5e2338b53805446
+N 10 train: 39787 masses equal
+N 10 other seed: 19863 masses equal
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+match len 100000 narrow 0 order 7: grams 88402 contexts 88402 n1..n4 [88402, 0, 0, 0] sha 55438fc0faddef13b4ffd1b17fb0ec05d73dbfe5271802b395bc5c9aa5725737
+match len 100000 narrow 0 order 8: grams 86748 contexts 86748 n1..n4 [86748, 0, 0, 0] sha 14fbfcaf31e5d7a48800a0a5b14e2d22fe29ac6b1c9b42d2ab31d127ee9019f1
+match len 100000 narrow 13 order 0: grams 1032 contexts 1 n1..n4 [0, 0, 0, 0] sha 5671ce8791ef2a23a29a4906074ad256bdeff04ea93a55341f3bddeb34e77d38
+stable order 0 budget 60000: 17 partitions, sha 228cee08a03dcd03c3ba2cada7aac17e6a16b10444a2b5ffcc31e4d3de1b620e
+match len 100000 narrow 13 order 1: grams 25188 contexts 1033 n1..n4 [14646, 6205, 2818, 1011] sha f1e19b41368a6407b0391e8d5b0ae0fdd2ca23ba0566f28b036d29e445370bfe
+match len 100000 narrow 13 order 2: grams 51551 contexts 24091 n1..n4 [48281, 1365, 32, 1] sha f039dbf0e81742acac9257292dd7a83e70c57bc5944c88fe3abae98e98aaeda5
+match len 100000 narrow 13 order 3: grams 70418 contexts 47999 n1..n4 [63937, 4387, 1572, 404] sha 6307a10af882db12e19fbed7849461a6daeb24b23b72134fe875f1ad90143002
+match len 100000 narrow 13 order 4: grams 73302 contexts 65680 n1..n4 [72801, 492, 7, 2] sha 36fbb201e7311b66241f315ebf98639859455640086039f1b7b11d714792a76d
+match len 100000 narrow 13 order 5: grams 68317 contexts 67902 n1..n4 [68291, 26, 0, 0] sha fb0f997c55fe5f8581bd5eac6af9ca66cb95ca00b7040e310c172dc1a111a905
+match len 100000 narrow 13 order 6: grams 63266 contexts 63250 n1..n4 [63264, 2, 0, 0] sha 1a44fea5de635f9214c584f90e8fd35e8a8000d316da86bef58b210ed5c4d2e2
+match len 100000 narrow 13 order 7: grams 58529 contexts 58528 n1..n4 [58529, 0, 0, 0] sha b8e898d6eb106357eae2377d1fd31942938f4f7a15b2407aa0ed75980eb75f8c
+match len 100000 narrow 13 order 8: grams 54109 contexts 54109 n1..n4 [54109, 0, 0, 0] sha bd60f430626f8a342ecbe68a44d30a474119e103549e69992a35b4b8a1c64d6b
+adjusted len 100000 order 0 budget 9000: 16 partitions, grams 1032 n1..n4 [0, 0, 0, 0] sha b2b748f5ad4058e8722bb3e5adbab2ee0f03feb96009ae3450f7e9c1767f755b
+match len 1000000 narrow 13 order 0: grams 1032 contexts 1 n1..n4 [0, 0, 0, 0] sha e7523941faae47eafcf992c1c53af5c7bb8b1e040b20249255fa832ffe466cf5
+adjusted len 100000 order 1 budget 18446744073709551615: 1 partitions, grams 25188 n1..n4 [14992, 6155, 2740, 889] sha c5dd2e418daaea872d92757f5e1dc2ff3d907ffd51b2b4f0bfb048468dc81bc0
+match len 1000000 narrow 13 order 1: grams 83942 contexts 1033 n1..n4 [56604, 1650, 49, 45] sha 175d1e6139226b7e7747b7b10df60992f9532f95fd2bf12d5c3965877018218f
+match len 1000000 narrow 13 order 2: grams 396774 contexts 79761 n1..n4 [307703, 65642, 17449, 3480] sha 16c92d78ab20e156d470ad8fd184f249d02c42fbeced371101e16e859e2614e3
+match len 1000000 narrow 13 order 3: grams 571547 contexts 373640 n1..n4 [541604, 7411, 238, 314] sha 68dce5a7c3bce93f01e364bf6f1c479638ddf4aa7e379e904687ff39aeef064d
+match len 1000000 narrow 13 order 4: grams 695203 contexts 531511 n1..n4 [661673, 27084, 5480, 850] sha 590e422b7abd28ad294dc0886d72454f238cccf6794a399949c68bc02a333c9d
+stable order 0 budget 9000: 41 partitions, sha 228cee08a03dcd03c3ba2cada7aac17e6a16b10444a2b5ffcc31e4d3de1b620e
+match len 1000000 narrow 13 order 5: grams 679646 contexts 645930 n1..n4 [677743, 1883, 20, 0] sha 05613bafae4e94499bf040835bf31130607d6c0ef426c71e7fa91a9f6586af11
+match len 1000000 narrow 13 order 6: grams 630663 contexts 629123 n1..n4 [630582, 81, 0, 0] sha eb59936c2bcee12aafb72a28aa27bb1bb15cb3b10ddef1d02c6cab0ed75d3ab0
+adjusted len 100000 order 1 budget 9000: 16 partitions, grams 25188 n1..n4 [14992, 6155, 2740, 889] sha c5dd2e418daaea872d92757f5e1dc2ff3d907ffd51b2b4f0bfb048468dc81bc0
+stable order 1 budget 60000: 17 partitions, sha 692a42ede5f162614155c39f576869858df0f8ef56b454272011729ed9bd56bb
+match len 1000000 narrow 13 order 7: grams 583483 contexts 583422 n1..n4 [583479, 4, 0, 0] sha 750639e7b11de5a938cc800f20a3c1e4098d04a5ecf6186daf83aff75c203af6
+adjusted len 100000 order 2 budget 18446744073709551615: 1 partitions, grams 51518 n1..n4 [48343, 1265, 36, 3] sha 2d03db799f51b65fdbbde3ef8be2e3e0def0b04519d7b602bc5d7fcc703f3859
+match len 1000000 narrow 13 order 8: grams 539554 contexts 539551 n1..n4 [539553, 1, 0, 0] sha 7e4c6b036d110803bcacbe2ad8ed8eef95d0bc4084274606d337ffc73b81f032
+match len 10000000 narrow 29 order 0: grams 1044 contexts 1 n1..n4 [0, 0, 0, 0] sha 873c37124bdd1befe07719137c3a4c070f90dac5e466a798e3cdc705f37a2175
+match len 10000000 narrow 29 order 1: grams 511014 contexts 1045 n1..n4 [334280, 96529, 18453, 2677] sha ce979fa489ff70d34c4b45c545ae47d27b77c8fd1a05a51002aacd3347a326ed
+adjusted len 100000 order 2 budget 9000: 15 partitions, grams 51518 n1..n4 [48343, 1265, 36, 3] sha 2d03db799f51b65fdbbde3ef8be2e3e0def0b04519d7b602bc5d7fcc703f3859
+adjusted len 100000 order 3 budget 18446744073709551615: 1 partitions, grams 70336 n1..n4 [63894, 4421, 1493, 405] sha f7ae61b6faf24304c50854e865e8ffd843ced0692f28a248ce55abf83ee07f15
+stable order 1 budget 9000: 39 partitions, sha 692a42ede5f162614155c39f576869858df0f8ef56b454272011729ed9bd56bb
+phase totals at order 1 under N = 3: CountPhases { histogram_ns: 4544208, select_ns: 1281208898, sort_ns: 1638905551, emit_ns: 2249623672, download_ns: 169727176, records_ns: 1633332, own_count_ns: 2812517749, extension_count_ns: 3120331529, runs_ns: 12540186, adjust_ns: 1150419, partitions: 111 }
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+adjusted len 100000 order 3 budget 9000: 14 partitions, grams 70336 n1..n4 [63894, 4421, 1493, 405] sha f7ae61b6faf24304c50854e865e8ffd843ced0692f28a248ce55abf83ee07f15
+adjusted len 1000000 order 0 budget 18446744073709551615: 1 partitions, grams 1044 n1..n4 [0, 0, 0, 0] sha c5582cf7a39c7aa982f8b9c1bf30f2a35487ee973676abdb3a9b910618366a50
+stable order 2 budget 60000: 16 partitions, sha 958f3fa7181e858a22b071fe7310ffcbf980e70efe5bc05369634fbc87b73bd2
+match len 10000000 narrow 29 order 2: grams 3397359 contexts 496792 n1..n4 [2218712, 635075, 330210, 131956] sha 3873251aad8f5d97fc950fd1901ba7e468892c8a1f922059106896cbcae52066
+stable order 2 budget 9000: 39 partitions, sha 958f3fa7181e858a22b071fe7310ffcbf980e70efe5bc05369634fbc87b73bd2
+stable order 3 budget 60000: 16 partitions, sha 45da8edba8d39b995536acf5340009a3270d3429d3cf95142d02b1aa399ff4a9
+adjusted len 1000000 order 0 budget 9000: 56 partitions, grams 1044 n1..n4 [0, 0, 0, 0] sha c5582cf7a39c7aa982f8b9c1bf30f2a35487ee973676abdb3a9b910618366a50
+stable order 3 budget 9000: 37 partitions, sha 45da8edba8d39b995536acf5340009a3270d3429d3cf95142d02b1aa399ff4a9
+adjusted len 1000000 order 1 budget 18446744073709551615: 1 partitions, grams 116403 n1..n4 [57039, 4231, 5491, 8290] sha b9e34199797e7f5cb7b71db7bfe5ec96274d731b79d76feef3814c2d7d949fc8
+stable order 4 budget 60000: 15 partitions, sha 6e23d0a06327230b4ab21eab0ff785b733930ca68d20443a52e371567e26b6b3
+match len 10000000 narrow 29 order 3: grams 6585916 contexts 3301624 n1..n4 [5922170, 154275, 115130, 120799] sha 9c5cf13b6791769cf836b5ed9e239a4ffd60eb0d5c9d72afc9f7739f289a66e2
+stable order 4 budget 9000: 35 partitions, sha 6e23d0a06327230b4ab21eab0ff785b733930ca68d20443a52e371567e26b6b3
+stable order 5 budget 60000: 15 partitions, sha fa08bb4cdf0ce89333f8b8ad115339144323c15320b98240d781f497ab0d0a01
+adjusted len 1000000 order 1 budget 9000: 56 partitions, grams 116403 n1..n4 [57039, 4231, 5491, 8290] sha b9e34199797e7f5cb7b71db7bfe5ec96274d731b79d76feef3814c2d7d949fc8
+stable order 5 budget 9000: 34 partitions, sha fa08bb4cdf0ce89333f8b8ad115339144323c15320b98240d781f497ab0d0a01
+adjusted len 1000000 order 2 budget 18446744073709551615: 1 partitions, grams 524958 n1..n4 [474855, 25970, 1344, 61] sha e89a082cc0c1531ff02571f311cdd2976d652c187182a437e85901c9ed42d06e
+stable order 6 budget 60000: 15 partitions, sha ec308f336e83ab2cd2bdae18f6e66e9734ad33edd2ceaf08a50a435b14f15dca
+match len 10000000 narrow 29 order 4: grams 8301105 contexts 6331814 n1..n4 [8197798, 99516, 3669, 120] sha c1f847c1dbbecf665bea1f13397dedf0e5a930a38ed1863fff136f8403f88705
+stable order 6 budget 9000: 32 partitions, sha ec308f336e83ab2cd2bdae18f6e66e9734ad33edd2ceaf08a50a435b14f15dca
+stable order 7 budget 60000: 15 partitions, sha 7bd2e01f0d89da7f56ca987fbe193ccac576c444d8536dada9dbb26e6b6e3661
+adjusted len 1000000 order 2 budget 9000: 56 partitions, grams 524958 n1..n4 [474855, 25970, 1344, 61] sha e89a082cc0c1531ff02571f311cdd2976d652c187182a437e85901c9ed42d06e
+stable order 7 budget 9000: 31 partitions, sha 7bd2e01f0d89da7f56ca987fbe193ccac576c444d8536dada9dbb26e6b6e3661
+adjusted len 1000000 order 3 budget 18446744073709551615: 1 partitions, grams 825018 n1..n4 [779050, 39520, 5741, 647] sha 64c0ece9938fe86ed2bf9340f085bc88a56ff963560398a4e91fd06ec52283a4
+match len 10000000 narrow 29 order 5: grams 8043593 contexts 7947222 n1..n4 [8041543, 2050, 0, 0] sha 5a50c5c1c2bdeadda7460cc727736a57f491bb3e240fbec5fe516f824f282d1b
+stable order 8 budget 60000: 14 partitions, sha 1e23c566ca9d83a46f6799c8ba9f385a9144e2b4266e00603cb95fe6ce1a8c0e
+adjusted len 1000000 order 3 budget 9000: 55 partitions, grams 825018 n1..n4 [779050, 39520, 5741, 647] sha 64c0ece9938fe86ed2bf9340f085bc88a56ff963560398a4e91fd06ec52283a4
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+stable order 8 budget 9000: 29 partitions, sha 1e23c566ca9d83a46f6799c8ba9f385a9144e2b4266e00603cb95fe6ce1a8c0e
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+match len 10000000 narrow 29 order 6: grams 7695943 contexts 7694098 n1..n4 [7695908, 35, 0, 0] sha 0e660e37918722ef2210d04520f9bc798aa709a6a61895519e8cfeeff15f7d85
+match len 10000000 narrow 29 order 7: grams 7359192 contexts 7359159 n1..n4 [7359192, 0, 0, 0] sha ea3012d592d55188388910041008bc84541fc69c135de1e2b0622ac63b54c13e
+match len 10000000 narrow 29 order 8: grams 7034694 contexts 7034694 n1..n4 [7034694, 0, 0, 0] sha e693e071ca20bb2933a5cbd6cc9de4d197559af65e33637106597860763a045a
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+
+test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 421 filtered out; finished in 36.47s
+

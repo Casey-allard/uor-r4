@@ -1,0 +1,39 @@
+code 61d011ee5 (claude-423 phase timers), budget 16777216
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+phase totals at order 1 under N = 3: CountPhases { histogram_ns: 4544208, select_ns: 1281208898, sort_ns: 1638905551, emit_ns: 2249623672, download_ns: 169727176, records_ns: 1633332, own_count_ns: 2812517749, extension_count_ns: 3120331529, runs_ns: 12540186, adjust_ns: 1150419, partitions: 111 }
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test result: ok. 14 passed; 0 failed; 3 ignored; 0 measured; 421 filtered out; finished in 36.47s
+N=4 rc=0 wall s: 295 peak rss KiB: 8207612
+order 0 phases ms: wall 29720 | own count 14115 extension count 15581 | histogram 32 select 23496 sort 3458 emit 2703 download 11 records 8 | runs 0 adjust 0 | push 0 keep 0 | 256 partitions counted
+order 1 phases ms: wall 34587 | own count 15589 extension count 17511 | histogram 35 select 23606 sort 6412 emit 2691 download 141 records 247 | runs 1166 adjust 32 | push 58 keep 133 | 256 partitions counted
+order 2 phases ms: wall 49024 | own count 17187 extension count 21100 | histogram 37 select 23667 sort 9438 emit 2582 download 727 records 1867 | runs 6422 adjust 595 | push 978 keep 2380 | 256 partitions counted
+order 3 phases ms: wall 81490 | own count 21093 extension count 26518 | histogram 40 select 24031 sort 12720 emit 2614 download 2165 records 6031 | runs 15115 adjust 3131 | push 4705 keep 9752 | 256 partitions counted
+order 4 phases ms: wall 68819 | own count 27100 extension count 0 | histogram 20 select 12032 sort 7320 emit 1252 download 1892 records 4561 | runs 0 adjust 6533 | push 12192 keep 21778 | 128 partitions counted
+N=10 rc=0 wall s: 1910 peak rss KiB: 8864644
+order 0 phases ms: wall 29897 | own count 14331 extension count 15543 | histogram 30 select 23817 sort 3386 emit 2632 download 12 records 9 | runs 0 adjust 0 | push 0 keep 0 | 256 partitions counted
+order 1 phases ms: wall 34483 | own count 15556 extension count 17444 | histogram 34 select 23458 sort 6432 emit 2716 download 144 records 247 | runs 1163 adjust 32 | push 58 keep 133 | 256 partitions counted
+order 2 phases ms: wall 49248 | own count 17136 extension count 21178 | histogram 38 select 23757 sort 9266 emit 2594 download 749 records 1941 | runs 6543 adjust 604 | push 981 keep 2382 | 256 partitions counted
+order 3 phases ms: wall 81660 | own count 20987 extension count 26505 | histogram 39 select 23669 sort 12716 emit 2631 download 2222 records 6197 | runs 15221 adjust 3199 | push 4722 keep 9755 | 256 partitions counted
+order 4 phases ms: wall 128966 | own count 27327 extension count 33880 | histogram 44 select 24424 sort 16041 emit 2637 download 5553 records 12373 | runs 24309 adjust 7278 | push 11827 keep 21801 | 256 partitions counted
+order 5 phases ms: wall 176085 | own count 34192 extension count 40163 | histogram 39 select 24864 sort 19521 emit 2752 download 8822 records 18089 | runs 32035 adjust 11214 | push 20462 keep 34619 | 256 partitions counted
+order 6 phases ms: wall 219444 | own count 40536 extension count 46102 | histogram 44 select 24660 sort 22943 emit 3021 download 11972 records 23567 | runs 38335 adjust 14745 | push 28857 keep 46302 | 256 partitions counted
+order 7 phases ms: wall 256114 | own count 46411 extension count 51232 | histogram 53 select 25088 sort 26029 emit 3111 download 14678 records 28130 | runs 43193 adjust 17614 | push 36020 keep 55977 | 256 partitions counted
+order 8 phases ms: wall 299338 | own count 55016 extension count 59019 | histogram 59 select 26561 sort 30054 emit 3474 download 16950 records 36008 | runs 48815 adjust 21051 | push 41794 keep 63767 | 256 partitions counted
+order 9 phases ms: wall 324638 | own count 60185 extension count 63930 | histogram 49 select 26881 sort 34064 emit 3732 download 19494 records 38773 | runs 51593 adjust 22515 | push 46221 keep 69810 | 256 partitions counted
+order 10 phases ms: wall 216752 | own count 63792 extension count 0 | histogram 32 select 13761 sort 17693 emit 1878 download 10044 records 19816 | runs 0 adjust 22069 | push 50261 keep 74394 | 128 partitions counted
+G3 PASS: identical to claude-422's sweep-10.json

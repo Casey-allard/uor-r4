@@ -1,0 +1,17 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 4127 ms
+order 0 phases ms: wall 29720 | own count 14115 extension count 15581 | histogram 32 select 23496 sort 3458 emit 2703 download 11 records 8 | runs 0 adjust 0 | push 0 keep 0 | 256 partitions counted
+order 0: 128 partitions, grams 4079 contexts 1, kept triples 3921 contexts 1, 34945 ms
+order 1 phases ms: wall 34587 | own count 15589 extension count 17511 | histogram 35 select 23606 sort 6412 emit 2691 download 141 records 247 | runs 1166 adjust 32 | push 58 keep 133 | 256 partitions counted
+order 1: 128 partitions, grams 3287899 contexts 4079, kept triples 401191 contexts 3921, 69940 ms
+order 2 phases ms: wall 49024 | own count 17187 extension count 21100 | histogram 37 select 23667 sort 9438 emit 2582 download 727 records 1867 | runs 6422 adjust 595 | push 978 keep 2380 | 256 partitions counted
+order 2: 128 partitions, grams 52997638 contexts 3286408, kept triples 1720333 contexts 401077, 119472 ms
+order 3 phases ms: wall 81490 | own count 21093 extension count 26518 | histogram 40 select 24031 sort 12720 emit 2614 download 2165 records 6031 | runs 15115 adjust 3131 | push 4705 keep 9752 | 256 partitions counted
+order 3: 128 partitions, grams 201064161 contexts 52982116, kept triples 2853741 contexts 1719653, 201545 ms
+order 4 phases ms: wall 68819 | own count 27100 extension count 0 | histogram 20 select 12032 sort 7320 emit 1252 download 1892 records 4561 | runs 0 adjust 6533 | push 12192 keep 21778 | 128 partitions counted
+order 4: 128 partitions, grams 411773607 contexts 200999697, kept triples 3295997 contexts 2852734, 271004 ms
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 10807417 targets, 271556 ms
+host = GPU at all 10807417 targets, 294430 ms
+masses at the one-unit floor: 0
+wrote /workspace/out/c423/sweep-4.json, 294662 ms
+N=4 rc=0 wall s: 295 peak rss KiB: 8207612
