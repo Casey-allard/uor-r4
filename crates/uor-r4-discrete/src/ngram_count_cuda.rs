@@ -394,7 +394,7 @@ fn gpu_sweep(
         .collect::<crate::Result<Vec<_>>>()?;
     let plan = counter.count_adjusted_sweep_tampered(highest, budget, tamper, &mut |order, partition| {
         match keep.contains(&order) {
-            true => assemblers[order as usize].push(partition),
+            true => assemblers[order as usize].push_owned(partition),
             false => Ok(()),
         }
     })?;

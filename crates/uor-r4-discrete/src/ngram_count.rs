@@ -175,25 +175,140 @@ pub struct NgramPartition {
     pub count_of_counts: [u64; 4],
 }
 
-/// The bytes a [`StreamHasher`] buffers before it sends them to its thread.
+/// The bytes a worker encodes before it hashes them.
 const HASH_CHUNK_BYTES: usize = 4 << 20;
-/// Chunks in flight per stream before the sender waits on its hasher.
-const HASH_CHANNEL_DEPTH: usize = 4;
+/// Partitions queued per worker behind the one it is hashing (claude-428).
+const WORKER_QUEUE_DEPTH: usize = 1;
 
-/// claude-426: one SHA-256 stream, hashed on its own thread. The caller
-/// encodes records into a buffer; each full buffer goes over a bounded
-/// channel to the thread, which updates the hash in arrival order. SHA-256 of
-/// a byte stream does not depend on where the stream is cut, so the digest
-/// equals hashing the same bytes inline. A hasher thread can only stop by
-/// panicking; `finish` then re-raises that panic on the caller's thread.
-struct StreamHasher {
-    chunk: usize,
+/// One SHA-256 stream over a domain, the order byte and encoded records,
+/// hashed whenever `chunk` bytes are buffered. SHA-256 of a byte stream does
+/// not depend on where the stream is cut, so the digest equals hashing the
+/// same bytes in one call.
+struct ChunkedHash {
+    hash: Sha256,
     buffer: Vec<u8>,
-    sender: Option<SyncSender<Vec<u8>>>,
-    thread: Option<JoinHandle<(Sha256, u64)>>,
-    /// claude-427: shared with the thread, which then times its updates.
+    chunk: usize,
+}
+
+impl ChunkedHash {
+    fn new(domain: &[u8], order: u32, chunk: usize) -> Self {
+        let mut hash = Sha256::new();
+        hash.update(domain);
+        hash.update([order as u8]);
+        let chunk = chunk.max(1);
+        Self {
+            hash,
+            buffer: Vec::with_capacity(chunk),
+            chunk,
+        }
+    }
+
+    fn update(&mut self, bytes: &[u8]) {
+        self.buffer.extend_from_slice(bytes);
+        if self.buffer.len() >= self.chunk {
+            self.hash.update(&self.buffer);
+            self.buffer.clear();
+        }
+    }
+
+    fn finish(mut self) -> String {
+        self.hash.update(&self.buffer);
+        format!("{:x}", self.hash.finalize())
+    }
+}
+
+/// What a worker does with each partition, in arrival order, and at the end.
+trait StreamWork: Send + 'static {
+    type Output: Send + 'static;
+    fn feed(&mut self, partition: &NgramPartition);
+    fn finish(self) -> Self::Output;
+}
+
+/// The triple stream: every triple, encoded and hashed.
+struct TripleWork {
+    out: ChunkedHash,
+}
+
+impl StreamWork for TripleWork {
+    type Output = String;
+
+    fn feed(&mut self, partition: &NgramPartition) {
+        for triple in &partition.triples {
+            self.out.update(&triple_bytes(triple));
+        }
+    }
+
+    fn finish(self) -> String {
+        self.out.finish()
+    }
+}
+
+/// The context stream. A context may straddle a partition boundary only at
+/// order 0 (the empty context); its records are added, since every field is
+/// additive over disjoint follower sets. The caller has already refused any
+/// other context that repeats or goes backwards across a boundary.
+struct ContextWork {
+    out: ChunkedHash,
+    pending: Option<NgramContext>,
+    emitted: u64,
+    keep: bool,
+    kept: Vec<NgramContext>,
+}
+
+impl ContextWork {
+    fn emit(&mut self, context: NgramContext) {
+        self.out.update(&context_bytes(&context));
+        self.emitted += 1;
+        if self.keep {
+            self.kept.push(context);
+        }
+    }
+}
+
+impl StreamWork for ContextWork {
+    /// The digest, the contexts emitted, and the kept records (tests).
+    type Output = (String, u64, Vec<NgramContext>);
+
+    fn feed(&mut self, partition: &NgramPartition) {
+        for context in &partition.contexts {
+            match self.pending.take() {
+                Some(mut pending) if pending.key == context.key => {
+                    pending.total += context.total;
+                    pending.followers += context.followers;
+                    pending.n1 += context.n1;
+                    pending.n2 += context.n2;
+                    pending.n3_plus += context.n3_plus;
+                    self.pending = Some(pending);
+                }
+                Some(pending) => {
+                    self.emit(pending);
+                    self.pending = Some(*context);
+                }
+                None => self.pending = Some(*context),
+            }
+        }
+    }
+
+    fn finish(mut self) -> Self::Output {
+        if let Some(pending) = self.pending.take() {
+            self.emit(pending);
+        }
+        (self.out.finish(), self.emitted, self.kept)
+    }
+}
+
+/// claude-428: one stream's worker thread. The caller hands it whole
+/// partitions in one `Arc` shared with the order's other worker; the worker
+/// encodes and hashes them in arrival order. Its queue holds
+/// [`WORKER_QUEUE_DEPTH`] partitions behind the one in progress, which bounds
+/// the partitions an order holds. A worker can only stop by panicking;
+/// `finish` then re-raises that panic on the caller's thread.
+struct Worker<W: StreamWork> {
+    sender: Option<SyncSender<Arc<NgramPartition>>>,
+    thread: Option<JoinHandle<(W::Output, u64)>>,
+    /// claude-427: shared with the thread, which then times its work.
     timed: Arc<AtomicBool>,
-    /// Nanoseconds `send` blocked on a full channel, while timed.
+    /// Nanoseconds a hand-off blocked on a full queue, while timed.
     wait_ns: u64,
 }
 
@@ -202,31 +317,31 @@ fn nanos_since(start: Instant) -> u64 {
     u64::try_from(start.elapsed().as_nanos()).unwrap_or(u64::MAX)
 }
 
-impl StreamHasher {
-    fn new(domain: &[u8], order: u32, chunk: usize) -> Result<Self> {
-        let mut hash = Sha256::new();
-        hash.update(domain);
-        hash.update([order as u8]);
-        let (sender, receiver) = sync_channel::<Vec<u8>>(HASH_CHANNEL_DEPTH);
+impl<W: StreamWork> Worker<W> {
+    fn new(name: String, mut work: W) -> Result<Self> {
+        let (sender, receiver) = sync_channel::<Arc<NgramPartition>>(WORKER_QUEUE_DEPTH);
         let timed = Arc::new(AtomicBool::new(false));
         let thread_timed = Arc::clone(&timed);
         let thread = std::thread::Builder::new()
-            .name(format!("ngram-hash-{order}"))
+            .name(name)
             .spawn(move || {
                 let mut busy_ns = 0u64;
-                for bytes in receiver {
+                for partition in receiver {
                     let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
-                    hash.update(&bytes);
+                    work.feed(&partition);
                     if let Some(start) = start {
                         busy_ns = busy_ns.saturating_add(nanos_since(start));
                     }
                 }
-                (hash, busy_ns)
+                let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
+                let output = work.finish();
+                if let Some(start) = start {
+                    busy_ns = busy_ns.saturating_add(nanos_since(start));
+                }
+                (output, busy_ns)
             })
-            .map_err(|error| invalid(format!("an n-gram hasher thread did not start: {error}")))?;
+            .map_err(|error| invalid(format!("an n-gram hash worker did not start: {error}")))?;
         Ok(Self {
-            chunk: chunk.max(1),
-            buffer: Vec::with_capacity(chunk.max(1)),
             sender: Some(sender),
             thread: Some(thread),
             timed,
@@ -234,19 +349,11 @@ impl StreamHasher {
         })
     }
 
-    fn update(&mut self, bytes: &[u8]) {
-        self.buffer.extend_from_slice(bytes);
-        if self.buffer.len() >= self.chunk {
-            self.send();
-        }
-    }
-
     /// A failed send means the thread has stopped; `finish` reports why.
-    fn send(&mut self) {
-        let full = std::mem::replace(&mut self.buffer, Vec::with_capacity(self.chunk));
+    fn send(&mut self, partition: Arc<NgramPartition>) {
         if let Some(sender) = &self.sender {
             let start = self.timed.load(Ordering::Relaxed).then(Instant::now);
-            let sent = sender.send(full);
+            let sent = sender.send(partition);
             if let Some(start) = start {
                 self.wait_ns = self.wait_ns.saturating_add(nanos_since(start));
             }
@@ -256,22 +363,19 @@ impl StreamHasher {
         }
     }
 
-    /// The hex digest, and the thread's busy nanoseconds while timed.
-    fn finish(mut self) -> (String, u64) {
-        if !self.buffer.is_empty() {
-            self.send();
-        }
+    /// The worker's output, and its busy nanoseconds while timed.
+    fn finish(mut self) -> (W::Output, u64) {
         let sent_all = self.sender.take().is_some();
         let joined = self.thread.take().map(JoinHandle::join);
         match joined {
-            Some(Ok((hash, busy_ns))) if sent_all => (format!("{:x}", hash.finalize()), busy_ns),
+            Some(Ok(done)) if sent_all => done,
             Some(Err(panic)) => std::panic::resume_unwind(panic),
-            _ => panic!("an n-gram hasher thread stopped before its stream ended"),
+            _ => panic!("an n-gram hash worker stopped before its stream ended"),
         }
     }
 }
 
-impl Drop for StreamHasher {
+impl<W: StreamWork> Drop for Worker<W> {
     fn drop(&mut self) {
         self.sender = None;
         if let Some(thread) = self.thread.take() {
@@ -284,18 +388,21 @@ impl Drop for StreamHasher {
 /// partitions, in nanoseconds. All zero unless
 /// [`NgramAssembler::enable_timing`] was called. The two `send_wait` fields
 /// are parts of the feed above them; the hasher `busy` fields are time on the
-/// hasher threads, beside the caller's.
+/// hash workers, beside the caller's. Since claude-428 the workers encode as
+/// well as hash, and a feed is the caller's hand-off to its worker.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct AssemblerTiming {
     /// The per-triple loop: order, vocabulary, ascent, nonzero count.
     pub triple_checks_ns: u64,
     /// The per-context loop: order, followers = n1 + n2 + n3+.
     pub context_checks_ns: u64,
-    /// `check_census`, the count-of-counts comparison and the seam check.
+    /// `check_census`, the count-of-counts comparison, the seam and
+    /// cross-partition context order checks.
     pub census_ns: u64,
-    /// Encoding triples into their stream, with any wait on its channel.
+    /// The counters, then handing the partition to the triple worker, with
+    /// any wait on its queue.
     pub triple_feed_ns: u64,
-    /// The context merge and encoding, with any wait on its channel.
+    /// Handing the partition to the context worker, with any wait on its queue.
     pub context_feed_ns: u64,
     pub triple_send_wait_ns: u64,
     pub context_send_wait_ns: u64,
@@ -332,16 +439,18 @@ impl Splits {
 /// every field is additive over disjoint follower sets. The context records
 /// and n1..n4 are pure functions of the triples: the assembler derives them
 /// from each partition's triples and refuses a partition whose own differ.
+/// claude-428: every check runs on the caller's thread, and a partition that
+/// passes them goes whole to the order's two hash workers.
 pub struct NgramAssembler {
     order: u32,
     keep: bool,
-    triple_hash: StreamHasher,
-    context_hash: StreamHasher,
+    triple_worker: Worker<TripleWork>,
+    context_worker: Worker<ContextWork>,
     last_triple: Option<(u128, u16)>,
-    pending_context: Option<NgramContext>,
+    /// The key of the last context handed on, for the seam and order checks.
+    last_context: Option<u128>,
     targets: u64,
     grams: u64,
-    contexts: u64,
     count_of_counts: [u64; 4],
     timing: Option<AssemblerTiming>,
     pub triples: Vec<NgramTriple>,
@@ -349,11 +458,11 @@ pub struct NgramAssembler {
 }
 
 impl NgramAssembler {
-    /// claude-427: time `push` from now on, and its hasher threads.
+    /// claude-427: time `push` from now on, and its hash workers.
     pub fn enable_timing(&mut self) {
         self.timing.get_or_insert_with(AssemblerTiming::default);
-        self.triple_hash.timed.store(true, Ordering::Relaxed);
-        self.context_hash.timed.store(true, Ordering::Relaxed);
+        self.triple_worker.timed.store(true, Ordering::Relaxed);
+        self.context_worker.timed.store(true, Ordering::Relaxed);
     }
 
     /// `keep` retains the streams in memory (tests); otherwise only hashes.
@@ -385,16 +494,25 @@ impl NgramAssembler {
         if order > NGRAM_MAX_ORDER {
             return Err(invalid(format!("n-gram order {order} exceeds {NGRAM_MAX_ORDER}")));
         }
+        let triple_work = TripleWork {
+            out: ChunkedHash::new(triples, order, chunk),
+        };
+        let context_work = ContextWork {
+            out: ChunkedHash::new(contexts, order, chunk),
+            pending: None,
+            emitted: 0,
+            keep,
+            kept: Vec::new(),
+        };
         Ok(Self {
             order,
             keep,
-            triple_hash: StreamHasher::new(triples, order, chunk)?,
-            context_hash: StreamHasher::new(contexts, order, chunk)?,
+            triple_worker: Worker::new(format!("ngram-triples-{order}"), triple_work)?,
+            context_worker: Worker::new(format!("ngram-contexts-{order}"), context_work)?,
             last_triple: None,
-            pending_context: None,
+            last_context: None,
             targets: 0,
             grams: 0,
-            contexts: 0,
             count_of_counts: [0; 4],
             timing: None,
             triples: Vec::new(),
@@ -404,7 +522,15 @@ impl NgramAssembler {
 
     /// Append the next partition. Refuses any break of canonical order and any
     /// context record or n1..n4 that differs from the one its triples imply.
+    /// The partition is copied once for the hash workers; [`Self::push_owned`]
+    /// avoids the copy.
     pub fn push(&mut self, partition: &NgramPartition) -> Result<()> {
+        self.push_owned(partition.clone())
+    }
+
+    /// [`Self::push`], taking the partition, which the hash workers then share.
+    /// A refused partition hands nothing on and changes no state.
+    pub fn push_owned(&mut self, partition: NgramPartition) -> Result<()> {
         let mut splits = Splits::new(self.timing.is_some());
         let mut last = self.last_triple;
         for triple in &partition.triples {
@@ -438,43 +564,34 @@ impl NgramAssembler {
         if partition.count_of_counts != derived_count_of_counts {
             return Err(invalid("n-gram count-of-counts differ from the ones the triples imply"));
         }
-        if self.order >= 1 {
-            let seam = self.pending_context.zip(partition.contexts.first());
-            if seam.is_some_and(|(pending, first)| pending.key == first.key) {
+        let first_context = partition.contexts.first().map(|context| context.key);
+        if let Some((before, first)) = self.last_context.zip(first_context) {
+            if self.order >= 1 && before == first {
                 return Err(invalid("an order >= 1 n-gram context straddles a partition seam"));
+            }
+            if before > first {
+                return Err(invalid("n-gram contexts are not in ascending order"));
             }
         }
         let census_ns = splits.split();
         self.last_triple = last;
-        for triple in &partition.triples {
-            self.triple_hash.update(&triple_bytes(triple));
-            self.targets += u64::from(triple.count);
-            self.grams += 1;
+        if let Some(context) = partition.contexts.last() {
+            self.last_context = Some(context.key);
         }
+        for triple in &partition.triples {
+            self.targets += u64::from(triple.count);
+        }
+        self.grams += partition.triples.len() as u64;
         for (slot, value) in self.count_of_counts.iter_mut().zip(partition.count_of_counts) {
             *slot += value;
         }
-        let triple_feed_ns = splits.split();
-        for context in &partition.contexts {
-            match self.pending_context.take() {
-                Some(mut pending) if pending.key == context.key => {
-                    pending.total += context.total;
-                    pending.followers += context.followers;
-                    pending.n1 += context.n1;
-                    pending.n2 += context.n2;
-                    pending.n3_plus += context.n3_plus;
-                    self.pending_context = Some(pending);
-                }
-                Some(pending) => {
-                    if pending.key > context.key {
-                        return Err(invalid("n-gram contexts are not in ascending order"));
-                    }
-                    self.emit_context(pending);
-                    self.pending_context = Some(*context);
-                }
-                None => self.pending_context = Some(*context),
-            }
+        if self.keep {
+            self.triples.extend_from_slice(&partition.triples);
         }
+        let shared = Arc::new(partition);
+        self.triple_worker.send(Arc::clone(&shared));
+        let triple_feed_ns = splits.split();
+        self.context_worker.send(shared);
         let context_feed_ns = splits.split();
         if let Some(timing) = self.timing.as_mut() {
             timing.triple_checks_ns += triple_checks_ns;
@@ -483,18 +600,7 @@ impl NgramAssembler {
             timing.triple_feed_ns += triple_feed_ns;
             timing.context_feed_ns += context_feed_ns;
         }
-        if self.keep {
-            self.triples.extend_from_slice(&partition.triples);
-        }
         Ok(())
-    }
-
-    fn emit_context(&mut self, context: NgramContext) {
-        self.context_hash.update(&context_bytes(&context));
-        self.contexts += 1;
-        if self.keep {
-            self.context_records.push(context);
-        }
     }
 
     pub fn finish(self) -> (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>) {
@@ -504,34 +610,31 @@ impl NgramAssembler {
 
     /// `finish`, with the timing totals; all zero unless timing was enabled.
     pub fn finish_with_timing(
-        mut self,
+        self,
     ) -> (
         NgramOrderDigest,
         Vec<NgramTriple>,
         Vec<NgramContext>,
         AssemblerTiming,
     ) {
-        // The waits are read first, so they hold only sends made in `push`.
         let mut timing = self.timing.unwrap_or_default();
-        timing.triple_send_wait_ns = self.triple_hash.wait_ns;
-        timing.context_send_wait_ns = self.context_hash.wait_ns;
-        if let Some(pending) = self.pending_context.take() {
-            self.emit_context(pending);
-        }
-        let (triple_sha256, triple_busy_ns) = self.triple_hash.finish();
-        let (context_sha256, context_busy_ns) = self.context_hash.finish();
+        timing.triple_send_wait_ns = self.triple_worker.wait_ns;
+        timing.context_send_wait_ns = self.context_worker.wait_ns;
+        let (triple_sha256, triple_busy_ns) = self.triple_worker.finish();
+        let ((context_sha256, contexts, context_records), context_busy_ns) =
+            self.context_worker.finish();
         timing.triple_hash_busy_ns = triple_busy_ns;
         timing.context_hash_busy_ns = context_busy_ns;
         let digest = NgramOrderDigest {
             order: self.order,
             targets: self.targets,
             grams: self.grams,
-            contexts: self.contexts,
+            contexts,
             count_of_counts: self.count_of_counts,
             triple_sha256,
             context_sha256,
         };
-        (digest, self.triples, self.context_records, timing)
+        (digest, self.triples, context_records, timing)
     }
 }
 
@@ -1427,6 +1530,167 @@ mod tests {
                 "order {order}"
             );
         }
+    }
+
+    /// SHA-256 of the domain, the order byte and the encoded records.
+    fn inline_digests(
+        order: u32,
+        domains: (&[u8], &[u8]),
+        triples: &[NgramTriple],
+        contexts: &[NgramContext],
+    ) -> (String, String) {
+        let mut triple_hash = Sha256::new();
+        triple_hash.update(domains.0);
+        triple_hash.update([order as u8]);
+        for triple in triples {
+            triple_hash.update(triple_bytes(triple));
+        }
+        let mut context_hash = Sha256::new();
+        context_hash.update(domains.1);
+        context_hash.update([order as u8]);
+        for context in contexts {
+            context_hash.update(context_bytes(context));
+        }
+        (
+            format!("{:x}", triple_hash.finalize()),
+            format!("{:x}", context_hash.finalize()),
+        )
+    }
+
+    /// claude-428: partitions handed to the hash workers, owned or borrowed,
+    /// give the digests and records of the whole stream counted at once. The
+    /// cuts include 64 narrow partitions handed faster than a 1-byte-chunk
+    /// worker drains them, and order 0's one context straddles every cut.
+    #[test]
+    fn ngram_count_owned_push_equals_inline_sha() {
+        let stream: Vec<u16> = (0..3_000u32)
+            .map(|i| {
+                if i % 97 == 0 {
+                    NGRAM_BOS
+                } else {
+                    (5 + (i * i * 7 + i) % 41) as u16
+                }
+            })
+            .collect();
+        let domains: (&[u8], &[u8]) = (ADJUSTED_TRIPLE_DOMAIN, ADJUSTED_CONTEXT_DOMAIN);
+        let wide = vec![(0u32, 20u32), (20, 30), (30, 4096)];
+        let mut narrow: Vec<(u32, u32)> = (0..63u32).map(|i| (i, i + 1)).collect();
+        narrow.push((63, 4096));
+        for order in 0..=3u32 {
+            let whole = oracle_partition(&stream, order, 0, 4096).expect("whole stream");
+            let want = inline_digests(order, domains, &whole.triples, &whole.contexts);
+            for cuts in [&wide, &narrow] {
+                let parts = cuts
+                    .iter()
+                    .map(|&(lo, hi)| oracle_partition(&stream, order, lo, hi).expect("partition"))
+                    .collect::<Vec<_>>();
+                if order == 0 {
+                    let holding = parts
+                        .iter()
+                        .filter(|part| !part.contexts.is_empty())
+                        .count();
+                    assert!(
+                        holding >= 3,
+                        "order 0's context straddles {holding} partitions"
+                    );
+                }
+                for chunk in [1, 7, TRIPLE_BYTES, 1 << 20] {
+                    let mut assembler =
+                        NgramAssembler::with_domains(order, true, domains.0, domains.1, chunk)
+                            .expect("assembler");
+                    for (at, part) in parts.iter().enumerate() {
+                        match at % 2 {
+                            0 => assembler.push_owned(part.clone()),
+                            _ => assembler.push(part),
+                        }
+                        .expect("canonical partition");
+                    }
+                    let (digest, triples, contexts) = assembler.finish();
+                    let at = format!("order {order} cuts {} chunk {chunk}", cuts.len());
+                    assert!(whole.triples.len() > 10, "{at}");
+                    assert_eq!(triples, whole.triples, "{at}");
+                    assert_eq!(contexts, whole.contexts, "{at}");
+                    assert_eq!(digest.contexts, whole.contexts.len() as u64, "{at}");
+                    assert_eq!(digest.grams, whole.triples.len() as u64, "{at}");
+                    assert_eq!(
+                        (digest.triple_sha256, digest.context_sha256),
+                        want.clone(),
+                        "{at}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// claude-428: a refused partition hands nothing to the workers and
+    /// changes no state; the digest is the digest without it.
+    #[test]
+    fn ngram_count_refused_partition_hands_nothing_on() {
+        let stream: Vec<u16> = (0..3_000u32)
+            .map(|i| (5 + (i * 13 + i / 7) % 37) as u16)
+            .collect();
+        for order in 1..=2u32 {
+            let parts = [(0u32, 20u32), (20, 4096)]
+                .map(|(lo, hi)| oracle_partition(&stream, order, lo, hi).expect("partition"));
+            let mut planted = parts[1].clone();
+            planted.count_of_counts[0] += 1;
+            let mut clean = NgramAssembler::new(order, true).expect("assembler");
+            let mut refused = NgramAssembler::new(order, true).expect("assembler");
+            clean.push(&parts[0]).expect("first");
+            refused.push(&parts[0]).expect("first");
+            let census = refused
+                .push_owned(planted)
+                .expect_err("planted count-of-counts");
+            assert!(census.to_string().contains("count-of-counts"), "{census}");
+            // Handed again, the partition goes backwards. The triple-order
+            // check refuses it; the context-order check behind the census
+            // cannot fire on its own, since a partition's first context key
+            // equals its first triple key.
+            let backwards = refused
+                .push(&parts[0])
+                .expect_err("a partition handed twice");
+            assert!(
+                backwards
+                    .to_string()
+                    .contains("n-gram triples are not in strictly ascending order"),
+                "{backwards}"
+            );
+            clean.push(&parts[1]).expect("second");
+            refused.push(&parts[1]).expect("second after the refusals");
+            assert_eq!(refused.finish(), clean.finish(), "order {order}");
+        }
+        // The seam refusal is the one check after the census that can fire:
+        // an order-1 context split across two partitions. It must also hand
+        // nothing on.
+        let key = PrimeRouteKey::from_context(&[7]).unwrap().word();
+        let half = |next: u16| NgramPartition {
+            triples: vec![NgramTriple {
+                key,
+                next,
+                count: 1,
+            }],
+            contexts: vec![NgramContext {
+                key,
+                total: 1,
+                followers: 1,
+                n1: 1,
+                n2: 0,
+                n3_plus: 0,
+            }],
+            count_of_counts: [1, 0, 0, 0],
+        };
+        let mut clean = NgramAssembler::new(1, true).expect("assembler");
+        let mut refused = NgramAssembler::new(1, true).expect("assembler");
+        clean.push_owned(half(1)).expect("first half");
+        refused.push_owned(half(1)).expect("first half");
+        let seam = refused
+            .push_owned(half(2))
+            .expect_err("a context across a seam");
+        assert!(
+            seam.to_string().contains("straddles a partition seam"),
+            "{seam}"
+        );
+        assert_eq!(refused.finish(), clean.finish(), "seam");
     }
 
     fn refusal(order: u32, partitions: &[NgramPartition]) -> String {

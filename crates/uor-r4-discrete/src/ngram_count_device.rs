@@ -594,7 +594,7 @@ impl NgramCounter {
     ) -> Result<Vec<PartitionRange>> {
         let plan = self.plan(order, budget)?;
         for range in &plan {
-            assembler.push(&self.count_partition(order, range)?)?;
+            assembler.push_owned(self.count_partition(order, range)?)?;
         }
         Ok(plan)
     }
@@ -714,7 +714,7 @@ impl NgramCounter {
         &self,
         highest: u32,
         budget: u64,
-        mut sink: impl FnMut(u32, &NgramPartition) -> Result<()>,
+        mut sink: impl FnMut(u32, NgramPartition) -> Result<()>,
     ) -> Result<Vec<PartitionRange>> {
         self.sweep(highest, budget, &mut |_, _| {}, &mut sink)
     }
@@ -727,7 +727,7 @@ impl NgramCounter {
         highest: u32,
         budget: u64,
         tamper: &mut dyn FnMut(u32, &mut NgramPartition),
-        sink: &mut dyn FnMut(u32, &NgramPartition) -> Result<()>,
+        sink: &mut dyn FnMut(u32, NgramPartition) -> Result<()>,
     ) -> Result<Vec<PartitionRange>> {
         if highest > NGRAM_MAX_ORDER {
             return Err(invalid(format!("adjusted counts need N <= {NGRAM_MAX_ORDER}, got {highest}")));
@@ -754,8 +754,8 @@ impl NgramCounter {
                         adjust_partition_from_runs(order, highest, range.lo, range.hi, &counted, &runs)?;
                     self.tick(ADJUST, started);
                     drop(std::mem::take(&mut runs));
-                    sink(order, &adjusted)?;
-                    drop(adjusted);
+                    // claude-428: the sink owns the partition from here.
+                    sink(order, adjusted)?;
                     if order == 1 {
                         continuation.add(&counted)?;
                     } else {
@@ -771,7 +771,7 @@ impl NgramCounter {
         let unigram_plan = self.count_order(0, budget, &mut raw)?;
         self.tick(OWN_COUNT, started);
         let (_, unigrams, _) = raw.finish();
-        sink(0, &continuation.adjust(highest, &unigrams)?)?;
+        sink(0, continuation.adjust(highest, &unigrams)?)?;
         Ok(if highest >= 1 { plan } else { unigram_plan })
     }
 }
@@ -798,7 +798,7 @@ impl NgramCounter {
         highest: u32,
         budget: u64,
         tamper: &mut dyn FnMut(u32, &mut NgramPartition),
-        sink: &mut dyn FnMut(u32, &NgramPartition) -> Result<()>,
+        sink: &mut dyn FnMut(u32, NgramPartition) -> Result<()>,
     ) -> Result<Vec<PartitionRange>> {
         self.sweep(highest, budget, tamper, sink)
     }

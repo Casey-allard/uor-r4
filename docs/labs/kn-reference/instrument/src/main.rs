@@ -362,19 +362,24 @@ fn run(args: &[String]) -> Result<(), Failure> {
             )));
         };
         handed[k] += 1;
+        // claude-428: the filter and the census borrow the partition, then
+        // the assembler takes it for its hash workers. Their results are held
+        // so a refusal keeps its old precedence: push, census, keep.
         let at = start_phase();
-        assembler.push(partition)?;
-        if let Some(at) = at {
-            push_ns[k] += nanos(at);
-        }
-        let at = start_phase();
-        let kept = filter.keep(partition);
+        let kept = filter.keep(&partition);
         if let Some(at) = at {
             keep_ns[k] += nanos(at);
         }
-        if let Some(census) = k.checked_sub(1).and_then(|below| censuses.get_mut(below)) {
-            census.observe(partition)?;
+        let observed = match k.checked_sub(1).and_then(|below| censuses.get_mut(below)) {
+            Some(census) => census.observe(&partition),
+            None => Ok(()),
+        };
+        let at = start_phase();
+        assembler.push_owned(partition)?;
+        if let Some(at) = at {
+            push_ns[k] += nanos(at);
         }
+        observed?;
         kept
     })?;
     eprintln!("sweep: {} shared ranges for orders 1..={}", shared.len(), args.highest);
@@ -504,7 +509,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // the scorer reads a single target; the extension census is count-only.
     if args.count_only {
         let mut summary = serde_json::json!({
-            "unit": "claude-427",
+            "unit": "claude-428",
             "mode": if args.extension_census { "extension-census" } else { "count-only" },
             "highest_order": args.highest,
             "budget": args.budget,
