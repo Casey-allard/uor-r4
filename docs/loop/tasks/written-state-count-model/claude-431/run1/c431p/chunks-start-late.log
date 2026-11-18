@@ -1,0 +1,66 @@
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c431pn/crates/uor-r4-discrete)
+   Compiling uor-r4-cpu-train v0.1.0 (/root/work/c431pn/crates/uor-r4-cpu-train)
+    Finished `release` profile [optimized] target(s) in 49.06s
+     Running unittests src/lib.rs (/root/work/c431pt/crate/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 2 tests
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... FAILED
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... FAILED
+
+failures:
+
+---- ngram_count_cuda::ngram_count_cuda_matches_the_oracle stdout ----
+match len 100000 narrow 0 order 0: grams 4095 contexts 1 n1..n4 [0, 0, 0, 0] sha 5c942f7ed2438a7be7181628d454cea27b36498feb4d7650afb189ea9c2ae44c
+
+thread '<unnamed>' (36962) panicked at crates/uor-r4-discrete/src/ngram_count_device.rs:741:33:
+index out of bounds: the len is 195568 but the index is 195568
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'ngram_count_cuda::ngram_count_cuda_matches_the_oracle' (36945) panicked at crates/uor-r4-discrete/src/ngram_count.rs:174:5:
+a scoped thread panicked
+
+---- ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle stdout ----
+
+thread '<unnamed>' (36978) panicked at crates/uor-r4-discrete/src/ngram_count_device.rs:741:33:
+index out of bounds: the len is 233032 but the index is 233032
+
+thread 'ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle' (36944) panicked at crates/uor-r4-discrete/src/ngram_count.rs:174:5:
+a scoped thread panicked
+
+
+failures:
+    ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle
+    ngram_count_cuda::ngram_count_cuda_matches_the_oracle
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 455 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p uor-r4-discrete --lib`

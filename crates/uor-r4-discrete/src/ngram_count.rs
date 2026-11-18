@@ -154,6 +154,40 @@ pub fn context_bytes(context: &NgramContext) -> [u8; CONTEXT_BYTES] {
     bytes
 }
 
+/// Elements below which [`build_indexed`] fills its vector on the caller.
+const BUILD_PARALLEL_MIN: usize = 1 << 16;
+
+/// The vector whose element i is `f(i)` for i in 0..n (claude-431). It is
+/// filled in at most `threads` contiguous chunks on scoped threads, or on the
+/// caller below 2^16 elements or with one thread; the result does not depend
+/// on `threads`.
+pub fn build_indexed<T, F>(n: usize, threads: usize, f: F) -> Vec<T>
+where
+    T: Send,
+    F: Fn(usize) -> T + Sync,
+{
+    if threads <= 1 || n < BUILD_PARALLEL_MIN {
+        return (0..n).map(f).collect();
+    }
+    let mut out = Vec::with_capacity(n);
+    let chunk = n.div_ceil(threads);
+    std::thread::scope(|scope| {
+        let f = &f;
+        for (index, slots) in out.spare_capacity_mut()[..n].chunks_mut(chunk).enumerate() {
+            scope.spawn(move || {
+                let base = index * chunk;
+                for (offset, slot) in slots.iter_mut().enumerate() {
+                    slot.write(f(base + offset));
+                }
+            });
+        }
+    });
+    // SAFETY: the chunks cover 0..n and each thread wrote every slot of its
+    // chunk; a panic in any thread leaves the scope before this line.
+    unsafe { out.set_len(n) };
+    out
+}
+
 /// What one order's count produced: the replay identity and the census.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NgramOrderDigest {
@@ -1164,6 +1198,21 @@ mod tests {
     use crate::ngram_count_oracle::{
         oracle_adjusted, oracle_count, oracle_partition, plant_one_count,
     };
+
+    /// claude-431: the parallel builder equals the sequential map for sizes
+    /// around its threshold and thread counts beyond the chunk count.
+    #[test]
+    fn ngram_count_build_indexed_equals_the_sequential_map() {
+        let f = |i: usize| (i as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 7;
+        let sizes = [1usize << 16, (1 << 16) - 1, (1 << 16) + 1];
+        for n in [0usize, 1, 7, 1_000_003].into_iter().chain(sizes) {
+            let want = (0..n).map(f).collect::<Vec<_>>();
+            for threads in [1usize, 2, 3, 8, 64] {
+                let got = build_indexed(n, threads, f);
+                assert_eq!(got, want, "n {n} threads {threads}");
+            }
+        }
+    }
 
     /// The device's bin-major histogram and its exclusive scan, on the host.
     fn scanned_bucket_hist(tokens: &[u16], tile: usize) -> (Vec<u32>, usize) {

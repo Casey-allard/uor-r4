@@ -4,7 +4,7 @@
 //! hands, in canonical order, to an [`NgramAssembler`].
 
 use crate::ngram_count::{
-    adjust_partition_from_runs, bucket_starts, check_tokens, extension_runs, partition_offset,
+    adjust_partition_from_runs, bucket_starts, build_indexed, check_tokens, extension_runs, partition_offset,
     partition_target_bound, plan_partitions,
     stream_length_bound, NgramAssembler, NgramContext, UnigramContinuation,
     NgramPartition, NgramTriple, PartitionRange, NGRAM_MAX_ORDER, NGRAM_VOCABULARY,
@@ -93,6 +93,9 @@ pub const NGRAM_COUNT_ENTRIES: [&str; 21] = [
     "ngram_emit_contexts",
 ];
 const RADIX_TILE: u32 = 4096;
+/// claude-431: at most this many host threads build a partition's records,
+/// beside claude-428's two hash workers per order.
+const MAX_BUILD_THREADS: usize = 8;
 const RADIX_WARPS: u32 = 8;
 const SCAN_THREADS: u32 = 256;
 const SCAN_BLOCK: u32 = 2048;
@@ -148,6 +151,8 @@ pub struct NgramCounter {
     n: u32,
     clock: Option<[AtomicU64; PHASES]>,
     buckets: OnceLock<Buckets>,
+    /// Host threads that build each partition's records (claude-431).
+    build_threads: usize,
     /// Test-only: the next adjusted partition loses every left flag.
     #[cfg(test)]
     plant_rule4: std::sync::atomic::AtomicBool,
@@ -183,6 +188,9 @@ impl NgramCounter {
             n,
             clock: None,
             buckets: OnceLock::new(),
+            build_threads: std::thread::available_parallelism()
+                .map_or(1, |threads| threads.get())
+                .min(MAX_BUILD_THREADS),
             #[cfg(test)]
             plant_rule4: std::sync::atomic::AtomicBool::new(false),
         })
@@ -727,34 +735,33 @@ impl NgramCounter {
             count_of_counts: [t12 & 0xffff_ffff, t12 >> 32, t34 & 0xffff_ffff, t34 >> 32],
             ..NgramPartition::default()
         };
-        partition.triples = (0..grams as usize)
-            .map(|g| NgramTriple {
-                key: u128::from(keys[2 * g]) | (u128::from(keys[2 * g + 1]) << 64),
-                next: next[g],
-                count: counts[g],
-            })
-            .collect();
+        // claude-431: both vectors are built on up to `build_threads` threads;
+        // each element depends only on its own index, so the bytes are as before.
+        partition.triples = build_indexed(grams as usize, self.build_threads, |g| NgramTriple {
+            key: u128::from(keys[2 * g]) | (u128::from(keys[2 * g + 1]) << 64),
+            next: next[g],
+            count: counts[g],
+        });
         // claude-422: the host copies of the gram words are freed before the
         // contexts are built; only `records` is read from here on.
         drop(keys);
         drop(next);
         drop(counts);
-        partition.contexts = (0..contexts as usize)
-            .map(|c| {
-                let g0 = records[4 * c];
-                let g1 = if c + 1 < contexts as usize { records[4 * c + 4] } else { grams };
-                let followers = g1 - g0;
-                let (n1, n2) = (records[4 * c + 2], records[4 * c + 3]);
-                NgramContext {
-                    key: partition.triples[g0 as usize].key,
-                    total: u64::from(records[4 * c + 1]),
-                    followers,
-                    n1,
-                    n2,
-                    n3_plus: followers - n1 - n2,
-                }
-            })
-            .collect();
+        let triples = &partition.triples;
+        partition.contexts = build_indexed(contexts as usize, self.build_threads, |c| {
+            let g0 = records[4 * c];
+            let g1 = if c + 1 < contexts as usize { records[4 * c + 4] } else { grams };
+            let followers = g1 - g0;
+            let (n1, n2) = (records[4 * c + 2], records[4 * c + 3]);
+            NgramContext {
+                key: triples[g0 as usize].key,
+                total: u64::from(records[4 * c + 1]),
+                followers,
+                n1,
+                n2,
+                n3_plus: followers - n1 - n2,
+            }
+        });
         self.tick(RECORDS, started);
         Ok(partition)
     }

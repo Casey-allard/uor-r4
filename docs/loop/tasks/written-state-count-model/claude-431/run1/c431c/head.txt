@@ -1,0 +1,14 @@
+head ceb1da88d2bdece798012224ef03e70432f3bece, main = head minus code.patch (96c8841d2), budget 12582912
+load:  21:02:41 up  3:47,  0 user,  load average: 2.76, 3.02, 3.09
+main attempt 1 CPUs: nproc 32, cpu.max 1200000 100000, loadavg 4.52 3.45 3.23
+main attempt 1 GPU before: 7471 MiB, 100 %
+main attempt 1 rc=1 wall s: 142 peak rss KiB: 8207804 peak GPU used MiB (whole device): 23606
+main attempt 1: GPU out of memory, retrying
+main attempt 2 CPUs: nproc 32, cpu.max 1200000 100000, loadavg 3.69 3.48 3.27
+main attempt 2 GPU before: 6639 MiB, 99 %
+main attempt 2 rc=1 wall s: 140 peak rss KiB: 8207708 peak GPU used MiB (whole device): 24022
+main attempt 2: GPU out of memory, retrying
+main attempt 3 CPUs: nproc 32, cpu.max 1200000 100000, loadavg 3.70 3.57 3.33
+main attempt 3 GPU before: 7503 MiB, 99 %
+main attempt 3 rc=1 wall s: 141 peak rss KiB: 8207692 peak GPU used MiB (whole device): 23990
+main attempt 3: GPU out of memory, retrying

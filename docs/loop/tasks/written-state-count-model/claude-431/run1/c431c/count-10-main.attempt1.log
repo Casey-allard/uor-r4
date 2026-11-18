@@ -1,0 +1,3 @@
+read: train 2091560001 of 2091560001 tokens, query 10810087 of 10810087, 3562 ms
+kn-reference: CUDA: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")
+main attempt 1 rc=1 wall s: 142 peak rss KiB: 8207804 peak GPU used MiB (whole device): 23606
