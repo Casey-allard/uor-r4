@@ -496,6 +496,36 @@ impl PairedRoleState {
         }
     }
 
+    /// Project a whole-name candidate onto the original six role offsets,
+    /// replacing reads outside the clause with the missing root at each slot.
+    /// Both ranges use absolute token offsets in the original tape. The caller
+    /// supplies the clause boundaries. Scores are ordered requested, excluded.
+    pub fn project_candidate_in_clause(
+        &self,
+        ids: &[u32],
+        span: RoleSpan,
+        clause: core::ops::Range<usize>,
+    ) -> Result<([u32; ROLE_OFFSETS], [i32; 2])> {
+        validate_role_ids(ids)?;
+        if span.start < clause.start
+            || span.start >= span.end
+            || span.end > clause.end
+            || clause.end > ids.len()
+        {
+            return Err(invalid("invalid paired-role candidate or clause"));
+        }
+        if role_span_at(&self.sites, ids, span.start, ids[span.start]) != Some(span) {
+            return Err(invalid("invalid paired-role candidate span"));
+        }
+        // Rebase only the key reads. Slice bounds become the two missing-root fences.
+        let local = RoleSpan {
+            start: span.start - clause.start,
+            end: span.end - clause.start,
+        };
+        let keys = role_keys(&self.sites, &ids[clause], local);
+        Ok((keys, self.scores(keys)))
+    }
+
     pub fn trace_where(
         &self,
         ids: &[u32],
@@ -594,18 +624,22 @@ pub fn role_candidates<'a>(
 }
 
 fn role_spans<'a>(sites: &'a [[u32; 2]], ids: &'a [u32]) -> impl Iterator<Item = RoleSpan> + 'a {
-    ids.iter().enumerate().filter_map(move |(start, &id)| {
-        if sites[id as usize][1] != 1 {
-            return None;
-        }
-        let end = start
-            + 1
-            + ids[start + 1..]
-                .iter()
-                .take_while(|&&id| sites[id as usize][1] == 2)
-                .count();
-        Some(RoleSpan { start, end })
-    })
+    ids.iter()
+        .enumerate()
+        .filter_map(move |(start, &id)| role_span_at(sites, ids, start, id))
+}
+
+fn role_span_at(sites: &[[u32; 2]], ids: &[u32], start: usize, id: u32) -> Option<RoleSpan> {
+    if sites[id as usize][1] != 1 {
+        return None;
+    }
+    let end = start
+        + 1
+        + ids[start + 1..]
+            .iter()
+            .take_while(|&&id| sites[id as usize][1] == 2)
+            .count();
+    Some(RoleSpan { start, end })
 }
 
 fn role_offsets(span: RoleSpan) -> [usize; ROLE_OFFSETS] {
@@ -644,5 +678,83 @@ mod tests {
         let candidates: Vec<_> = role_candidates(&sites, &[0, 7]).unwrap().collect();
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].0, RoleSpan { start: 1, end: 2 });
+    }
+
+    #[test]
+    fn clause_projection_keeps_original_whole_name_and_masks_both_fences() {
+        let mut sites = vec![[0, 0]; ROLE_VOCAB];
+        for (id, site) in sites.iter_mut().enumerate().take(10) {
+            site[0] = id as u32;
+        }
+        sites[5][1] = 1;
+        sites[6][1] = 2;
+        let slot = ROLE_ROOTS as u32;
+        let state = PairedRoleState::new(
+            [[0; 32]; 4],
+            sites,
+            vec![[2, 0, 8, 0], [MISSING_ROOT, 0, 0, 8]],
+        )
+        .unwrap();
+        let ids = [0, 2, 3, 4, 5, 6, 7, 8, 9];
+        let span = RoleSpan { start: 4, end: 6 };
+        let original = state.trace_where(&ids, 0..ids.len(), |_| true).unwrap();
+        assert_eq!(original.len(), 1);
+        assert_eq!(original[0].span, [4, 6]);
+        assert_eq!(original[0].scores, [10, -2]);
+        assert_eq!(
+            state.project_candidate_in_clause(&ids, span, 1..9).unwrap(),
+            (original[0].feature_keys, original[0].scores),
+        );
+        assert_eq!(
+            state.project_candidate_in_clause(&ids, span, 2..8).unwrap(),
+            (
+                [
+                    MISSING_ROOT,
+                    slot + 3,
+                    2 * slot + 4,
+                    3 * slot + 7,
+                    4 * slot + 8,
+                    5 * slot + MISSING_ROOT
+                ],
+                [-2, 10],
+            ),
+        );
+        assert!(state
+            .project_candidate_in_clause(&ids, RoleSpan { start: 4, end: 5 }, 2..5)
+            .is_err());
+        assert!(state
+            .project_candidate_in_clause(&ids, RoleSpan { start: 5, end: 6 }, 2..8)
+            .is_err());
+        assert!(state.project_candidate_in_clause(&ids, span, 5..8).is_err());
+        assert!(state
+            .project_candidate_in_clause(&ids, span, 2..10)
+            .is_err());
+        assert!(state
+            .project_candidate_in_clause(&ids[1..], span, 2..8)
+            .is_err());
+    }
+
+    #[test]
+    fn clause_projection_distinguishes_a_local_cue_and_collides_beyond_the_shared_tail() {
+        let mut sites = vec![[0, 0]; ROLE_VOCAB];
+        for (id, site) in sites.iter_mut().enumerate().take(12) {
+            site[0] = id as u32;
+        }
+        sites[7][1] = 1;
+        sites[8][1] = 2;
+        let state =
+            PairedRoleState::new([[0; 32]; 4], sites, vec![[2, 0, 8, 0], [3, 0, 0, 8]]).unwrap();
+        let span = RoleSpan { start: 5, end: 7 };
+        let project = |ids: &[u32]| state.project_candidate_in_clause(ids, span, 1..10).unwrap();
+        let requested = project(&[0, 4, 2, 5, 6, 7, 8, 9, 10, 11]);
+        let excluded = project(&[0, 4, 3, 5, 6, 7, 8, 9, 10, 11]);
+        assert_eq!((requested.0[0], requested.1), (2, [10, -2]));
+        assert_eq!((excluded.0[0], excluded.1), (3, [-2, 10]));
+        assert_eq!(requested.0[1..], excluded.0[1..]);
+
+        let requested = project(&[0, 2, 4, 5, 6, 7, 8, 9, 10, 11]);
+        let excluded = project(&[0, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+        assert_eq!(requested.1, [0, 0]);
+        assert_eq!(requested, excluded);
     }
 }

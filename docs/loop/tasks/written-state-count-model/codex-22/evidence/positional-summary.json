@@ -1,0 +1,959 @@
+{
+  "preregistration_sha256": "ae8c5362b91d24cdabc6a5e0f4fe131a4a979eb29971bd261d584a846072580f",
+  "radius": 12,
+  "dimensions": 32,
+  "seeds": [
+    {
+      "seed": 1,
+      "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+      "paired_parent_sha256": "b78c4ddc9dfca0b0c0f7f6fcab84ad6c09bdcb3c9c404a817dda7fa2548b3c33",
+      "role_state_sha256": "56610eab5073cc4b1c8edc7bbae9a9345cbe12876d47b9aec81f4862630087d0",
+      "families": [
+        {
+          "family": "same-multiset",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 0,
+              "kind": "polarity",
+              "positional_l1": 48,
+              "same_multiset": true,
+              "six_keys_distinct": true,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 6
+        },
+        {
+          "family": "far-cue",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 32,
+              "kind": "polarity",
+              "positional_l1": 32,
+              "same_multiset": false,
+              "six_keys_distinct": false,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 6
+        },
+        {
+          "family": "near-cue",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 32,
+              "kind": "polarity",
+              "positional_l1": 32,
+              "same_multiset": false,
+              "six_keys_distinct": true,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 4
+        }
+      ],
+      "same_multiset_pairs": [
+        {
+          "row": "same-multiset-0",
+          "requested_person": "Rosalind",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                36,
+                40
+              ],
+              "clause": {
+                "end": 40,
+                "start": 30
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                47,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 41
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-1",
+          "requested_person": "Benedict",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                36,
+                40
+              ],
+              "clause": {
+                "end": 40,
+                "start": 30
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                47,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 41
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-2",
+          "requested_person": "Rosalind",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                46,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 40
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                36,
+                39
+              ],
+              "clause": {
+                "end": 39,
+                "start": 30
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-3",
+          "requested_person": "Benedict",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                46,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 40
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                36,
+                39
+              ],
+              "clause": {
+                "end": 39,
+                "start": 30
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "tokenizer_sha256": "f804ecbee34e3c4e0001a737d003e3d620ba2c40722d416e7f3dd64843e2b30e",
+      "paired_parent_sha256": "4d6427dd27fd2fde428f647d25ca3fa8c0446c9720a4f262a3cdee51ffbbaa9d",
+      "role_state_sha256": "1c386426e4b5395de9cfa0e4fd4e2d59b2867e55ce1c930bc1eff4ee534f9d44",
+      "families": [
+        {
+          "family": "same-multiset",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 0,
+              "kind": "polarity",
+              "positional_l1": 48,
+              "same_multiset": true,
+              "six_keys_distinct": true,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 6
+        },
+        {
+          "family": "far-cue",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 32,
+              "kind": "polarity",
+              "positional_l1": 32,
+              "same_multiset": false,
+              "six_keys_distinct": false,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 6
+        },
+        {
+          "family": "near-cue",
+          "comparisons": [
+            {
+              "identity_l1": 0,
+              "kind": "clause_order",
+              "positional_l1": 0,
+              "same_multiset": true,
+              "six_keys_distinct": false,
+              "pairs": 4
+            },
+            {
+              "identity_l1": 32,
+              "kind": "polarity",
+              "positional_l1": 32,
+              "same_multiset": false,
+              "six_keys_distinct": true,
+              "pairs": 4
+            }
+          ],
+          "max_abs_coordinate": 4
+        }
+      ],
+      "same_multiset_pairs": [
+        {
+          "row": "same-multiset-0",
+          "requested_person": "Rosalind",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                36,
+                40
+              ],
+              "clause": {
+                "end": 40,
+                "start": 30
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                47,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 41
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-1",
+          "requested_person": "Benedict",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                36,
+                40
+              ],
+              "clause": {
+                "end": 40,
+                "start": 30
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                47,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 41
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-2",
+          "requested_person": "Rosalind",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                46,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 40
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                36,
+                39
+              ],
+              "clause": {
+                "end": 39,
+                "start": 30
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        },
+        {
+          "row": "same-multiset-3",
+          "requested_person": "Benedict",
+          "candidates": [
+            {
+              "person": "Rosalind",
+              "span": [
+                46,
+                50
+              ],
+              "clause": {
+                "end": 50,
+                "start": 40
+              },
+              "assertion_head": [
+                9,
+                13
+              ],
+              "active_ids_nearest_first": [
+                1040,
+                771,
+                1392,
+                336,
+                2889,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                43143,
+                38773,
+                8744,
+                16928,
+                32481,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                174217,
+                262147,
+                327684,
+                393221
+              ]
+            },
+            {
+              "person": "Benedict",
+              "span": [
+                36,
+                39
+              ],
+              "clause": {
+                "end": 39,
+                "start": 30
+              },
+              "assertion_head": [
+                19,
+                22
+              ],
+              "active_ids_nearest_first": [
+                2889,
+                771,
+                1392,
+                336,
+                1040,
+                1293
+              ],
+              "active_roots_nearest_first": [
+                32481,
+                38773,
+                8744,
+                16928,
+                43143,
+                49705
+              ],
+              "sorted_root_multiset": [
+                8744,
+                16928,
+                32481,
+                38773,
+                43143,
+                49705
+              ],
+              "six_keys": [
+                8744,
+                104310,
+                163555,
+                262147,
+                327684,
+                393221
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

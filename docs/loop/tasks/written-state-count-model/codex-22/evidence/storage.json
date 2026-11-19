@@ -1,0 +1,17 @@
+{
+  "repo": "caseyallard/uor-r4-store",
+  "revision": "cb44edd604ae332a1b176f28aeaddc31e072fc92",
+  "object": "results/codex/2026-11-19-clause-coordinates-723022c9/finite-evidence.tar.zst",
+  "sha256": "723022c9ef7eb3e40f2420d79ffdf00db82fed4da830a3ee087586fd94801855",
+  "restored_files": 27,
+  "readback": "Pinned download and all individual file hashes verified; archive also verified on Wick",
+  "device": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25, NVIDIA GeForce RTX 4090, 580.95.05, 8.9",
+  "allocation": {
+    "instance": "vast-61523498",
+    "time": "2026-11-19T22:03:01Z",
+    "seconds": 108,
+    "usd_per_hour": 0.869,
+    "estimated_usd": 0.02607
+  },
+  "scope": "Finite input packets, four original device output tapes, native comparison files, position/identity vectors, fixtures and build receipt. Original frozen models bound by hashes and retained in existing custody."
+}

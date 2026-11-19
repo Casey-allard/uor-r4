@@ -1,0 +1,26 @@
+[package]
+name = "clause-coordinate-finite"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "clause-coordinate-finite"
+path = "driver.rs"
+
+[[bin]]
+name = "author-clause-fixtures"
+path = "fixtures.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+
+[[bin]]
+name = "project-ordered-clause"
+path = "ordered.rs"
