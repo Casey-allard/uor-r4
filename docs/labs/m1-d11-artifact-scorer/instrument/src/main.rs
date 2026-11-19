@@ -78,6 +78,18 @@ fn run(args: &[String]) -> Result<(), String> {
             Ok(())
         }
         #[cfg(feature = "copy-completion")]
+        [cmd, manifest, digest, artifact, bare, picks, out] if cmd == "entity-writer-action" => {
+            refuse_existing(&[out])?;
+            let result = value_rollout::completion::entity_writer::action(artifact, bare, picks, manifest, digest)?;
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
+        #[cfg(feature = "copy-completion")]
+        [cmd, manifest, digest, artifact, bare, picks, out] if cmd == "entity-writer-crossed" => {
+            refuse_existing(&[out])?;
+            let result = value_rollout::completion::entity_writer::crossed(artifact, bare, picks, manifest, digest)?;
+            write_new(out, &serde_json::to_vec(&result).map_err(|e| e.to_string())?)
+        }
+        #[cfg(feature = "copy-completion")]
         [cmd, artifact, bare, picks, out] if cmd == "entity-writer" => {
             refuse_existing(&[out])?;
             let result = value_rollout::completion::entity_writer::run(artifact, bare, picks)?;

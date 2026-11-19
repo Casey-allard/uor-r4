@@ -1,0 +1,17 @@
+2026-11-19T00:34:27+00:00
+PASS positive, absent, multiple-match, null and tie using bit-identical native Rust / compiled-host / GPU evidence words
+Error: Error("unknown field `absent_name`, expected `prefix`", line: 2, column: 14)
+panels/action-held-blind.json: OK
+panels/action-held-grade.json: OK
+panels/action-train-blind.json: OK
+panels/action-train-grade.json: OK
+1dee180e187636533762bf1b7a2a496cab1f18abcaf3174f59f0dd36727ea916  action-release/FIT.md
+e61c35d257982ce26edd053cae132954b7fcc52c89f0ae405006dbb854576150  action-release/PANEL-FIT.md
+d9a67075fd48306e158e6153597effa5ecf9fd07fb5c5b3734fe6623f57ab325  action-release/RELEASE.md
+e5ad2233443acadc13fc13296502c437a60af0fc298d30b36439b8ec861dff77  action-release/SHEET.md
+286f1460be899764acd1ac3c56ed3bdddbf54d9f91582fa3f505775a5d3a3220  action-release/PANEL-SHEET.md
+c156d497169d1162482329b25e9ce7a186bc4aeb9dcfd9e87b9d32c6efed1c32  action-selector-run.sh
+f340bad1f398517551113abf93c7852eab03d676e3afe63a2d61b8971ab3ef84  results/action-role/seed1-train.json
+f837467141c51fadcc820bd83d1df478c3736b43b710f4dbb93daa1d4c3e08a1  results/action-role/seed2-train.json
+9e741abe770f820f8fbaa286b181e195683f1e399c1ac879b0b8590b7f1c2d92  results/action-role/seed1-held.json
+0d12e4b236ae157ca0a600b394d21a94c2910388825437b8129e4d473848f614  results/action-role/seed2-held.json

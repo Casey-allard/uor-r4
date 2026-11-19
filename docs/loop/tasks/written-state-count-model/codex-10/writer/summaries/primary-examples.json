@@ -1,0 +1,131 @@
+{
+  "rows": 1728,
+  "paired_exact": {
+    "baseline": 209,
+    "role": 302,
+    "boundary": 232,
+    "both": 343
+  },
+  "paired_discordance": {
+    "role": {
+      "gained": 123,
+      "lost": 30
+    },
+    "boundary": {
+      "gained": 23,
+      "lost": 0
+    },
+    "both": {
+      "gained": 164,
+      "lost": 30
+    }
+  },
+  "interaction": {
+    "false,false,false,false": 569,
+    "false,false,false,true": 45,
+    "false,false,true,false": 1,
+    "false,false,true,true": 72,
+    "false,true,false,true": 230,
+    "true,false,true,false": 60,
+    "true,true,true,true": 751
+  },
+  "both_repaired_example": {
+    "case": "held-f0-a0-o0-c11-early-before-none-Leo",
+    "prefix_sha256": "789856380bffe91ba4aaa42d6257fc17f8843f2ea2639773b6837a225d5985f9",
+    "pair": "held-f0-a0-o0-c11-early-before-none",
+    "expected": [
+      1481,
+      1
+    ],
+    "old": "0",
+    "role": "exact",
+    "boundary": "0",
+    "both": "exact",
+    "got": [
+      1481,
+      1
+    ],
+    "base": [
+      1344,
+      1
+    ],
+    "sources": [
+      "6",
+      "10",
+      "6",
+      "10"
+    ],
+    "factors": [
+      "early",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_regressed_example": {
+    "case": "held-f0-a0-o0-c11-late-before-long-Joe",
+    "prefix_sha256": "1f3c8b20d418026a4937f7ad13e6b3c079ceac4a9191451511cb632316001295",
+    "pair": "held-f0-a0-o0-c11-late-before-long",
+    "expected": [
+      1344,
+      1
+    ],
+    "old": "exact",
+    "role": "0",
+    "boundary": "exact",
+    "both": "0",
+    "got": [
+      1481,
+      1
+    ],
+    "base": [
+      1344,
+      1
+    ],
+    "sources": [
+      "6",
+      "10",
+      "6",
+      "10"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "long",
+      "1"
+    ]
+  },
+  "both_persistent_example": {
+    "case": "held-f0-a0-o0-c11-late-before-none-Leo",
+    "prefix_sha256": "e781106b818140ec6e779a6fc2eb51ed2295b51db09b419078516bb703f1e806",
+    "pair": "held-f0-a0-o0-c11-late-before-none",
+    "expected": [
+      1481,
+      1
+    ],
+    "old": "0",
+    "role": "0",
+    "boundary": "0",
+    "both": "0",
+    "got": [
+      1344,
+      1
+    ],
+    "base": [
+      1344,
+      1
+    ],
+    "sources": [
+      "6",
+      "6",
+      "6",
+      "6"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  }
+}

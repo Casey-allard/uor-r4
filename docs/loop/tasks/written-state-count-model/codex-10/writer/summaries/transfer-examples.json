@@ -1,0 +1,139 @@
+{
+  "rows": 1728,
+  "paired_exact": {
+    "baseline": 654,
+    "role": 746,
+    "boundary": 669,
+    "both": 764
+  },
+  "paired_discordance": {
+    "role": {
+      "gained": 96,
+      "lost": 4
+    },
+    "boundary": {
+      "gained": 15,
+      "lost": 0
+    },
+    "both": {
+      "gained": 114,
+      "lost": 4
+    }
+  },
+  "interaction": {
+    "false,false,false,false": 96,
+    "false,false,false,true": 3,
+    "false,false,true,true": 15,
+    "false,true,false,true": 105,
+    "true,false,true,false": 4,
+    "true,true,true,true": 1505
+  },
+  "both_repaired_example": {
+    "case": "transfer-f1-a0-o0-c11-late-before-none-shared-Tavi",
+    "prefix_sha256": "be5e62b405014465af8f7535b68d55568fcec39b956c327dc83ec4ba56c07129",
+    "pair": "transfer-f1-a0-o0-c11-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "1",
+    "role": "exact",
+    "boundary": "1",
+    "both": "exact",
+    "got": [
+      1074,
+      1216,
+      1
+    ],
+    "base": [
+      1074,
+      616,
+      1
+    ],
+    "sources": [
+      "8",
+      "15",
+      "8",
+      "15"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_regressed_example": {
+    "case": "transfer-f0-a1-o1-c13-late-before-none-shared-Sam",
+    "prefix_sha256": "ed725d706152447fef43c2b7271a05f8da8d024a258ccac08cdff2414ffcf24b",
+    "pair": "transfer-f0-a1-o1-c13-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "exact",
+    "role": "1",
+    "boundary": "exact",
+    "both": "1",
+    "got": [
+      1074,
+      616,
+      1
+    ],
+    "base": [
+      1074,
+      1216,
+      1
+    ],
+    "sources": [
+      "13",
+      "8",
+      "13",
+      "8"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_persistent_example": {
+    "case": "transfer-f1-a0-o0-c31-late-before-none-shared-Tavi",
+    "prefix_sha256": "011d9ed93b59d69f609c19bbad56e8264a7f6219ff70402044fc5a325f31458f",
+    "pair": "transfer-f1-a0-o0-c31-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "1",
+    "role": "1",
+    "boundary": "1",
+    "both": "1",
+    "got": [
+      1074,
+      616,
+      1
+    ],
+    "base": [
+      1074,
+      616,
+      1
+    ],
+    "sources": [
+      "10",
+      "10",
+      "10",
+      "10"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  }
+}

@@ -69,7 +69,7 @@ const CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ngram-count.cubin
 const TARGET: &str = include_str!(concat!(env!("OUT_DIR"), "/cuda-image-target.txt"));
 
 /// The kernel inventory admitted by `build.rs`.
-pub const NGRAM_COUNT_ENTRIES: [&str; 21] = [
+pub const NGRAM_COUNT_ENTRIES: [&str; 22] = [
     "ngram_token_hist",
     "ngram_token_hist_reduce",
     "ngram_select_flags",
@@ -91,6 +91,7 @@ pub const NGRAM_COUNT_ENTRIES: [&str; 21] = [
     "ngram_run_starts",
     "ngram_emit_grams",
     "ngram_emit_contexts",
+    "ngram_s2_freeze",
 ];
 const RADIX_TILE: u32 = 4096;
 /// claude-431: at most this many host threads build a partition's records,
@@ -764,6 +765,33 @@ impl NgramCounter {
         });
         self.tick(RECORDS, started);
         Ok(partition)
+    }
+
+    /// Apply the S2 declared-state rule to canonical exact GPU count words.
+    /// The host builds context offsets and serializes the nonzero returned words.
+    pub fn freeze_s2(&self, raw: &[NgramTriple]) -> Result<Vec<NgramTriple>> {
+        if raw.is_empty() { return Ok(Vec::new()); }
+        let len = u32::try_from(raw.len()).map_err(|_| invalid("too many S2 triples"))?;
+        let mut offsets = vec![0u32];
+        for (i, pair) in raw.windows(2).enumerate() {
+            let (left, right) = (pair[0], pair[1]);
+            if (left.key, left.next) >= (right.key, right.next) {
+                return Err(invalid("S2 requires sorted unique triples"));
+            }
+            if left.key != right.key { offsets.push(i as u32 + 1); }
+        }
+        let rows = offsets.len() as u32;
+        offsets.push(len);
+        let starts = self.stream.clone_htod(&offsets).map_err(cuda)?;
+        let counts: Vec<_> = raw.iter().map(|r| r.count).collect();
+        let counts = self.stream.clone_htod(&counts).map_err(cuda)?;
+        let mut declared = self.zeros::<u32>(raw.len())?;
+        let mut launch = self.stream.launch_builder(self.function("ngram_s2_freeze"));
+        launch.arg(&starts).arg(&counts).arg(&rows).arg(&mut declared);
+        // SAFETY: offsets has rows+1 entries bounding disjoint ranges inside the two len-word arrays.
+        unsafe { launch.launch(grid(rows)) }.map_err(cuda)?;
+        let words = self.stream.clone_dtoh(&declared).map_err(cuda)?;
+        Ok(raw.iter().zip(words).filter_map(|(r, count)| (count != 0).then_some(NgramTriple {count, ..*r})).collect())
     }
 
     /// Count `order` under `budget` targets per partition into `assembler`.

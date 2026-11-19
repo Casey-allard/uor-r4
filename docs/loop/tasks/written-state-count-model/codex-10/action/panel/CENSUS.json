@@ -1,0 +1,47 @@
+{
+  "unique_prefixes": 388,
+  "held_train_prefix_overlap": 0,
+  "cells": [
+    {
+      "split": "held",
+      "kind": "absent",
+      "rows": 48
+    },
+    {
+      "split": "held",
+      "kind": "ambiguous",
+      "rows": 48
+    },
+    {
+      "split": "held",
+      "kind": "positive",
+      "rows": 48
+    },
+    {
+      "split": "held",
+      "kind": "prose",
+      "rows": 50
+    },
+    {
+      "split": "train",
+      "kind": "absent",
+      "rows": 48
+    },
+    {
+      "split": "train",
+      "kind": "ambiguous",
+      "rows": 48
+    },
+    {
+      "split": "train",
+      "kind": "positive",
+      "rows": 48
+    },
+    {
+      "split": "train",
+      "kind": "prose",
+      "rows": 50
+    }
+  ],
+  "source_bearing_positive": 96
+}

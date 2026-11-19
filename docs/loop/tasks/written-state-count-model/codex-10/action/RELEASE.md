@@ -1,0 +1,3 @@
+# [codex] Staged pre-run decision
+
+The [gate FIT](FIT.md) and [mixed panel FIT](PANEL-FIT.md) are positive. The two independent gate implementations, finite test and committed panel identities are required at launch. Release only after the twice-run positive/absent/multiple-match/null/tie fixture compares all 20 transition words exactly across native Rust, host C++ and CUDA, the blind schema rejects a graded tape, all four panel hashes match the register, and both new TRAIN and held role-only handoffs are complete. No empirical output may enter a feature or a threshold. The launch receipt records UTC time, hashes, free device memory and the panel identities after these conditions pass.

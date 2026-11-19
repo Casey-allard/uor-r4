@@ -1,0 +1,7 @@
+e7f0dffa00f10a0f38b58558539351bf1464e79f510009c9a7c37a25f2264727  count-src/crates/uor-r4-integer/src/discrete_d11.rs
+01e5d8a76fd81b2511d3e38cc6fc2f902899cef3e711dc298fff492728225037  count-src/crates/uor-r4-discrete/src/lib.rs
+548c5c846e8b3b60b898b66a50a22a6ee4081b3964a820eefccbe89e154ca946  count-src/crates/uor-r4-discrete/src/ngram_count.rs
+6cff833afa97dd4632a76585d778c9eea5a654947e114361d12799f20932e351  count-src/crates/uor-r4-discrete/src/ngram_count_device.rs
+d7c84c7d792fe3886d7c4d20131d02e2b0716700f142a95663485cc08bf315e5  count-src/crates/uor-r4-discrete/src/ngram_count.cu
+5879cc77b2661dfa837c7ff09f8c3f8bd97ca8b88616133b49dd54f4f30d6603  count-src/crates/uor-r4-discrete/src/ngram_count_oracle.rs
+4922c01cf7fd1e764b6d65a57ecc543fd2c07a864c555abd11e7e1d8a9a0dffb  count-src/docs/labs/kn-reference/instrument/src/bin/count-replay.rs

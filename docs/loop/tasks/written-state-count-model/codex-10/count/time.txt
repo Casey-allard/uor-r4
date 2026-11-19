@@ -1,0 +1,23 @@
+	Command being timed: "count-release/release/count-replay /home/callard/uor-codex/20261118-diagnostics/inputs/c420/train.tokens.u16 /home/callard/uor-codex/20261118-diagnostics/inputs/seed1.d11 count-device-run/s2-one-percent.d11"
+	User time (seconds): 68.87
+	System time (seconds): 5.73
+	Percent of CPU this job got: 108%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:08.48
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4317320
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7947813
+	Voluntary context switches: 3220
+	Involuntary context switches: 668
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 740704
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

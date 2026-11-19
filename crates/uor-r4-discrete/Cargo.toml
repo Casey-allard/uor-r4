@@ -9,6 +9,8 @@ description = "Exact SpiralCore/FBS learning proposals and shared geometric vect
 default = []
 cuda = ["dep:cudarc"]
 qualification = []
+# Independent raw-count reference for the P1 GPU-to-D11 replay instrument.
+count-oracle = []
 
 [dependencies]
 cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }

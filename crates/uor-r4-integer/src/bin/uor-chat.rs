@@ -339,7 +339,7 @@ impl Default for CliArgs {
 fn print_usage() {
     eprintln!("Usage: uor-chat --bundle <PATH> [OPTIONS]");
     eprintln!("       uor-chat --stack <ARTIFACT.lut> --tokenizer <TOKENIZER.json> [OPTIONS]");
-    eprintln!("       uor-chat --discrete <ARTIFACT.lut> --prompt-ids <CSV> [OPTIONS]");
+    eprintln!("       uor-chat --discrete <ARTIFACT.lut> (--prompt-ids <CSV> | --tokenizer <JSON> --say <TEXT>) [OPTIONS]");
     eprintln!();
     eprintln!("Options:");
     eprintln!(
@@ -350,9 +350,9 @@ fn print_usage() {
     );
     eprintln!("                              directly by the D11 integer stack engine");
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
-    eprintln!("                              raw-token serving through IntegerDiscreteModel");
+    eprintln!("                              greedy raw-ID or text serving through IntegerDiscreteModel");
     eprintln!(
-        "      --tokenizer <PATH>      tokenizer.json for --stack (required; /10 artifacts bind its SHA-256)"
+        "      --tokenizer <PATH>      tokenizer.json for --stack or a token-bound discrete text turn"
     );
     eprintln!("      --content-readout <P>   artifact-bound content-readout sidecar for --stack");
     eprintln!("      --prompt-reply <P>      complete prompt/reply readout for --serve");
@@ -839,8 +839,11 @@ fn parse_cli_args() -> CliArgs {
         );
         process::exit(1);
     }
-    if args.tokenizer_path.is_some() && args.stack_path.is_none() {
-        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
+    if args.tokenizer_path.is_some()
+        && args.stack_path.is_none()
+        && !(args.discrete_path.is_some() && args.say.is_some())
+    {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' requires '--stack' or a discrete '--say' turn");
         process::exit(1);
     }
     if args.content_readout_path.is_some() && args.stack_path.is_none() {
@@ -957,16 +960,11 @@ fn parse_cli_args() -> CliArgs {
         );
         process::exit(2);
     }
-    if args.discrete_path.is_some() && args.say.is_some() {
-        eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} discrete text chat is not available; use one-shot '--prompt-ids'"
-        );
-        process::exit(1);
-    }
-    if args.discrete_path.is_some() && args.prompt_ids.is_none() {
-        eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--discrete' currently requires one-shot '--prompt-ids'; text chat and REPL are not available"
-        );
+    if args.discrete_path.is_some()
+        && args.prompt_ids.is_none()
+        && (args.say.is_none() || args.tokenizer_path.is_none())
+    {
+        eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--discrete' requires '--prompt-ids' or '--say' with its bound '--tokenizer'");
         process::exit(1);
     }
     if args.discrete_path.is_some() && args.threads != 1 {
@@ -977,7 +975,7 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.discrete_path.is_some() && args.system_prompt.is_some() {
         eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--system' requires text chat; use only raw '--prompt-ids' with '--discrete'"
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--system' is unsupported for a discrete one-shot turn"
         );
         process::exit(1);
     }
@@ -1961,10 +1959,36 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
                 .to_owned(),
         ));
     }
-    let prompt = cli.prompt_ids.as_deref().ok_or_else(|| {
-        IntegerError::Invalid("--discrete requires one-shot --prompt-ids".to_owned())
-    })?;
     let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::load(artifact)?;
+    let mut text_mode = None;
+    let encoded;
+    let prompt = if let (Some(text), Some(path)) = (&cli.say, &cli.tokenizer_path) {
+        let bytes = std::fs::read(path)?;
+        let digest = hex::encode(Sha256::digest(&bytes));
+        if model.tokenizer_sha256() != Some(digest.as_str()) {
+            return Err(IntegerError::Invalid(
+                "discrete artifact does not bind this tokenizer SHA-256".into(),
+            ));
+        }
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+            .ok_or_else(|| IntegerError::Invalid("invalid discrete tokenizer JSON".into()))?;
+        if tokenizer.vocab_size() != model.shape().vocabulary as usize {
+            return Err(IntegerError::Invalid("discrete tokenizer vocabulary mismatch".into()));
+        }
+        let protocol = DialogueProtocol::literal_roles_version(&tokenizer, cli.protocol)
+            .map_err(|e| IntegerError::Invalid(e.to_string()))?;
+        encoded = protocol
+            .bind(&tokenizer)
+            .map_err(|e| IntegerError::Invalid(e.to_string()))?
+            .encode_assistant_prefix(&[Message { role: "user", content: text }])
+            .tokens;
+        text_mode = Some((tokenizer, protocol, digest));
+        encoded.as_slice()
+    } else {
+        cli.prompt_ids.as_deref().ok_or_else(|| {
+            IntegerError::Invalid("missing discrete prompt".into())
+        })?
+    };
     let context_limit = model.shape().context as usize;
     if prompt.len() > context_limit {
         return Err(IntegerError::Invalid(format!(
@@ -1979,26 +2003,61 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         )));
     }
 
+    use uor_r4_integer::discrete_d11::{ExactCopyState, DISCRETE_ROLE_SCHEMA, ROLE_COPY_STOPS};
+    let role_carrier = model.artifact_schema() == DISCRETE_ROLE_SCHEMA;
+    if role_carrier && text_mode.is_some() && cli.protocol != 2 {
+        return Err(IntegerError::Invalid("role-copy text uses literal dialogue protocol 2".into()));
+    }
+    let choice = model.role_choice(prompt, cli.read_mode == ReadMode::Enabled)?;
+    let mut cursor = ExactCopyState::new(choice.and_then(|c| c.source), prompt.len() as u32);
+    let mut copy_steps = Vec::new();
     let mut context = prompt.to_vec();
     let mut generated_ids = Vec::with_capacity(cli.max_tokens);
     for _ in 0..cli.max_tokens {
-        let prediction = model.evaluate_prefix(&context)?.prediction;
+        let ordinary = model.evaluate_prefix(&context)?.prediction;
+        let prediction = if role_carrier {
+            // Cursor addresses stay relative to the captured prompt even when the decode window slides.
+            let step = cursor.write(prompt, ordinary, ROLE_COPY_STOPS)?.finish_with_eos(true, 1);
+            cursor = step.state;
+            copy_steps.push(step.words());
+            step.emitted
+        } else { ordinary };
         generated_ids.push(prediction);
+        if text_mode
+            .as_ref()
+            .is_some_and(|(_, protocol, _)| prediction == protocol.eos_id)
+        {
+            break;
+        }
         if context.len() == context_limit {
             context.remove(0);
         }
         context.push(prediction);
     }
-    let record = serde_json::json!({
+    let mut record = serde_json::json!({
         "schema": "uor-r4.uor-chat-discrete-parity/1",
         "artifact": artifact,
         "artifact_sha256": model.artifact_sha256(),
-        "model_schema": uor_r4_integer::discrete_d11::DISCRETE_SCHEMA,
+        "model_schema": model.artifact_schema(),
         "context": context_limit,
         "decoding": "greedy IntegerDiscreteModel::evaluate_prefix",
         "prompt_ids": prompt,
         "generated_ids": generated_ids,
     });
+    if let Some(choice) = choice {
+        record["decoding"] = "role-only selector, WordStart, continuation and exact-copy EOS".into();
+        record["read_enabled"] = (cli.read_mode == ReadMode::Enabled).into();
+        record["selected"] = serde_json::to_value(choice)?;
+        record["copy_step_words"] = serde_json::to_value(copy_steps)?;
+    }
+    if let Some((tokenizer, protocol, digest)) = text_mode {
+        let visible = generated_ids.strip_suffix(&[protocol.eos_id]);
+        record["schema"] = "uor-r4.uor-chat-discrete-text/1".into();
+        record["stop"] = if visible.is_some() { "eos" } else { "max_tokens" }.into();
+        record["text"] = tokenizer.decode(visible.unwrap_or(&generated_ids)).into();
+        record["tokenizer_sha256"] = digest.into();
+        record["protocol"] = protocol.schema.into();
+    }
     println!("{}", serde_json::to_string_pretty(&record)?);
     Ok(())
 }

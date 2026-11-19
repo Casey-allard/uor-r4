@@ -1,0 +1,7 @@
+5e41937a41c899a26c441e95402f3c2da7d0a0b86309b0dfca7599fecbc29772  reviewed-count-src/crates/uor-r4-integer/src/discrete_d11.rs
+88cedef0cbea8101458d27d1533b7ca9f6e5bd3a8b114b97952c671550e84e0f  reviewed-count-target/release/count-replay
+640fa6884d258343e38804282405820999f40f23554848b0d2561b9833d478d9  reviewed-count-run/s2-one-percent.d11
+0a741bbe502e1f3605b286fbe46845bc87fd6900ccdd480f27f0d638991e7227
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:06.59
+	Maximum resident set size (kbytes): 4316520
+true

@@ -1,0 +1,20 @@
+[
+  {
+    "query": "excluded",
+    "fact": "other",
+    "correct_source": false,
+    "count": 322
+  },
+  {
+    "query": "outside",
+    "fact": "outside",
+    "correct_source": true,
+    "count": 5
+  },
+  {
+    "query": "requested",
+    "fact": "requested",
+    "correct_source": true,
+    "count": 1401
+  }
+]

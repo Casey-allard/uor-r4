@@ -1,0 +1,16 @@
+[
+  {
+    "emitted": " Got it, I'll remember all� that.<|eos|>",
+    "expected": " white<|eos|>",
+    "id": "held-ordinary-0",
+    "issued": null,
+    "prompt": "What color is fresh snow?"
+  },
+  {
+    "emitted": " Got it, I'll remember that.<|eos|>",
+    "expected": " seven<|eos|>",
+    "id": "held-ordinary-1",
+    "issued": null,
+    "prompt": "How many days are in a week?"
+  }
+]

@@ -47,7 +47,7 @@ const NATIVE_VECTOR_ENTRIES: [&str; 7] = [
     "native_q31_read_gate_apply",
 ];
 // The exact n-gram counter (claude-412): its own source, PTX and cubin.
-const NGRAM_COUNT_ENTRIES: [&str; 21] = [
+const NGRAM_COUNT_ENTRIES: [&str; 22] = [
     "ngram_token_hist",
     "ngram_token_hist_reduce",
     "ngram_select_flags",
@@ -69,6 +69,7 @@ const NGRAM_COUNT_ENTRIES: [&str; 21] = [
     "ngram_run_starts",
     "ngram_emit_grams",
     "ngram_emit_contexts",
+    "ngram_s2_freeze",
 ];
 // The modified Kneser-Ney scorer (claude-421): its own source, PTX and cubin.
 const KN_SCORE_ENTRIES: [&str; 1] = ["kn_score_targets"];

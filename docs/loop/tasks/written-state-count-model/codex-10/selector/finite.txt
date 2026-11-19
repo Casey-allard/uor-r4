@@ -1,0 +1,18 @@
+PASS identical pair energies and stable ties; unequal BPE ending rejected, later exact span restored, no viable match abstains, compatible winner retained, overlapping interior offsets rejected, singleton punctuation preserved. AOT and native site and choice words match.
+PASS TRAIN context classes, requested-only and full oracle, source 4, baseline tie, abstention, all device and host words
+PASS identical pair energies and stable ties; unequal BPE ending rejected, later exact span restored, no viable match abstains, compatible winner retained, overlapping interior offsets rejected, singleton punctuation preserved. AOT and native site and choice words match.
+PASS TRAIN context classes, requested-only and full oracle, source 4, baseline tie, abstention, all device and host words
+036060cfc265623e9c97da19041e565356a9b4970cadd44a19f844f14a4630f1  bin/chain
+6370b393730f6b51951718fcafe81c4e509dc9af23aea944162d653cb1092858  bin/cross-input
+9c39ef0c7c97a98c8ad5c634b341b4f2fb92b15ea5ff08b580c24774012cd002  bin/cross-device
+96f48d3844166ba02a8abeed8896da9d736f84f41258105b4e8721361b25ced6  selector/cross.cu
+972f26eb277404322cd6d533be1ae2c2083dc862f6063de29af282e8ece25dd2  src/tree/docs/loop/tasks/written-state-count-model/codex-10/selector/Cargo.toml
+5e873cb9772bf88fae1dc97e5c5a01ae45be90ddeaf70e09292ff75b229ccf37  src/tree/docs/loop/tasks/written-state-count-model/codex-10/selector/Cargo.lock
+4d9b8c4f2c64664b42833285342d9c994dd34dec0f7c9565d76991636941a640  src/tree/docs/loop/tasks/written-state-count-model/codex-10/selector/driver.rs
+c0a8e3b23dcb4876da0abc23c50f20a6759b3171973c7e6ec53013005e3761e5  src/tree/docs/labs/m1-d11-artifact-scorer/instrument/src/bin/entity-pair-chain.rs
+680fabd194021c80c772aae093e03010da916225ca096bfc301256525d76cb11  panels/unanswerable-blind.json
+f8a81d5d5f099b81ff3b02ad37762041a3709402b73c010f0c13f13b3c539df9  panels/unanswerable-grade.json
+bae51b6a0d80647b59ed65132bfe1cc326fe070af3dbd7544bb0c41d5a5eca1d  panels/unseen-blind.json
+d84cdb61d4e1025ba952d7d5daa3daf9ce64971349ef6e9f242c288ba63e1360  panels/unseen-grade.json
+name, uuid, driver_version, memory.free [MiB]
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02, 20778 MiB

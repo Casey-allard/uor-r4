@@ -1,0 +1,7 @@
+# [codex] Independent FIT and pre-run decision for cross and controls
+
+FIT for the preregistered crossed role and value experiment. The training bank, root codebook, model, actual-feedback copy and EOS must each be bound to the proper seed. Holdout grade fields and oracle packets may not enter fitting or ordinary selection. Confirm full-word eligible candidates, two-sided and one-sided oracle semantics, no-read and wrong-source controls, plus historical baseline trajectory equality. Log the intermediate proposed value and final post-continuation source separately so an overwritten intervention is visible. Freeze new panel generator and blind prefixes before empirical scoring, and check full-prefix plus held wording/connector disjointness. Stratify abstention or ambiguous cases by the specific reference policy. Use the same 1,728 historical prompts per panel at each seed; show paired adverse moves as well as gains.
+
+Staged GO on Wick after finite device/serving score, tie, negative hinge, boundary, blind-schema and malformed-input controls, artifact/seed checks and a passing panel seal. Verify shared device flock and free memory before each stage. An altered implementation or evaluation scope requires a recorded pre-outcome amendment. Model publication and P3 status depend on independent product gates. This review author did not author the selector or panel.
+
+f368a3c76b4a84103bcb3d800e5f6b381da48ff388cd69541c638488da2e47d3  docs/loop/tasks/written-state-count-model/codex-10/SELECTOR-SHEET.md

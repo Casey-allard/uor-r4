@@ -1,0 +1,66 @@
+{
+  "positive_rows": 1728,
+  "opposite_role_pairs": 864,
+  "historical_and_train_rows_checked": 8640,
+  "positive_overlap": 0,
+  "duplicate_or_conflicting_visible_prefixes": 0,
+  "requested_positions": [
+    [
+      "early",
+      864
+    ],
+    [
+      "late",
+      864
+    ]
+  ],
+  "exclusion_positions": [
+    [
+      "after",
+      576
+    ],
+    [
+      "before",
+      576
+    ],
+    [
+      "none",
+      576
+    ]
+  ],
+  "tails": [
+    [
+      "long",
+      864
+    ],
+    [
+      "none",
+      864
+    ]
+  ],
+  "source_lengths": [
+    [
+      1,
+      576
+    ],
+    [
+      2,
+      576
+    ],
+    [
+      3,
+      576
+    ]
+  ],
+  "pairs_with_shared_answer_prefix": 432,
+  "unanswerable": [
+    [
+      "absent",
+      24
+    ],
+    [
+      "ambiguous",
+      24
+    ]
+  ]
+}

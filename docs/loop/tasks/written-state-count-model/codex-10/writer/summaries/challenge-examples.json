@@ -1,0 +1,140 @@
+{
+  "rows": 1728,
+  "paired_exact": {
+    "baseline": 650,
+    "role": 734,
+    "boundary": 675,
+    "both": 764
+  },
+  "paired_discordance": {
+    "role": {
+      "gained": 86,
+      "lost": 2
+    },
+    "boundary": {
+      "gained": 25,
+      "lost": 0
+    },
+    "both": {
+      "gained": 116,
+      "lost": 2
+    }
+  },
+  "interaction": {
+    "false,false,false,false": 96,
+    "false,false,false,true": 3,
+    "false,false,true,false": 2,
+    "false,false,true,true": 27,
+    "false,true,false,true": 97,
+    "true,false,true,false": 2,
+    "true,true,true,true": 1501
+  },
+  "both_repaired_example": {
+    "case": "challenge-f1-a0-o0-c11-late-before-none-shared-Zavi",
+    "prefix_sha256": "980baef96808020d09b69e76bd7149023c26c7d6929c682d51c6eaa04c8c9073",
+    "pair": "challenge-f1-a0-o0-c11-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "1",
+    "role": "exact",
+    "boundary": "1",
+    "both": "exact",
+    "got": [
+      1074,
+      1216,
+      1
+    ],
+    "base": [
+      1074,
+      616,
+      1
+    ],
+    "sources": [
+      "8",
+      "15",
+      "8",
+      "15"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_regressed_example": {
+    "case": "challenge-f0-a1-o1-c13-late-before-none-shared-Jim",
+    "prefix_sha256": "56ab46d752de23e6686e6c080139ab792ab414858c7e966f7cc3ebae73098cc3",
+    "pair": "challenge-f0-a1-o1-c13-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "exact",
+    "role": "1",
+    "boundary": "exact",
+    "both": "1",
+    "got": [
+      1074,
+      616,
+      1
+    ],
+    "base": [
+      1074,
+      1216,
+      1
+    ],
+    "sources": [
+      "13",
+      "8",
+      "13",
+      "8"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_persistent_example": {
+    "case": "challenge-f1-a0-o0-c31-late-before-none-shared-Zavi",
+    "prefix_sha256": "76d5fcfc40cc2445ba1de49ff40619e75177bbcbe5d2871e0bd18d7c6df0215c",
+    "pair": "challenge-f1-a0-o0-c31-late-before-none-shared",
+    "expected": [
+      1074,
+      1216,
+      1
+    ],
+    "old": "1",
+    "role": "1",
+    "boundary": "1",
+    "both": "1",
+    "got": [
+      1074,
+      616,
+      1
+    ],
+    "base": [
+      1074,
+      616,
+      1
+    ],
+    "sources": [
+      "10",
+      "10",
+      "10",
+      "10"
+    ],
+    "factors": [
+      "late",
+      "before",
+      "none",
+      "1"
+    ]
+  }
+}

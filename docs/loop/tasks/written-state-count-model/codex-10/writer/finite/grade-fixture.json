@@ -1,0 +1,124 @@
+{
+  "panel": "transfer",
+  "arm": "baseline",
+  "model": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "bare": "6a8d6a143374fe97a4d3a1c08ca2b2f18aad8216f95734b39b4829c2b15d936b",
+  "picks": "4e32c241ac04add3b9ec836008b83dce2991f7c6bdd5209b80f94d2680b2b416",
+  "transitions": 4625,
+  "results": {
+    "rows": 1728,
+    "exact_baseline": 1509,
+    "exact": 1509,
+    "gained": 0,
+    "lost": 0,
+    "later": 0,
+    "earlier": 0,
+    "same": 1728
+  },
+  "both_roles_exact": 654,
+  "sources": {
+    "distractor": 103,
+    "other": 116,
+    "requested": 1509
+  },
+  "first_wrong": {
+    "0": 165,
+    "1": 54,
+    "exact": 1509
+  },
+  "movement": {
+    "0->0": 165,
+    "1->1": 54,
+    "exact->exact": 1509
+  },
+  "strata": {
+    "requested_position": {
+      "early": {
+        "rows": 864,
+        "exact_baseline": 804,
+        "exact": 804,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 864
+      },
+      "late": {
+        "rows": 864,
+        "exact_baseline": 705,
+        "exact": 705,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 864
+      }
+    },
+    "exclusion": {
+      "before": {
+        "rows": 864,
+        "exact_baseline": 714,
+        "exact": 714,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 864
+      },
+      "none": {
+        "rows": 864,
+        "exact_baseline": 795,
+        "exact": 795,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 864
+      }
+    },
+    "tail": {
+      "none": {
+        "rows": 1728,
+        "exact_baseline": 1509,
+        "exact": 1509,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728
+      }
+    },
+    "asked_connector_len": {
+      "1": {
+        "rows": 576,
+        "exact_baseline": 530,
+        "exact": 530,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 576
+      },
+      "2": {
+        "rows": 576,
+        "exact_baseline": 489,
+        "exact": 489,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 576
+      },
+      "3": {
+        "rows": 576,
+        "exact_baseline": 490,
+        "exact": 490,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 576
+      }
+    }
+  }
+}

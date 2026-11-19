@@ -1,4 +1,5 @@
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -29,12 +30,22 @@ fn push_section(blob: &mut Vec<u8>, bytes: &[u8]) -> Value {
 }
 
 fn toy_bytes() -> Vec<u8> {
+    artifact_bytes(&[A, NEG_A, B], &[0, 17, 238], 3, None)
+}
+
+fn artifact_bytes(
+    roots: &[[i32; 8]],
+    cells: &[u32],
+    context: usize,
+    tokenizer: Option<&str>,
+) -> Vec<u8> {
+    let stages = context.ilog(3) as usize + 1;
     let shape = serde_json::json!({
-        "vocabulary": 3,
+        "vocabulary": roots.len(),
         "blocks": 2,
-        "context": 3,
+        "context": context,
         "kept_cells": 3,
-        "stages": 2,
+        "stages": stages,
         "read_mode": "route",
         "read_kept": 0,
         "read_sweeps": 0,
@@ -52,10 +63,13 @@ fn toy_bytes() -> Vec<u8> {
         "source_sha256": "22".repeat(32),
         "geometry_sha256": "33".repeat(32),
     });
-    let table: Vec<i32> = [A, A, NEG_A, NEG_A, B, B].into_iter().flatten().collect();
-    let cells = [0u32, 17, 238];
-    let routes = [0u32; 4];
-    let gates = [0i32; 4];
+    let table: Vec<i32> = roots
+        .iter()
+        .flat_map(|root| [*root, *root])
+        .flatten()
+        .collect();
+    let routes = vec![0u32; 2 * stages];
+    let gates = vec![0i32; 2 * stages];
     let table_bytes: Vec<u8> = table.iter().flat_map(|x| x.to_le_bytes()).collect();
     let cells_bytes: Vec<u8> = cells.iter().flat_map(|x| x.to_le_bytes()).collect();
     let routes_bytes: Vec<u8> = routes.iter().flat_map(|x| x.to_le_bytes()).collect();
@@ -67,6 +81,7 @@ fn toy_bytes() -> Vec<u8> {
     let gates_span = push_section(&mut blob, &gates_bytes);
     let header = serde_json::json!({
         "schema": DISCRETE_SCHEMA,
+        "tokenizer_sha256": tokenizer,
         "shape": shape,
         "matrices": [],
         "tables": [
@@ -227,4 +242,68 @@ fn unsupported_modes_and_invalid_prompts_are_refused() {
     let over_context = run_discrete(&artifact.path, "0,1,2,0", 8, &[]);
     assert!(!over_context.status.success());
     assert!(String::from_utf8_lossy(&over_context.stderr).contains("context"));
+}
+
+#[test]
+fn bound_text_uses_literal_roles_and_stops_on_the_committed_eos() {
+    // Give every ID the same geometry so the lower-ID tie-break emits EOS (0).
+    let pieces = [
+        "<|eos|>", "<|bos|>", "<|unk|>", "a", "A", "s", "i", "t", "n", "U", "e", "r", ":", "Ġ",
+        "Ċ", "h",
+    ];
+    let vocab: serde_json::Map<_, _> = pieces
+        .iter()
+        .enumerate()
+        .map(|(id, surface)| (surface.to_string(), serde_json::json!(id)))
+        .collect();
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "model":{"type":"BPE", "vocab":vocab, "merges":[]},
+        "pre_tokenizer":{"type":"ByteLevel", "add_prefix_space":false},
+        "added_tokens":[{"id":0,"content":"<|eos|>"},{"id":1,"content":"<|bos|>"},{"id":2,"content":"<|unk|>"}]
+    })).unwrap();
+    let digest = hex::encode(Sha256::digest(&bytes));
+    let fixture = artifact_bytes(&[A; 16], &[0; 16], 64, Some(&digest));
+    let artifact = write_artifact("text", &fixture);
+    let path = artifact.directory.join("tokenizer.json");
+    fs::write(&path, &bytes).unwrap();
+    let run = || {
+        Command::new(env!("CARGO_BIN_EXE_uor-chat"))
+            .arg("--discrete")
+            .arg(&artifact.path)
+            .arg("--tokenizer")
+            .arg(&path)
+            .args(["--say", "hi", "--max-tokens", "4"])
+            .output()
+            .unwrap()
+    };
+    let record = successful_json(&run());
+    let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes).unwrap();
+    let protocol =
+        uor_r4_tokenizer::dialogue::DialogueProtocol::literal_roles_v2(&tokenizer).unwrap();
+    let expected = protocol
+        .bind(&tokenizer)
+        .unwrap()
+        .encode_assistant_prefix(&[uor_r4_tokenizer::dialogue::Message {
+            role: "user",
+            content: "hi",
+        }])
+        .tokens;
+    assert_eq!(expected.first(), Some(&protocol.bos_id));
+    assert_eq!(record["prompt_ids"], serde_json::json!(expected));
+    assert_eq!(record["generated_ids"], serde_json::json!([0]));
+    assert_eq!(record["stop"], "eos");
+    assert_eq!(record["text"], "");
+    assert_eq!(record["tokenizer_sha256"], digest);
+    let prompt = expected
+        .iter()
+        .map(u32::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    assert_eq!(
+        successful_json(&run_discrete(&artifact.path, &prompt, 4, &[]))["generated_ids"],
+        serde_json::json!([0, 0, 0, 0])
+    );
+    // Same tokenizer contents and IDs, different file digest.
+    fs::write(&path, [bytes.as_slice(), b" "].concat()).unwrap();
+    assert!(String::from_utf8_lossy(&run().stderr).contains("SHA-256"));
 }

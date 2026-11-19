@@ -35,6 +35,67 @@ struct Selection {
 }
 
 pub fn run(model_path: &str, bare_path: &str, picks_path: &str) -> Result<Value, String> {
+    run_bound(
+        model_path,
+        bare_path,
+        picks_path,
+        MANIFEST.as_bytes(),
+        &["baseline", "repair", "oracle"],
+    )
+}
+
+/// Exercise the same CE writer on handoffs sealed after blind selector predictions.
+pub fn crossed(
+    model: &str,
+    bare: &str,
+    picks: &str,
+    manifest: &str,
+    expected_sha: &str,
+) -> Result<Value, String> {
+    run_with_manifest(model, bare, picks, manifest, expected_sha, CROSS_ARMS)
+}
+
+const CROSS_ARMS: &[&str] = &[
+    "baseline", "role", "boundary", "both", "query", "fact", "anchors", "value", "wrong", "no-read",
+];
+pub fn action(
+    model: &str,
+    bare: &str,
+    picks: &str,
+    manifest: &str,
+    expected_sha: &str,
+) -> Result<Value, String> {
+    run_with_manifest(
+        model,
+        bare,
+        picks,
+        manifest,
+        expected_sha,
+        &["action", "role", "no-read", "forced-read"],
+    )
+}
+fn run_with_manifest(
+    model: &str,
+    bare: &str,
+    picks: &str,
+    manifest: &str,
+    expected_sha: &str,
+    arms: &[&str],
+) -> Result<Value, String> {
+    let bytes = contents(manifest)?;
+    if sha256(&bytes) != expected_sha {
+        return Err("crossed handoff manifest SHA mismatch".into());
+    }
+    run_bound(model, bare, picks, &bytes, arms)
+}
+
+fn run_bound(
+    model_path: &str,
+    bare_path: &str,
+    picks_path: &str,
+    manifest: &[u8],
+    arms: &[&str],
+) -> Result<Value, String> {
     let model = contents(model_path)?;
     let bare = contents(bare_path)?;
     let picks = contents(picks_path)?;
@@ -44,7 +105,7 @@ pub fn run(model_path: &str, bare_path: &str, picks_path: &str) -> Result<Value,
         picks: sha256(&picks),
     };
     if !RELEASED.contains(&identity.model.as_str())
-        || !parse::<Vec<Identity>>(MANIFEST.as_bytes())?.contains(&identity)
+        || !parse::<Vec<Identity>>(manifest)?.contains(&identity)
         || device::cubin_sha256() != HISTORIC_CUBIN
         || sha256(device::COMPLETION_CUBIN) != EOS_CUBIN
     {
@@ -53,7 +114,7 @@ pub fn run(model_path: &str, bare_path: &str, picks_path: &str) -> Result<Value,
     let inputs: Vec<Bare> = parse(&bare)?;
     let picks: Handoff = parse(&picks)?;
     if picks.schema != "uor-r4.entity-pair-chain/1"
-        || !matches!(picks.arm.as_str(), "baseline" | "repair" | "oracle")
+        || !arms.contains(&picks.arm.as_str())
         || picks.artifact_sha256 != identity.model
         || picks.bare_sha256 != identity.bare
         || inputs.is_empty()

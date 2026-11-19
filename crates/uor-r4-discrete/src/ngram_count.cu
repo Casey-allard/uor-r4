@@ -421,3 +421,26 @@ extern "C" __global__ void ngram_emit_contexts(const u32 *context_start, const u
     records[4u * c + 2u] = (u32)(d & 0xffffffffull);
     records[4u * c + 3u] = (u32)(d >> 32);
 }
+
+// One worker per complete ordered context. Within a context successors are
+// already sorted by token ID, so stable insertion preserves the smaller ID on ties.
+extern "C" __global__ void ngram_s2_freeze(const u32 *offsets, const u32 *counts, u32 rows,
+                                           u32 *declared) {
+    for (u32 row = blockIdx.x * blockDim.x + threadIdx.x; row < rows;
+         row += gridDim.x * blockDim.x) {
+        u32 best[4], used = 0;
+        for (u32 i = offsets[row]; i < offsets[row + 1u]; ++i) {
+            if (counts[i] < 2u) continue;
+            u32 at = 0;
+            while (at < used && counts[best[at]] >= counts[i]) ++at;
+            if (at == 4u) continue;
+            if (used < 4u) ++used;
+            for (u32 slot = used - 1u; slot > at; --slot) best[slot] = best[slot - 1u];
+            best[at] = i;
+        }
+        for (u32 slot = 0; slot < used; ++slot) {
+            u32 i = best[slot];
+            declared[i] = 1u << (31u - (u32)__clz(counts[i]));
+        }
+    }
+}

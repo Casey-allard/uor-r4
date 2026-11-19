@@ -37,3 +37,5 @@ Use the shared native operators and lossless representation specified in D85. Pr
 [Decision card](../../loop/tasks/written-state-count-model/claude-409/DECISION.md) · [D87 corpus receipt](https://github.com/UOR-Foundation/uor-r4/pull/4028) · [Phase order](../../../PLAN.md#approved-sequences)
 
 The [18 November program assessment and closure plan](../../loop/tasks/written-state-count-model/codex-9/CLOSURE-PLAN.md) reconciles the P0 amendments, Wick selector and writer diagnostics, LexLean correspondence and remaining M2–M8 product gates. Its proposed experiments include a crossed role/value-boundary test in parallel with the P1 frozen count baseline.
+
+The [first implementation and Wick decision](../../loop/tasks/written-state-count-model/codex-10/REPORT.md) replays the 1% count stream and packages a learned occurrence reader for ordinary text. The crossed writer and held copy-eligibility tests expose transfer and abstention errors. The deployable full-support P1 mixer, P2 predictive comparison and M2 free-reply milestone remain open.

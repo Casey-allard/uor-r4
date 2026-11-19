@@ -1,0 +1,136 @@
+{
+  "artifact_bytes": 379223660,
+  "base_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "declared_rows": 14634359,
+  "declared_sha256": "0a741bbe502e1f3605b286fbe46845bc87fd6900ccdd480f27f0d638991e7227",
+  "loaded_sha256": "640fa6884d258343e38804282405820999f40f23554848b0d2561b9833d478d9",
+  "orders": [
+    {
+      "contexts": 1,
+      "contexts_sha256": "dc9c1e0baa103e7a2aff8c21f41303271693fcaff4d8732497308aa442b9f42b",
+      "declared_sha256": "7b0f430c794eed02fbbfb1a3879e42a644e5ef744df034cf882fad8ef0b9c09a",
+      "exact_grams": 3989,
+      "exact_sha256": "bd40129fada345de7137959c3bb501f4dd1d9fc370d1d3ec1ddf28a94b3f11d7",
+      "order": 0,
+      "partitions": 22,
+      "retained": 4,
+      "targets": 20470761
+    },
+    {
+      "contexts": 3989,
+      "contexts_sha256": "648742613a07c0ea1cdb19e54fa49f3a247f38ac3e63eb35fd5a75f161c42ad0",
+      "declared_sha256": "3c5338741ee695251e3343c4cf47411dbeadb24fdde9a079c6b88b79a9fffa2b",
+      "exact_grams": 552298,
+      "exact_sha256": "6c87a931d10f0500fb84466dd790f9477be3275873318796616846b63b924108",
+      "order": 1,
+      "partitions": 22,
+      "retained": 14740,
+      "targets": 20470761
+    },
+    {
+      "contexts": 552136,
+      "contexts_sha256": "37f2a9afe29a93f2eeefedc6dc56018f48de36032bbfc9cefa45f45cdc1f3a23",
+      "declared_sha256": "b7f996a89deef229b0eef2f43110273d659eaf711b6822430f5d498c5e75d5dd",
+      "exact_grams": 2922669,
+      "exact_sha256": "ec4b3b49828fd4a1f4587e8b171d8b276ed12e08ad5f4ddd5b7169d1ac6d337b",
+      "order": 2,
+      "partitions": 22,
+      "retained": 556034,
+      "targets": 20465565
+    },
+    {
+      "contexts": 2921566,
+      "contexts_sha256": "370f1841614f52488134fe8a417bbb2c09735ad1de76095a117b5207f4428bd5",
+      "declared_sha256": "58ea374fdbb2682fd8d28db84fce37c92d01f46f68cdc1d32dcc8290338381d5",
+      "exact_grams": 5994165,
+      "exact_sha256": "02a3d256ac1e4a4c67d53d704bdb73097b39f0249907cf0e0a2f22a424556a07",
+      "order": 3,
+      "partitions": 22,
+      "retained": 1433768,
+      "targets": 20460369
+    },
+    {
+      "contexts": 5992017,
+      "contexts_sha256": "5972c55923d52b0a304d96b4358a08df216f745719f3b1a910fbd2edf771c612",
+      "declared_sha256": "e0d67018bc7cc74ee2626d64e53273d947a549d83d9784f9e48f34d0f3ceb4fa",
+      "exact_grams": 8634166,
+      "exact_sha256": "899588b735bde3bfc43c13fc8d2ba15b9dd701dec93e0e647afcd748aec8674e",
+      "order": 4,
+      "partitions": 22,
+      "retained": 1869601,
+      "targets": 20455173
+    },
+    {
+      "contexts": 8631357,
+      "contexts_sha256": "dfd52df6ccb8f3678e54216b52c71ac46b916a995dd8005038c8a405ee2e252e",
+      "declared_sha256": "36ea934162935b19e236e10b8fce71b0126ea7650208314c764272a0f1297f9f",
+      "exact_grams": 10627799,
+      "exact_sha256": "b4310b86988bd0cd294ff9ad4dd98e9fd968636cac3bbe4506f689e4989ebe5a",
+      "order": 5,
+      "partitions": 22,
+      "retained": 1963743,
+      "targets": 20449977
+    },
+    {
+      "contexts": 10624604,
+      "contexts_sha256": "d3329e57cc8ec781f9f6272f8178835004816f06025e85cc5ec4ba47442dad2e",
+      "declared_sha256": "bb2fb3f88b15ba3704dcd24f463a7c71a6683aa9922930881da33edd63257552",
+      "exact_grams": 12055782,
+      "exact_sha256": "92ae91feddd1803b46a6f6c423051ef89344128a81ffa1430ef019d379b6faea",
+      "order": 6,
+      "partitions": 22,
+      "retained": 1921214,
+      "targets": 20444781
+    },
+    {
+      "contexts": 12052108,
+      "contexts_sha256": "f4d54e354b2a995dfb096cee25a7c14bad3f566b3092771096f77b6339e90012",
+      "declared_sha256": "e5510be0b9b8b1823e5b4aefb9edb38cd42001b4000b63e9b24eaa7d73b30818",
+      "exact_grams": 13094226,
+      "exact_sha256": "6f505c4646ac05ab4b2782d828511cf4ce50c6c1b2dd9c1404593e45fff721de",
+      "order": 7,
+      "partitions": 22,
+      "retained": 1839067,
+      "targets": 20439585
+    },
+    {
+      "contexts": 13090284,
+      "contexts_sha256": "8ddb55192c2267a9fb944fbd5dcd8eabb6da651f4fd6993336ccf241d45093bc",
+      "declared_sha256": "ef43f1c78ce9fb74b9317b7d9a95e449c10c7fcde335c7fd408cfbc0d81957a8",
+      "exact_grams": 13866673,
+      "exact_sha256": "0387986c0e198d257667af6272cd759b6a1fcaaf836385ab15ac7f06fcbc164e",
+      "order": 8,
+      "partitions": 22,
+      "retained": 1753211,
+      "targets": 20434389
+    },
+    {
+      "contexts": 13862590,
+      "contexts_sha256": "81790fefc79b1c8479df27d1f6dfd102025eb6dc5dd27500d9ad34778188b486",
+      "declared_sha256": "98b9a887fa0845783c1fe7a583814d5e564340e8cd511145db813be340b54c6b",
+      "exact_grams": 14462083,
+      "exact_sha256": "f194d297017d8c7a18f0957bc9045ca4cd9ef8572e91d80ad633472ec3f752cd",
+      "order": 9,
+      "partitions": 22,
+      "retained": 1675429,
+      "targets": 20429193
+    },
+    {
+      "contexts": 14457945,
+      "contexts_sha256": "48e391f4d1ab9462ee909320946e9539d8ee556ce3e93e10183c4b93a669ad40",
+      "declared_sha256": "7e4704a0cde60fa6b588e2925017a5d37972ec2bd5855f2bf4f73a3c6013cbf8",
+      "exact_grams": 14940180,
+      "exact_sha256": "0fe9be1a4edb2ed351f5fb0ae0a7a60e4e3581d12725d48ba6c80ec5df22994e",
+      "order": 10,
+      "partitions": 22,
+      "retained": 1607548,
+      "targets": 20423997
+    }
+  ],
+  "program_sha256": "daeff4833a38ac8f707164ce0e0a39f23f2baa9ddd40c2de1e80e88e3388f490",
+  "records": 5196,
+  "sample_sha256": "60b466cf9816bcc12f5512005eb580ce32162832004eacf85a8ad9bc1e30edf9",
+  "scope": "P1(a) c420 every hundredth TRAIN record",
+  "tokens": 20475957,
+  "train_sha256": "c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460"
+}

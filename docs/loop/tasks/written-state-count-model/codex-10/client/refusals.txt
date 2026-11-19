@@ -1,0 +1,4 @@
+bad-base error: invalid integer runtime input: role-copy carrier or tokenizer identity mismatch
+bad-prototype error: invalid integer runtime input: invalid role-copy occurrence bank or legacy root
+nested error: invalid integer runtime input: nested role-copy artifact
+wrong-tokenizer error: invalid integer runtime input: discrete artifact does not bind this tokenizer SHA-256

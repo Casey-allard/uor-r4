@@ -56,8 +56,8 @@ pub mod ngram_count;
 mod ngram_count_cuda;
 #[cfg(feature = "cuda")]
 pub mod ngram_count_device;
-#[cfg(test)]
-mod ngram_count_oracle;
+#[cfg(any(test, feature = "count-oracle"))]
+pub mod ngram_count_oracle;
 pub mod normalization_mechanism;
 pub mod objective;
 pub mod order_slice;

@@ -1,0 +1,130 @@
+{
+  "rows": 1728,
+  "paired_exact": {
+    "baseline": 332,
+    "role": 580,
+    "boundary": 332,
+    "both": 580
+  },
+  "paired_discordance": {
+    "role": {
+      "gained": 261,
+      "lost": 13
+    },
+    "boundary": {
+      "gained": 0,
+      "lost": 0
+    },
+    "both": {
+      "gained": 261,
+      "lost": 13
+    }
+  },
+  "interaction": {
+    "false,false,false,false": 255,
+    "false,false,true,false": 1,
+    "false,true,false,true": 277,
+    "false,true,true,true": 5,
+    "true,false,true,false": 66,
+    "true,true,true,true": 1124
+  },
+  "both_repaired_example": {
+    "case": "unseen-f0-a0-o0-c13-early-after-long-held_family-Ben",
+    "prefix_sha256": "76875c1ec4dc3be482597d83bd1e348522fbd37d3b581897293ca714be442be5",
+    "pair": "unseen-f0-a0-o0-c13-early-after-long-held_family",
+    "expected": [
+      2551,
+      1
+    ],
+    "old": "0",
+    "role": "exact",
+    "boundary": "0",
+    "both": "exact",
+    "got": [
+      2551,
+      1
+    ],
+    "base": [
+      924,
+      1
+    ],
+    "sources": [
+      "6",
+      "12",
+      "6",
+      "12"
+    ],
+    "factors": [
+      "early",
+      "after",
+      "long",
+      "3"
+    ]
+  },
+  "both_regressed_example": {
+    "case": "unseen-f0-a0-o0-c11-early-after-long-held_family-Ben",
+    "prefix_sha256": "7ed125e6f28c708d0c6c2405e340c0476991c75facde731b7a4945c76c7cd225",
+    "pair": "unseen-f0-a0-o0-c11-early-after-long-held_family",
+    "expected": [
+      2551,
+      1
+    ],
+    "old": "exact",
+    "role": "0",
+    "boundary": "exact",
+    "both": "0",
+    "got": [
+      924,
+      1
+    ],
+    "base": [
+      2551,
+      1
+    ],
+    "sources": [
+      "10",
+      "6",
+      "10",
+      "6"
+    ],
+    "factors": [
+      "early",
+      "after",
+      "long",
+      "1"
+    ]
+  },
+  "both_persistent_example": {
+    "case": "unseen-f0-a0-o0-c11-early-before-none-held_family-Ben",
+    "prefix_sha256": "9b46d0553e90131c8fb765de8eb6de626ae014aca82b3b00a7887bd121327bec",
+    "pair": "unseen-f0-a0-o0-c11-early-before-none-held_family",
+    "expected": [
+      2551,
+      1
+    ],
+    "old": "0",
+    "role": "0",
+    "boundary": "0",
+    "both": "0",
+    "got": [
+      924,
+      1
+    ],
+    "base": [
+      924,
+      1
+    ],
+    "sources": [
+      "6",
+      "6",
+      "6",
+      "6"
+    ],
+    "factors": [
+      "early",
+      "before",
+      "none",
+      "1"
+    ]
+  }
+}

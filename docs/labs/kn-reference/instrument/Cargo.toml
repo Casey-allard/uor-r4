@@ -20,6 +20,13 @@ path = "src/main.rs"
 [features]
 cuda = ["uor-r4-discrete/cuda"]
 
+count-replay = ["cuda", "uor-r4-discrete/count-oracle"]
+
+[[bin]]
+name = "count-replay"
+path = "src/bin/count-replay.rs"
+required-features = ["count-replay"]
+
 [dependencies]
 serde_json = "1"
 sha2 = "0.10.8"

@@ -1,0 +1,62 @@
+[
+  {
+    "panel": "transfer",
+    "index": 294,
+    "prompt": "Tava has green box. Tavi has green bag. Leave out Tavi. What item did the record mention for Tava?",
+    "expected": [
+      1074,
+      616,
+      1
+    ]
+  },
+  {
+    "panel": "transfer",
+    "index": 295,
+    "prompt": "Tava has green box. Tavi has green bag. Leave out Tava. What item did the record mention for Tavi?",
+    "expected": [
+      1074,
+      1216,
+      1
+    ]
+  },
+  {
+    "panel": "unseen",
+    "index": 0,
+    "prompt": "Dan kept blue. Ben kept gold. Regarding Dan, which possession was theirs?",
+    "expected": [
+      924,
+      1
+    ]
+  },
+  {
+    "panel": "unseen",
+    "index": 1,
+    "prompt": "Dan kept blue. Ben kept gold. Regarding Ben, which possession was theirs?",
+    "expected": [
+      2551,
+      1
+    ]
+  },
+  {
+    "panel": "unanswerable",
+    "index": 0,
+    "prompt": "Dan kept blue. Ben kept gold. Which possession was named for Anne?",
+    "expected": null
+  },
+  {
+    "panel": "noncopy",
+    "index": null,
+    "prompt": "How do you know when a question is unclear?",
+    "expected": null
+  },
+  {
+    "panel": "unseen",
+    "index": 433,
+    "prompt": "Dan kept gold. Ben kept blue. Regarding Ben, which possession was theirs?",
+    "expected": [
+      924,
+      1
+    ],
+    "supplement": "post-registration swapped values; same Ben question"
+  }
+]

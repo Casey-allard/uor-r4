@@ -1,0 +1,92 @@
+[
+  {
+    "kind": "absent",
+    "rows": 48,
+    "allowed": 0,
+    "withheld": 48,
+    "correct_candidate": 0,
+    "correct_address": 0,
+    "ties": 0,
+    "already_null": 0,
+    "evidence": [
+      {
+        "matches": 0,
+        "agree": 0,
+        "copy": false,
+        "count": 33
+      },
+      {
+        "matches": 4294967295,
+        "agree": 4294967295,
+        "copy": false,
+        "count": 15
+      }
+    ]
+  },
+  {
+    "kind": "ambiguous",
+    "rows": 48,
+    "allowed": 0,
+    "withheld": 48,
+    "correct_candidate": 0,
+    "correct_address": 0,
+    "ties": 0,
+    "already_null": 0,
+    "evidence": [
+      {
+        "matches": 0,
+        "agree": 0,
+        "copy": false,
+        "count": 48
+      }
+    ]
+  },
+  {
+    "kind": "positive",
+    "rows": 48,
+    "allowed": 24,
+    "withheld": 24,
+    "correct_candidate": 48,
+    "correct_address": 24,
+    "ties": 0,
+    "already_null": 0,
+    "evidence": [
+      {
+        "matches": 0,
+        "agree": 0,
+        "copy": false,
+        "count": 24
+      },
+      {
+        "matches": 1,
+        "agree": 1,
+        "copy": true,
+        "count": 24
+      }
+    ]
+  },
+  {
+    "kind": "prose",
+    "rows": 50,
+    "allowed": 0,
+    "withheld": 50,
+    "correct_candidate": 0,
+    "correct_address": 0,
+    "ties": 0,
+    "already_null": 24,
+    "evidence": [
+      {
+        "matches": 0,
+        "agree": 0,
+        "copy": false,
+        "count": 16
+      },
+      {
+        "matches": 4294967295,
+        "agree": 4294967295,
+        "copy": false,
+        "count": 34
+      }
+    ]
+  }
+]

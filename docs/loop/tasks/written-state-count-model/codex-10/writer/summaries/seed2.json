@@ -1,0 +1,1241 @@
+[
+  {
+    "panel": "challenge",
+    "arms": {
+      "anchors": {
+        "exact": 1602,
+        "pairs": 738,
+        "first_wrong": {
+          "0": 126,
+          "exact": 1602
+        },
+        "source_right": 1602,
+        "source_null": 0,
+        "source_other": 126,
+        "gained": 99,
+        "lost": 0,
+        "later": 99,
+        "earlier": 0,
+        "same": 1629,
+        "movement": {
+          "0->0": 126,
+          "0->exact": 45,
+          "1->exact": 54,
+          "exact->exact": 1503
+        }
+      },
+      "baseline": {
+        "exact": 1503,
+        "pairs": 650,
+        "first_wrong": {
+          "0": 171,
+          "1": 54,
+          "exact": 1503
+        },
+        "source_right": 1503,
+        "source_null": 0,
+        "source_other": 225,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728,
+        "movement": {
+          "0->0": 171,
+          "1->1": 54,
+          "exact->exact": 1503
+        }
+      },
+      "both": {
+        "exact": 1628,
+        "pairs": 764,
+        "first_wrong": {
+          "0": 96,
+          "1": 4,
+          "exact": 1628
+        },
+        "source_right": 1628,
+        "source_null": 0,
+        "source_other": 100,
+        "gained": 127,
+        "lost": 2,
+        "later": 127,
+        "earlier": 2,
+        "same": 1599,
+        "movement": {
+          "0->0": 96,
+          "0->exact": 75,
+          "1->1": 2,
+          "1->exact": 52,
+          "exact->1": 2,
+          "exact->exact": 1501
+        }
+      },
+      "boundary": {
+        "exact": 1532,
+        "pairs": 675,
+        "first_wrong": {
+          "0": 142,
+          "1": 54,
+          "exact": 1532
+        },
+        "source_right": 1532,
+        "source_null": 0,
+        "source_other": 196,
+        "gained": 29,
+        "lost": 0,
+        "later": 29,
+        "earlier": 0,
+        "same": 1699,
+        "movement": {
+          "0->0": 142,
+          "0->exact": 29,
+          "1->1": 54,
+          "exact->exact": 1503
+        }
+      },
+      "fact": {
+        "exact": 1602,
+        "pairs": 738,
+        "first_wrong": {
+          "0": 126,
+          "exact": 1602
+        },
+        "source_right": 1602,
+        "source_null": 0,
+        "source_other": 126,
+        "gained": 99,
+        "lost": 0,
+        "later": 99,
+        "earlier": 0,
+        "same": 1629,
+        "movement": {
+          "0->0": 126,
+          "0->exact": 45,
+          "1->exact": 54,
+          "exact->exact": 1503
+        }
+      },
+      "no-read": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 1728
+        },
+        "source_right": 0,
+        "source_null": 1728,
+        "source_other": 0,
+        "gained": 0,
+        "lost": 1503,
+        "later": 0,
+        "earlier": 1557,
+        "same": 171,
+        "movement": {
+          "0->0": 171,
+          "1->0": 54,
+          "exact->0": 1503
+        }
+      },
+      "query": {
+        "exact": 1602,
+        "pairs": 738,
+        "first_wrong": {
+          "0": 126,
+          "exact": 1602
+        },
+        "source_right": 1602,
+        "source_null": 0,
+        "source_other": 126,
+        "gained": 99,
+        "lost": 0,
+        "later": 99,
+        "earlier": 0,
+        "same": 1629,
+        "movement": {
+          "0->0": 126,
+          "0->exact": 45,
+          "1->exact": 54,
+          "exact->exact": 1503
+        }
+      },
+      "role": {
+        "exact": 1598,
+        "pairs": 734,
+        "first_wrong": {
+          "0": 126,
+          "1": 4,
+          "exact": 1598
+        },
+        "source_right": 1598,
+        "source_null": 0,
+        "source_other": 130,
+        "gained": 97,
+        "lost": 2,
+        "later": 97,
+        "earlier": 2,
+        "same": 1629,
+        "movement": {
+          "0->0": 126,
+          "0->exact": 45,
+          "1->1": 2,
+          "1->exact": 52,
+          "exact->1": 2,
+          "exact->exact": 1501
+        }
+      },
+      "value": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 225,
+        "lost": 0,
+        "later": 225,
+        "earlier": 0,
+        "same": 1503,
+        "movement": {
+          "0->exact": 171,
+          "1->exact": 54,
+          "exact->exact": 1503
+        }
+      },
+      "wrong": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 864,
+          "1": 864
+        },
+        "source_right": 0,
+        "source_null": 0,
+        "source_other": 1728,
+        "gained": 0,
+        "lost": 1503,
+        "later": 0,
+        "earlier": 1503,
+        "same": 225,
+        "movement": {
+          "0->0": 171,
+          "1->1": 54,
+          "exact->0": 693,
+          "exact->1": 810
+        }
+      }
+    }
+  },
+  {
+    "panel": "fresh",
+    "arms": {
+      "anchors": {
+        "exact": 1104,
+        "pairs": 468,
+        "first_wrong": {
+          "0": 624,
+          "exact": 1104
+        },
+        "source_right": 1104,
+        "source_null": 0,
+        "source_other": 624,
+        "gained": 125,
+        "lost": 0,
+        "later": 125,
+        "earlier": 17,
+        "same": 1586,
+        "movement": {
+          "0->0": 607,
+          "0->exact": 107,
+          "1->0": 17,
+          "1->exact": 18,
+          "exact->exact": 979
+        }
+      },
+      "baseline": {
+        "exact": 979,
+        "pairs": 365,
+        "first_wrong": {
+          "0": 714,
+          "1": 35,
+          "exact": 979
+        },
+        "source_right": 979,
+        "source_null": 0,
+        "source_other": 749,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728,
+        "movement": {
+          "0->0": 714,
+          "1->1": 35,
+          "exact->exact": 979
+        }
+      },
+      "both": {
+        "exact": 928,
+        "pairs": 416,
+        "first_wrong": {
+          "0": 788,
+          "1": 12,
+          "exact": 928
+        },
+        "source_right": 928,
+        "source_null": 0,
+        "source_other": 800,
+        "gained": 131,
+        "lost": 182,
+        "later": 135,
+        "earlier": 201,
+        "same": 1392,
+        "movement": {
+          "0->0": 587,
+          "0->1": 4,
+          "0->exact": 123,
+          "1->0": 19,
+          "1->1": 8,
+          "1->exact": 8,
+          "exact->0": 182,
+          "exact->exact": 797
+        }
+      },
+      "boundary": {
+        "exact": 850,
+        "pairs": 346,
+        "first_wrong": {
+          "0": 866,
+          "1": 12,
+          "exact": 850
+        },
+        "source_right": 850,
+        "source_null": 0,
+        "source_other": 878,
+        "gained": 45,
+        "lost": 174,
+        "later": 45,
+        "earlier": 197,
+        "same": 1486,
+        "movement": {
+          "0->0": 669,
+          "0->exact": 45,
+          "1->0": 23,
+          "1->1": 12,
+          "exact->0": 174,
+          "exact->exact": 805
+        }
+      },
+      "fact": {
+        "exact": 1104,
+        "pairs": 468,
+        "first_wrong": {
+          "0": 624,
+          "exact": 1104
+        },
+        "source_right": 1104,
+        "source_null": 0,
+        "source_other": 624,
+        "gained": 125,
+        "lost": 0,
+        "later": 125,
+        "earlier": 17,
+        "same": 1586,
+        "movement": {
+          "0->0": 607,
+          "0->exact": 107,
+          "1->0": 17,
+          "1->exact": 18,
+          "exact->exact": 979
+        }
+      },
+      "no-read": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 1728
+        },
+        "source_right": 0,
+        "source_null": 1728,
+        "source_other": 0,
+        "gained": 0,
+        "lost": 979,
+        "later": 0,
+        "earlier": 1014,
+        "same": 714,
+        "movement": {
+          "0->0": 714,
+          "1->0": 35,
+          "exact->0": 979
+        }
+      },
+      "query": {
+        "exact": 1104,
+        "pairs": 468,
+        "first_wrong": {
+          "0": 624,
+          "exact": 1104
+        },
+        "source_right": 1104,
+        "source_null": 0,
+        "source_other": 624,
+        "gained": 125,
+        "lost": 0,
+        "later": 125,
+        "earlier": 17,
+        "same": 1586,
+        "movement": {
+          "0->0": 607,
+          "0->exact": 107,
+          "1->0": 17,
+          "1->exact": 18,
+          "exact->exact": 979
+        }
+      },
+      "role": {
+        "exact": 1056,
+        "pairs": 432,
+        "first_wrong": {
+          "0": 652,
+          "1": 20,
+          "exact": 1056
+        },
+        "source_right": 1056,
+        "source_null": 0,
+        "source_other": 672,
+        "gained": 90,
+        "lost": 13,
+        "later": 94,
+        "earlier": 22,
+        "same": 1612,
+        "movement": {
+          "0->0": 631,
+          "0->1": 4,
+          "0->exact": 79,
+          "1->0": 9,
+          "1->1": 15,
+          "1->exact": 11,
+          "exact->0": 12,
+          "exact->1": 1,
+          "exact->exact": 966
+        }
+      },
+      "value": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 749,
+        "lost": 0,
+        "later": 749,
+        "earlier": 0,
+        "same": 979,
+        "movement": {
+          "0->exact": 714,
+          "1->exact": 35,
+          "exact->exact": 979
+        }
+      },
+      "wrong": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 864,
+          "1": 864
+        },
+        "source_right": 0,
+        "source_null": 0,
+        "source_other": 1728,
+        "gained": 0,
+        "lost": 979,
+        "later": 571,
+        "earlier": 979,
+        "same": 178,
+        "movement": {
+          "0->0": 143,
+          "0->1": 571,
+          "1->1": 35,
+          "exact->0": 721,
+          "exact->1": 258
+        }
+      }
+    }
+  },
+  {
+    "panel": "primary",
+    "arms": {
+      "anchors": {
+        "exact": 1344,
+        "pairs": 580,
+        "first_wrong": {
+          "0": 384,
+          "exact": 1344
+        },
+        "source_right": 1344,
+        "source_null": 0,
+        "source_other": 384,
+        "gained": 533,
+        "lost": 0,
+        "later": 533,
+        "earlier": 48,
+        "same": 1147,
+        "movement": {
+          "0->0": 336,
+          "0->exact": 341,
+          "1->0": 48,
+          "1->exact": 192,
+          "exact->exact": 811
+        }
+      },
+      "baseline": {
+        "exact": 811,
+        "pairs": 209,
+        "first_wrong": {
+          "0": 677,
+          "1": 240,
+          "exact": 811
+        },
+        "source_right": 811,
+        "source_null": 0,
+        "source_other": 917,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728,
+        "movement": {
+          "0->0": 677,
+          "1->1": 240,
+          "exact->exact": 811
+        }
+      },
+      "both": {
+        "exact": 1098,
+        "pairs": 343,
+        "first_wrong": {
+          "0": 433,
+          "1": 197,
+          "exact": 1098
+        },
+        "source_right": 1098,
+        "source_null": 0,
+        "source_other": 630,
+        "gained": 347,
+        "lost": 60,
+        "later": 384,
+        "earlier": 74,
+        "same": 1270,
+        "movement": {
+          "0->0": 380,
+          "0->1": 37,
+          "0->exact": 260,
+          "1->0": 14,
+          "1->1": 139,
+          "1->exact": 87,
+          "exact->0": 39,
+          "exact->1": 21,
+          "exact->exact": 751
+        }
+      },
+      "boundary": {
+        "exact": 884,
+        "pairs": 232,
+        "first_wrong": {
+          "0": 532,
+          "1": 312,
+          "exact": 884
+        },
+        "source_right": 884,
+        "source_null": 0,
+        "source_other": 844,
+        "gained": 73,
+        "lost": 0,
+        "later": 145,
+        "earlier": 0,
+        "same": 1583,
+        "movement": {
+          "0->0": 532,
+          "0->1": 72,
+          "0->exact": 73,
+          "1->1": 240,
+          "exact->exact": 811
+        }
+      },
+      "fact": {
+        "exact": 1344,
+        "pairs": 580,
+        "first_wrong": {
+          "0": 384,
+          "exact": 1344
+        },
+        "source_right": 1344,
+        "source_null": 0,
+        "source_other": 384,
+        "gained": 533,
+        "lost": 0,
+        "later": 533,
+        "earlier": 48,
+        "same": 1147,
+        "movement": {
+          "0->0": 336,
+          "0->exact": 341,
+          "1->0": 48,
+          "1->exact": 192,
+          "exact->exact": 811
+        }
+      },
+      "no-read": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 1728
+        },
+        "source_right": 0,
+        "source_null": 1728,
+        "source_other": 0,
+        "gained": 0,
+        "lost": 811,
+        "later": 0,
+        "earlier": 1051,
+        "same": 677,
+        "movement": {
+          "0->0": 677,
+          "1->0": 240,
+          "exact->0": 811
+        }
+      },
+      "query": {
+        "exact": 1344,
+        "pairs": 580,
+        "first_wrong": {
+          "0": 384,
+          "exact": 1344
+        },
+        "source_right": 1344,
+        "source_null": 0,
+        "source_other": 384,
+        "gained": 533,
+        "lost": 0,
+        "later": 533,
+        "earlier": 48,
+        "same": 1147,
+        "movement": {
+          "0->0": 336,
+          "0->exact": 341,
+          "1->0": 48,
+          "1->exact": 192,
+          "exact->exact": 811
+        }
+      },
+      "role": {
+        "exact": 981,
+        "pairs": 302,
+        "first_wrong": {
+          "0": 587,
+          "1": 160,
+          "exact": 981
+        },
+        "source_right": 981,
+        "source_null": 0,
+        "source_other": 747,
+        "gained": 230,
+        "lost": 60,
+        "later": 230,
+        "earlier": 88,
+        "same": 1410,
+        "movement": {
+          "0->0": 520,
+          "0->exact": 157,
+          "1->0": 28,
+          "1->1": 139,
+          "1->exact": 73,
+          "exact->0": 39,
+          "exact->1": 21,
+          "exact->exact": 751
+        }
+      },
+      "value": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 917,
+        "lost": 0,
+        "later": 917,
+        "earlier": 0,
+        "same": 811,
+        "movement": {
+          "0->exact": 677,
+          "1->exact": 240,
+          "exact->exact": 811
+        }
+      },
+      "wrong": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 864,
+          "1": 864
+        },
+        "source_right": 0,
+        "source_null": 0,
+        "source_other": 1728,
+        "gained": 0,
+        "lost": 811,
+        "later": 296,
+        "earlier": 811,
+        "same": 621,
+        "movement": {
+          "0->0": 381,
+          "0->1": 296,
+          "1->1": 240,
+          "exact->0": 483,
+          "exact->1": 328
+        }
+      }
+    }
+  },
+  {
+    "panel": "transfer",
+    "arms": {
+      "anchors": {
+        "exact": 1614,
+        "pairs": 750,
+        "first_wrong": {
+          "0": 114,
+          "exact": 1614
+        },
+        "source_right": 1614,
+        "source_null": 0,
+        "source_other": 114,
+        "gained": 107,
+        "lost": 2,
+        "later": 107,
+        "earlier": 2,
+        "same": 1619,
+        "movement": {
+          "0->0": 112,
+          "0->exact": 53,
+          "1->exact": 54,
+          "exact->0": 2,
+          "exact->exact": 1507
+        }
+      },
+      "baseline": {
+        "exact": 1509,
+        "pairs": 654,
+        "first_wrong": {
+          "0": 165,
+          "1": 54,
+          "exact": 1509
+        },
+        "source_right": 1509,
+        "source_null": 0,
+        "source_other": 219,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728,
+        "movement": {
+          "0->0": 165,
+          "1->1": 54,
+          "exact->exact": 1509
+        }
+      },
+      "both": {
+        "exact": 1628,
+        "pairs": 764,
+        "first_wrong": {
+          "0": 96,
+          "1": 4,
+          "exact": 1628
+        },
+        "source_right": 1628,
+        "source_null": 0,
+        "source_other": 100,
+        "gained": 123,
+        "lost": 4,
+        "later": 123,
+        "earlier": 4,
+        "same": 1601,
+        "movement": {
+          "0->0": 94,
+          "0->exact": 71,
+          "1->1": 2,
+          "1->exact": 52,
+          "exact->0": 2,
+          "exact->1": 2,
+          "exact->exact": 1505
+        }
+      },
+      "boundary": {
+        "exact": 1524,
+        "pairs": 669,
+        "first_wrong": {
+          "0": 150,
+          "1": 54,
+          "exact": 1524
+        },
+        "source_right": 1524,
+        "source_null": 0,
+        "source_other": 204,
+        "gained": 15,
+        "lost": 0,
+        "later": 15,
+        "earlier": 0,
+        "same": 1713,
+        "movement": {
+          "0->0": 150,
+          "0->exact": 15,
+          "1->1": 54,
+          "exact->exact": 1509
+        }
+      },
+      "fact": {
+        "exact": 1614,
+        "pairs": 750,
+        "first_wrong": {
+          "0": 114,
+          "exact": 1614
+        },
+        "source_right": 1614,
+        "source_null": 0,
+        "source_other": 114,
+        "gained": 107,
+        "lost": 2,
+        "later": 107,
+        "earlier": 2,
+        "same": 1619,
+        "movement": {
+          "0->0": 112,
+          "0->exact": 53,
+          "1->exact": 54,
+          "exact->0": 2,
+          "exact->exact": 1507
+        }
+      },
+      "no-read": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 1728
+        },
+        "source_right": 0,
+        "source_null": 1728,
+        "source_other": 0,
+        "gained": 0,
+        "lost": 1509,
+        "later": 0,
+        "earlier": 1563,
+        "same": 165,
+        "movement": {
+          "0->0": 165,
+          "1->0": 54,
+          "exact->0": 1509
+        }
+      },
+      "query": {
+        "exact": 1614,
+        "pairs": 750,
+        "first_wrong": {
+          "0": 114,
+          "exact": 1614
+        },
+        "source_right": 1614,
+        "source_null": 0,
+        "source_other": 114,
+        "gained": 107,
+        "lost": 2,
+        "later": 107,
+        "earlier": 2,
+        "same": 1619,
+        "movement": {
+          "0->0": 112,
+          "0->exact": 53,
+          "1->exact": 54,
+          "exact->0": 2,
+          "exact->exact": 1507
+        }
+      },
+      "role": {
+        "exact": 1610,
+        "pairs": 746,
+        "first_wrong": {
+          "0": 114,
+          "1": 4,
+          "exact": 1610
+        },
+        "source_right": 1610,
+        "source_null": 0,
+        "source_other": 118,
+        "gained": 105,
+        "lost": 4,
+        "later": 105,
+        "earlier": 4,
+        "same": 1619,
+        "movement": {
+          "0->0": 112,
+          "0->exact": 53,
+          "1->1": 2,
+          "1->exact": 52,
+          "exact->0": 2,
+          "exact->1": 2,
+          "exact->exact": 1505
+        }
+      },
+      "value": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 219,
+        "lost": 0,
+        "later": 219,
+        "earlier": 0,
+        "same": 1509,
+        "movement": {
+          "0->exact": 165,
+          "1->exact": 54,
+          "exact->exact": 1509
+        }
+      },
+      "wrong": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 864,
+          "1": 864
+        },
+        "source_right": 0,
+        "source_null": 0,
+        "source_other": 1728,
+        "gained": 0,
+        "lost": 1509,
+        "later": 0,
+        "earlier": 1509,
+        "same": 219,
+        "movement": {
+          "0->0": 165,
+          "1->1": 54,
+          "exact->0": 699,
+          "exact->1": 810
+        }
+      }
+    }
+  },
+  {
+    "panel": "unanswerable",
+    "arms": {
+      "baseline": {
+        "absent": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        },
+        "ambiguous": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        }
+      },
+      "both": {
+        "absent": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        },
+        "ambiguous": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        }
+      },
+      "boundary": {
+        "absent": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        },
+        "ambiguous": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        }
+      },
+      "no-read": {
+        "absent": {
+          "rows": 24,
+          "copied": 0,
+          "source_abstain": 24,
+          "baseline_source_abstain": 0
+        },
+        "ambiguous": {
+          "rows": 24,
+          "copied": 0,
+          "source_abstain": 24,
+          "baseline_source_abstain": 0
+        }
+      },
+      "role": {
+        "absent": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        },
+        "ambiguous": {
+          "rows": 24,
+          "copied": 24,
+          "source_abstain": 0,
+          "baseline_source_abstain": 0
+        }
+      }
+    }
+  },
+  {
+    "panel": "unseen",
+    "arms": {
+      "anchors": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 538,
+        "lost": 0,
+        "later": 538,
+        "earlier": 0,
+        "same": 1190,
+        "movement": {
+          "0->exact": 289,
+          "1->exact": 249,
+          "exact->exact": 1190
+        }
+      },
+      "baseline": {
+        "exact": 1190,
+        "pairs": 332,
+        "first_wrong": {
+          "0": 289,
+          "1": 249,
+          "exact": 1190
+        },
+        "source_right": 1190,
+        "source_null": 0,
+        "source_other": 538,
+        "gained": 0,
+        "lost": 0,
+        "later": 0,
+        "earlier": 0,
+        "same": 1728,
+        "movement": {
+          "0->0": 289,
+          "1->1": 249,
+          "exact->exact": 1190
+        }
+      },
+      "both": {
+        "exact": 1406,
+        "pairs": 580,
+        "first_wrong": {
+          "0": 160,
+          "1": 162,
+          "exact": 1406
+        },
+        "source_right": 1406,
+        "source_null": 0,
+        "source_other": 322,
+        "gained": 282,
+        "lost": 66,
+        "later": 282,
+        "earlier": 66,
+        "same": 1380,
+        "movement": {
+          "0->0": 133,
+          "0->exact": 156,
+          "1->1": 123,
+          "1->exact": 126,
+          "exact->0": 27,
+          "exact->1": 39,
+          "exact->exact": 1124
+        }
+      },
+      "boundary": {
+        "exact": 1196,
+        "pairs": 332,
+        "first_wrong": {
+          "0": 278,
+          "1": 254,
+          "exact": 1196
+        },
+        "source_right": 1196,
+        "source_null": 0,
+        "source_other": 532,
+        "gained": 6,
+        "lost": 0,
+        "later": 11,
+        "earlier": 0,
+        "same": 1717,
+        "movement": {
+          "0->0": 278,
+          "0->1": 5,
+          "0->exact": 6,
+          "1->1": 249,
+          "exact->exact": 1190
+        }
+      },
+      "fact": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 538,
+        "lost": 0,
+        "later": 538,
+        "earlier": 0,
+        "same": 1190,
+        "movement": {
+          "0->exact": 289,
+          "1->exact": 249,
+          "exact->exact": 1190
+        }
+      },
+      "no-read": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 1728
+        },
+        "source_right": 0,
+        "source_null": 1728,
+        "source_other": 0,
+        "gained": 0,
+        "lost": 1190,
+        "later": 0,
+        "earlier": 1439,
+        "same": 289,
+        "movement": {
+          "0->0": 289,
+          "1->0": 249,
+          "exact->0": 1190
+        }
+      },
+      "query": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 538,
+        "lost": 0,
+        "later": 538,
+        "earlier": 0,
+        "same": 1190,
+        "movement": {
+          "0->exact": 289,
+          "1->exact": 249,
+          "exact->exact": 1190
+        }
+      },
+      "role": {
+        "exact": 1406,
+        "pairs": 580,
+        "first_wrong": {
+          "0": 160,
+          "1": 162,
+          "exact": 1406
+        },
+        "source_right": 1406,
+        "source_null": 0,
+        "source_other": 322,
+        "gained": 282,
+        "lost": 66,
+        "later": 282,
+        "earlier": 66,
+        "same": 1380,
+        "movement": {
+          "0->0": 133,
+          "0->exact": 156,
+          "1->1": 123,
+          "1->exact": 126,
+          "exact->0": 27,
+          "exact->1": 39,
+          "exact->exact": 1124
+        }
+      },
+      "value": {
+        "exact": 1728,
+        "pairs": 864,
+        "first_wrong": {
+          "exact": 1728
+        },
+        "source_right": 1728,
+        "source_null": 0,
+        "source_other": 0,
+        "gained": 538,
+        "lost": 0,
+        "later": 538,
+        "earlier": 0,
+        "same": 1190,
+        "movement": {
+          "0->exact": 289,
+          "1->exact": 249,
+          "exact->exact": 1190
+        }
+      },
+      "wrong": {
+        "exact": 0,
+        "pairs": 0,
+        "first_wrong": {
+          "0": 864,
+          "1": 864
+        },
+        "source_right": 0,
+        "source_null": 0,
+        "source_other": 1728,
+        "gained": 0,
+        "lost": 1190,
+        "later": 5,
+        "earlier": 1190,
+        "same": 533,
+        "movement": {
+          "0->0": 284,
+          "0->1": 5,
+          "1->1": 249,
+          "exact->0": 580,
+          "exact->1": 610
+        }
+      }
+    }
+  }
+]

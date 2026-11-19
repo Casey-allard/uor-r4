@@ -1,4 +1,7 @@
 //! Generate tokenizer-only role and connector panels for the span-selector study.
+#[path = "span-connector-panel/action.rs"]
+mod action;
+
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -27,6 +30,7 @@ enum Suite {
     ChallengeShared,
     ChallengePrefix,
     ChallengeUnseen,
+    CrossedHeld,
 }
 
 impl Suite {
@@ -36,12 +40,13 @@ impl Suite {
             Self::Held => "held",
             Self::TransferShared | Self::TransferPrefix | Self::TransferUnseen => "transfer",
             Self::ChallengeShared | Self::ChallengePrefix | Self::ChallengeUnseen => "challenge",
+            Self::CrossedHeld => "unseen",
             _ => "fresh",
         }
     }
 
     fn is_fresh(self) -> bool {
-        matches!(self.split(), "fresh" | "transfer" | "challenge")
+        matches!(self.split(), "fresh" | "transfer" | "challenge" | "unseen")
     }
 }
 
@@ -164,6 +169,7 @@ fn row(
     let split = suite.split();
     let names = match suite {
         Suite::Train => [["Tim", "Sue"], ["Nala", "Navi"]],
+        Suite::CrossedHeld => [["Dan", "Ben"], ["Lava", "Lavi"]],
         Suite::Held => [["Joe", "Leo"], ["Rana", "Rani"]],
         _ if split == "transfer" => [["Sam", "Tom"], ["Tava", "Tavi"]],
         _ if split == "challenge" => [["Jim", "Jen"], ["Zava", "Zavi"]],
@@ -172,6 +178,7 @@ fn row(
     let value_set = family ^ order;
     let values = match suite {
         Suite::Train => [["gray", "blue"], ["small cup", "small hat"]],
+        Suite::CrossedHeld => [["blue", "gold"], ["small ring", "small box"]],
         Suite::Held => [["yellow", "pink"], ["round stone", "round coin"]],
         _ if matches!(split, "transfer" | "challenge") => {
             [["red", "black"], ["green box", "green bag"]]
@@ -180,6 +187,7 @@ fn row(
     }[value_set];
     let (set, connectors) = match suite {
         Suite::Train if assignment != 0 => ("split_specific", TRAIN_ONLY),
+        Suite::CrossedHeld => ("held_family", ["kept", "kept only", "once again kept"]),
         Suite::Held if assignment != 0 => ("split_specific", HELD_ONLY),
         Suite::ShortPrefix => ("short_prefix", EXTENDS_TRAIN),
         Suite::Unseen => ("unseen", FRESH_ONLY),
@@ -199,6 +207,8 @@ fn row(
     let question = match (suite, position) {
         (Suite::Train, "early") => format!("For {name}, which item was listed?"),
         (Suite::Train, _) => format!("Which item is listed for {name}?"),
+        (Suite::CrossedHeld, "early") => format!("Regarding {name}, which possession was theirs?"),
+        (Suite::CrossedHeld, _) => format!("Which possession was named for {name}?"),
         (Suite::Held, "early") => format!("About {name}, which item was listed?"),
         (Suite::Held, _) => format!("What is the item that {name} has?"),
         (_, "early") if matches!(split, "transfer" | "challenge") => {
@@ -210,7 +220,9 @@ fn row(
         (_, "early") => format!("About {name}, which item did the note list?"),
         (_, _) => format!("Which item did the note list for {name}?"),
     };
-    let neg = if matches!(split, "transfer" | "challenge") {
+    let neg = if matches!(suite, Suite::CrossedHeld) {
+        format!("Disregard {other}.")
+    } else if matches!(split, "transfer" | "challenge") {
         format!("Leave out {other}.")
     } else if fresh {
         format!("Skip {other}.")
@@ -226,6 +238,7 @@ fn row(
     };
     let suffix = match (train, tail) {
         (_, "none") => "",
+        (_, _) if matches!(suite, Suite::CrossedHeld) => " Reply with the possession alone.",
         (true, _) => " Give only the requested item.",
         (false, _) => " Write just the name of the item here.",
     };
@@ -327,12 +340,12 @@ fn generated(
     let mut inputs = Vec::new();
     let split = suites.first().ok_or("empty connector panel")?.split();
     for &suite in suites {
-        let exclusions: &[&str] = if suite.is_fresh() {
+        let exclusions: &[&str] = if suite.is_fresh() && !matches!(suite, Suite::CrossedHeld) {
             &["none", "before"]
         } else {
             &["none", "before", "after"]
         };
-        let tails: &[&str] = if suite.is_fresh() {
+        let tails: &[&str] = if suite.is_fresh() && !matches!(suite, Suite::CrossedHeld) {
             &["none"]
         } else {
             &["none", "long"]
@@ -487,16 +500,76 @@ fn run() -> Result<()> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     let [tok, previous, out] = args.as_slice() else {
         return Err(
-            "usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR|--fresh|--continuation-transfer|--entity-challenge NEW_OUT".into(),
+            "usage: span-connector-panel TOKENIZER PREVIOUS_PANEL_DIR|--fresh|--continuation-transfer|--entity-challenge|--role-boundary-holdout NEW_OUT".into(),
         );
     };
     let t = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(tok)?)
         .ok_or("invalid public tokenizer")?;
+    if previous == "--decode-action" {
+        let rows: Vec<Value> = serde_json::from_slice(&fs::read(out)?)?;
+        for row in rows {
+            let decoded = |key: &str| -> Result<String> {
+                let ids: Vec<u32> = serde_json::from_value(row[key].clone())?;
+                Ok(t.decode(&ids))
+            };
+            println!(
+                "{}",
+                json!({"id":row["id"],"prompt":row["prompt"],"expected":decoded("expected")?,"emitted":decoded("generated")?,"issued":row["issued"]})
+            );
+        }
+        return Ok(());
+    }
     let protocol = DialogueProtocol::literal_roles_v2(&t)?;
     let encoder = protocol.bind(&t)?;
     let root = Path::new(out);
     fs::create_dir(root)?;
     let mut census = BTreeSet::new();
+    if previous == "--copy-action" {
+        return action::generate(root, &t, &encoder);
+    }
+    if previous == "--role-boundary-holdout" {
+        generated(root, &t, &encoder, &[Suite::CrossedHeld], &mut census)?;
+        let mut bare = Vec::new();
+        let mut grade = Vec::new();
+        for (i, (a, b)) in [("Dan", "Ben"), ("Lava", "Lavi")].into_iter().enumerate() {
+            for (j, (v, w)) in [("blue", "gold"), ("small ring", "small box")]
+                .into_iter()
+                .enumerate()
+            {
+                for (k, connector) in ["kept", "kept only", "once again kept"]
+                    .into_iter()
+                    .enumerate()
+                {
+                    for (order, (left, right)) in [(a, b), (b, a)].into_iter().enumerate() {
+                        let facts = format!("{left} {connector} {v}. {right} {connector} {w}.");
+                        for (kind, question) in [
+                            ("absent", "Which possession was named for Anne?"),
+                            ("ambiguous", "Which possession was named for one of them?"),
+                        ] {
+                            let prompt = format!("{facts} {question}");
+                            let prefix = encoder
+                                .encode_assistant_prefix(&[Message {
+                                    role: "user",
+                                    content: &prompt,
+                                }])
+                                .tokens;
+                            if !census.insert(prefix.clone())
+                                || prefix.contains(&2)
+                                || prefix.len() + 16 > 192
+                            {
+                                return Err("invalid negative-control prefix".into());
+                            }
+                            bare.push(json!({"prefix":prefix}));
+                            grade.push(json!({"id":format!("{kind}-{i}-{j}-{k}-{order}"),"kind":kind,
+                                             "prefix":prefix,"prompt":prompt,"valid_unique_source":null}));
+                        }
+                    }
+                }
+            }
+        }
+        write_rows(root, "unanswerable-blind.json", &bare)?;
+        return write_rows(root, "unanswerable-grade.json", &grade);
+    }
     if previous == "--entity-challenge" {
         return generated(
             root,

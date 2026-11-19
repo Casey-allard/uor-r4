@@ -1,0 +1,37 @@
+{
+  "conflicting_held_keys": 0,
+  "held_distinct_keys_including_null": 53,
+  "minimum_held_errors_for_key_only": 0,
+  "oracle_copy_targets": 48,
+  "rows": 194,
+  "rows_with_an_exact_train_descriptor": 0,
+  "wrongly_withheld": [
+    {
+      "count": 24,
+      "feature": [
+        41504,
+        24848,
+        8467,
+        31002,
+        10643,
+        8196,
+        30578,
+        58434,
+        9008,
+        10395,
+        53529,
+        9646,
+        0,
+        0
+      ],
+      "held_copy_targets": 24,
+      "held_generate_targets": 0,
+      "in_train_negative_bank": false,
+      "in_train_positive_bank": false,
+      "nearest_negative": 224,
+      "nearest_positive": 404,
+      "nominee_token": 1412
+    }
+  ],
+  "wrongly_withheld_keys": 1
+}

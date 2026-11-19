@@ -1,0 +1,47 @@
+[
+  {
+    "changed_before": false,
+    "changed_after": false,
+    "role_before_correct": false,
+    "both_before_correct": false,
+    "role_after_correct": false,
+    "both_after_correct": false,
+    "count": 310
+  },
+  {
+    "changed_before": true,
+    "changed_after": false,
+    "role_before_correct": false,
+    "both_before_correct": false,
+    "role_after_correct": false,
+    "both_after_correct": false,
+    "count": 12
+  },
+  {
+    "changed_before": false,
+    "changed_after": false,
+    "role_before_correct": false,
+    "both_before_correct": false,
+    "role_after_correct": true,
+    "both_after_correct": true,
+    "count": 288
+  },
+  {
+    "changed_before": false,
+    "changed_after": false,
+    "role_before_correct": true,
+    "both_before_correct": true,
+    "role_after_correct": true,
+    "both_after_correct": true,
+    "count": 996
+  },
+  {
+    "changed_before": true,
+    "changed_after": false,
+    "role_before_correct": false,
+    "both_before_correct": true,
+    "role_after_correct": true,
+    "both_after_correct": true,
+    "count": 122
+  }
+]

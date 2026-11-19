@@ -49,6 +49,24 @@ struct Oracle {
     fact: u32,
 }
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CrossRow {
+    prefix_sha256: String,
+    q: Option<u32>,
+    f: Option<u32>,
+    boundary: Option<u32>,
+    forced: Option<u32>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Cross {
+    arm: String,
+    artifact: String,
+    bare: String,
+    state: String,
+    rows: Vec<CrossRow>,
+}
+#[derive(Deserialize)]
 struct ContentState {
     prototypes: Prototypes,
 }
@@ -96,7 +114,7 @@ fn ranked(
     }
     Ok((gpu, costs))
 }
-fn run(arm: &str, paths: &[String], oracle: Option<&String>, out: &Path) -> Result<(), Fail> {
+fn run(arm: &str, paths: &[String], oracle: Option<&String>, cross_file: Option<&String>, out: &Path) -> Result<(), Fail> {
     let [model, content_path, span_path, exact_path, bare_path] = paths else {
         return Err("expected five inputs".into());
     };
@@ -148,8 +166,28 @@ fn run(arm: &str, paths: &[String], oracle: Option<&String>, out: &Path) -> Resu
         }
         hashes.push(h);
     }
+    let cross = cross_file.map(|file| -> Result<Cross, Fail> {
+        let p: Cross = serde_json::from_slice(&fs::read(file)?)?;
+        if p.arm != arm || p.artifact != model.artifact_sha256() || p.bare != sha256(&bytes)
+            || p.state.len() != 64 || p.rows.len() != bare.len() {
+            return Err("cross input binding mismatch".into());
+        }
+        for ((r,b),h) in p.rows.iter().zip(&bare).zip(&hashes) {
+            if r.prefix_sha256 != *h || r.q.is_some() != r.f.is_some()
+                || r.q.into_iter().chain(r.f).chain(r.boundary).chain(r.forced)
+                     .any(|at| at as usize >= b.prefix.len())
+                || matches!((r.q,r.f), (Some(q),Some(f)) if q.saturating_sub(f)<2 || b.prefix[q as usize]!=b.prefix[f as usize])
+                || (r.boundary.is_some() && !matches!(arm,"boundary"|"both"))
+                || (r.forced.is_some() != matches!(arm,"value"|"wrong")) {
+                return Err("invalid cross prediction".into());
+            }
+        }
+        Ok(p)
+    }).transpose()?;
     let mut oracle_sha = None;
-    let (anchors, scores) = if let Some(file) = oracle {
+    let (anchors, scores) = if let Some(c) = &cross {
+        (c.rows.iter().map(|r| Choice {query:r.q, fact:r.f, source:None}).collect(),None)
+    } else if let Some(file) = oracle {
         let payload = fs::read(file)?;
         oracle_sha = Some(sha256(&payload));
         let projected: Vec<Oracle> = serde_json::from_slice(&payload)?;
@@ -222,9 +260,19 @@ fn run(arm: &str, paths: &[String], oracle: Option<&String>, out: &Path) -> Resu
     let mut values = Vec::new();
     let mut cont_data = Vec::new();
     for ((q, &s), raw) in bare.iter().zip(&spans).zip(raw_values) {
-        let v = value_selector::decide(&q.prefix, &roots, &bank, &exact, s)?;
+        let mut v = value_selector::decide(&q.prefix, &roots, &bank, &exact, s)?;
         if v.words() != raw {
             return Err("value replay mismatch".into());
+        }
+        if let Some(c) = &cross {
+            if matches!(arm,"boundary"|"both") && s.source.is_some() {
+                let start = c.rows[values.len()].boundary;
+                if start.is_some_and(|pos| {
+                    let off=pos.saturating_sub(s.fact_end.unwrap_or(BOUNDARY));
+                    !(2..=4).contains(&off) || v.word_start_mask & (1 << (off-2)) == 0
+                }) {return Err("boundary outside eligible WordStart mask".into());}
+                v.word_start=start;
+            }
         }
         cont_data.push(pack::<{ continuation::STRIDE }>(
             &q.prefix,
@@ -243,9 +291,12 @@ fn run(arm: &str, paths: &[String], oracle: Option<&String>, out: &Path) -> Resu
     for (i, q) in bare.iter().enumerate() {
         let frozen = spans[i];
         let v = values[i];
-        let c = continuation_selector::decide(&q.prefix, &roots, &bank, frozen, v)?;
+        let mut c = continuation_selector::decide(&q.prefix, &roots, &bank, frozen, v)?;
         if c.words() != raw_cont[i] {
             return Err("continuation replay mismatch".into());
+        }
+        if let Some(input) = &cross {
+            if matches!(arm,"value"|"wrong"|"no-read") {c.source = input.rows[i].forced;}
         }
         rows.push(Trace {
             prefix_sha256: hashes[i].clone(),
@@ -317,8 +368,9 @@ fn main() -> Result<(), Fail> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     match args.as_slice(){
         [cmd] if cmd=="fixture"=>fixture(),
-        [cmd,inputs @ ..,out] if matches!(cmd.as_str(),"baseline"|"repair")=>run(cmd,inputs,None,Path::new(out)),
-        [cmd,inputs @ ..,oracle,out] if cmd=="oracle"=>run(cmd,inputs,Some(oracle),Path::new(out)),
+        [cmd,inputs @ ..,out] if matches!(cmd.as_str(),"baseline"|"repair")=>run(cmd,inputs,None,None,Path::new(out)),
+        [cmd,inputs @ ..,oracle,out] if cmd=="oracle"=>run(cmd,inputs,Some(oracle),None,Path::new(out)),
+        [mode,arm,inputs @ ..,file,out] if mode=="cross" && matches!(arm.as_str(),"baseline"|"role"|"boundary"|"both"|"query"|"fact"|"anchors"|"value"|"wrong"|"no-read")=>run(arm,inputs,None,Some(file),Path::new(out)),
         _=>Err("entity-pair-chain fixture | baseline|repair MODEL CONTENT_STATE SPAN_STATE EXACT_STATE BARE OUT | oracle MODEL CONTENT_STATE SPAN_STATE EXACT_STATE BARE ANCHORS OUT".into())
     }
 }

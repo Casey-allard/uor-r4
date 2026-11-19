@@ -1,0 +1,321 @@
+[
+  {
+    "panel": "held",
+    "transitions": 2068,
+    "scored": 194,
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "role_candidate": 48,
+        "issued": 0,
+        "generated_ordinarily": 48,
+        "role_copied": 48,
+        "actual_copied": 0,
+        "forced_copied": 48,
+        "rows_with_reference": 0,
+        "literal_exact_role": 0,
+        "literal_exact_action": 0,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {}
+      },
+      "ambiguous": {
+        "rows": 48,
+        "role_candidate": 48,
+        "issued": 0,
+        "generated_ordinarily": 48,
+        "role_copied": 48,
+        "actual_copied": 0,
+        "forced_copied": 48,
+        "rows_with_reference": 0,
+        "literal_exact_role": 0,
+        "literal_exact_action": 0,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {}
+      },
+      "positive": {
+        "rows": 48,
+        "role_candidate": 48,
+        "issued": 24,
+        "generated_ordinarily": 24,
+        "role_copied": 48,
+        "actual_copied": 24,
+        "forced_copied": 48,
+        "rows_with_reference": 48,
+        "literal_exact_role": 48,
+        "literal_exact_action": 24,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 48,
+        "exact_gained": 0,
+        "exact_lost": 24,
+        "first_error_transitions": {
+          "exact->0": 24,
+          "exact->exact": 24
+        }
+      },
+      "prose": {
+        "rows": 50,
+        "role_candidate": 26,
+        "issued": 0,
+        "generated_ordinarily": 50,
+        "role_copied": 26,
+        "actual_copied": 0,
+        "forced_copied": 50,
+        "rows_with_reference": 50,
+        "literal_exact_role": 0,
+        "literal_exact_action": 0,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {
+          "0->0": 50
+        }
+      }
+    },
+    "ordinary_examples": [
+      {
+        "id": "held-ordinary-0",
+        "prompt": "What color is fresh snow?",
+        "expected": [
+          1605,
+          1
+        ],
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          434,
+          98,
+          383,
+          16,
+          1
+        ],
+        "issued": null
+      },
+      {
+        "id": "held-ordinary-1",
+        "prompt": "How many days are in a week?",
+        "expected": [
+          459,
+          773,
+          1
+        ],
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "issued": null
+      }
+    ]
+  },
+  {
+    "panel": "transfer",
+    "transitions": 4621,
+    "scored": 1728,
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "role_candidate": 1728,
+        "issued": 1724,
+        "generated_ordinarily": 4,
+        "role_copied": 1728,
+        "actual_copied": 1724,
+        "forced_copied": 0,
+        "rows_with_reference": 1728,
+        "literal_exact_role": 1610,
+        "literal_exact_action": 1610,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {
+          "0->0": 114,
+          "1->0": 4,
+          "exact->exact": 1610
+        }
+      }
+    },
+    "ordinary_examples": []
+  },
+  {
+    "panel": "challenge",
+    "transitions": 4687,
+    "scored": 1728,
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "role_candidate": 1728,
+        "issued": 1724,
+        "generated_ordinarily": 4,
+        "role_copied": 1728,
+        "actual_copied": 1724,
+        "forced_copied": 0,
+        "rows_with_reference": 1728,
+        "literal_exact_role": 1598,
+        "literal_exact_action": 1598,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {
+          "0->0": 126,
+          "1->0": 4,
+          "exact->exact": 1598
+        }
+      }
+    },
+    "ordinary_examples": []
+  },
+  {
+    "panel": "primary",
+    "transitions": 11043,
+    "scored": 1728,
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "role_candidate": 1728,
+        "issued": 884,
+        "generated_ordinarily": 844,
+        "role_copied": 1728,
+        "actual_copied": 884,
+        "forced_copied": 0,
+        "rows_with_reference": 1728,
+        "literal_exact_role": 981,
+        "literal_exact_action": 598,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 383,
+        "first_error_transitions": {
+          "0->0": 587,
+          "1->0": 111,
+          "1->1": 49,
+          "exact->0": 383,
+          "exact->exact": 598
+        }
+      }
+    },
+    "ordinary_examples": []
+  },
+  {
+    "panel": "fresh",
+    "transitions": 11081,
+    "scored": 1728,
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "role_candidate": 1728,
+        "issued": 860,
+        "generated_ordinarily": 868,
+        "role_copied": 1728,
+        "actual_copied": 860,
+        "forced_copied": 0,
+        "rows_with_reference": 1728,
+        "literal_exact_role": 1056,
+        "literal_exact_action": 552,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 504,
+        "first_error_transitions": {
+          "0->0": 652,
+          "1->0": 20,
+          "exact->0": 504,
+          "exact->exact": 552
+        }
+      }
+    },
+    "ordinary_examples": []
+  },
+  {
+    "panel": "unseen",
+    "transitions": 10931,
+    "scored": 1728,
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "role_candidate": 1728,
+        "issued": 904,
+        "generated_ordinarily": 824,
+        "role_copied": 1728,
+        "actual_copied": 904,
+        "forced_copied": 0,
+        "rows_with_reference": 1728,
+        "literal_exact_role": 1406,
+        "literal_exact_action": 794,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 612,
+        "first_error_transitions": {
+          "0->0": 160,
+          "1->0": 104,
+          "1->1": 58,
+          "exact->0": 612,
+          "exact->exact": 794
+        }
+      }
+    },
+    "ordinary_examples": []
+  },
+  {
+    "panel": "unanswerable",
+    "transitions": 518,
+    "scored": 48,
+    "classes": {
+      "absent": {
+        "rows": 24,
+        "role_candidate": 24,
+        "issued": 0,
+        "generated_ordinarily": 24,
+        "role_copied": 24,
+        "actual_copied": 0,
+        "forced_copied": 0,
+        "rows_with_reference": 0,
+        "literal_exact_role": 0,
+        "literal_exact_action": 0,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {}
+      },
+      "ambiguous": {
+        "rows": 24,
+        "role_candidate": 24,
+        "issued": 0,
+        "generated_ordinarily": 24,
+        "role_copied": 24,
+        "actual_copied": 0,
+        "forced_copied": 0,
+        "rows_with_reference": 0,
+        "literal_exact_role": 0,
+        "literal_exact_action": 0,
+        "literal_exact_no_read": 0,
+        "literal_exact_forced": 0,
+        "exact_gained": 0,
+        "exact_lost": 0,
+        "first_error_transitions": {}
+      }
+    },
+    "ordinary_examples": []
+  }
+]

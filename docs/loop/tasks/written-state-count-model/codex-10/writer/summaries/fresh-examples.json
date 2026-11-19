@@ -1,0 +1,136 @@
+{
+  "rows": 1728,
+  "paired_exact": {
+    "baseline": 365,
+    "role": 432,
+    "boundary": 346,
+    "both": 416
+  },
+  "paired_discordance": {
+    "role": {
+      "gained": 75,
+      "lost": 8
+    },
+    "boundary": {
+      "gained": 31,
+      "lost": 50
+    },
+    "both": {
+      "gained": 108,
+      "lost": 57
+    }
+  },
+  "interaction": {
+    "false,false,false,false": 611,
+    "false,false,false,true": 3,
+    "false,false,true,true": 45,
+    "false,true,false,false": 7,
+    "false,true,false,true": 83,
+    "true,false,false,false": 5,
+    "true,false,true,false": 8,
+    "true,true,false,false": 169,
+    "true,true,true,true": 797
+  },
+  "both_repaired_example": {
+    "case": "fresh-f0-a0-o0-c11-early-before-none-shared-Jen",
+    "prefix_sha256": "e977b31f90358dab6657772f7f092671e3f08fcec886d37605b3fbd68b3f5a4c",
+    "pair": "fresh-f0-a0-o0-c11-early-before-none-shared",
+    "expected": [
+      2551,
+      1
+    ],
+    "old": "0",
+    "role": "exact",
+    "boundary": "0",
+    "both": "exact",
+    "got": [
+      2551,
+      1
+    ],
+    "base": [
+      1605,
+      1
+    ],
+    "sources": [
+      "6",
+      "10",
+      "6",
+      "10"
+    ],
+    "factors": [
+      "early",
+      "before",
+      "none",
+      "1"
+    ]
+  },
+  "both_regressed_example": {
+    "case": "fresh-f0-a0-o1-c12-early-none-none-shared-Jen",
+    "prefix_sha256": "ad686cc90af3f0223c9ae3bc280525f38e68e44853c9ee264303ca536316d789",
+    "pair": "fresh-f0-a0-o1-c12-early-none-none-shared",
+    "expected": [
+      782,
+      2291,
+      1
+    ],
+    "old": "exact",
+    "role": "exact",
+    "boundary": "0",
+    "both": "0",
+    "got": [
+      2291,
+      1
+    ],
+    "base": [
+      782,
+      2291,
+      1
+    ],
+    "sources": [
+      "7",
+      "7",
+      "8",
+      "8"
+    ],
+    "factors": [
+      "early",
+      "none",
+      "none",
+      "2"
+    ]
+  },
+  "both_persistent_example": {
+    "case": "fresh-f0-a0-o1-c11-early-none-none-shared-Jim",
+    "prefix_sha256": "0b14a72a9d63e3770ac0b8ef3902e75d7c25c4581c5dee7c686d8dca02d8f216",
+    "pair": "fresh-f0-a0-o1-c11-early-none-none-shared",
+    "expected": [
+      782,
+      2527,
+      1
+    ],
+    "old": "0",
+    "role": "0",
+    "boundary": "0",
+    "both": "0",
+    "got": [
+      2527,
+      1
+    ],
+    "base": [
+      2527,
+      1
+    ],
+    "sources": [
+      "12",
+      "12",
+      "12",
+      "12"
+    ],
+    "factors": [
+      "early",
+      "none",
+      "none",
+      "1"
+    ]
+  }
+}
