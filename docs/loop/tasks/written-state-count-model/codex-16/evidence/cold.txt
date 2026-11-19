@@ -1,0 +1,6 @@
+00fd9fad19b4829bbd984b24401afc0a61ce41b2ae81b7fcb3945b28dff22fcd  wick-fresh-validity.tar.zst
+d45f00e0cd715c58dadbb6ad0cee62806d1e11b32d109d08d5077a2eb22c39c0  primary-seed1/cold.sha256
+315c76e6ac764af21eb918ab2b961a2959822fd446bae56c70a5205fa0ee044c  primary-seed2/cold.sha256
+d45f00e0cd715c58dadbb6ad0cee62806d1e11b32d109d08d5077a2eb22c39c0  repeat-seed1/cold.sha256
+315c76e6ac764af21eb918ab2b961a2959822fd446bae56c70a5205fa0ee044c  repeat-seed2/cold.sha256
+  152225

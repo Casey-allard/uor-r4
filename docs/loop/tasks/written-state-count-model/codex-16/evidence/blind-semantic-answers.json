@@ -1,0 +1,194 @@
+[
+  {
+    "index": 0,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Saved” can mean reserved, which would give “woven baskets,” or rescued or preserved, which need not involve a reservation."
+  },
+  {
+    "index": 1,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Saved” can mean reserved, which would give “striped napkins,” or rescued or preserved, which need not involve a reservation."
+  },
+  {
+    "index": 2,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Saved” can mean reserved, which would give “striped napkins,” or rescued or preserved, which need not involve a reservation."
+  },
+  {
+    "index": 3,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Saved” can mean reserved, which would give “woven baskets,” or rescued or preserved, which need not involve a reservation."
+  },
+  {
+    "index": 4,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Set aside” can mean reserved, which would give “woven baskets,” or moved out of the way or excluded, which need not involve a reservation."
+  },
+  {
+    "index": 5,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Set aside” can mean reserved, which would give “striped napkins,” or moved out of the way or excluded, which need not involve a reservation."
+  },
+  {
+    "index": 6,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Set aside” can mean reserved, which would give “striped napkins,” or moved out of the way or excluded, which need not involve a reservation."
+  },
+  {
+    "index": 7,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "“Set aside” can mean reserved, which would give “woven baskets,” or moved out of the way or excluded, which need not involve a reservation."
+  },
+  {
+    "index": 8,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "why": "The named person packed these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 9,
+    "status": "supported",
+    "answer": "braided cords",
+    "why": "The named person packed these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 10,
+    "status": "supported",
+    "answer": "braided cords",
+    "why": "The named person packed these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 11,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "why": "The named person packed these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 12,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "why": "The named person put away these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 13,
+    "status": "supported",
+    "answer": "braided cords",
+    "why": "The named person put away these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 14,
+    "status": "supported",
+    "answer": "braided cords",
+    "why": "The named person put away these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 15,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "why": "The named person put away these objects, satisfying one branch of the question."
+  },
+  {
+    "index": 16,
+    "status": "supported",
+    "answer": "brass coins",
+    "why": "This is the sole noun phrase assigned to Vale in the given lines."
+  },
+  {
+    "index": 17,
+    "status": "supported",
+    "answer": "paper cups",
+    "why": "This is the sole noun phrase assigned to the other named person in the given lines."
+  },
+  {
+    "index": 18,
+    "status": "absent",
+    "answer": null,
+    "why": "The entries provide no supply associated with Nina, so the literal yes/no answer is no."
+  },
+  {
+    "index": 19,
+    "status": "conflict",
+    "answer": null,
+    "why": "The entry has competing wordings “brass coins” and “tin tokens.” Neither is identified as original, so the literal yes/no answer is no."
+  },
+  {
+    "index": 20,
+    "status": "supported",
+    "answer": "river stones",
+    "why": "This is the sole noun phrase assigned to Della in the given lines."
+  },
+  {
+    "index": 21,
+    "status": "supported",
+    "answer": "spare cards",
+    "why": "This is the sole noun phrase assigned to the other named person in the given lines."
+  },
+  {
+    "index": 22,
+    "status": "absent",
+    "answer": null,
+    "why": "The entries provide no supply associated with Omar, so the literal yes/no answer is no."
+  },
+  {
+    "index": 23,
+    "status": "conflict",
+    "answer": null,
+    "why": "The entry has competing wordings “river stones” and “round pebbles.” Neither is identified as original, so the literal yes/no answer is no."
+  },
+  {
+    "index": 24,
+    "status": "supported",
+    "answer": "clay pots",
+    "why": "This is the sole noun phrase assigned to Harlan in the given lines."
+  },
+  {
+    "index": 25,
+    "status": "supported",
+    "answer": "rubber stamps",
+    "why": "This is the sole noun phrase assigned to the other named person in the given lines."
+  },
+  {
+    "index": 26,
+    "status": "absent",
+    "answer": null,
+    "why": "The entries provide no supply associated with Lena, so the literal yes/no answer is no."
+  },
+  {
+    "index": 27,
+    "status": "conflict",
+    "answer": null,
+    "why": "The entry has competing wordings “clay pots” and “silk scarves.” Neither is identified as original, so the literal yes/no answer is no."
+  },
+  {
+    "index": 28,
+    "status": "supported",
+    "answer": "chalk sticks",
+    "why": "This is the sole noun phrase assigned to Briar in the given lines."
+  },
+  {
+    "index": 29,
+    "status": "supported",
+    "answer": "glass jars",
+    "why": "This is the sole noun phrase assigned to the other named person in the given lines."
+  },
+  {
+    "index": 30,
+    "status": "absent",
+    "answer": null,
+    "why": "The entries provide no supply associated with Rafael, so the literal yes/no answer is no."
+  },
+  {
+    "index": 31,
+    "status": "conflict",
+    "answer": null,
+    "why": "The entry has competing wordings “chalk sticks” and “wooden beads.” Neither is identified as original, so the literal yes/no answer is no."
+  }
+]

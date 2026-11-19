@@ -1,0 +1,258 @@
+[
+  {
+    "index": 0,
+    "status": "supported",
+    "answer": "woven baskets",
+    "requested_name": "Inez",
+    "support_count": 1,
+    "why": "The passage records woven baskets for Inez."
+  },
+  {
+    "index": 1,
+    "status": "supported",
+    "answer": "striped napkins",
+    "requested_name": "Dorian",
+    "support_count": 1,
+    "why": "The passage records striped napkins for Dorian."
+  },
+  {
+    "index": 2,
+    "status": "supported",
+    "answer": "striped napkins",
+    "requested_name": "Inez",
+    "support_count": 1,
+    "why": "The passage records striped napkins for Inez."
+  },
+  {
+    "index": 3,
+    "status": "supported",
+    "answer": "woven baskets",
+    "requested_name": "Dorian",
+    "support_count": 1,
+    "why": "The passage records woven baskets for Dorian."
+  },
+  {
+    "index": 4,
+    "status": "supported",
+    "answer": "woven baskets",
+    "requested_name": "Inez",
+    "support_count": 1,
+    "why": "The passage records woven baskets for Inez."
+  },
+  {
+    "index": 5,
+    "status": "supported",
+    "answer": "striped napkins",
+    "requested_name": "Dorian",
+    "support_count": 1,
+    "why": "The passage records striped napkins for Dorian."
+  },
+  {
+    "index": 6,
+    "status": "supported",
+    "answer": "striped napkins",
+    "requested_name": "Inez",
+    "support_count": 1,
+    "why": "The passage records striped napkins for Inez."
+  },
+  {
+    "index": 7,
+    "status": "supported",
+    "answer": "woven baskets",
+    "requested_name": "Dorian",
+    "support_count": 1,
+    "why": "The passage records woven baskets for Dorian."
+  },
+  {
+    "index": 8,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "requested_name": "Sabine",
+    "support_count": 1,
+    "why": "The passage records padded envelopes for Sabine."
+  },
+  {
+    "index": 9,
+    "status": "supported",
+    "answer": "braided cords",
+    "requested_name": "Gareth",
+    "support_count": 1,
+    "why": "The passage records braided cords for Gareth."
+  },
+  {
+    "index": 10,
+    "status": "supported",
+    "answer": "braided cords",
+    "requested_name": "Sabine",
+    "support_count": 1,
+    "why": "The passage records braided cords for Sabine."
+  },
+  {
+    "index": 11,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "requested_name": "Gareth",
+    "support_count": 1,
+    "why": "The passage records padded envelopes for Gareth."
+  },
+  {
+    "index": 12,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "requested_name": "Sabine",
+    "support_count": 1,
+    "why": "The passage records padded envelopes for Sabine."
+  },
+  {
+    "index": 13,
+    "status": "supported",
+    "answer": "braided cords",
+    "requested_name": "Gareth",
+    "support_count": 1,
+    "why": "The passage records braided cords for Gareth."
+  },
+  {
+    "index": 14,
+    "status": "supported",
+    "answer": "braided cords",
+    "requested_name": "Sabine",
+    "support_count": 1,
+    "why": "The passage records braided cords for Sabine."
+  },
+  {
+    "index": 15,
+    "status": "supported",
+    "answer": "padded envelopes",
+    "requested_name": "Gareth",
+    "support_count": 1,
+    "why": "The passage records padded envelopes for Gareth."
+  },
+  {
+    "index": 16,
+    "status": "supported",
+    "answer": "brass coins",
+    "requested_name": "Vale",
+    "support_count": 1,
+    "why": "The passage records brass coins for Vale."
+  },
+  {
+    "index": 17,
+    "status": "supported",
+    "answer": "paper cups",
+    "requested_name": "Tessa",
+    "support_count": 1,
+    "why": "The passage records paper cups for Tessa."
+  },
+  {
+    "index": 18,
+    "status": "absent",
+    "answer": null,
+    "requested_name": "Nina",
+    "support_count": 0,
+    "why": "No. Neither entry mentions Nina."
+  },
+  {
+    "index": 19,
+    "status": "conflict",
+    "answer": null,
+    "requested_name": "Vale",
+    "support_count": 2,
+    "why": "No. The competing versions for Vale list brass coins and tin tokens, with no indication of which version is original."
+  },
+  {
+    "index": 20,
+    "status": "supported",
+    "answer": "river stones",
+    "requested_name": "Della",
+    "support_count": 1,
+    "why": "The passage records river stones for Della."
+  },
+  {
+    "index": 21,
+    "status": "supported",
+    "answer": "spare cards",
+    "requested_name": "Wynn",
+    "support_count": 1,
+    "why": "The passage records spare cards for Wynn."
+  },
+  {
+    "index": 22,
+    "status": "absent",
+    "answer": null,
+    "requested_name": "Omar",
+    "support_count": 0,
+    "why": "No. Neither entry mentions Omar."
+  },
+  {
+    "index": 23,
+    "status": "conflict",
+    "answer": null,
+    "requested_name": "Della",
+    "support_count": 2,
+    "why": "No. The competing versions for Della list river stones and round pebbles, with no indication of which version is original."
+  },
+  {
+    "index": 24,
+    "status": "supported",
+    "answer": "clay pots",
+    "requested_name": "Harlan",
+    "support_count": 1,
+    "why": "The passage records clay pots for Harlan."
+  },
+  {
+    "index": 25,
+    "status": "supported",
+    "answer": "rubber stamps",
+    "requested_name": "Esme",
+    "support_count": 1,
+    "why": "The passage records rubber stamps for Esme."
+  },
+  {
+    "index": 26,
+    "status": "absent",
+    "answer": null,
+    "requested_name": "Lena",
+    "support_count": 0,
+    "why": "No. Neither entry mentions Lena."
+  },
+  {
+    "index": 27,
+    "status": "conflict",
+    "answer": null,
+    "requested_name": "Harlan",
+    "support_count": 2,
+    "why": "No. The competing versions for Harlan list clay pots and silk scarves, with no indication of which version is original."
+  },
+  {
+    "index": 28,
+    "status": "supported",
+    "answer": "chalk sticks",
+    "requested_name": "Briar",
+    "support_count": 1,
+    "why": "The passage records chalk sticks for Briar."
+  },
+  {
+    "index": 29,
+    "status": "supported",
+    "answer": "glass jars",
+    "requested_name": "Cleo",
+    "support_count": 1,
+    "why": "The passage records glass jars for Cleo."
+  },
+  {
+    "index": 30,
+    "status": "absent",
+    "answer": null,
+    "requested_name": "Rafael",
+    "support_count": 0,
+    "why": "No. Neither entry mentions Rafael."
+  },
+  {
+    "index": 31,
+    "status": "conflict",
+    "answer": null,
+    "requested_name": "Briar",
+    "support_count": 2,
+    "why": "No. The competing versions for Briar list chalk sticks and wooden beads, with no indication of which version is original."
+  }
+]

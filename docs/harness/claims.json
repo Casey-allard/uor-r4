@@ -1,4 +1,11 @@
 {
+  "codex/fresh-boundary-validity": {
+    "branch": "codex/fresh-boundary-validity",
+    "claimed_at": "2026-11-19T00:00:33-05:00",
+    "head": "e26f824c4",
+    "lab": "codex",
+    "note": "Fresh validity and source-start retest; prospective input seals; no training"
+  },
   "codex/native-space-cycle": {
     "branch": "codex/native-space-cycle",
     "claimed_at": "2026-11-13T22:17:35-05:00",

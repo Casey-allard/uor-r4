@@ -1,0 +1,8 @@
+{
+  "store": "caseyallard/uor-r4-store",
+  "revision": "d2a6a64aac9644eb83261676f3974efd28719535",
+  "path": "results/codex/fresh-boundary-validity-20261119/wick-fresh-validity.tar.zst",
+  "archive_sha256": "00fd9fad19b4829bbd984b24401afc0a61ce41b2ae81b7fcb3945b28dff22fcd",
+  "bytes": 152225,
+  "independent_store_download_matches_wick_and_workstation": true
+}
