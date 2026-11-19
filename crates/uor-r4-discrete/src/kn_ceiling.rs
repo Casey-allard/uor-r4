@@ -208,14 +208,122 @@ pub enum EmStart {
     Kn,
 }
 
+/// claude-439: the Pick class of a target that did not fire.
+pub const PICK_NOT_FIRED: u8 = 0;
+/// claude-439: Pick fired at pair distance 0.
+pub const PICK_FIRED_EXACT: u8 = 1;
+/// claude-439: Pick fired at pair distance above 0.
+pub const PICK_FIRED_NEAR: u8 = 2;
+/// claude-439: Pick classes; each holds one copy of the base buckets.
+pub const PICK_CLASSES: u8 = 3;
+
+/// claude-439: one target's Pick reading: its class and whether the copied
+/// token is the target. `hit` needs a fired class.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PickTarget {
+    pub class: u8,
+    pub hit: bool,
+}
+
 /// Every target's bucket and its expert masses.
 pub struct CeilingTable {
     highest: u32,
+    /// claude-439: whether the table holds the Pick column after U.
+    pick: bool,
     buckets: Vec<u16>,
     masses: Vec<u64>,
 }
 
 impl CeilingTable {
+    /// claude-439: `from_lookups` plus the Pick expert at index
+    /// `expert_count(highest)`, with mass 2^48 on a hit and 0 otherwise.
+    /// A target's bucket is class * `bucket_count(highest)` plus its base
+    /// bucket, and Pick is present only in the buckets of a fired class.
+    /// Refuses a Pick list of another length, a class above 2 and a hit
+    /// that did not fire.
+    pub fn from_lookups_with_pick(
+        highest: u32,
+        kn_masses: &[u64],
+        counts: &[u32],
+        totals: &[u64],
+        pick: &[PickTarget],
+    ) -> Result<Self> {
+        if pick.len() != kn_masses.len() {
+            return Err(invalid(format!(
+                "{} KN masses need as many Pick targets, got {}",
+                kn_masses.len(),
+                pick.len()
+            )));
+        }
+        let width = highest as usize + 1;
+        let targets = kn_masses.len();
+        if counts.len() != targets * width || totals.len() != targets * width {
+            return Err(invalid(format!(
+                "{targets} KN masses need {} counts and totals, got {} and {}",
+                targets * width,
+                counts.len(),
+                totals.len()
+            )));
+        }
+        // Rows are written in place, so no Pick-free copy of the table is held.
+        let base = expert_count(highest);
+        let stride = bucket_count(highest);
+        let mut buckets = Vec::with_capacity(targets);
+        let mut masses = vec![0u64; targets * (base + 1)];
+        for (t, p) in pick.iter().enumerate() {
+            if p.class >= PICK_CLASSES {
+                return Err(invalid(format!(
+                    "target {t}: Pick class {} is above {}",
+                    p.class,
+                    PICK_CLASSES - 1
+                )));
+            }
+            if p.hit && p.class == PICK_NOT_FIRED {
+                return Err(invalid(format!("target {t}: a Pick hit that did not fire")));
+            }
+            let row = &mut masses[t * (base + 1)..(t + 1) * (base + 1)];
+            let plain_bucket = ceiling_expert_row(
+                kn_masses[t],
+                &counts[t * width..(t + 1) * width],
+                &totals[t * width..(t + 1) * width],
+                &mut row[..base],
+            )
+            .map_err(|error| invalid(format!("target {t}: {error}")))?;
+            row[base] = if p.hit { 1 << 48 } else { 0 };
+            let bucket = usize::from(p.class) * stride + usize::from(plain_bucket);
+            let bucket = u16::try_from(bucket).map_err(|_| invalid("a bucket exceeded u16"))?;
+            buckets.push(bucket);
+        }
+        Ok(Self {
+            highest,
+            pick: true,
+            buckets,
+            masses,
+        })
+    }
+
+    /// claude-439: buckets of this table: `bucket_count(highest)`, times
+    /// `PICK_CLASSES` with the Pick column.
+    pub fn bucket_total(&self) -> usize {
+        let classes = if self.pick { usize::from(PICK_CLASSES) } else { 1 };
+        bucket_count(self.highest) * classes
+    }
+
+    /// claude-439: the Pick expert's index, if the table holds the column.
+    pub fn pick_expert(&self) -> Option<usize> {
+        self.pick.then(|| expert_count(self.highest))
+    }
+
+    /// Whether expert e is present in bucket b of this table: Pick in the
+    /// buckets of a fired class, every other expert by its base bucket.
+    fn holds(&self, b: usize, e: usize) -> bool {
+        let stride = bucket_count(self.highest);
+        if self.pick_expert() == Some(e) {
+            return b / stride != usize::from(PICK_NOT_FIRED);
+        }
+        present(self.highest, b % stride, e)
+    }
+
     /// Builds the experts from KN masses and the lookup layout of
     /// `RawTables::lookups`.
     pub fn from_lookups(
@@ -247,13 +355,14 @@ impl CeilingTable {
         }
         Ok(Self {
             highest,
+            pick: false,
             buckets,
             masses,
         })
     }
 
     pub fn experts(&self) -> usize {
-        expert_count(self.highest)
+        expert_count(self.highest) + usize::from(self.pick)
     }
 
     pub fn targets(&self) -> usize {
@@ -278,11 +387,11 @@ impl CeilingTable {
     /// keeps; an expert `on` drops holds 0 in every bucket.
     fn uniform_weights_with(&self, on: &[bool]) -> Vec<u64> {
         let experts = self.experts();
-        let mut weights = vec![0u64; bucket_count(self.highest) * experts];
-        for b in 0..bucket_count(self.highest) {
+        let mut weights = vec![0u64; self.bucket_total() * experts];
+        for b in 0..self.bucket_total() {
             let row = &mut weights[b * experts..(b + 1) * experts];
             let live: Vec<usize> = (0..experts)
-                .filter(|&e| on[e] && present(self.highest, b, e))
+                .filter(|&e| on[e] && self.holds(b, e))
                 .collect();
             let share = WEIGHT_ONE / live.len() as u64;
             for &e in &live {
@@ -301,10 +410,10 @@ impl CeilingTable {
             return Err(invalid("the KN start needs the KN expert"));
         }
         let experts = self.experts();
-        let mut weights = vec![0u64; bucket_count(self.highest) * experts];
-        for b in 0..bucket_count(self.highest) {
+        let mut weights = vec![0u64; self.bucket_total() * experts];
+        for b in 0..self.bucket_total() {
             let row = &mut weights[b * experts..(b + 1) * experts];
-            let others = (1..experts).filter(|&e| on[e] && present(self.highest, b, e));
+            let others = (1..experts).filter(|&e| on[e] && self.holds(b, e));
             let mut rest = WEIGHT_ONE;
             for e in others {
                 row[e] = 1;
@@ -341,7 +450,7 @@ impl CeilingTable {
     }
 
     fn check_weights(&self, weights: &[u64]) -> Result<()> {
-        let want = bucket_count(self.highest) * self.experts();
+        let want = self.bucket_total() * self.experts();
         if weights.len() != want {
             return Err(invalid(format!(
                 "weights need {want} entries, got {}",
@@ -400,7 +509,7 @@ impl CeilingTable {
     ) -> Result<CeilingFit> {
         let on = self.check_fit_inputs(fit, experts)?;
         let experts = self.experts();
-        let buckets = bucket_count(self.highest);
+        let buckets = self.bucket_total();
         let mut weights = match start {
             EmStart::Uniform => self.uniform_weights_with(on),
             EmStart::Kn => self.kn_weights_with(on)?,
@@ -461,7 +570,7 @@ impl CeilingTable {
         let on = self.check_fit_inputs(fit, experts)?;
         self.check_weights(weights)?;
         let experts = self.experts();
-        let buckets = bucket_count(self.highest);
+        let buckets = self.bucket_total();
         let mut ratio = vec![0u128; buckets * experts];
         let mut n = vec![0u128; buckets];
         let mut floors = 0u128;
@@ -474,7 +583,7 @@ impl CeilingTable {
             n[b] += 1;
             floors += 2 + u128::from(8192u64.div_ceil(self.mixed(weights, t)));
             let p = &self.masses[t * experts..(t + 1) * experts];
-            for e in (0..experts).filter(|&e| on[e] && present(self.highest, b, e)) {
+            for e in (0..experts).filter(|&e| on[e] && self.holds(b, e)) {
                 let term = (u128::from(p[e]) << 64) / m;
                 let sum = &mut ratio[b * experts + e];
                 *sum = sum
@@ -518,8 +627,8 @@ impl CeilingTable {
                 self.experts()
             )));
         }
-        if let Some(b) = (0..bucket_count(self.highest))
-            .find(|&b| !(0..on.len()).any(|e| on[e] && present(self.highest, b, e)))
+        if let Some(b) = (0..self.bucket_total())
+            .find(|&b| !(0..on.len()).any(|e| on[e] && self.holds(b, e)))
         {
             return Err(invalid(format!(
                 "the expert mask leaves bucket {b} no expert"
@@ -550,7 +659,7 @@ impl CeilingTable {
         let top = largest(row);
         row[top] += WEIGHT_ONE - assigned;
         for e in 0..row.len() {
-            if on[e] && present(self.highest, b, e) && row[e] == 0 {
+            if on[e] && self.holds(b, e) && row[e] == 0 {
                 let top = largest(row);
                 row[top] -= 1;
                 row[e] = 1;
@@ -670,6 +779,39 @@ mod tests {
         (counts, totals)
     }
 
+    /// claude-439: lookups never cross a BOS, so a BOS-framed stream looked up in
+    /// BOS-aligned pieces gives the whole stream's lookups. The Pick arms' host check
+    /// compares one such piece at a time and relies on this.
+    #[test]
+    fn lookups_in_bos_aligned_pieces_equal_the_whole() {
+        let train: Vec<u16> = vec![
+            0, 5, 6, 7, 5, 6, 8, 1, 0, 5, 6, 7, 9, 1, 0, 6, 7, 5, 6, 7, 1, 0, 9, 9, 9, 1,
+        ];
+        let query: Vec<u16> = vec![
+            0, 5, 6, 7, 1, 0, 6, 7, 5, 6, 8, 1, 0, 9, 9, 9, 6, 1, 0, 7, 5, 6, 7, 1,
+        ];
+        let starts: Vec<usize> = (0..query.len()).filter(|&i| query[i] == 0).collect();
+        for highest in [2u32, 3] {
+            let tables = raw_tables(&train, highest);
+            let whole = tables.lookups(&query).unwrap();
+            for cut in 1..starts.len() {
+                let (a, b) = query.split_at(starts[cut]);
+                let (mut counts, mut totals) = tables.lookups(a).unwrap();
+                let (c, t) = tables.lookups(b).unwrap();
+                counts.extend(c);
+                totals.extend(t);
+                assert_eq!((counts, totals), whole, "highest {highest}, cut {cut}");
+            }
+            // A cut inside a record is not the same: the pieces must start at a BOS.
+            let (a, b) = query.split_at(starts[1] + 3);
+            let (mut counts, mut totals) = tables.lookups(a).unwrap();
+            let (c, t) = tables.lookups(b).unwrap();
+            counts.extend(c);
+            totals.extend(t);
+            assert_ne!((counts, totals), whole, "highest {highest}, mid-record cut");
+        }
+    }
+
     #[test]
     fn lookups_match_brute_force() {
         let train: Vec<u16> = vec![
@@ -734,6 +876,12 @@ mod tests {
 
     /// A deterministic fixture at highest = 2 over buckets of h = 0, 1, 2.
     fn fixture() -> CeilingTable {
+        let (kn, counts, totals) = fixture_inputs();
+        CeilingTable::from_lookups(2, &kn, &counts, &totals).unwrap()
+    }
+
+    /// The fixture's KN masses, counts and totals.
+    fn fixture_inputs() -> (Vec<u64>, Vec<u32>, Vec<u64>) {
         let (mut kn, mut counts, mut totals) = (Vec::new(), Vec::new(), Vec::new());
         let mut s = 12345u64;
         for t in 0..240u64 {
@@ -752,7 +900,7 @@ mod tests {
             counts.extend_from_slice(&row_a);
             totals.extend_from_slice(&row_t);
         }
-        CeilingTable::from_lookups(2, &kn, &counts, &totals).unwrap()
+        (kn, counts, totals)
     }
 
     fn assert_sums(table: &CeilingTable, weights: &[u64]) {
@@ -1015,5 +1163,236 @@ mod tests {
         assert!(table
             .gap_bound_q12(&first.weights, &fit[1..], &all, test_bits)
             .is_err());
+    }
+
+    /// claude-439: the fixture with a Pick column.
+    fn pick_table(pick: &[PickTarget]) -> CeilingTable {
+        let (kn, counts, totals) = fixture_inputs();
+        CeilingTable::from_lookups_with_pick(2, &kn, &counts, &totals, pick).unwrap()
+    }
+
+    /// Classes 0, 1, 2 in runs of three, so every class meets every h; a
+    /// fired target hits where `hit` says.
+    fn pick_targets(hit: impl Fn(usize) -> bool) -> Vec<PickTarget> {
+        (0..240)
+            .map(|t| {
+                let class = ((t / 3) % 3) as u8;
+                PickTarget {
+                    class,
+                    hit: class != PICK_NOT_FIRED && hit(t),
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_pick_table_extends_the_plain_rows() {
+        let plain = fixture();
+        let pick = pick_targets(|t| t % 7 != 0);
+        let table = pick_table(&pick);
+        let (base, stride) = (plain.experts(), bucket_count(2));
+        assert_eq!(table.experts(), base + 1);
+        for (t, p) in pick.iter().enumerate() {
+            let row = &table.masses()[t * (base + 1)..(t + 1) * (base + 1)];
+            assert_eq!(&row[..base], &plain.masses()[t * base..(t + 1) * base], "target {t}");
+            assert_eq!(row[base], if p.hit { 1 << 48 } else { 0 }, "target {t}");
+            let want = usize::from(p.class) * stride + usize::from(plain.buckets()[t]);
+            assert_eq!(usize::from(table.buckets()[t]), want, "target {t}");
+        }
+    }
+
+    /// Sum of every weight times its index.
+    fn weight_digest(weights: &[u64]) -> u128 {
+        weights
+            .iter()
+            .enumerate()
+            .map(|(i, &w)| u128::from(w) * i as u128)
+            .sum()
+    }
+
+    #[test]
+    fn a_table_without_pick_is_unchanged() {
+        let plain = fixture();
+        assert_eq!(plain.pick_expert(), None);
+        assert_eq!(plain.bucket_total(), bucket_count(2));
+        let fit = vec![true; plain.targets()];
+        let all = vec![true; plain.experts()];
+        let run = plain
+            .fit_em_from(&fit, &all, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        // Recorded on 9ae71b00a, before the Pick column.
+        let want: [u128; 25] = [
+            5386025, 5386018, 5384475, 5299439, 4907364, 3901407, 2436743, 1675294, 1375956,
+            1235687, 1171471, 1155153, 1150895, 1148938, 1147701, 1146762, 1146027, 1145471,
+            1145079, 1144825, 1144625, 1144497, 1144403, 1144323, 1144262,
+        ];
+        assert_eq!(run.fit_bits, want);
+        assert_eq!(weight_digest(&run.weights), 24357983333462);
+        // A Pick table whose targets all stay in class 0 fits the same.
+        let table = pick_table(&vec![PickTarget { class: 0, hit: false }; 240]);
+        let on = vec![true; table.experts()];
+        let got = table
+            .fit_em_from(&fit, &on, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        assert_eq!(got.fit_bits, run.fit_bits);
+        let (pe, xe) = (plain.experts(), table.experts());
+        for b in 0..bucket_count(2) {
+            assert_eq!(got.weights[b * xe + pe], 0, "bucket {b} holds Pick");
+            assert_eq!(
+                &got.weights[b * xe..b * xe + pe],
+                &run.weights[b * pe..(b + 1) * pe],
+                "bucket {b}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_pick_bucket_rule() {
+        let plain = fixture();
+        let pick = pick_targets(|t| t % 2 == 0);
+        let table = pick_table(&pick);
+        let stride = bucket_count(2);
+        assert_eq!(table.bucket_total(), 3 * stride);
+        assert_eq!(table.experts(), plain.experts() + 1);
+        assert_eq!(table.pick_expert(), Some(expert_count(2)));
+        let xe = table.experts();
+        for (t, p) in pick.iter().enumerate() {
+            let base = usize::from(plain.buckets()[t]);
+            let want = usize::from(p.class) * stride + base;
+            assert_eq!(usize::from(table.buckets()[t]), want, "target {t}");
+            let mass = table.masses()[t * xe + xe - 1];
+            assert_eq!(mass, if p.hit { 1 << 48 } else { 0 }, "target {t}");
+        }
+        assert!(pick.iter().any(|p| p.class == PICK_FIRED_EXACT));
+        assert!(pick.iter().any(|p| p.class == PICK_FIRED_NEAR));
+        for b in 0..table.bucket_total() {
+            assert_eq!(table.holds(b, xe - 1), b >= stride, "bucket {b}");
+            for e in 0..xe - 1 {
+                assert_eq!(table.holds(b, e), present(2, b % stride, e));
+            }
+        }
+        // At highest = 10: 3 * 176 buckets.
+        let mut totals = vec![0u64; 11];
+        totals[0] = 1;
+        let one = [PickTarget { class: 2, hit: true }];
+        let wide = CeilingTable::from_lookups_with_pick(10, &[1], &[0; 11], &totals, &one)
+            .unwrap();
+        assert_eq!(wide.bucket_total(), 528);
+        assert_eq!(wide.buckets(), &[352]);
+        // Bad Pick lists are refused.
+        let (kn, counts, totals) = fixture_inputs();
+        let build = |p: &[PickTarget]| {
+            CeilingTable::from_lookups_with_pick(2, &kn, &counts, &totals, p).is_err()
+        };
+        assert!(build(&pick[1..]));
+        let mut bad = pick.clone();
+        bad[4].class = 3;
+        assert!(build(&bad));
+        let mut bad = pick.clone();
+        bad[0] = PickTarget { class: 0, hit: true };
+        assert!(build(&bad));
+        assert!(!build(&pick));
+    }
+
+    #[test]
+    fn a_right_copy_lowers_the_bits() {
+        let plain = fixture();
+        let fit = vec![true; plain.targets()];
+        let all = vec![true; plain.experts()];
+        let base = plain
+            .fit_em_from(&fit, &all, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        let table = pick_table(&pick_targets(|t| t % 7 != 0));
+        let on = vec![true; table.experts()];
+        let got = table
+            .fit_em_from(&fit, &on, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        assert!(got.fit_bits[24] < base.fit_bits[24], "{} vs {}", got.fit_bits[24], base.fit_bits[24]);
+    }
+
+    #[test]
+    fn a_wrong_copy_falls_to_the_floor() {
+        let table = pick_table(&pick_targets(|_| false));
+        let fit = vec![true; table.targets()];
+        let on = vec![true; table.experts()];
+        let got = table
+            .fit_em_from(&fit, &on, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        let xe = table.experts();
+        let fired: std::collections::BTreeSet<usize> = table
+            .buckets()
+            .iter()
+            .map(|&b| usize::from(b))
+            .filter(|&b| b >= bucket_count(2))
+            .collect();
+        assert!(!fired.is_empty());
+        for b in fired {
+            assert_eq!(got.weights[b * xe + xe - 1], 1, "bucket {b}");
+        }
+    }
+
+    #[test]
+    fn the_read_disabled_mask_matches_a_split_with_no_copy() {
+        let plain = fixture();
+        let pick = pick_targets(|t| t % 7 != 0);
+        let table = pick_table(&pick);
+        let xe = table.experts();
+        let pe = plain.experts();
+        let mut off = vec![true; xe];
+        off[table.pick_expert().unwrap()] = false;
+        let fit = vec![true; table.targets()];
+        let got = table
+            .fit_em_from(&fit, &off, EmStart::Kn, 24, test_bits)
+            .unwrap();
+        for b in 0..table.bucket_total() {
+            assert_eq!(got.weights[b * xe + xe - 1], 0, "bucket {b}");
+        }
+        // Each class's buckets fit as the plain table fits that class alone.
+        let stride = bucket_count(2);
+        for class in 0..PICK_CLASSES {
+            let only: Vec<bool> = pick.iter().map(|p| p.class == class).collect();
+            let split = plain
+                .fit_em_from(&only, &vec![true; pe], EmStart::Kn, 24, test_bits)
+                .unwrap();
+            for b in 0..stride {
+                let at = usize::from(class) * stride + b;
+                assert_eq!(
+                    &got.weights[at * xe..at * xe + pe],
+                    &split.weights[b * pe..(b + 1) * pe],
+                    "class {class} bucket {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn pick_rows_sum_to_one() {
+        let table = pick_table(&pick_targets(|t| t % 3 != 0));
+        let fit = vec![true; table.targets()];
+        let on = vec![true; table.experts()];
+        let xe = table.experts();
+        for start in [EmStart::Uniform, EmStart::Kn] {
+            for passes in [0, 6] {
+                let got = table
+                    .fit_em_from(&fit, &on, start, passes, test_bits)
+                    .unwrap();
+                assert_eq!(got.weights.len(), table.bucket_total() * xe);
+                for b in 0..table.bucket_total() {
+                    let row = &got.weights[b * xe..(b + 1) * xe];
+                    for (e, &w) in row.iter().enumerate() {
+                        if table.holds(b, e) {
+                            assert!(w >= 1, "{start:?} bucket {b} expert {e} at 0");
+                        } else {
+                            assert_eq!(w, 0, "{start:?} absent expert {e} of bucket {b}");
+                        }
+                    }
+                    assert_eq!(row.iter().sum::<u64>(), WEIGHT_ONE, "{start:?} bucket {b}");
+                }
+                assert!(table.mixed_masses(&got.weights).is_ok());
+                assert!(table
+                    .gap_bound_q12(&got.weights, &fit, &on, test_bits)
+                    .is_ok());
+            }
+        }
     }
 }

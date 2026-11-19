@@ -52,3 +52,7 @@ required-features = ["count-replay"]
 name = "pick-reachability"
 path = "src/bin/pick-reachability.rs"
 required-features = ["cuda"]
+
+[[bin]]
+name = "pick-split"
+path = "src/bin/pick-split.rs"

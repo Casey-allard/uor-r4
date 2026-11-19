@@ -1,0 +1,65 @@
+{
+  "counts": {
+    "c": {
+      "records": 515520,
+      "tokens": 2075608357
+    },
+    "dev": {
+      "records": 2670,
+      "tokens": 10810087
+    },
+    "dev_plus": {
+      "records": 2670,
+      "tokens": 21614834
+    },
+    "non_bos_targets_by_segment": [
+      15947584,
+      10807417,
+      31891108,
+      10807417,
+      10804747
+    ],
+    "query_tokens": 80271733,
+    "r": {
+      "records": 4060,
+      "tokens": 15951644
+    },
+    "r_plus": {
+      "records": 4060,
+      "tokens": 31895168
+    },
+    "train": {
+      "records": 519580,
+      "tokens": 2091560001
+    }
+  },
+  "inputs": {
+    "dev_tune_novel_sha256": "7df42437260bb767e2b1bdfd0cc55a242bd6e0b632a5bcd754852a7ab8aca6af",
+    "dev_tune_sha256": "75c6d1ac479bf120bac3aa60ac160536e8146f8052aa49c002209500799b7d0a",
+    "train_sha256": "c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460"
+  },
+  "outputs": {
+    "c.tokens.u16": {
+      "bytes": 4151216778,
+      "sha256": "cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a"
+    },
+    "q.classes.u8": {
+      "bytes": 80271733,
+      "sha256": "30fc852bc0639262162cea905cf0d0e55a6aa70a3b2e259cec8184b673a285af"
+    },
+    "q.segments.u8": {
+      "bytes": 80271733,
+      "sha256": "58292fd57dae8b7da50192cc180ffa47ace71525c5c245794f8ed73e016fc5c0"
+    },
+    "q.tokens.u16": {
+      "bytes": 160543530,
+      "sha256": "2cbf74c4dc41d04e27a3f2900e85104f78317580593e69a878eefd7f5e0efa3d"
+    }
+  },
+  "rules": {
+    "plus": "P+: 64-token chunks, each followed by its copy",
+    "split": "R: TRAIN records with index mod 128 = 0; C: the rest"
+  },
+  "schema": "uor-r4.pick-split/1",
+  "unit": "claude-439"
+}

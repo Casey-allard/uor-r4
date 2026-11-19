@@ -1,0 +1,169 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling zmij v1.0.23
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling version_check v0.9.5
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v2.0.1
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.186
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.150
+   Compiling libm v0.2.16
+   Compiling serde v1.0.228
+   Compiling cc v1.2.67
+   Compiling crossbeam-utils v0.8.22
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling crossbeam-epoch v0.9.20
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.3.1
+   Compiling arrayref v0.3.9 (/root/work/c439r2/third_party/arrayref)
+   Compiling crossbeam-deque v0.8.7
+   Compiling rayon-core v1.13.0
+   Compiling cpufeatures v0.2.17
+   Compiling syn v2.0.119
+   Compiling ryu v1.0.23
+   Compiling either v1.16.0
+   Compiling uor-r4-native-vector v0.1.0 (/root/work/c439r2/crates/uor-r4-native-vector)
+   Compiling cudarc v0.19.10 (/root/work/c439r2/third_party/cudarc-0.19.10)
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling blake3 v1.5.0
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling memmap2 v0.9.11
+   Compiling libloading v0.9.0
+   Compiling foldhash v0.2.0
+   Compiling rayon v1.12.0
+   Compiling allocator-api2 v0.2.21
+   Compiling uor-addr v0.2.0 (/root/work/c439r2/third_party/uor-addr-0.2.0)
+   Compiling equivalent v1.0.2
+   Compiling hex v0.4.3
+   Compiling hashbrown v0.16.1
+   Compiling serde_derive v1.0.228
+   Compiling uor-r4-vision v0.1.0 (/root/work/c439r2/crates/uor-r4-vision)
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/work/c439r2/crates/uor-r4-tokenizer)
+   Compiling safetensors v0.7.0
+   Compiling uor-r4-source-interface v0.1.0 (/root/work/c439r2/crates/uor-r4-source-interface)
+   Compiling uor-r4-core v0.1.0 (/root/work/c439r2/crates/uor-r4-core)
+   Compiling uor-r4-integer v0.1.0 (/root/work/c439r2/crates/uor-r4-integer)
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c439r2/crates/uor-r4-discrete)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-cpu-train v0.1.0 (/root/work/c439r2/crates/uor-r4-cpu-train)
+    Finished `release` profile [optimized] target(s) in 1m 04s
+     Running unittests src/lib.rs (/root/work/c439r2-target-discrete/release/deps/uor_r4_discrete-db76fb0bc1e5c344)
+
+running 74 tests
+test d11_export::tests::pick_export_carries_its_transport_word_and_step_frames ... ok
+test kn_ceiling::tests::bucket_rule_edges ... ok
+test kn_ceiling::tests::a_pick_table_extends_the_plain_rows ... ok
+test kn_ceiling::tests::dominant_expert_takes_the_bucket ... ok
+test kn_ceiling::tests::length_mismatches_are_refused ... ok
+test kn_ceiling::tests::raw_tables_refuse_bad_input ... ok
+test kn_ceiling::tests::mixed_masses_at_least_one ... ok
+test kn_ceiling::tests::fit_bits_never_rise ... ok
+test kn_ceiling::tests::lookups_match_brute_force ... ok
+test kn_ceiling::tests::the_pick_bucket_rule ... ok
+test kn_ceiling::tests::the_kn_start_puts_the_rest_on_kn ... ok
+test kn_ceiling::tests::lookups_in_bos_aligned_pieces_equal_the_whole ... ok
+test kn_ceiling::tests::the_kn_start_scores_kn_up_to_floors ... ok
+test kn_ceiling::tests::an_expert_mask_keeps_dropped_experts_at_zero ... ok
+test kn_ceiling::tests::pick_rows_sum_to_one ... ok
+test kn_filter::tests::kn_filter_refuses_falling_keys_and_bad_queries ... ok
+test kn_ceiling::tests::a_table_without_pick_is_unchanged ... ok
+test kn_ceiling::tests::a_wrong_copy_falls_to_the_floor ... ok
+test kn_ceiling::tests::weights_sum_to_one ... ok
+test kn_pick::tests::a_repeated_chunk_is_copied ... ok
+test kn_pick::tests::code_pick_matches_a_brute_force ... ok
+test kn_ceiling::tests::a_right_copy_lowers_the_bits ... ok
+test kn_pick::tests::code_pick_takes_the_latest_tie ... ok
+test kn_pick::tests::exact_pair_fires_only_on_a_match ... ok
+test kn_pick::tests::permuted_rows_keep_the_multiset_and_the_frame_ids ... ok
+test kn_pick::tests::repeat_chunks_shapes ... ok
+test kn_pick::tests::targets_never_cross_a_record ... ok
+test kn_pick::tests::the_pair_picks_the_right_copy ... ok
+test kn_pick::tests::row_permutation_drives_permute_code_rows ... ok
+test kn_ceiling::tests::the_read_disabled_mask_matches_a_split_with_no_copy ... ok
+test kn_filter::tests::kn_extension_census_counts_as_brute_force ... ok
+test kn_filter::tests::kn_filter_cursor_keeps_as_a_binary_search ... ok
+test kn_ceiling::tests::the_gap_bound_covers_what_em_still_saves ... ok
+test kn_score_cuda::kn_score_cuda_real_slice_equals_the_cpu_oracle ... ignored, needs UOR_KN_TRAIN and UOR_KN_QUERY, claude-420's UORT streams
+test kn_filter::tests::kn_filter_filtered_tables_score_as_unfiltered ... ok
+test kn_lookup_cuda::kn_lookup_cuda_empty_and_bos_only_queries_return_nothing ... ok
+test kn_score_cuda::kn_score_cuda_floors_an_underflowed_chain_as_the_host_does ... ok
+test kn_score_cuda::kn_score_cuda_empty_and_bos_only_queries_score_nothing ... ok
+test kn_lookup_cuda::kn_lookup_cuda_order_ten_discriminates_low_word ... ok
+test kn_lookup_cuda::kn_lookup_cuda_matches_host_on_hand_built_tables ... ok
+test ngram_count_cuda::ngram_count_cuda_bucket_offset_miscount_is_refused ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_with_fallback_discounts ... ok
+test kn_lookup_cuda::kn_lookup_cuda_distinguishes_adjusted_from_raw_source ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer ... ok
+test ngram_count_cuda::ngram_count_cuda_real_stream_adjusted_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_matches_the_oracle ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 1M tokens
+test ngram_count_cuda::ngram_count_cuda_real_stream_sweep_matches_the_adjusted_counter ... ignored, needs UOR_NGRAM_STREAM, a UORT token stream of at least 2M tokens
+test ngram_count_cuda::ngram_count_cuda_sha_covers_a_planted_single_count_change ... ok
+test ngram_count_cuda::ngram_count_cuda_max_order_and_short_streams ... ok
+test ngram_count_cuda::ngram_count_cuda_planted_rule4_is_refused ... ok
+test kn_score_cuda::kn_score_cuda_matches_the_host_scorer_at_high_orders ... ok
+test kn_lookup_cuda::kn_lookup_cuda_matches_host_on_counted_tables ... ok
+test pick_read_cuda::bucket_writer_refuses_a_pick_model ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_distance_is_half_the_root_l1_for_all_256_pairs ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_gate_counterfactuals_equal_the_moved_models_forward_loss ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_holonomy_with_identity_steps_is_identity_transport ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_loss_words_and_choices_match_the_cpu_scorer ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_matches_the_served_d11_artifact ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_read_and_trace_match_cpu_oracle_on_every_prefix ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_read_copies_the_planted_pair ... ignored, requires a CUDA GPU
+test pick_read_cuda::cuda_pick_read_matches_cpu_oracle_on_the_student_batch ... ignored, needs a GPU and UOR_STUDENT_STREAM (claude-408)
+test pick_read_cuda::cuda_pick_refuses_a_route_proposal ... ignored, requires a CUDA GPU
+test tests::pick_read_spec_is_strict_and_refuses_position_transport_0_and_2 ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_orders_read_only_their_extension_types ... ok
+test ngram_count_cuda::ngram_count_cuda_phase_totals_are_recorded_and_reset ... ok
+test ngram_count_cuda::ngram_count_cuda_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_sweep_counts_no_extension ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_device_sweep_equals_the_host_sweep has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle has been running for over 60 seconds
+test ngram_count_cuda::ngram_count_cuda_bucket_slices_equal_the_stream_select ... ok
+test ngram_count_cuda::ngram_count_cuda_adjusted_sha_is_stable_across_budgets_and_runs ... ok
+test ngram_count_cuda::ngram_count_cuda_device_sweep_matches_the_oracle ... ok
+test ngram_count_cuda::ngram_count_cuda_device_sweep_equals_the_host_sweep ... ok
+
+test result: ok. 60 passed; 0 failed; 14 ignored; 0 measured; 417 filtered out; finished in 96.38s
+

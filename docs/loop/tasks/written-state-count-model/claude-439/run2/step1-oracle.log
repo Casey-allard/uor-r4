@@ -1,0 +1,8 @@
+    Finished `release` profile [optimized] target(s) in 0.01s
+     Running unittests src/main.rs (/root/work/c439r2-target-instrument/release/deps/kn_reference-9af107e1145414c4)
+
+running 1 test
+test pick_device::tests::host_pick_equals_the_trunk_oracle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.71s
+

@@ -44,6 +44,7 @@ pub mod equal_count;
 #[cfg(feature = "cuda")]
 pub mod equal_count_device;
 pub mod kn_ceiling;
+pub mod kn_pick;
 pub mod kn_filter;
 #[cfg(all(test, feature = "cuda"))]
 mod kn_lookup_cuda;
