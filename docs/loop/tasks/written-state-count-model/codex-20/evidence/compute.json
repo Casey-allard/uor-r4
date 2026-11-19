@@ -1,0 +1,59 @@
+{
+  "events": [
+    {
+      "event": "up",
+      "ts": "2026-11-19T20:33:24Z",
+      "pod": "vast-61511739",
+      "usd_per_h": 1.309
+    },
+    {
+      "event": "up-failed",
+      "ts": "2026-11-19T20:48:32Z",
+      "pod": "vast-61511739",
+      "reason": "SSH not reachable after 900 s"
+    },
+    {
+      "event": "up",
+      "ts": "2026-11-19T20:48:37Z",
+      "pod": "vast-61513705",
+      "usd_per_h": 0.869
+    },
+    {
+      "event": "ssh-ready",
+      "ts": "2026-11-19T20:49:20Z",
+      "pod": "vast-61513705"
+    },
+    {
+      "event": "lease",
+      "ts": "2026-11-19T20:49:21Z",
+      "pod": "vast-61513705"
+    },
+    {
+      "event": "run",
+      "ts": "2026-11-19T20:49:41Z",
+      "pod": "vast-61513705"
+    },
+    {
+      "event": "run",
+      "ts": "2026-11-19T20:51:21Z",
+      "pod": "vast-61513705"
+    },
+    {
+      "event": "release",
+      "ts": "2026-11-19T20:58:26Z",
+      "pod": "vast-61513705"
+    },
+    {
+      "event": "down",
+      "ts": "2026-11-19T20:58:33Z",
+      "pod": "vast-61513705",
+      "usd_per_h": 0.869,
+      "uptime_s": 595
+    }
+  ],
+  "failed_allocation_wall_seconds": 908,
+  "successful_allocation_billed_uptime_seconds": 595,
+  "estimated_compute_usd": 0.4737852777777778,
+  "held_elapsed_seconds": 390.61,
+  "post_teardown_registered_pods": 0
+}

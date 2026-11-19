@@ -12,8 +12,8 @@ use std::{
 use uor_r4_integer::{
     discrete_d11::IntegerDiscreteModel,
     paired_role::{
-        validate_role_ids, PairedRoleDecision, PairedRoleState, RequestedOccurrenceTrace, RoleSpan,
-        ROLE_CONTEXT, ROLE_ROOTS, ROLE_VOCAB,
+        validate_role_ids, PairedRoleDecision, PairedRoleState, RequestedContext,
+        RequestedOccurrenceTrace, RoleSpan, ROLE_CONTEXT, ROLE_ROOTS, ROLE_VOCAB,
     },
 };
 
@@ -45,7 +45,7 @@ fn replay(
     roles: &PairedRoleState,
     classes: &[u32],
     delimiters: &[u32],
-    treatment: bool,
+    context: Option<RequestedContext>,
     rows: &[(&[u32], Range<usize>)],
     expected: &[[u32; 8]],
 ) -> Result<Vec<RoleRow>, Failure> {
@@ -57,7 +57,11 @@ fn replay(
         &mut packet,
         [
             ABI,
-            u32::from(treatment),
+            match context {
+                None => 0,
+                Some(RequestedContext::FullPrefix) => 1,
+                Some(RequestedContext::UserTextOnly) => 2,
+            },
             rows.len() as u32,
             roles.cells().len() as u32,
         ],
@@ -160,7 +164,10 @@ fn ranked_census(trace: &RequestedOccurrenceTrace) -> [u32; 8] {
         trace
             .candidates
             .iter()
-            .filter_map(|c| (c.scores[1] > c.scores[0]).then_some((c.scores[1], c.span)))
+            .filter_map(|c| {
+                let [requested, excluded] = c.excluded_decision_scores.unwrap_or(c.scores);
+                (excluded > requested).then_some((excluded, c.span))
+            })
             .collect(),
         12,
     );
@@ -207,37 +214,59 @@ fn artifact(executable: &Path, carrier: &Path, blind: &Path, output: &Path) -> R
         native.roles,
         native.assertion_classes,
         native.delimiters,
-        native.requested_framing.is_some(),
+        native.requested_context,
         &rows,
         &expected,
     )?;
-    if native.requested_framing.is_some() {
-        for (result, (ids, content)) in device_rows.iter_mut().zip(rows) {
-            let trace = native.roles.trace_assertion_agreement(
-                ids,
-                content,
-                0..ids.len(),
-                native.delimiters,
-                native.assertion_classes,
-            )?;
-            if ranked_census(&trace) != result.role_words {
-                return Err(
-                    format!("row {} census differs from device words", result.index).into(),
-                );
-            }
-            result.requested_occurrence = Some(trace);
-        }
+    if let Some(context) = native.requested_context {
+        attach_census(
+            &mut device_rows,
+            &rows,
+            native.roles,
+            native.delimiters,
+            native.assertion_classes,
+            context,
+        )?;
     }
     save(
         output,
         &serde_json::json!({
             "schema": "uor-r4.requested-role-device/1",
-            "policy": if native.requested_framing.is_some() {"assertion_agreement"} else {"legacy"},
+            "policy": match native.requested_context {
+                None => "legacy",
+                Some(RequestedContext::FullPrefix) => "assertion_agreement",
+                Some(RequestedContext::UserTextOnly) => "user_text_only",
+            },
             "artifact": model.artifact_sha256(),
             "blind": format!("{:x}", Sha256::digest(&raw)),
             "rows": device_rows
         }),
     )
+}
+
+fn attach_census(
+    device_rows: &mut [RoleRow],
+    rows: &[(&[u32], Range<usize>)],
+    roles: &PairedRoleState,
+    delimiters: &[u32],
+    classes: &[u32],
+    context: RequestedContext,
+) -> Result<(), Failure> {
+    for (result, (ids, content)) in device_rows.iter_mut().zip(rows) {
+        let trace = roles.trace_requested_occurrence(
+            ids,
+            content.clone(),
+            0..ids.len(),
+            delimiters,
+            classes,
+            context,
+        )?;
+        if ranked_census(&trace) != result.role_words {
+            return Err(format!("row {} census differs from device words", result.index).into());
+        }
+        result.requested_occurrence = Some(trace);
+    }
+    Ok(())
 }
 
 const POS: u32 = 8;
@@ -336,7 +365,7 @@ fn finite(executable: &Path, output: &Path) -> Result<(), Failure> {
         &state,
         &classes,
         &DELIMITERS,
-        false,
+        None,
         &rows,
         &original_expected,
     )?;
@@ -345,7 +374,7 @@ fn finite(executable: &Path, output: &Path) -> Result<(), Failure> {
         &state,
         &classes,
         &DELIMITERS,
-        true,
+        Some(RequestedContext::FullPrefix),
         &rows,
         &treatment_expected,
     )?;
@@ -355,6 +384,122 @@ fn finite(executable: &Path, output: &Path) -> Result<(), Failure> {
             "schema": "uor-r4.requested-role-finite/1", "legacy": legacy, "assertion_agreement": assertion_agreement,
             "fixtures": ["first_name", "second_name", "tie", "sole_negative_contrast",
                 "different_continuation", "no_query_support"]
+        }),
+    )
+}
+
+fn user_text_fixture_state() -> Result<(PairedRoleState, Vec<u32>), Failure> {
+    let (state, classes) = fixture_state()?;
+    let offset = |i| i * ROLE_ROOTS as u32;
+    let state = PairedRoleState::new(
+        *state.bindings(),
+        state.sites().to_vec(),
+        vec![
+            [offset(2) + POS, 0, 4, 0],
+            [offset(3) + POS, 0, 32, 0],
+            [offset(3) + NEG, 0, 0, 32],
+            [offset(4) - 1, 1, 0, 1],
+        ],
+    )?;
+    Ok((state, classes))
+}
+
+fn user_text_fixture_tapes() -> [Vec<u32>; 2] {
+    let content = [
+        0, FENCE, A[0], A[1], 7, FENCE, B[0], B[1], 7, FENCE, POS, A[0], A[1], 10, B[0], B[1],
+    ];
+    [POS, NEG].map(|suffix| [content.as_slice(), &[suffix]].concat())
+}
+
+fn user_text_fixture_rows(tapes: &[Vec<u32>; 2]) -> [(&[u32], Range<usize>); 2] {
+    tapes.each_ref().map(|ids| (ids.as_slice(), 2..16))
+}
+
+fn user_text_fixture_expectations(
+    state: &PairedRoleState,
+    classes: &[u32],
+    rows: &[(&[u32], Range<usize>); 2],
+) -> Result<[[[u32; 8]; 2]; 2], Failure> {
+    let mut all_words = [[[0; 8]; 2]; 2];
+    for (i, (ids, content)) in rows.iter().enumerate() {
+        for (arm, context) in [RequestedContext::FullPrefix, RequestedContext::UserTextOnly]
+            .into_iter()
+            .enumerate()
+        {
+            all_words[arm][i] = state
+                .predict_requested_occurrence(
+                    ids,
+                    content.clone(),
+                    0..ids.len(),
+                    &DELIMITERS,
+                    classes,
+                    context,
+                )?
+                .words();
+        }
+        let full = all_words[0][i];
+        let scoped = all_words[1][i];
+        let planted = if i == 0 {
+            (14, 16, 56, 40)
+        } else {
+            (11, 13, 40, -56)
+        };
+        if (full[0], full[1], full[4] as i32, full[6] as i32) != planted
+            || (scoped[0], scoped[1], scoped[4] as i32, scoped[6] as i32) != (11, 13, 40, -12)
+            || [full[2], full[3], full[5], full[7]] != [scoped[2], scoped[3], scoped[5], scoped[7]]
+        {
+            return Err(format!(
+                "fixture {i} disagrees with planted full/scoped rank: {full:?}, {scoped:?}"
+            )
+            .into());
+        }
+        let census = state.trace_requested_occurrence(
+            ids,
+            content.clone(),
+            0..ids.len(),
+            &DELIMITERS,
+            classes,
+            RequestedContext::UserTextOnly,
+        )?;
+        let second = census
+            .candidates
+            .iter()
+            .find(|c| c.span == [14, 16])
+            .ok_or("missing second query candidate")?;
+        if second.feature_keys[3..] != [4, 5, 6].map(|offset| offset * ROLE_ROOTS as u32 - 1) {
+            return Err(
+                "the synthetic suffix was not replaced with the missing-root sentinel".into(),
+            );
+        }
+    }
+    Ok(all_words)
+}
+
+fn finite_user_text_only(executable: &Path, output: &Path) -> Result<(), Failure> {
+    let (state, classes) = user_text_fixture_state()?;
+    let tapes = user_text_fixture_tapes();
+    let rows = user_text_fixture_rows(&tapes);
+    let expected = user_text_fixture_expectations(&state, &classes, &rows)?;
+    let capture = |context, expected: &[[u32; 8]; 2]| -> Result<Vec<RoleRow>, Failure> {
+        let mut device = replay(
+            executable,
+            &state,
+            &classes,
+            &DELIMITERS,
+            Some(context),
+            &rows,
+            expected,
+        )?;
+        attach_census(&mut device, &rows, &state, &DELIMITERS, &classes, context)?;
+        Ok(device)
+    };
+    save(
+        output,
+        &serde_json::json!({
+            "schema": "uor-r4.user-text-only-role-finite/1",
+            "assertion_agreement": capture(RequestedContext::FullPrefix, &expected[0])?,
+            "user_text_only": capture(RequestedContext::UserTextOnly, &expected[1])?,
+            "fixtures": ["requested_root_outside_content", "excluded_root_outside_content"],
         }),
     )
 }
@@ -371,8 +516,11 @@ fn main() -> Result<(), Failure> {
         [flag, executable, output] if flag == "--finite" => {
             finite(Path::new(executable), Path::new(output))
         }
+        [flag, executable, output] if flag == "--finite-user-text-only" => {
+            finite_user_text_only(Path::new(executable), Path::new(output))
+        }
         _ => Err(
-            "usage: requested-role-device ARTIFACT BLIND EXECUTABLE OUT | --finite EXECUTABLE OUT"
+            "usage: requested-role-device ARTIFACT BLIND EXECUTABLE OUT | --finite EXECUTABLE OUT | --finite-user-text-only EXECUTABLE OUT"
                 .into(),
         ),
     }
@@ -386,6 +534,14 @@ mod tests {
     fn planted_direction_and_abstention() -> Result<(), Failure> {
         let (state, classes) = fixture_state()?;
         fixture_treatment(&state, &classes, &fixture_tapes())?;
+        Ok(())
+    }
+
+    #[test]
+    fn planted_user_text_direction_and_off_text_perturbation() -> Result<(), Failure> {
+        let (state, classes) = user_text_fixture_state()?;
+        let tapes = user_text_fixture_tapes();
+        user_text_fixture_expectations(&state, &classes, &user_text_fixture_rows(&tapes))?;
         Ok(())
     }
 }

@@ -7,6 +7,7 @@ pub const ROLE_CONTEXT: usize = 192;
 pub const ROLE_OFFSETS: usize = 6;
 pub const ROLE_ROOTS: usize = 65_537;
 pub const ROLE_NIL: u32 = u32::MAX;
+const MISSING_ROOT: u32 = (ROLE_ROOTS - 1) as u32;
 pub const ROLE_STATE_MAGIC: &[u8; 8] = b"UORROLE1";
 const MAX_CELL_COUNT: u32 = 8192 * ROLE_CONTEXT as u32;
 const WEIGHTS: [i32; ROLE_OFFSETS] = [1, 2, 4, 4, 2, 1];
@@ -60,9 +61,19 @@ pub struct RequestedOccurrenceCandidateTrace {
     pub span: [usize; 2],
     pub scores: [i32; 2],
     pub feature_keys: [u32; ROLE_OFFSETS],
+    /// Original full-prefix score pair when the requested rank used other keys.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub excluded_decision_scores: Option<[i32; 2]>,
     pub eligibility: RequestedEligibility,
     pub supporting_head: Option<[usize; 2]>,
     pub contrast: Option<i32>,
+}
+
+/// Scope of the six context roots contributing to the assertion-agreement contrast.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RequestedContext {
+    FullPrefix,
+    UserTextOnly,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -221,8 +232,35 @@ impl PairedRoleState {
         delimiters: &[u32],
         assertion_classes: &[u32],
     ) -> Result<PairedRoleDecision> {
-        self.replay_assertion_agreement(ids, content, region, delimiters, assertion_classes, |_| {})
-            .map(|(decision, _)| decision)
+        self.predict_requested_occurrence(
+            ids,
+            content,
+            region,
+            delimiters,
+            assertion_classes,
+            RequestedContext::FullPrefix,
+        )
+    }
+
+    pub fn predict_requested_occurrence(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+        context: RequestedContext,
+    ) -> Result<PairedRoleDecision> {
+        self.replay_assertion_agreement(
+            ids,
+            content,
+            region,
+            delimiters,
+            assertion_classes,
+            context,
+            |_| {},
+        )
+        .map(|(decision, _)| decision)
     }
 
     pub fn trace_assertion_agreement(
@@ -233,6 +271,25 @@ impl PairedRoleState {
         delimiters: &[u32],
         assertion_classes: &[u32],
     ) -> Result<RequestedOccurrenceTrace> {
+        self.trace_requested_occurrence(
+            ids,
+            content,
+            region,
+            delimiters,
+            assertion_classes,
+            RequestedContext::FullPrefix,
+        )
+    }
+
+    pub fn trace_requested_occurrence(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+        context: RequestedContext,
+    ) -> Result<RequestedOccurrenceTrace> {
         let mut candidates = Vec::new();
         let (_, query_boundary) = self.replay_assertion_agreement(
             ids,
@@ -240,6 +297,7 @@ impl PairedRoleState {
             region,
             delimiters,
             assertion_classes,
+            context,
             |candidate| candidates.push(candidate),
         )?;
         Ok(RequestedOccurrenceTrace {
@@ -256,6 +314,7 @@ impl PairedRoleState {
         region: core::ops::Range<usize>,
         delimiters: &[u32],
         assertion_classes: &[u32],
+        context: RequestedContext,
         mut visit: impl FnMut(RequestedOccurrenceCandidateTrace),
     ) -> Result<(PairedRoleDecision, Option<usize>)> {
         use RequestedEligibility::*;
@@ -277,7 +336,8 @@ impl PairedRoleState {
         let mut requested_rank = RoleRank::new();
         let mut excluded_rank = RoleRank::new();
         for (span, keys) in candidates {
-            let [requested, excluded] = self.scores(keys);
+            let full_scores = self.scores(keys);
+            let [requested, excluded] = full_scores;
             let in_region = span.start >= region.start && span.end <= region.end;
             if in_region && excluded > requested {
                 excluded_rank.update(span, excluded);
@@ -310,14 +370,33 @@ impl PairedRoleState {
                     )
                 }
             };
-            let contrast = supporting_head.map(|_| requested - excluded);
+            let feature_keys = match context {
+                RequestedContext::FullPrefix => keys,
+                RequestedContext::UserTextOnly => {
+                    let offsets = role_offsets(span);
+                    core::array::from_fn(|i| {
+                        if content.contains(&offsets[i]) {
+                            keys[i]
+                        } else {
+                            i as u32 * ROLE_ROOTS as u32 + MISSING_ROOT
+                        }
+                    })
+                }
+            };
+            let scores = if feature_keys == keys {
+                full_scores
+            } else {
+                self.scores(feature_keys)
+            };
+            let contrast = supporting_head.map(|_| scores[0] - scores[1]);
             if let Some(contrast) = contrast {
                 requested_rank.update(span, contrast);
             }
             visit(RequestedOccurrenceCandidateTrace {
                 span: [span.start, span.end],
-                scores: [requested, excluded],
-                feature_keys: keys,
+                scores,
+                feature_keys,
+                excluded_decision_scores: (feature_keys != keys).then_some(full_scores),
                 eligibility,
                 supporting_head,
                 contrast,
@@ -448,17 +527,24 @@ fn role_spans<'a>(sites: &'a [[u32; 2]], ids: &'a [u32]) -> impl Iterator<Item =
     })
 }
 
-fn role_keys(sites: &[[u32; 2]], ids: &[u32], span: RoleSpan) -> [u32; ROLE_OFFSETS] {
-    let at = [
+fn role_offsets(span: RoleSpan) -> [usize; ROLE_OFFSETS] {
+    [
         span.start.wrapping_sub(3),
         span.start.wrapping_sub(2),
         span.start.wrapping_sub(1),
         span.end,
         span.end + 1,
         span.end + 2,
-    ];
+    ]
+}
+
+fn role_keys(sites: &[[u32; 2]], ids: &[u32], span: RoleSpan) -> [u32; ROLE_OFFSETS] {
+    let at = role_offsets(span);
     core::array::from_fn(|i| {
-        i as u32 * ROLE_ROOTS as u32 + ids.get(at[i]).map_or(65_536, |&id| sites[id as usize][0])
+        i as u32 * ROLE_ROOTS as u32
+            + ids
+                .get(at[i])
+                .map_or(MISSING_ROOT, |&id| sites[id as usize][0])
     })
 }
 

@@ -1,0 +1,15 @@
+[package]
+name = "user-text-role-panel"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[[bin]]
+name = "user-text-role-panel"
+path = "generate.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }

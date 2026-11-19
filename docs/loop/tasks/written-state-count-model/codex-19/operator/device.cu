@@ -54,12 +54,13 @@ __device__ int cell_quotient(int evidence, int denominator) {
 }
 
 __device__ void scores(const Site* sites, const Cell* cells, Word count,
-                       const Row& row, Span span, int (&result)[2]) {
+                       const Row& row, Span span, Span context, int (&result)[2]) {
     const Word at[Offsets] = {span.start - 3, span.start - 2, span.start - 1,
                              span.end, span.end + 1, span.end + 2};
     const int weights[Offsets] = {1, 2, 4, 4, 2, 1};
     for (Word i = 0; i < Offsets; ++i) {
-        const Word root = at[i] < row.size ? sites[row.ids[at[i]]].root : Roots - 1;
+        const Word root = at[i] >= context.start && at[i] < context.end
+                              ? sites[row.ids[at[i]]].root : Roots - 1;
         const Cell* cell = lookup(cells, count, i * Roots + root);
         if (cell == nullptr) continue;
         const int total = cell->counts[0] + cell->counts[1] + cell->counts[2];
@@ -97,10 +98,11 @@ __device__ bool supported(const Site* sites, const Row& row, Span span, Word spl
 }
 
 __global__ void predict(const Site* sites, const Cell* cells, Word count, const Row* rows,
-                        Word n, bool treatment, Word* result) {
+                        Word n, Word mode, Word* result) {
     Word i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
     const Row& row = rows[i];
+    const bool treatment = mode != 0;
     const Word split = treatment ? boundary(sites, row) : Nil;
     Rank ranks[2];
     for (Word start = 0; start < row.size; ++start) {
@@ -109,10 +111,18 @@ __global__ void predict(const Site* sites, const Cell* cells, Word count, const 
         while (end < row.size && sites[row.ids[end]].cls == 2) ++end;
         const Span span{start, end};
         int evidence[2]{};
-        scores(sites, cells, count, row, span, evidence);
+        scores(sites, cells, count, row, span, {0, row.size}, evidence);
         if (evidence[1] > evidence[0]) ranks[1].add(span, evidence[1]);
         if (treatment) {
-            if (supported(sites, row, span, split)) ranks[0].add(span, evidence[0] - evidence[1]);
+            if (supported(sites, row, span, split)) {
+                if (mode == 2) {
+                    int scoped[2]{};
+                    scores(sites, cells, count, row, span, row.content, scoped);
+                    ranks[0].add(span, scoped[0] - scoped[1]);
+                } else {
+                    ranks[0].add(span, evidence[0] - evidence[1]);
+                }
+            }
         } else if (evidence[0] > evidence[1]) {
             ranks[0].add(span, evidence[0]);
         }
@@ -147,7 +157,7 @@ int main() {
     Word header[4];
     read(header, 4);
     const Word mode = header[1], n = header[2], count = header[3];
-    if (header[0] != Abi || mode > 1 || n == 0 || n > 8192 || count == 0 ||
+    if (header[0] != Abi || mode > 2 || n == 0 || n > 8192 || count == 0 ||
         count > Offsets * Roots) return 2;
     std::vector<Site> sites(Vocab);
     read(sites.data(), sites.size());
@@ -177,7 +187,7 @@ int main() {
     std::vector<Word> output(8 * n);
     Word* device_output;
     check(cudaMalloc(&device_output, output.size() * sizeof(Word)));
-    predict<<<(n + 63) / 64, 64>>>(device_sites, device_cells, count, device_rows, n, mode == 1,
+    predict<<<(n + 63) / 64, 64>>>(device_sites, device_cells, count, device_rows, n, mode,
                                    device_output);
     check(cudaGetLastError());
     check(cudaMemcpy(output.data(), device_output, output.size() * sizeof(Word), cudaMemcpyDeviceToHost));

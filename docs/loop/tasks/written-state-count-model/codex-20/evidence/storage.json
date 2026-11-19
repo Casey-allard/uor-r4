@@ -1,0 +1,60 @@
+{
+  "schema": "uor-r4.user-text-role-storage/1",
+  "verified_utc": "2026-11-19T20:58:17Z",
+  "origin": {
+    "instance": "vast-61513705",
+    "result_root": "/workspace/uor-r4/jobs/codex20-held-01",
+    "status": "done 0",
+    "stage_input_manifest_sha256": "5c649f653e62893ebfec18fc7ae2e065c369c8c7e04384e77971ea22eb0c09c7",
+    "seed_repetitions": [
+      "seed1-primary",
+      "seed2-primary",
+      "seed1-repeat",
+      "seed2-repeat"
+    ]
+  },
+  "archive": {
+    "name": "vast-evidence.tar.zst",
+    "format": "PAX tar compressed with Zstandard",
+    "bytes": 11506535,
+    "sha256": "ffa90cf6618aa979a51b36e983e476cc1c9fa53a20c394ea92475cb72a91894c",
+    "checksum_manifest_sha256": "4475130d85407be1bb2af30999bee7794a9853c10581c6cec61861caf3e5b44d",
+    "workstation_directory": "~/uor-r4/local/codex/user-text-role-swaps/custody/vast-61513705-held-01",
+    "wick_directory": "~/uor-codex/20261119-user-text/custody-vast-61513705-held-01/archive"
+  },
+  "readback": {
+    "workstation_verified_regular_files": 2451,
+    "workstation_verified_symbolic_link_targets": 2,
+    "regular_file_manifest_sha256": "e00f9c2526b13193a7f014fdbf9ba48d594233e9dba590121bfc45df0fd21df0",
+    "symbolic_link_manifest_sha256": "ece2f8f54ee37f1894d824dfc7f97829a0dddda4ea583100c37c24daa4dbd14c",
+    "all_seed_raw_and_cold_manifests_verified_on_vast": true,
+    "both_seed_cold_repetition_manifests_match": true,
+    "wick_archive_and_sidecars_sha256_verified": true,
+    "seed_primary_raw_manifest_sha256": [
+      "a902f95e2128d1dc56e31bd03f48666a7b7e5354e93e5b9db8ce366882ac8040",
+      "f167a04916515a068421569f6f1fa27b70f9453fa83142a5ca8b159a4b282301"
+    ],
+    "paired_seed_cold_manifest_sha256": [
+      "6effd906709da7225fcb4d5ec5e45a202e62f5f90896c5a5a8d107c0c9982107",
+      "5a38ff5db40c49a0613bdc51083aaa70af7fa03540dae20e44f85b410040a802"
+    ]
+  },
+  "retained_model_blobs": {
+    "host": "wick",
+    "count": 14,
+    "verified_against_vast": true,
+    "manifest": "wick-model-pins.sha256",
+    "manifest_sha256": "bd2b3a951df87f30a68709ed24e9af942f5646af6ad17f9dcb754a83b9959fdd"
+  },
+  "hf_results": {
+    "repo": "caseyallard/uor-r4-store",
+    "revision": "07fafba51b2a5adc00813f945f748308723ae032",
+    "path": "results/codex/2026-11-19-user-text-role-swaps-ffa90cf6/held-and-finite.tar.zst",
+    "bytes": 260595,
+    "sha256": "e30a55dab36398aa3aa2c69281db8d485dcaac1d40eaf45b3c0454d88cb04d03",
+    "pinned_download_sha256_verified": true,
+    "all_four_raw_and_cold_manifests_verified_after_restore": true,
+    "contents": "Held evidence from both seeds and both cold replays, finite outputs and archive checksums. Model blobs and build stage are retained in separate workstation and Wick custody.",
+    "full_stage_upload": "Private storage limit reached"
+  }
+}

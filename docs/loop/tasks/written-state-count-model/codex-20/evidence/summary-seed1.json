@@ -1,0 +1,1906 @@
+{
+  "schema": "uor-r4.user-text-only-independent-readout/1",
+  "seed": 1,
+  "supported": 32,
+  "arms": {
+    "reference": {
+      "rows": 32,
+      "role_exact": 0,
+      "role_classes": [
+        {
+          "value": "rival_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 0,
+      "source_classes": [
+        {
+          "value": "abstained",
+          "count": 28
+        },
+        {
+          "value": "rival_value",
+          "count": 4
+        }
+      ],
+      "value_statuses": [
+        {
+          "value": "nonpositive",
+          "count": 4
+        },
+        {
+          "value": "selected",
+          "count": 4
+        },
+        {
+          "value": "unseen",
+          "count": 24
+        }
+      ],
+      "eos": 32,
+      "exact": 0,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 32
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            563,
+            " small"
+          ],
+          "count": 4
+        },
+        {
+          "value": [
+            1155,
+            " G"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    "treatment": {
+      "rows": 32,
+      "role_exact": 0,
+      "role_classes": [
+        {
+          "value": "rival_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 0,
+      "source_classes": [
+        {
+          "value": "abstained",
+          "count": 28
+        },
+        {
+          "value": "rival_value",
+          "count": 4
+        }
+      ],
+      "value_statuses": [
+        {
+          "value": "nonpositive",
+          "count": 4
+        },
+        {
+          "value": "selected",
+          "count": 4
+        },
+        {
+          "value": "unseen",
+          "count": 24
+        }
+      ],
+      "eos": 32,
+      "exact": 0,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 32
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            563,
+            " small"
+          ],
+          "count": 4
+        },
+        {
+          "value": [
+            1155,
+            " G"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    "supplied": {
+      "rows": 32,
+      "role_exact": 32,
+      "role_classes": [
+        {
+          "value": "gold_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 4,
+      "source_classes": [
+        {
+          "value": "abstained",
+          "count": 28
+        },
+        {
+          "value": "gold_value_start",
+          "count": 4
+        }
+      ],
+      "value_statuses": [
+        {
+          "value": "nonpositive",
+          "count": 4
+        },
+        {
+          "value": "selected",
+          "count": 4
+        },
+        {
+          "value": "unseen",
+          "count": 24
+        }
+      ],
+      "eos": 32,
+      "exact": 4,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 28
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            1155,
+            " G"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    "wrong_role": {
+      "rows": 32,
+      "role_exact": 0,
+      "role_classes": [
+        {
+          "value": "rival_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 0,
+      "source_classes": [
+        {
+          "value": "abstained",
+          "count": 28
+        },
+        {
+          "value": "rival_value",
+          "count": 4
+        }
+      ],
+      "value_statuses": [],
+      "eos": 32,
+      "exact": 0,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 32
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            563,
+            " small"
+          ],
+          "count": 4
+        },
+        {
+          "value": [
+            1155,
+            " G"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    "no_read": {
+      "rows": 32,
+      "role_exact": 0,
+      "role_classes": [
+        {
+          "value": "abstained",
+          "count": 32
+        }
+      ],
+      "source_exact": 0,
+      "source_classes": [
+        {
+          "value": "abstained",
+          "count": 32
+        }
+      ],
+      "value_statuses": [],
+      "eos": 32,
+      "exact": 0,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 32
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            1155,
+            " G"
+          ],
+          "count": 32
+        }
+      ]
+    },
+    "forced_gold": {
+      "rows": 32,
+      "role_exact": 32,
+      "role_classes": [
+        {
+          "value": "gold_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 32,
+      "source_classes": [
+        {
+          "value": "gold_value_start",
+          "count": 32
+        }
+      ],
+      "value_statuses": [],
+      "eos": 32,
+      "exact": 32,
+      "first_offsets": [],
+      "wrong_pieces": []
+    },
+    "forced_wrong": {
+      "rows": 32,
+      "role_exact": 0,
+      "role_classes": [
+        {
+          "value": "rival_query",
+          "count": 32
+        }
+      ],
+      "source_exact": 0,
+      "source_classes": [
+        {
+          "value": "rival_value",
+          "count": 32
+        }
+      ],
+      "value_statuses": [],
+      "eos": 32,
+      "exact": 0,
+      "first_offsets": [
+        {
+          "value": 0,
+          "count": 32
+        }
+      ],
+      "wrong_pieces": [
+        {
+          "value": [
+            262,
+            " s"
+          ],
+          "count": 8
+        },
+        {
+          "value": [
+            563,
+            " small"
+          ],
+          "count": 8
+        },
+        {
+          "value": [
+            564,
+            " br"
+          ],
+          "count": 8
+        },
+        {
+          "value": [
+            677,
+            " red"
+          ],
+          "count": 8
+        }
+      ]
+    }
+  },
+  "negatives": [
+    {
+      "stratum": "conflict",
+      "rows": 2,
+      "factual_writes_before": [],
+      "factual_writes_after": [],
+      "query_changes": []
+    },
+    {
+      "stratum": "unmentioned",
+      "rows": 2,
+      "factual_writes_before": [],
+      "factual_writes_after": [],
+      "query_changes": []
+    },
+    {
+      "stratum": "unspecified",
+      "rows": 2,
+      "factual_writes_before": [],
+      "factual_writes_after": [],
+      "query_changes": []
+    }
+  ],
+  "changes": {
+    "reference_to_treatment": {
+      "endpoint_recoveries": [],
+      "endpoint_regressions": [],
+      "source_gains": [],
+      "source_losses": [],
+      "exact_gains": [],
+      "exact_losses": [],
+      "tape_changes": [],
+      "changed_bad_token_at_same_offset": [],
+      "changed_bad_tape_at_same_first_token": []
+    },
+    "treatment_to_supplied": {
+      "endpoint_recoveries": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "endpoint_regressions": [],
+      "source_gains": [
+        21,
+        22,
+        31,
+        32
+      ],
+      "source_losses": [],
+      "exact_gains": [
+        21,
+        22,
+        31,
+        32
+      ],
+      "exact_losses": [],
+      "tape_changes": [
+        19,
+        20,
+        21,
+        22,
+        31,
+        32,
+        33,
+        34
+      ],
+      "changed_bad_token_at_same_offset": [
+        {
+          "index": 19,
+          "from": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 563,
+            "emitted_piece": " small"
+          },
+          "to": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 1155,
+            "emitted_piece": " G"
+          }
+        },
+        {
+          "index": 20,
+          "from": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 563,
+            "emitted_piece": " small"
+          },
+          "to": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 1155,
+            "emitted_piece": " G"
+          }
+        },
+        {
+          "index": 33,
+          "from": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 563,
+            "emitted_piece": " small"
+          },
+          "to": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 1155,
+            "emitted_piece": " G"
+          }
+        },
+        {
+          "index": 34,
+          "from": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 563,
+            "emitted_piece": " small"
+          },
+          "to": {
+            "offset": 0,
+            "expected_id": 564,
+            "expected_piece": " br",
+            "emitted_id": 1155,
+            "emitted_piece": " G"
+          }
+        }
+      ],
+      "changed_bad_tape_at_same_first_token": []
+    }
+  },
+  "matched_pairs": {
+    "direction": {
+      "pairs": 16,
+      "expected_tape_changes": 16,
+      "arms": {
+        "reference": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              21
+            ],
+            [
+              20,
+              22
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              34
+            ]
+          ]
+        },
+        "treatment": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              21
+            ],
+            [
+              20,
+              22
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              34
+            ]
+          ]
+        },
+        "supplied": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [
+            [
+              19,
+              21
+            ],
+            [
+              20,
+              22
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              34
+            ]
+          ],
+          "exact_changes": [
+            [
+              19,
+              21
+            ],
+            [
+              20,
+              22
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              34
+            ]
+          ],
+          "emitted_changes": [
+            [
+              19,
+              21
+            ],
+            [
+              20,
+              22
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              34
+            ]
+          ]
+        }
+      }
+    },
+    "object_swap": {
+      "pairs": 16,
+      "expected_tape_changes": 16,
+      "arms": {
+        "reference": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              27
+            ],
+            [
+              20,
+              28
+            ],
+            [
+              25,
+              33
+            ],
+            [
+              26,
+              34
+            ]
+          ]
+        },
+        "treatment": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              27
+            ],
+            [
+              20,
+              28
+            ],
+            [
+              25,
+              33
+            ],
+            [
+              26,
+              34
+            ]
+          ]
+        },
+        "supplied": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [
+            [
+              23,
+              31
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              21,
+              29
+            ],
+            [
+              22,
+              30
+            ]
+          ],
+          "exact_changes": [
+            [
+              23,
+              31
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              21,
+              29
+            ],
+            [
+              22,
+              30
+            ]
+          ],
+          "emitted_changes": [
+            [
+              23,
+              31
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              21,
+              29
+            ],
+            [
+              22,
+              30
+            ]
+          ]
+        }
+      }
+    },
+    "connector_swap": {
+      "pairs": 16,
+      "expected_tape_changes": 0,
+      "arms": {
+        "reference": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              23
+            ],
+            [
+              20,
+              24
+            ],
+            [
+              29,
+              33
+            ],
+            [
+              30,
+              34
+            ]
+          ]
+        },
+        "treatment": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": [
+            [
+              19,
+              23
+            ],
+            [
+              20,
+              24
+            ],
+            [
+              29,
+              33
+            ],
+            [
+              30,
+              34
+            ]
+          ]
+        },
+        "supplied": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [
+            [
+              27,
+              31
+            ],
+            [
+              28,
+              32
+            ],
+            [
+              21,
+              25
+            ],
+            [
+              22,
+              26
+            ]
+          ],
+          "exact_changes": [
+            [
+              27,
+              31
+            ],
+            [
+              28,
+              32
+            ],
+            [
+              21,
+              25
+            ],
+            [
+              22,
+              26
+            ]
+          ],
+          "emitted_changes": [
+            [
+              27,
+              31
+            ],
+            [
+              28,
+              32
+            ],
+            [
+              21,
+              25
+            ],
+            [
+              22,
+              26
+            ]
+          ]
+        }
+      }
+    },
+    "reversed": {
+      "pairs": 16,
+      "expected_tape_changes": 0,
+      "arms": {
+        "reference": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        },
+        "treatment": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        },
+        "supplied": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        }
+      }
+    },
+    "person_with_object_connector_slot_fixed": {
+      "pairs": 16,
+      "expected_tape_changes": 0,
+      "arms": {
+        "reference": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        },
+        "treatment": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        },
+        "supplied": {
+          "role_accuracy_changes": [],
+          "source_accuracy_changes": [],
+          "exact_changes": [],
+          "emitted_changes": []
+        }
+      }
+    }
+  },
+  "person_object_connector": [
+    {
+      "person": "Adelaide",
+      "object": "red brass keys",
+      "connector": "found",
+      "rows": 2,
+      "ordinals": [
+        0,
+        1
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 48,
+              "negative_distance": 40,
+              "radius": 48,
+              "margin": {
+                "denominator": 2,
+                "numerator": -8
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Adelaide",
+      "object": "red brass keys",
+      "connector": "might take",
+      "rows": 2,
+      "ordinals": [
+        4,
+        5
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 76,
+              "negative_distance": 76,
+              "radius": 72,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Adelaide",
+      "object": "silk scarves",
+      "connector": "found",
+      "rows": 2,
+      "ordinals": [
+        8,
+        9
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 92,
+              "negative_distance": 80,
+              "radius": 56,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Adelaide",
+      "object": "silk scarves",
+      "connector": "might take",
+      "rows": 2,
+      "ordinals": [
+        12,
+        13
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 120,
+              "negative_distance": 116,
+              "radius": 92,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Bertram",
+      "object": "red brass keys",
+      "connector": "found",
+      "rows": 2,
+      "ordinals": [
+        14,
+        15
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 48,
+              "negative_distance": 40,
+              "radius": 48,
+              "margin": {
+                "denominator": 2,
+                "numerator": -8
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Bertram",
+      "object": "red brass keys",
+      "connector": "might take",
+      "rows": 2,
+      "ordinals": [
+        10,
+        11
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 76,
+              "negative_distance": 76,
+              "radius": 72,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Bertram",
+      "object": "silk scarves",
+      "connector": "found",
+      "rows": 2,
+      "ordinals": [
+        6,
+        7
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 92,
+              "negative_distance": 80,
+              "radius": 56,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Bertram",
+      "object": "silk scarves",
+      "connector": "might take",
+      "rows": 2,
+      "ordinals": [
+        2,
+        3
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "nonpositive"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 120,
+              "negative_distance": 116,
+              "radius": 92,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Caspian",
+      "object": "brushes",
+      "connector": "could still find",
+      "rows": 2,
+      "ordinals": [
+        33,
+        34
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 76,
+              "negative_distance": 72,
+              "radius": 176,
+              "margin": {
+                "denominator": 6,
+                "numerator": -4
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Caspian",
+      "object": "brushes",
+      "connector": "took",
+      "rows": 2,
+      "ordinals": [
+        29,
+        30
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 32,
+              "negative_distance": null,
+              "radius": 116,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Caspian",
+      "object": "small glass jars",
+      "connector": "could still find",
+      "rows": 2,
+      "ordinals": [
+        25,
+        26
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 80,
+              "negative_distance": 96,
+              "radius": 100,
+              "margin": {
+                "denominator": 4,
+                "numerator": 16
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Caspian",
+      "object": "small glass jars",
+      "connector": "took",
+      "rows": 2,
+      "ordinals": [
+        21,
+        22
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 2,
+          "reply_exact": 2,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 32,
+              "negative_distance": 48,
+              "radius": 48,
+              "margin": {
+                "denominator": 2,
+                "numerator": 16
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Winifred",
+      "object": "brushes",
+      "connector": "could still find",
+      "rows": 2,
+      "ordinals": [
+        19,
+        20
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 76,
+              "negative_distance": 72,
+              "radius": 176,
+              "margin": {
+                "denominator": 6,
+                "numerator": -4
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Winifred",
+      "object": "brushes",
+      "connector": "took",
+      "rows": 2,
+      "ordinals": [
+        23,
+        24
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "unseen",
+              "positive_distance": 32,
+              "negative_distance": null,
+              "radius": 116,
+              "margin": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Winifred",
+      "object": "small glass jars",
+      "connector": "could still find",
+      "rows": 2,
+      "ordinals": [
+        27,
+        28
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 80,
+              "negative_distance": 96,
+              "radius": 100,
+              "margin": {
+                "denominator": 4,
+                "numerator": 16
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "person": "Winifred",
+      "object": "small glass jars",
+      "connector": "took",
+      "rows": 2,
+      "ordinals": [
+        31,
+        32
+      ],
+      "outcomes": {
+        "reference": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "treatment": {
+          "query_exact": 0,
+          "source_exact": 0,
+          "reply_exact": 0,
+          "value_status": [
+            "unseen"
+          ],
+          "gold_candidate": []
+        },
+        "supplied": {
+          "query_exact": 2,
+          "source_exact": 2,
+          "reply_exact": 2,
+          "value_status": [
+            "selected"
+          ],
+          "gold_candidate": [
+            {
+              "status": "scored",
+              "positive_distance": 32,
+              "negative_distance": 48,
+              "radius": 48,
+              "margin": {
+                "denominator": 2,
+                "numerator": 16
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "role_mask_profile": [
+    {
+      "form": 0,
+      "rows": 16,
+      "eligible_key_changes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "eligible_contrast_changes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "decision_changes": [],
+      "reference_ties": [],
+      "treatment_ties": []
+    },
+    {
+      "form": 1,
+      "rows": 16,
+      "eligible_key_changes": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "eligible_contrast_changes": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "decision_changes": [],
+      "reference_ties": [],
+      "treatment_ties": []
+    }
+  ],
+  "actual_winner_and_rival": [
+    {
+      "form": 0,
+      "ordinals": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "before": "rival_query",
+      "after": "rival_query",
+      "evidence": [
+        {
+          "role_class": "gold_query",
+          "scores_before": [
+            44,
+            8
+          ],
+          "scores_after": [
+            44,
+            8
+          ],
+          "contrast_before": 36,
+          "contrast_after": 36
+        },
+        {
+          "role_class": "rival_query",
+          "scores_before": [
+            56,
+            -22
+          ],
+          "scores_after": [
+            56,
+            -16
+          ],
+          "contrast_before": 78,
+          "contrast_after": 72
+        }
+      ]
+    },
+    {
+      "form": 1,
+      "ordinals": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "before": "rival_query",
+      "after": "rival_query",
+      "evidence": [
+        {
+          "role_class": "gold_query",
+          "scores_before": [
+            -2,
+            14
+          ],
+          "scores_after": [
+            -2,
+            14
+          ],
+          "contrast_before": -16,
+          "contrast_after": -16
+        },
+        {
+          "role_class": "rival_query",
+          "scores_before": [
+            36,
+            -22
+          ],
+          "scores_after": [
+            36,
+            -16
+          ],
+          "contrast_before": 58,
+          "contrast_after": 52
+        }
+      ]
+    }
+  ],
+  "ordinary_vs_supplied": [
+    {
+      "treatment_role": "rival_query",
+      "treatment_source": "abstained",
+      "supplied_source": "abstained",
+      "ordinals": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    {
+      "treatment_role": "rival_query",
+      "treatment_source": "abstained",
+      "supplied_source": "gold_value_start",
+      "ordinals": [
+        21,
+        22,
+        31,
+        32
+      ]
+    },
+    {
+      "treatment_role": "rival_query",
+      "treatment_source": "rival_value",
+      "supplied_source": "abstained",
+      "ordinals": [
+        19,
+        20,
+        33,
+        34
+      ]
+    }
+  ]
+}
