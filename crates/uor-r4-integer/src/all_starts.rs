@@ -31,6 +31,9 @@ pub enum OnsetMode {
     Ranked = 3,
     Veto = 4,
     Both = 5,
+    /// External supplied-query evaluation only. Not a serialized onset profile.
+    #[serde(skip)]
+    EarlierConnectorV1 = 6,
 }
 
 impl OnsetMode {
@@ -42,6 +45,7 @@ impl OnsetMode {
             3 => Some(Self::Ranked),
             4 => Some(Self::Veto),
             5 => Some(Self::Both),
+            6 => Some(Self::EarlierConnectorV1),
             _ => None,
         }
     }
@@ -54,13 +58,14 @@ impl OnsetMode {
             Self::Ranked => "ranked",
             Self::Veto => "veto",
             Self::Both => "both",
+            Self::EarlierConnectorV1 => "earlier-connector-v1",
         }
     }
 
     /// New policies select over the same losslessly loaded ordered bank.
     pub const fn fitted_mode(self) -> Self {
         match self {
-            Self::Ranked | Self::Veto | Self::Both => Self::Ordered,
+            Self::Ranked | Self::Veto | Self::Both | Self::EarlierConnectorV1 => Self::Ordered,
             _ => self,
         }
     }
@@ -208,6 +213,11 @@ impl Bank {
         query: usize,
         frozen: AssertionValue,
     ) -> Result<OnsetDecision> {
+        if self.mode == OnsetMode::EarlierConnectorV1 {
+            return Err(invalid(
+                "earlier connector policy requires an external supplied-query row",
+            ));
+        }
         let Some(fence) = frozen.fence.map(|at| at as usize) else {
             return Ok(OnsetDecision {
                 status: 1,
@@ -442,6 +452,10 @@ impl Bank {
                 dest.copy_from_slice(&[score.num as u32, score.den as u32]);
             }
         }
+        if self.mode == OnsetMode::EarlierConnectorV1 && earlier_connector_run(&trace) {
+            trace[10] = 4;
+            unseen = false;
+        }
         trace[2] = if unseen || (outside_radius && best.den == 0) {
             2
         } else if best.den == 0 {
@@ -458,6 +472,26 @@ impl Bank {
         }
         trace
     }
+}
+
+// The admitted middle word must independently look negative. With a gap,
+// missing exemplar, or competing positive, the ordered veto still applies.
+fn earlier_connector_run(trace: &[u32; DECISION_WORDS]) -> bool {
+    let first = &trace[8..28];
+    let middle = &trace[28..48];
+    let last = &trace[48..68];
+    first[2] == 2
+        && first[5] != NIL
+        && first[6] != NIL
+        && first[7] != NO_RADIUS
+        && first[5] > first[7]
+        && first[6] < first[5]
+        && middle[2] == 3
+        && (middle[8] as i32) < 0
+        && last[2] == 3
+        && (last[8] as i32) > 0
+        && first[1] == middle[0]
+        && middle[1] == last[0]
 }
 
 #[derive(Clone, Copy)]

@@ -7,7 +7,7 @@ use uor_r4_integer::{
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = env::args_os().skip(1).collect();
-    const USAGE: &str = "usage: pack-all-starts FROZEN_PAIRED SPAN_STATE NATIVE_BANK PROFILE_JSON OUT [--requested-policy assertion_agreement|user_text_only TOKENIZER_JSON]";
+    const USAGE: &str = "usage: pack-all-starts FROZEN_PAIRED SPAN_STATE NATIVE_BANK PROFILE_JSON OUT [--requested-policy assertion_agreement|user_text_only|clause_to_entity TOKENIZER_JSON]";
     let [carrier, span, native, profile, output, options @ ..] = args.as_slice() else {
         return Err(USAGE.into());
     };
@@ -19,18 +19,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         [] => pack_all_starts_artifact(&carrier, &span, &native, &profile)?,
         #[cfg(feature = "serving-wasm")]
         [flag, mode, tokenizer] if flag == "--requested-policy" => {
+            let tokenizer = fs::read(tokenizer)?;
             let context = match mode.to_str() {
                 Some("assertion_agreement") => RequestedContext::FullPrefix,
                 Some("user_text_only") => RequestedContext::UserTextOnly,
+                Some("clause_to_entity") => {
+                    let table =
+                        uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer)
+                            .ok_or("invalid clause-to-entity tokenizer")?;
+                    let comma = table.token_id(",").ok_or("tokenizer has no comma")?;
+                    let semicolon = table.token_id(";").ok_or("tokenizer has no semicolon")?;
+                    RequestedContext::ClauseToEntity([comma, semicolon])
+                }
                 _ => return Err(USAGE.into()),
             };
             pack_requested_occurrence_artifact(
-                &carrier,
-                &span,
-                &native,
-                &profile,
-                &fs::read(tokenizer)?,
-                context,
+                &carrier, &span, &native, &profile, &tokenizer, context,
             )?
         }
         _ => return Err(USAGE.into()),

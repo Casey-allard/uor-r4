@@ -1,0 +1,1 @@
+../../codex-20/run/capture-ordinary.sh

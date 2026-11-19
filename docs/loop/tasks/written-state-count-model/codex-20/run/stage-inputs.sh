@@ -8,6 +8,14 @@ wick=$(dirname "$stage")
 prior="$wick/20261119-requested-occurrence"
 runner=$(cd "$(dirname "$0")" && pwd -P)
 source_root=$(dirname "$runner")
+policy=user_text_only
+filename=user-text-only
+schema=uor-r4.user-text-only/1
+if [[ "${source_root##*/}" == codex-21 ]]; then
+    policy=clause_to_entity
+    filename=clause-to-entity
+    schema=uor-r4.clause-entity-veto/1
+fi
 sum() { sha256sum "$1" | cut -d' ' -f1; }
 pin() { printf '%s  %s\n' "$2" "$1" | sha256sum --status --check; }
 entry() {
@@ -40,12 +48,12 @@ for seed in 1 2; do
     baseline=$(old_file artifact_treatment)
     mkdir "artifacts/seed$seed"
     rebuilt="$stage/artifacts/seed$seed/rebuilt-assertion-agreement.d11"
-    treatment="$stage/artifacts/seed$seed/user-text-only.d11"
+    treatment="$stage/artifacts/seed$seed/$filename.d11"
     "$stage/bin/pack-all-starts" "$paired" "$span" "$bank" "$profile" "$rebuilt" \
         --requested-policy assertion_agreement "$tokenizer"
     cmp "$baseline" "$rebuilt"
     "$stage/bin/pack-all-starts" "$paired" "$span" "$bank" "$profile" "$treatment" \
-        --requested-policy user_text_only "$tokenizer"
+        --requested-policy "$policy" "$tokenizer"
     [[ "$(sum "$rebuilt")" != "$(sum "$treatment")" ]]
     capture=$(old_file capture)
     "$capture" prepare "$tokenizer" "$(sum "$tokenizer")" "$held/public-text.json" \
@@ -56,7 +64,7 @@ for seed in 1 2; do
     cmp "$blind" "$held/blind.json"
     cmp "$resolved" "$stage/panel/seed$seed/prepared/resolved-requested.json"
     labels="$held/grades.json"
-    jq -en --slurpfile g "$labels" --slurpfile r "$resolved" --slurpfile b "$blind" '
+    jq -en --arg policy "$policy" --slurpfile g "$labels" --slurpfile r "$resolved" --slurpfile b "$blind" '
       ($g[0]|length) as $n
       | ($g[0]|map(select(.stratum=="supported"))|length) as $positive
       | $positive>0 and $n==$positive+6 and ($r[0].rows|length)==$n and ($b[0]|length)==$n
@@ -65,7 +73,8 @@ for seed in 1 2; do
          and $role.requested_span==$grade.requested
          and (if $grade.stratum=="supported"
               then $grade.requested!=null and $grade.excluded!=null
-              and $grade.requested[1]<=$grade.excluded[0]
+              and (if $policy=="user_text_only" then $grade.requested[1]<=$grade.excluded[0]
+                   else ($grade.requested[1]<=$grade.excluded[0] or $grade.excluded[1]<=$grade.requested[0]) end)
               and ($grade.object_swap|type)=="boolean" and ($grade.connector_swap|type)=="boolean"
               else $grade.expected==null end))
     ' >/dev/null
@@ -78,6 +87,10 @@ for seed in 1 2; do
         for name in uor-chat requested-role-device requested-role-sm89 project-role fresh-validity-check; do
             entry "$name" "$stage/bin/$name"
         done
+        if [[ "$policy" == clause_to_entity ]]; then
+            entry veto_native "$stage/bin/all-starts-native"
+            entry veto_device "$stage/bin/earlier-veto-sm89"
+        fi
         entry stage_inputs "$runner/stage-inputs.sh"
         entry dispatcher "$runner/dispatch.sh"
         entry runner "$runner/run-seed.sh"
@@ -97,10 +110,10 @@ for seed in 1 2; do
         entry labels "$labels"
         entry readings "$stage/panel/reader-grader.json"
     ) > "specs/seed$seed.entries"
-    jq -es --argjson seed "$seed" --arg wick "$wick" '
+    jq -es --arg schema "$schema" --argjson seed "$seed" --arg wick "$wick" '
         select((map(.key)|length)==(map(.key)|unique|length)
             and all(.[]; .value.sha256 | test("^[0-9a-f]{64}$")))
-        | {schema:"uor-r4.user-text-only/1",seed:$seed,wick_root:$wick,files:from_entries}
+        | {schema:$schema,seed:$seed,wick_root:$wick,files:from_entries}
     ' "specs/seed$seed.entries" > "specs/seed$seed.json"
     test -s "specs/seed$seed.json"
 done

@@ -14,7 +14,23 @@ file() {
     pin "$path" "$hash" || return
     printf '%s\n' "$path"
 }
-jq -e '.schema=="uor-r4.user-text-only/1" and (.seed==1 or .seed==2)' "$spec" >/dev/null
+policy=user_text_only
+value_arms=(reference treatment supplied wrong-role)
+controlled=(supplied wrong-role)
+render_args=()
+reduce_args=()
+case "$(jq -er .schema "$spec")" in
+    uor-r4.user-text-only/1) ;;
+    uor-r4.clause-entity-veto/1)
+        policy=clause_to_entity
+        value_arms+=(supplied-veto)
+        controlled+=(supplied-veto)
+        render_args=("$policy")
+        reduce_args=(--slurpfile veto grades/supplied-veto-writer.json)
+        ;;
+    *) exit 2 ;;
+esac
+jq -e '.seed==1 or .seed==2' "$spec" >/dev/null
 wick=$(jq -er .wick_root "$spec"); seed=$(jq -er .seed "$spec")
 lock="$wick/20261118-diagnostics/wick-codex-gpu.lock"
 writer=$(file writer); action=$(file action_writer); capture=$(file capture)
@@ -63,20 +79,20 @@ phase=blind-role
 gpu capture/role-reference "$role" "$reference" "$blind" "$role_device" capture/role-reference.json
 gpu capture/role-treatment "$role" "$treatment" "$blind" "$role_device" capture/role-treatment.json
 "$project" "$paired" "$(sum "$reference")" "$blind" capture/legacy.json capture/role-reference.json capture/reference.json
-"$project" "$paired" "$(sum "$treatment")" "$blind" capture/legacy.json capture/role-treatment.json capture/projected-treatment.json user_text_only
+"$project" "$paired" "$(sum "$treatment")" "$blind" capture/legacy.json capture/role-treatment.json capture/projected-treatment.json "$policy"
 # The frozen chain requires one receipt per selection digest, even when the intervention ties byte for byte.
 jq -c --arg role_receipt "$(sum capture/role-treatment.json)" '
     .role_projection_receipt_sha256=$role_receipt
 ' capture/projected-treatment.json > capture/treatment.json
-"$project" --render "$tokenizer" "$blind" capture/role-reference.json capture/role-treatment.json capture/rendered-roles.json
-jq -en --slurpfile r capture/role-treatment.json --slurpfile p capture/role-reference.json '
+"$project" --render "$tokenizer" "$blind" capture/role-reference.json capture/role-treatment.json capture/rendered-roles.json "${render_args[@]}"
+jq -en --arg policy "$policy" --slurpfile r capture/role-treatment.json --slurpfile p capture/role-reference.json '
     ($r[0].rows|map([.role_words[2:4],.role_words[5],.role_words[7]]))
         ==($p[0].rows|map([.role_words[2:4],.role_words[5],.role_words[7]]))
     and ($r[0].rows|map(.requested_occurrence|[.content,.query_boundary,
              (.candidates|map([.span,.eligibility,.supporting_head]))]))
         ==($p[0].rows|map(.requested_occurrence|[.content,.query_boundary,
              (.candidates|map([.span,.eligibility,.supporting_head]))]))
-    and all(range($p[0].rows|length); . as $i
+    and (if $policy=="clause_to_entity" then $r[0].policy==$policy else all(range($p[0].rows|length); . as $i
       | $p[0].rows[$i].requested_occurrence as $a
       | $r[0].rows[$i].requested_occurrence as $b
       | ($a|type)=="object" and ($b|type)=="object"
@@ -88,7 +104,7 @@ jq -en --slurpfile r capture/role-treatment.json --slurpfile p capture/role-refe
              | if $positions[$k] >= $a.content[0] and $positions[$k] < $a.content[1]
                then $source.feature_keys[$k]
                else ($k*65537+65536) end]
-        and ($masked.excluded_decision_scores // $masked.scores)==$source.scores))
+        and ($masked.excluded_decision_scores // $masked.scores)==$source.scores)) end)
     | if . then . else error("role decision, assertion-gated candidates or context masking differs") end
 ' > capture/fixed-roles-verified.json
 
@@ -145,27 +161,42 @@ jq -en --argjson supported "$supported" --slurpfile gold grades/forced-gold.json
 ' > grades/controls-verified.json
 
 phase=frozen-value-device
-for arm in reference treatment supplied wrong-role; do
-    cap="capture/$arm/candidates.json"
+for arm in "${value_arms[@]}"; do
+    selected="$arm"
+    mode=ordered
+    scorer="$native"
+    gpu_program="$value_device"
+    if [[ "$arm" == supplied-veto ]]; then
+        selected=supplied
+        mode=earlier-connector-v1
+        scorer=$(file veto_native)
+        gpu_program=$(file veto_device)
+    fi
+    cap="capture/$selected/candidates.json"
     m="modes/$arm"
     mkdir "$m"
     "$native" pack-json "$cap" "$(jq -er .base_d11 "$cap")" \
         "$(jq -er .tokenizer_sha256 "$cap")" "$("$native" site-key "$cap")" "$m/input.packet"
-    gpu "$m/score" "$native" score-as "$value_device" "$m/input.packet" "$bank" ordered "$m/score.trace"
-    "$native" decode-trace-as "$m/input.packet" "$bank" ordered "$m/score.trace" "$m/sources.json"
-    jq -en --arg bank "$(sum "$bank")" --arg cap "$(sum "$cap")" \
+    if [[ "$arm" == supplied-veto ]]; then
+        cmp modes/supplied/input.packet "$m/input.packet"
+        gpu "$m/ordered-control" "$scorer" score-as "$gpu_program" "$m/input.packet" "$bank" ordered "$m/ordered.trace"
+        cmp modes/supplied/score.trace "$m/ordered.trace"
+    fi
+    gpu "$m/score" "$scorer" score-as "$gpu_program" "$m/input.packet" "$bank" "$mode" "$m/score.trace"
+    "$scorer" decode-trace-as "$m/input.packet" "$bank" "$mode" "$m/score.trace" "$m/sources.json"
+    jq -en --arg mode "$mode" --arg bank "$(sum "$bank")" --arg cap "$(sum "$cap")" \
         --arg packet "$(sum "$m/input.packet")" --arg trace "$(sum "$m/score.trace")" \
         --slurpfile view "$m/sources.json" --slurpfile receipt "$m/score.trace.work/bindings.json" '
-        $view[0].mode=="ordered"
+        $view[0].mode==$mode
         and all([$view[0],$receipt[0]][]; .bank_sha256==$bank and .input_packet_sha256==$packet
             and .blind_capture_sha256==$cap and .trace_sha256==$trace)
         | if . then . else error("unbound frozen value replay") end
     ' > "$m/verified.json"
-    "$binder" rewrite ordered "$cap" "$blind" "capture/$arm.json" "$m/sources.json" \
+    "$binder" rewrite "$mode" "$cap" "$blind" "capture/$selected.json" "$m/sources.json" \
         "arms/$arm-blind.json" "arms/$arm-source-audit.json"
     artifact="$reference"
     [[ "$arm" != treatment ]] || artifact="$treatment"
-    if [[ "$arm" == supplied || "$arm" == wrong-role ]]; then
+    if [[ "$selected" == supplied || "$selected" == wrong-role ]]; then
         jq -ec --slurpfile g "$labels" '
             .rows |= map(select(.index as $i | $g[0][$i].stratum=="supported"))
         ' "arms/$arm-blind.json" > "arms/$arm-supported.json"
@@ -177,6 +208,7 @@ for arm in reference treatment supplied wrong-role; do
 done
 jq -c --arg artifact "$(sum "$treatment")" '.artifact=$artifact' capture/no-read.json > arms/no-read.json
 replay=(arms/{reference,treatment,supplied,wrong-role,no-read}.json)
+if [[ "$policy" == clause_to_entity ]]; then replay+=(arms/supplied-veto.json); fi
 sha256sum "${replay[@]}" > blind-selections.sha256
 
 phase=writer-replay
@@ -198,7 +230,7 @@ phase=client-parity-and-grade
 for arm in reference treatment no-read; do
     grade "$arm" "arms/$arm.json" writer "clients/$arm"
 done
-for arm in supplied wrong-role; do
+for arm in "${controlled[@]}"; do
     grade "$arm" "arms/$arm.json" writer -
 done
 
@@ -211,7 +243,7 @@ jq -en --argjson seed "$seed" --slurpfile labels "$labels" \
     --slurpfile no_read grades/no-read-writer.json \
     --slurpfile render capture/rendered-roles.json \
     --slurpfile blind "$blind" \
-    -f "$reducer" > summary.json
+    "${reduce_args[@]}" -f "$reducer" > summary.json
 {
     sha256sum blind-selections.sha256 summary.json capture/{reference,treatment,projected-treatment,supplied,wrong-role,no-read,role-reference,role-treatment,rendered-roles,fixed-roles-verified,wrong-role-endpoints}.json \
         capture/{reference,treatment,supplied,wrong-role}/candidates.json

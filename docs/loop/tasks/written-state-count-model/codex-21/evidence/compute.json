@@ -1,0 +1,44 @@
+{
+  "events": [
+    {
+      "event": "up",
+      "ts": "2026-11-19T21:21:51Z",
+      "pod": "vast-61518385",
+      "usd_per_h": 0.869
+    },
+    {
+      "event": "ssh-ready",
+      "ts": "2026-11-19T21:22:24Z",
+      "pod": "vast-61518385"
+    },
+    {
+      "event": "lease",
+      "ts": "2026-11-19T21:22:25Z",
+      "pod": "vast-61518385"
+    },
+    {
+      "event": "run",
+      "ts": "2026-11-19T21:25:03Z",
+      "pod": "vast-61518385"
+    },
+    {
+      "event": "run",
+      "ts": "2026-11-19T21:27:06Z",
+      "pod": "vast-61518385"
+    },
+    {
+      "event": "release",
+      "ts": "2026-11-19T21:39:17Z",
+      "pod": "vast-61518385"
+    },
+    {
+      "event": "down",
+      "ts": "2026-11-19T21:39:32Z",
+      "pod": "vast-61518385",
+      "usd_per_h": 0.869,
+      "uptime_s": 1060
+    }
+  ],
+  "held_wall_time": "11:44.63",
+  "estimated_compute_usd": 0.2558722222222222
+}

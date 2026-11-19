@@ -1,0 +1,60 @@
+{
+  "schema": "uor-r4.clause-entity-veto-storage/1",
+  "verified_utc": "2026-11-19T21:39:11Z",
+  "origin": {
+    "instance": "vast-61518385",
+    "result_root": "/workspace/uor-r4/jobs/codex21-held-01",
+    "status": "done 0",
+    "stage_input_manifest_sha256": "b5cc4fa2fa2b392ecdb002d3368869d85b978a1c2784d3eae9ee98767e2b7b25",
+    "seed_repetitions": [
+      "seed1-primary",
+      "seed2-primary",
+      "seed1-repeat",
+      "seed2-repeat"
+    ]
+  },
+  "archive": {
+    "name": "vast-evidence.tar.zst",
+    "format": "PAX tar compressed with Zstandard",
+    "bytes": 14002445,
+    "sha256": "2fa2d2cc323e9df694a99cfefa9ea9ae6b5e9acadf9435dfdb1a9fb0bee10875",
+    "checksum_manifest_sha256": "9b8911853db814ff4c067be7df94599b15b05dea5814e50c936dedbfe404541b",
+    "workstation_directory": "~/uor-r4/local/codex/clause-entity-veto/custody/vast-61518385-held-01",
+    "wick_directory": "~/uor-codex/20261119-clause-veto/custody-vast-61518385-held-01/archive"
+  },
+  "readback": {
+    "workstation_verified_regular_files": 4277,
+    "workstation_verified_symbolic_link_targets": 6,
+    "regular_file_manifest_sha256": "602f6d75514c07a67ba4cce83081cca90dfb31aed6d1211d413f4a74b912f1cd",
+    "symbolic_link_manifest_sha256": "10e36bb74df932f5b92de804554b87685f45756146f741988eb749d54d509354",
+    "all_seed_raw_and_cold_manifests_verified_on_vast": true,
+    "both_seed_cold_repetition_manifests_match": true,
+    "wick_archive_and_sidecars_sha256_verified": true,
+    "seed_primary_raw_manifest_sha256": [
+      "99f8232926c23ba9f0f2bb1a9887f3f8cf5ca90249cdaf831c8470e0127bf176",
+      "41c306ab809ad32f94b8d623dd493129067dc2d0c16d4f9824807b31c57d1df3"
+    ],
+    "paired_seed_cold_manifest_sha256": [
+      "e0afe8f20ee2cb28dc84ecdedb8b57f066574fbb4d460c33d37f422dd58f7a27",
+      "5907aa9322ec4755e52fa589f780b82789146ed4e2f071c1bc1ef8749c415524"
+    ]
+  },
+  "retained_model_blobs": {
+    "host": "wick",
+    "count": 14,
+    "verified_against_vast": true,
+    "manifest": "wick-model-pins.sha256",
+    "manifest_sha256": "f91d4f0aaaeaa9a453a50addcf033a8af7252f7ee11dd09421a1e257bf7dfc3d"
+  },
+  "hf_results": {
+    "repo": "caseyallard/uor-r4-store",
+    "receipts_revision": "6868ed7ae796d4d47c7ba058f3f1d944d01677a3",
+    "observations_revision": "b77b86853851a56353aca797f279a7646d523b23",
+    "path": "results/codex/2026-11-19-clause-entity-veto-2fa2d2cc",
+    "observations_sha256": "d30070e45ca00487338d7818d3a2064c28edc4c307138c922af010264df7f5dc",
+    "restored_original_observation_files": 30,
+    "pinned_receipts_download_verified": true,
+    "pinned_original_observations_download_verified": true,
+    "scope": "Primary summaries, specs, GPU writer and control writer, per-arm writer grades, and decoded source traces. Full raw and cold archives remain on the workstation and Wick. Private store quota rejected the full held and finite upload."
+  }
+}

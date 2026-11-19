@@ -1,0 +1,197 @@
+{
+  "schema": "uor-r4.codex21.writer-parity/1",
+  "lab": "codex",
+  "job": "codex21-held-01",
+  "audit": "PASS",
+  "input_archive_sha256": "2fa2d2cc323e9df694a99cfefa9ea9ae6b5e9acadf9435dfdb1a9fb0bee10875",
+  "oracle": "codex-15/writer/grade.rs receipt mapping and client cursor projection, plus direct independent comparison",
+  "method": [
+    "Resolve each ordinary selection by its exact file hash in writer/receipt.json, then map the original prompt ordinal to the raw CUDA row. Verify bare input, source pick, client seal, artifact, tokenizer, prefix hash, original prompt IDs, paired decision and selected source.",
+    "Compare original output IDs and every 8-word client cursor step to CUDA after-state, emitted ID, source ID, copy bit and release. Check cursor continuity and copied IDs against original prompt positions. Compare EOS versus the shared token cap.",
+    "Require byte-identical supplied and veto input packets and an identical veto-device ordered control trace. Anchor original candidate coordinates, eligibility, shapes, classes, and roots to the capture. Require only the registered three-word predicate to change verdict, selected address and earliest status in CUDA trace words.",
+    "Verify both controlled writer selections preserve supplied role words. Join raw nominated assertion sources through consensus to the mapped CUDA output and compare source-to-fence original ID slices plus EOS.",
+    "Rehash every file in each cold and raw manifest and compare each same-seed cold manifest and summary byte-for-byte."
+  ],
+  "verifier": {
+    "source_sha256": "29a4460543b0de7d6e7d63a89b8b59e1ab2d44e93dcb65c5ac0eb1cfeb9aff99",
+    "cargo_manifest_sha256": "a33803d6faf834fbd5e2576ec94c460c8de3c285fcf499c0c7baf497f266ba8d",
+    "cargo_lock_sha256": "fe172fd2716093e220498949e78370175bf8686759a7d79ab1460f15b5ae43a8",
+    "stdout_sha256": "727056492b920e51d090c6b6e53a415cc304bb89114b00da7a3d7818d032ddee",
+    "source": "local/codex/clause-entity-veto/parity-audit/src/main.rs",
+    "command": "cargo run --locked --offline --manifest-path <audit>/Cargo.toml -- 102 <held>/seed1-primary <held>/seed1-repeat <held>/seed2-primary <held>/seed2-repeat",
+    "held_path_in_archive": "workspace/uor-r4/jobs/codex21-held-01"
+  },
+  "all_runs": {
+    "ordinary_prompt_rows": 1224,
+    "ordinary_cursor_transitions": 10960,
+    "ordinary_mismatches": 0
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "each_run": {
+        "ordinary": {
+          "reference": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 851,
+            "sourced_rows": 40,
+            "terminal_eos_rows": 102
+          },
+          "treatment": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 851,
+            "sourced_rows": 40,
+            "terminal_eos_rows": 102
+          },
+          "no_read": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 1040,
+            "sourced_rows": 0,
+            "terminal_eos_rows": 101,
+            "capped_ordinals": [
+              40
+            ],
+            "cap_tokens": 16
+          }
+        },
+        "unique_gpu_writer_rows": 190,
+        "ordinary_mismatches": 0
+      },
+      "supplied": {
+        "paired_supported_prompts": 96,
+        "changed_source_rows": 8,
+        "changed_id_tapes": 8,
+        "packet_sha256": "08d9379b720514d2df73adf7de1002236945cf751fade5b43c57bedcaa9f0c4b",
+        "ordered_trace_sha256": "b1fd2642ccc6ce57e24057493e34f3cabc8947ba42517a6a9bdc3ae9dd088433",
+        "veto_trace_sha256": "002ca0b1346e85c08da5284c5ebe381d1d88186092761cd2d64db8ac6b01ec24",
+        "scorer_rows": 104,
+        "original_candidate_slots": 259,
+        "unchanged_scorer_rows": 95,
+        "changed_assertion_ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21,
+          33
+        ],
+        "changed_final_source_ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21
+        ],
+        "conflict_ordinal": 33,
+        "conflict_final_source": null
+      },
+      "cold": {
+        "matching_files": 426,
+        "manifest_sha256": "e0afe8f20ee2cb28dc84ecdedb8b57f066574fbb4d460c33d37f422dd58f7a27",
+        "summary_byte_identical": true
+      },
+      "primary": {
+        "gpu_sha256": "beae1b553c7c106162a452c4e30549a1b05f7a9927c363b5328f62896ae4eb1a",
+        "raw_files_read_back": 851,
+        "raw_manifest_sha256": "99f8232926c23ba9f0f2bb1a9887f3f8cf5ca90249cdaf831c8470e0127bf176"
+      },
+      "repeat": {
+        "gpu_sha256": "beae1b553c7c106162a452c4e30549a1b05f7a9927c363b5328f62896ae4eb1a",
+        "raw_files_read_back": 851,
+        "raw_manifest_sha256": "e91e8efd213403c394e81ca3724a37d976e51ffc09f2b464489a60ee2b578bf7"
+      }
+    },
+    {
+      "seed": 2,
+      "each_run": {
+        "ordinary": {
+          "reference": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 851,
+            "sourced_rows": 40,
+            "terminal_eos_rows": 102
+          },
+          "treatment": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 851,
+            "sourced_rows": 40,
+            "terminal_eos_rows": 102
+          },
+          "no_read": {
+            "prompt_rows": 102,
+            "matched_rows": 102,
+            "cursor_transitions": 1036,
+            "sourced_rows": 0,
+            "terminal_eos_rows": 101,
+            "capped_ordinals": [
+              40
+            ],
+            "cap_tokens": 16
+          }
+        },
+        "unique_gpu_writer_rows": 190,
+        "ordinary_mismatches": 0
+      },
+      "supplied": {
+        "paired_supported_prompts": 96,
+        "changed_source_rows": 8,
+        "changed_id_tapes": 8,
+        "packet_sha256": "9473facdded62e04ecafd23137d78081c389c14dbc2898a236da38a4140f7e98",
+        "ordered_trace_sha256": "b1fd2642ccc6ce57e24057493e34f3cabc8947ba42517a6a9bdc3ae9dd088433",
+        "veto_trace_sha256": "002ca0b1346e85c08da5284c5ebe381d1d88186092761cd2d64db8ac6b01ec24",
+        "scorer_rows": 104,
+        "original_candidate_slots": 259,
+        "unchanged_scorer_rows": 95,
+        "changed_assertion_ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21,
+          33
+        ],
+        "changed_final_source_ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21
+        ],
+        "conflict_ordinal": 33,
+        "conflict_final_source": null
+      },
+      "cold": {
+        "matching_files": 426,
+        "manifest_sha256": "5907aa9322ec4755e52fa589f780b82789146ed4e2f071c1bc1ef8749c415524",
+        "summary_byte_identical": true
+      },
+      "primary": {
+        "gpu_sha256": "16e2868163419034fcb82f585c99ef263da45c97e250f6ff2dd85098d2ee665e",
+        "raw_files_read_back": 851,
+        "raw_manifest_sha256": "41c306ab809ad32f94b8d623dd493129067dc2d0c16d4f9824807b31c57d1df3"
+      },
+      "repeat": {
+        "gpu_sha256": "16e2868163419034fcb82f585c99ef263da45c97e250f6ff2dd85098d2ee665e",
+        "raw_files_read_back": 851,
+        "raw_manifest_sha256": "b37af1a377db622d466e5d274568db76823845297971f7dcd738793ceb1d3f15"
+      }
+    }
+  ]
+}

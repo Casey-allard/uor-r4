@@ -190,6 +190,17 @@ __global__ void assign_radius(uint32_t* bank,uint32_t used,const uint32_t* minim
 }
 
 __device__ int cmp(int n,int d,int m,int e) {return n*e-m*d;}
+__device__ bool earlier_connector_run(const uint32_t* trace) {
+    const auto first=trace+TRACE_HEAD;
+    const auto middle=first+CAND_TRACE;
+    const auto last=middle+CAND_TRACE;
+    return first[2]==2 && first[5]!=NONE && first[6]!=NONE && first[7]!=NO_RADIUS
+        && first[5]>first[7] && first[6]<first[5]
+        && middle[2]==3 && int32_t(middle[8])<0
+        && last[2]==3 && int32_t(last[8])>0
+        && first[1]==middle[0] && middle[1]==last[0];
+}
+
 __global__ void infer(const uint32_t* rows,uint32_t n,const uint32_t* bank,uint32_t used,uint32_t mode,uint32_t* trace) {
     uint32_t rowid=blockIdx.x*blockDim.x+threadIdx.x;
     if(rowid>=n) return;
@@ -250,6 +261,10 @@ __global__ void infer(const uint32_t* rows,uint32_t n,const uint32_t* bank,uint3
     }
     if(bd){t[4]=uint32_t(bn);t[5]=uint32_t(bd);}
     if(rd){t[6]=uint32_t(rn);t[7]=uint32_t(rd);}
+    if(mode==6 && earlier_connector_run(t)) {
+        t[TRACE_HEAD+2]=4;
+        unseen=false;
+    }
     t[2]=(unseen||(outside_radius&&!bd))?2:!bd?1:bn<=0?4:(rd&&!cmp(bn,bd,rn,rd))?3:0;
     if(!t[2])t[3]=winner;
 }
@@ -350,7 +365,7 @@ int main(int argc,char** argv) {
         if(raw.size()!=4+CAP*RECORD||raw[0]!=RAW_MAGIC||raw[3]!=CAP||!bank_valid(raw.data()+4,raw[2],raw[1]))return 3;
         uint32_t mode=raw[1];
         if(argc==6) {
-            if(std::strlen(argv[5])!=1 || argv[5][0]<'0' || argv[5][0]>'5')return 3;
+            if(std::strlen(argv[5])!=1 || argv[5][0]<'0' || argv[5][0]>'6')return 3;
             mode=argv[5][0]-'0';
             if((mode>2?0:mode)!=raw[1])return 3;
         }

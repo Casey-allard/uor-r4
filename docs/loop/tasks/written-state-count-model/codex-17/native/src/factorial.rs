@@ -11,6 +11,7 @@ const SECOND: [u32; 2] = [0, 5];
 const UNSEEN: [u32; 2] = [2, NIL];
 const TIE: [u32; 2] = [3, NIL];
 const NONPOSITIVE: [u32; 2] = [4, NIL];
+const THIRD: [u32; 2] = [0, 6];
 
 #[derive(Clone, Copy)]
 struct Exemplar {
@@ -35,13 +36,13 @@ const OUTSIDE: Exemplar = Exemplar {
     radius: 0,
 };
 
-struct Fixture {
+struct Fixture<const N: usize> {
     name: &'static str,
     exemplars: &'static [Exemplar],
-    expected: [[u32; 2]; 4],
+    expected: [[u32; 2]; N],
 }
 
-const FIXTURES: [Fixture; 7] = [
+const FIXTURES: [Fixture<4>; 7] = [
     // Candidate 4 has distances 0,4 and candidate 5 has distances 4,16.
     // Slot denominators prefer 12/3 over 4/2. Distance sums prefer 4/4 over 12/20.
     Fixture {
@@ -111,9 +112,89 @@ const FIXTURES: [Fixture; 7] = [
     },
 ];
 
+const FIRST_NEGATIVE_OUTSIDE: Exemplar = Exemplar {
+    positive: 2,
+    negative: Some(0),
+    radius: 0,
+};
+const ADMITTED_NEGATIVE: Exemplar = Exemplar {
+    radius: 4,
+    ..FIRST_NEGATIVE_OUTSIDE
+};
+const CONNECTOR_POLICIES: [OnsetMode; 2] = [OnsetMode::Ordered, OnsetMode::EarlierConnectorV1];
+const CONNECTOR_FIXTURES: [Fixture<2>; 8] = [
+    Fixture {
+        name: "rescue-or-indistinguishable-early-gold",
+        exemplars: &[FIRST_NEGATIVE_OUTSIDE, ADMITTED_NEGATIVE, FIRST_SUPPORTED],
+        expected: [UNSEEN, THIRD],
+    },
+    Fixture {
+        name: "early-unseen-gold-with-positive-alternate-alone",
+        exemplars: &[FIRST_NEGATIVE_OUTSIDE, FIRST_SUPPORTED],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "early-unseen-gold-with-competing-positive",
+        exemplars: &[FIRST_NEGATIVE_OUTSIDE, FIRST_SUPPORTED, FIRST_SUPPORTED],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "later-outside",
+        exemplars: &[FIRST_NEGATIVE_OUTSIDE, ADMITTED_NEGATIVE, OUTSIDE],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "missing-class",
+        exemplars: &[
+            Exemplar {
+                negative: None,
+                ..FIRST_NEGATIVE_OUTSIDE
+            },
+            ADMITTED_NEGATIVE,
+            FIRST_SUPPORTED,
+        ],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "early-positive-side-outside",
+        exemplars: &[OUTSIDE, ADMITTED_NEGATIVE, FIRST_SUPPORTED],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "unfitted-radius",
+        exemplars: &[
+            Exemplar {
+                radius: NO_RADIUS,
+                ..FIRST_NEGATIVE_OUTSIDE
+            },
+            ADMITTED_NEGATIVE,
+            FIRST_SUPPORTED,
+        ],
+        expected: [UNSEEN; 2],
+    },
+    Fixture {
+        name: "late-nonpositive",
+        exemplars: &[FIRST_NEGATIVE_OUTSIDE, ADMITTED_NEGATIVE, ADMITTED_NEGATIVE],
+        expected: [UNSEEN; 2],
+    },
+];
+
 pub(super) fn run(device: &Path, out: &Path) -> Result<()> {
+    run_fixtures(Some(device), out, FIXTURES, POLICIES)
+}
+
+pub(super) fn connector(device: &Path, out: &Path) -> Result<()> {
+    run_fixtures(Some(device), out, CONNECTOR_FIXTURES, CONNECTOR_POLICIES)
+}
+
+fn run_fixtures<const N: usize>(
+    device: Option<&Path>,
+    out: &Path,
+    fixtures: impl IntoIterator<Item = Fixture<N>>,
+    policies: [OnsetMode; N],
+) -> Result<()> {
     fs::create_dir(out)?;
-    for fixture in FIXTURES {
+    for fixture in fixtures {
         let dir = out.join(fixture.name);
         fs::create_dir(&dir)?;
         let mut rows = Rows {
@@ -168,16 +249,30 @@ pub(super) fn run(device: &Path, out: &Path) -> Result<()> {
             &seal(&rows, &packet, fixture.name.as_bytes(), &le(raw))?,
         )?;
 
-        let legacy = dir.join("legacy.trace");
-        score(device, &input, &bank, None, &legacy)?;
-        for (policy, goal) in POLICIES.into_iter().zip(fixture.expected) {
-            let trace = dir.join(format!("{}.trace", policy.name()));
-            score(device, &input, &bank, Some(policy), &trace)?;
-            let bytes = fs::read(&trace)?;
-            if policy == OnsetMode::Ordered && bytes != fs::read(&legacy)? {
-                return Err("explicit ordered and legacy entry points differ".into());
-            }
-            let words = trace_rows(&rows, policy as u32, &bytes)?;
+        let legacy = device
+            .map(|device| -> Result<_> {
+                let path = dir.join("legacy.trace");
+                score(device, &input, &bank, None, &path)?;
+                Ok(fs::read(path)?)
+            })
+            .transpose()?;
+        for (policy, goal) in policies.into_iter().zip(fixture.expected) {
+            let words = if let Some(device) = device {
+                let trace = dir.join(format!("{}.trace", policy.name()));
+                score(device, &input, &bank, Some(policy), &trace)?;
+                let bytes = fs::read(&trace)?;
+                if policy == OnsetMode::Ordered && legacy.as_deref() != Some(bytes.as_slice()) {
+                    return Err("explicit ordered and legacy entry points differ".into());
+                }
+                trace_rows(&rows, policy as u32, &bytes)?
+            } else {
+                let reference = load_policy(&rows, &fs::read(&bank)?, policy)?;
+                let mut words = vec![TRACE, rows.rows.len() as u32, OUT as u32, policy as u32];
+                for row in &rows.rows {
+                    words.extend(reference.score_legacy_row(&row.0)?);
+                }
+                words
+            };
             for (i, row) in words[4..].chunks_exact(OUT).enumerate() {
                 let mut expected = goal;
                 if i == 1 && expected[0] == 0 {
@@ -207,6 +302,23 @@ pub(super) fn run(device: &Path, out: &Path) -> Result<()> {
                     assert_eq!(ids, [13, 15, 14, 45, 1]);
                     ids
                 }
+                6 => {
+                    let ids = finite_writer(6)?;
+                    assert_eq!(ids, [15, 14, 45, 1]);
+                    if fixture.name == "rescue-or-indistinguishable-early-gold" {
+                        let early_gold = finite_writer(4)?;
+                        assert_ne!(ids, early_gold);
+                        save(
+                            &dir.join("counterfactual-writer-keys.json"),
+                            &serde_json::to_vec(&serde_json::json!({
+                                "probe": 0, "shared_trace_sha256": hex(digest(&le(words.clone()))),
+                                "late_gold": {"source": 6, "ids": ids, "exact": true},
+                                "early_gold": {"source": 4, "ids": early_gold, "exact": false},
+                            }))?,
+                        )?;
+                    }
+                    ids
+                }
                 NIL => Vec::new(),
                 _ => return Err("unexpected finite writer address".into()),
             };
@@ -221,4 +333,19 @@ pub(super) fn run(device: &Path, out: &Path) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn earlier_connector_finite_rust() -> Result<()> {
+        let out = env::temp_dir().join(format!("uor-earlier-connector-{}", std::process::id()));
+        let result = run_fixtures(None, &out, CONNECTOR_FIXTURES, CONNECTOR_POLICIES);
+        if out.is_dir() {
+            fs::remove_dir_all(out)?;
+        }
+        result
+    }
 }

@@ -1,0 +1,23 @@
+GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25, NVIDIA GeForce RTX 4090, 580.95.05, 8.9
+done 0
+95bb1a3442d5409c9f37a0e7dc6b3e8b9a42ca55944492a4a5df1ae5a6f46fa8  finite.sha256
+28d7d6b3b4d382ea56a6600ac33328f6201fb27243520e7d093abdbf5fb9849f  connector.sha256
+rescue-or-indistinguishable-early-gold ordered status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+rescue-or-indistinguishable-early-gold earlier-connector-v1 status=0 source=6 ratios=[4, 5, 4294967292, 3] writes=[15, 14, 45, 1]
+early-unseen-gold-with-positive-alternate-alone ordered status=2 source=4294967295 ratios=[4, 3, 4294967295, 4294967295] writes=[]
+early-unseen-gold-with-positive-alternate-alone earlier-connector-v1 status=2 source=4294967295 ratios=[4, 3, 4294967295, 4294967295] writes=[]
+early-unseen-gold-with-competing-positive ordered status=2 source=4294967295 ratios=[4, 3, 4, 5] writes=[]
+early-unseen-gold-with-competing-positive earlier-connector-v1 status=2 source=4294967295 ratios=[4, 3, 4, 5] writes=[]
+later-outside ordered status=2 source=4294967295 ratios=[4294967292, 3, 4294967295, 4294967295] writes=[]
+later-outside earlier-connector-v1 status=2 source=4294967295 ratios=[4294967292, 3, 4294967295, 4294967295] writes=[]
+missing-class ordered status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+missing-class earlier-connector-v1 status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+early-positive-side-outside ordered status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+early-positive-side-outside earlier-connector-v1 status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+unfitted-radius ordered status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+unfitted-radius earlier-connector-v1 status=2 source=4294967295 ratios=[4, 5, 4294967292, 3] writes=[]
+late-nonpositive ordered status=2 source=4294967295 ratios=[4294967292, 5, 4294967292, 3] writes=[]
+late-nonpositive earlier-connector-v1 status=2 source=4294967295 ratios=[4294967292, 5, 4294967292, 3] writes=[]
+["clause_to_entity","fixtures","schema"]
+{"artifact_sha256":"02b922d37308593de956bf9c7c8ee0dbb259d2152528d6993eb9c89be84f65e3","generated_ids":[924,1074,1],"stop":"eos","selected":{"fact":4,"query":20,"source":8}}
+{"artifact_sha256":"c5a473d58d89ebe131a01e36b2e69e8ff099eb3c2beef95e7cbd82c24f96ed12","generated_ids":[1155,302,311,14,340,1919,1203,383,16,1],"stop":"eos","selected":{"fact":null,"query":33,"source":null}}

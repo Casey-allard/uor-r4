@@ -67,13 +67,23 @@ pub struct RequestedOccurrenceCandidateTrace {
     pub eligibility: RequestedEligibility,
     pub supporting_head: Option<[usize; 2]>,
     pub contrast: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clause_evidence: Option<ClauseEvidence>,
 }
 
-/// Scope of the six context roots contributing to the assertion-agreement contrast.
+#[derive(Clone, Debug, Serialize)]
+pub struct ClauseEvidence {
+    pub span: [usize; 2],
+    pub scores: [i32; 2],
+    pub multiple_supported_mentions: bool,
+}
+
+/// Policy for carrying frozen role evidence to an assertion-supported occurrence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RequestedContext {
     FullPrefix,
     UserTextOnly,
+    ClauseToEntity([u32; 2]),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -333,6 +343,29 @@ impl PairedRoleState {
             .rfind(|&p| self.sites[ids[p] as usize][1] == 1);
         let boundary = last_word
             .and_then(|last| (content.start..last).rfind(|&p| delimiters.contains(&ids[p])));
+        let supporting_head = |span: RoleSpan| {
+            let boundary = boundary?;
+            if span.start <= boundary || span.end > content.end {
+                return None;
+            }
+            (content.start.max(1)..boundary).find_map(|start| {
+                use crate::span_selector::{bounds, START};
+                if assertion_classes[ids[start] as usize] != START
+                    || !delimiters.contains(&ids[start - 1])
+                {
+                    return None;
+                }
+                let end = bounds(ids, assertion_classes, start).1 + 1;
+                (end <= boundary && ids[start..end] == ids[span.start..span.end])
+                    .then_some([start, end])
+            })
+        };
+        let mut supported_mentions = Vec::new();
+        if matches!(context, RequestedContext::ClauseToEntity(_)) {
+            supported_mentions.extend(
+                role_spans(&self.sites, ids).filter(|&span| supporting_head(span).is_some()),
+            );
+        }
         let mut requested_rank = RoleRank::new();
         let mut excluded_rank = RoleRank::new();
         for (span, keys) in candidates {
@@ -342,24 +375,14 @@ impl PairedRoleState {
             if in_region && excluded > requested {
                 excluded_rank.update(span, excluded);
             }
-            let (eligibility, supporting_head) = match boundary {
+            let (eligibility, head) = match boundary {
                 None => (NoBoundary, None),
                 Some(boundary) if span.start <= boundary || span.end > content.end => {
                     (OutsideQuery, None)
                 }
                 Some(_) if !in_region => (OutsideRegion, None),
-                Some(boundary) => {
-                    let head = (content.start.max(1)..boundary).find_map(|start| {
-                        use crate::span_selector::{bounds, START};
-                        if assertion_classes[ids[start] as usize] != START
-                            || !delimiters.contains(&ids[start - 1])
-                        {
-                            return None;
-                        }
-                        let end = bounds(ids, assertion_classes, start).1 + 1;
-                        (end <= boundary && ids[start..end] == ids[span.start..span.end])
-                            .then_some([start, end])
-                    });
+                Some(_) => {
+                    let head = supporting_head(span);
                     (
                         if head.is_some() {
                             Eligible
@@ -371,7 +394,7 @@ impl PairedRoleState {
                 }
             };
             let feature_keys = match context {
-                RequestedContext::FullPrefix => keys,
+                RequestedContext::FullPrefix | RequestedContext::ClauseToEntity(_) => keys,
                 RequestedContext::UserTextOnly => {
                     let offsets = role_offsets(span);
                     core::array::from_fn(|i| {
@@ -388,7 +411,24 @@ impl PairedRoleState {
             } else {
                 self.scores(feature_keys)
             };
-            let contrast = supporting_head.map(|_| scores[0] - scores[1]);
+            let clause_evidence = match (context, boundary, head) {
+                (RequestedContext::ClauseToEntity(separators), Some(boundary), Some(_)) => {
+                    Some(self.clause_evidence(
+                        ids,
+                        span,
+                        boundary + 1..content.end,
+                        separators,
+                        delimiters,
+                        &supported_mentions,
+                    ))
+                }
+                _ => None,
+            };
+            let contrast = match &clause_evidence {
+                Some(clause) if clause.multiple_supported_mentions => None,
+                Some(clause) => Some(clause.scores[0] - clause.scores[1]),
+                None => head.map(|_| scores[0] - scores[1]),
+            };
             if let Some(contrast) = contrast {
                 requested_rank.update(span, contrast);
             }
@@ -398,8 +438,9 @@ impl PairedRoleState {
                 feature_keys,
                 excluded_decision_scores: (feature_keys != keys).then_some(full_scores),
                 eligibility,
-                supporting_head,
+                supporting_head: head,
                 contrast,
+                clause_evidence,
             });
         }
         let decision = PairedRoleDecision {
@@ -413,6 +454,46 @@ impl PairedRoleState {
             excluded_runner_up: excluded_rank.runner_up,
         };
         Ok((decision, boundary))
+    }
+
+    fn clause_evidence(
+        &self,
+        ids: &[u32],
+        span: RoleSpan,
+        query: core::ops::Range<usize>,
+        separators: [u32; 2],
+        sentence_delimiters: &[u32],
+        supported_mentions: &[RoleSpan],
+    ) -> ClauseEvidence {
+        let start = (query.start..span.start)
+            .rfind(|&position| separators.contains(&ids[position]))
+            .map_or(query.start, |position| position + 1);
+        let end = (span.end..query.end)
+            .find(|&position| separators.contains(&ids[position]))
+            .unwrap_or(query.end);
+        let multiple_supported_mentions = supported_mentions
+            .iter()
+            .any(|other| *other != span && other.start >= start && other.end <= end);
+        let mut scores = [0; 2];
+        if !multiple_supported_mentions {
+            for &id in ids[start..span.start]
+                .iter()
+                .chain(&ids[span.end..end])
+                .filter(|id| !sentence_delimiters.contains(id))
+            {
+                let root = self.sites[id as usize][0];
+                let keys = core::array::from_fn(|offset| offset as u32 * ROLE_ROOTS as u32 + root);
+                let site = self.scores(keys);
+                for (score, signed) in scores.iter_mut().zip(site) {
+                    *score += signed;
+                }
+            }
+        }
+        ClauseEvidence {
+            span: [start, end],
+            scores,
+            multiple_supported_mentions,
+        }
     }
 
     pub fn trace_where(

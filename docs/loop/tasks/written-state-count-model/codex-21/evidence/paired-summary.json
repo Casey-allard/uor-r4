@@ -1,0 +1,1255 @@
+{
+  "schema": "uor-r4.clause-entity-veto-cross-seed/1",
+  "denominators_per_seed": {
+    "rows": 102,
+    "supported": 96,
+    "unsupported": 6
+  },
+  "seed_summaries": [
+    {
+      "seed": 1,
+      "supported": {
+        "role": {
+          "rows": 96,
+          "arms": {
+            "reference": {
+              "span": 48,
+              "endpoints": {
+                "excluded": 48,
+                "requested": 48
+              },
+              "sources": {
+                "correct_value": 8,
+                "no_source": 56,
+                "other_connector": 8,
+                "other_suffix": 4,
+                "other_value": 8,
+                "requested_connector": 8,
+                "requested_suffix": 4
+              },
+              "exact": 8,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 8,
+                "0": 88
+              }
+            },
+            "clause": {
+              "span": 0,
+              "endpoints": {
+                "excluded": 96
+              },
+              "sources": {
+                "no_source": 56,
+                "other_connector": 16,
+                "other_suffix": 8,
+                "other_value": 16
+              },
+              "exact": 0,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "0": 96
+              }
+            }
+          },
+          "span_changes": {
+            "both_wrong": 48,
+            "regressed": 48
+          },
+          "source_changes": {
+            "both_wrong": 88,
+            "regressed": 8
+          },
+          "exact_changes": {
+            "both_wrong": 88,
+            "regressed": 8
+          },
+          "wrong_to_different_wrong": 24,
+          "old_new_source": {
+            "correct_value → no_source": 4,
+            "correct_value → other_connector": 4,
+            "no_source → no_source": 44,
+            "no_source → other_connector": 4,
+            "no_source → other_suffix": 4,
+            "no_source → other_value": 4,
+            "other_connector → other_connector": 8,
+            "other_suffix → other_suffix": 4,
+            "other_value → other_value": 8,
+            "requested_connector → no_source": 4,
+            "requested_connector → other_value": 4,
+            "requested_suffix → no_source": 4
+          },
+          "new_wrong_sources": 20,
+          "early_unseen_gold": 0,
+          "retained_unseen": 44,
+          "retained_ties": 0,
+          "early_unseen_gold_wrong_releases": 0
+        },
+        "value": {
+          "rows": 96,
+          "arms": {
+            "supplied": {
+              "span": 96,
+              "endpoints": {
+                "requested": 96
+              },
+              "sources": {
+                "correct_value": 16,
+                "no_source": 56,
+                "requested_connector": 16,
+                "requested_suffix": 8
+              },
+              "exact": 16,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 16,
+                "0": 80
+              }
+            },
+            "veto": {
+              "span": 96,
+              "endpoints": {
+                "requested": 96
+              },
+              "sources": {
+                "correct_value": 24,
+                "no_source": 48,
+                "requested_connector": 16,
+                "requested_suffix": 8
+              },
+              "exact": 24,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 24,
+                "0": 72
+              }
+            }
+          },
+          "span_changes": {
+            "retained": 96
+          },
+          "source_changes": {
+            "both_wrong": 72,
+            "recovered": 8,
+            "retained": 16
+          },
+          "exact_changes": {
+            "both_wrong": 72,
+            "recovered": 8,
+            "retained": 16
+          },
+          "wrong_to_different_wrong": 0,
+          "old_new_source": {
+            "correct_value → correct_value": 16,
+            "no_source → correct_value": 8,
+            "no_source → no_source": 48,
+            "requested_connector → requested_connector": 16,
+            "requested_suffix → requested_suffix": 8
+          },
+          "new_wrong_sources": 0,
+          "early_unseen_gold": 0,
+          "retained_unseen": 48,
+          "retained_ties": 0,
+          "early_unseen_gold_wrong_releases": 0
+        },
+        "other_controls": {
+          "wrong_role": {
+            "span": 0,
+            "endpoints": {
+              "excluded": 96
+            },
+            "sources": {
+              "no_source": 56,
+              "other_connector": 16,
+              "other_suffix": 8,
+              "other_value": 16
+            },
+            "exact": 0,
+            "eos": 96,
+            "cap_without_eos": 0,
+            "first_mismatches": {
+              "0": 96
+            }
+          },
+          "no_read": {
+            "span": 0,
+            "endpoints": {
+              "none": 96
+            },
+            "sources": {
+              "no_source": 96
+            },
+            "exact": 0,
+            "eos": 95,
+            "cap_without_eos": 1,
+            "first_mismatches": {
+              "0": 96
+            }
+          }
+        }
+      },
+      "unsupported": {
+        "count": 6,
+        "arms": {
+          "reference": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          },
+          "clause": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          },
+          "no_read": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          }
+        },
+        "newly_written_sources": [],
+        "newly_written_literals": []
+      },
+      "verification": {
+        "raw_manifest": "99f8232926c23ba9f0f2bb1a9887f3f8cf5ca90249cdaf831c8470e0127bf176",
+        "cold_manifest": "e0afe8f20ee2cb28dc84ecdedb8b57f066574fbb4d460c33d37f422dd58f7a27",
+        "panel_manifest": "42b5cfe17226355b9672729dd27bfd24155481920a513e466b237c57d129f1ee",
+        "fixed_roles_verified": true,
+        "controls_verified": true,
+        "forced_gold": {
+          "active_label_exact": 96,
+          "independently_exact": 96,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        },
+        "forced_wrong": {
+          "active_label_exact": 0,
+          "independently_exact": 0,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        },
+        "wrong_key": {
+          "active_label_exact": 0,
+          "independently_exact": 96,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        }
+      },
+      "role_margins": [
+        {
+          "family": "collection",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "collection",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "inventory",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            41,
+            50
+          ],
+          "rows": 16
+        },
+        {
+          "family": "inventory",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            41,
+            50
+          ],
+          "rows": 16
+        },
+        {
+          "family": "supplies-transfer",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "supplies-transfer",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "supported": {
+        "role": {
+          "rows": 96,
+          "arms": {
+            "reference": {
+              "span": 48,
+              "endpoints": {
+                "excluded": 48,
+                "requested": 48
+              },
+              "sources": {
+                "correct_value": 8,
+                "no_source": 56,
+                "other_connector": 8,
+                "other_suffix": 4,
+                "other_value": 8,
+                "requested_connector": 8,
+                "requested_suffix": 4
+              },
+              "exact": 8,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 8,
+                "0": 88
+              }
+            },
+            "clause": {
+              "span": 0,
+              "endpoints": {
+                "excluded": 96
+              },
+              "sources": {
+                "no_source": 56,
+                "other_connector": 16,
+                "other_suffix": 8,
+                "other_value": 16
+              },
+              "exact": 0,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "0": 96
+              }
+            }
+          },
+          "span_changes": {
+            "both_wrong": 48,
+            "regressed": 48
+          },
+          "source_changes": {
+            "both_wrong": 88,
+            "regressed": 8
+          },
+          "exact_changes": {
+            "both_wrong": 88,
+            "regressed": 8
+          },
+          "wrong_to_different_wrong": 24,
+          "old_new_source": {
+            "correct_value → no_source": 4,
+            "correct_value → other_connector": 4,
+            "no_source → no_source": 44,
+            "no_source → other_connector": 4,
+            "no_source → other_suffix": 4,
+            "no_source → other_value": 4,
+            "other_connector → other_connector": 8,
+            "other_suffix → other_suffix": 4,
+            "other_value → other_value": 8,
+            "requested_connector → no_source": 4,
+            "requested_connector → other_value": 4,
+            "requested_suffix → no_source": 4
+          },
+          "new_wrong_sources": 20,
+          "early_unseen_gold": 0,
+          "retained_unseen": 44,
+          "retained_ties": 0,
+          "early_unseen_gold_wrong_releases": 0
+        },
+        "value": {
+          "rows": 96,
+          "arms": {
+            "supplied": {
+              "span": 96,
+              "endpoints": {
+                "requested": 96
+              },
+              "sources": {
+                "correct_value": 16,
+                "no_source": 56,
+                "requested_connector": 16,
+                "requested_suffix": 8
+              },
+              "exact": 16,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 16,
+                "0": 80
+              }
+            },
+            "veto": {
+              "span": 96,
+              "endpoints": {
+                "requested": 96
+              },
+              "sources": {
+                "correct_value": 24,
+                "no_source": 48,
+                "requested_connector": 16,
+                "requested_suffix": 8
+              },
+              "exact": 24,
+              "eos": 96,
+              "cap_without_eos": 0,
+              "first_mismatches": {
+                "null": 24,
+                "0": 72
+              }
+            }
+          },
+          "span_changes": {
+            "retained": 96
+          },
+          "source_changes": {
+            "both_wrong": 72,
+            "recovered": 8,
+            "retained": 16
+          },
+          "exact_changes": {
+            "both_wrong": 72,
+            "recovered": 8,
+            "retained": 16
+          },
+          "wrong_to_different_wrong": 0,
+          "old_new_source": {
+            "correct_value → correct_value": 16,
+            "no_source → correct_value": 8,
+            "no_source → no_source": 48,
+            "requested_connector → requested_connector": 16,
+            "requested_suffix → requested_suffix": 8
+          },
+          "new_wrong_sources": 0,
+          "early_unseen_gold": 0,
+          "retained_unseen": 48,
+          "retained_ties": 0,
+          "early_unseen_gold_wrong_releases": 0
+        },
+        "other_controls": {
+          "wrong_role": {
+            "span": 0,
+            "endpoints": {
+              "excluded": 96
+            },
+            "sources": {
+              "no_source": 56,
+              "other_connector": 16,
+              "other_suffix": 8,
+              "other_value": 16
+            },
+            "exact": 0,
+            "eos": 96,
+            "cap_without_eos": 0,
+            "first_mismatches": {
+              "0": 96
+            }
+          },
+          "no_read": {
+            "span": 0,
+            "endpoints": {
+              "none": 96
+            },
+            "sources": {
+              "no_source": 96
+            },
+            "exact": 0,
+            "eos": 95,
+            "cap_without_eos": 1,
+            "first_mismatches": {
+              "0": 96
+            }
+          }
+        }
+      },
+      "unsupported": {
+        "count": 6,
+        "arms": {
+          "reference": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          },
+          "clause": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          },
+          "no_read": {
+            "source": 0,
+            "eos": 6,
+            "cap_without_eos": 0,
+            "exact_literal": 0,
+            "no_without_copy": 0,
+            "classifications": {
+              "fallback": 6
+            }
+          }
+        },
+        "newly_written_sources": [],
+        "newly_written_literals": []
+      },
+      "verification": {
+        "raw_manifest": "41c306ab809ad32f94b8d623dd493129067dc2d0c16d4f9824807b31c57d1df3",
+        "cold_manifest": "5907aa9322ec4755e52fa589f780b82789146ed4e2f071c1bc1ef8749c415524",
+        "panel_manifest": "42b5cfe17226355b9672729dd27bfd24155481920a513e466b237c57d129f1ee",
+        "fixed_roles_verified": true,
+        "controls_verified": true,
+        "forced_gold": {
+          "active_label_exact": 96,
+          "independently_exact": 96,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        },
+        "forced_wrong": {
+          "active_label_exact": 0,
+          "independently_exact": 0,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        },
+        "wrong_key": {
+          "active_label_exact": 0,
+          "independently_exact": 96,
+          "negative_copy": 0,
+          "negative_fallback": 0,
+          "negative_no": 0,
+          "rows": 96,
+          "supported": 96
+        }
+      },
+      "role_margins": [
+        {
+          "family": "collection",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "collection",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "inventory",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            41,
+            50
+          ],
+          "rows": 16
+        },
+        {
+          "family": "inventory",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            41,
+            50
+          ],
+          "rows": 16
+        },
+        {
+          "family": "supplies-transfer",
+          "exclusion_first": false,
+          "reference": [
+            52,
+            58
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        },
+        {
+          "family": "supplies-transfer",
+          "exclusion_first": true,
+          "reference": [
+            58,
+            52
+          ],
+          "clause": [
+            28,
+            84
+          ],
+          "rows": 16
+        }
+      ]
+    }
+  ],
+  "matched_prompt_outcomes": {
+    "role_span": [
+      {
+        "seed1": "both_wrong",
+        "seed2": "both_wrong",
+        "rows": 48,
+        "ordinals": [
+          0,
+          1,
+          4,
+          5,
+          8,
+          9,
+          12,
+          13,
+          16,
+          17,
+          20,
+          21,
+          24,
+          25,
+          28,
+          29,
+          35,
+          36,
+          39,
+          40,
+          43,
+          44,
+          47,
+          48,
+          51,
+          52,
+          55,
+          56,
+          59,
+          60,
+          63,
+          64,
+          70,
+          71,
+          74,
+          75,
+          78,
+          79,
+          82,
+          83,
+          86,
+          87,
+          90,
+          91,
+          94,
+          95,
+          98,
+          99
+        ]
+      },
+      {
+        "seed1": "regressed",
+        "seed2": "regressed",
+        "rows": 48,
+        "ordinals": [
+          2,
+          3,
+          6,
+          7,
+          10,
+          11,
+          14,
+          15,
+          18,
+          19,
+          22,
+          23,
+          26,
+          27,
+          30,
+          31,
+          37,
+          38,
+          41,
+          42,
+          45,
+          46,
+          49,
+          50,
+          53,
+          54,
+          57,
+          58,
+          61,
+          62,
+          65,
+          66,
+          72,
+          73,
+          76,
+          77,
+          80,
+          81,
+          84,
+          85,
+          88,
+          89,
+          92,
+          93,
+          96,
+          97,
+          100,
+          101
+        ]
+      }
+    ],
+    "role_exact": [
+      {
+        "seed1": "both_wrong",
+        "seed2": "both_wrong",
+        "rows": 88,
+        "ordinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          28,
+          29,
+          30,
+          31,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          63,
+          64,
+          65,
+          66,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100,
+          101
+        ]
+      },
+      {
+        "seed1": "regressed",
+        "seed2": "regressed",
+        "rows": 8,
+        "ordinals": [
+          6,
+          7,
+          26,
+          27,
+          41,
+          42,
+          61,
+          62
+        ]
+      }
+    ],
+    "value_source": [
+      {
+        "seed1": "both_wrong",
+        "seed2": "both_wrong",
+        "rows": 72,
+        "ordinals": [
+          2,
+          3,
+          4,
+          5,
+          10,
+          11,
+          12,
+          13,
+          16,
+          17,
+          22,
+          23,
+          24,
+          25,
+          30,
+          31,
+          37,
+          38,
+          39,
+          40,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          65,
+          66,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100,
+          101
+        ]
+      },
+      {
+        "seed1": "recovered",
+        "seed2": "recovered",
+        "rows": 8,
+        "ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21
+        ]
+      },
+      {
+        "seed1": "retained",
+        "seed2": "retained",
+        "rows": 16,
+        "ordinals": [
+          0,
+          1,
+          6,
+          7,
+          26,
+          27,
+          28,
+          29,
+          35,
+          36,
+          41,
+          42,
+          61,
+          62,
+          63,
+          64
+        ]
+      }
+    ],
+    "value_exact": [
+      {
+        "seed1": "both_wrong",
+        "seed2": "both_wrong",
+        "rows": 72,
+        "ordinals": [
+          2,
+          3,
+          4,
+          5,
+          10,
+          11,
+          12,
+          13,
+          16,
+          17,
+          22,
+          23,
+          24,
+          25,
+          30,
+          31,
+          37,
+          38,
+          39,
+          40,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          65,
+          66,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100,
+          101
+        ]
+      },
+      {
+        "seed1": "recovered",
+        "seed2": "recovered",
+        "rows": 8,
+        "ordinals": [
+          8,
+          9,
+          14,
+          15,
+          18,
+          19,
+          20,
+          21
+        ]
+      },
+      {
+        "seed1": "retained",
+        "seed2": "retained",
+        "rows": 16,
+        "ordinals": [
+          0,
+          1,
+          6,
+          7,
+          26,
+          27,
+          28,
+          29,
+          35,
+          36,
+          41,
+          42,
+          61,
+          62,
+          63,
+          64
+        ]
+      }
+    ],
+    "value_wrong_source": [
+      {
+        "seed1": false,
+        "seed2": false,
+        "rows": 96,
+        "ordinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100,
+          101
+        ]
+      }
+    ]
+  }
+}

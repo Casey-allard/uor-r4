@@ -22,7 +22,11 @@ fn policy(text: &OsStr) -> Result<OnsetMode> {
         Some("ranked") => Ok(OnsetMode::Ranked),
         Some("veto") => Ok(OnsetMode::Veto),
         Some("both") => Ok(OnsetMode::Both),
-        _ => Err("mode must be ordered, neutral, position, ranked, veto, or both".into()),
+        Some("earlier-connector-v1") => Ok(OnsetMode::EarlierConnectorV1),
+        _ => Err(
+            "mode must be ordered, neutral, position, ranked, veto, both, or earlier-connector-v1"
+                .into(),
+        ),
     }
 }
 
@@ -289,7 +293,7 @@ fn trace_rows(rows: &Rows, mode: u32, trace: &[u8]) -> Result<Vec<u32>> {
                     && (r[1] != source[1]
                         || (source[2] == 0 && r[2] != 1)
                         || (source[2] == 1
-                            && !([2, 3].contains(&r[2]) || matches!(mode, 4 | 5) && r[2] == 4))))
+                            && !([2, 3].contains(&r[2]) || matches!(mode, 4..=6) && r[2] == 4))))
             {
                 return Err("raw trace changed original address or eligibility".into());
             }
@@ -510,10 +514,11 @@ fn main() -> Result<()> {
         [op, device, input, bank, m, out] if op=="score-as" => score(Path::new(device),Path::new(input),Path::new(bank),Some(policy(m)?),Path::new(out))?,
         [op, out] if op=="fixtures" => make_fixtures(Path::new(out))?,
         [op, device, out] if op=="factorial-finite" => factorial::run(Path::new(device),Path::new(out))?,
+        [op, device, out] if op=="connector-finite" => factorial::connector(Path::new(device),Path::new(out))?,
         [op, input, bank, trace, out] if op=="decode-trace" => decode_trace(Path::new(input),Path::new(bank),Path::new(trace),None,Path::new(out))?,
         [op, input, bank, m, trace, out] if op=="decode-trace-as" => decode_trace(Path::new(input),Path::new(bank),Path::new(trace),Some(policy(m)?),Path::new(out))?,
         [op, name, input, trace, bank] if op=="verify-finite" => verify_finite(name.to_str().ok_or("bad fixture name")?,Path::new(input),Path::new(trace),Path::new(bank))?,
-        _=>return Err("use site-key INPUT | pack-json INPUT MODEL_SHA TOKENIZER_SHA SITE_SHA OUT | fit DEVICE INPUT TRAIN_LABELS MODE OUT | score DEVICE INPUT BANK OUT | score-as DEVICE INPUT BANK MODE OUT | decode-trace INPUT BANK TRACE OUT_JSON | decode-trace-as INPUT BANK MODE TRACE OUT_JSON | fixtures OUTDIR | factorial-finite DEVICE OUTDIR | verify-finite NAME INPUT TRACE BANK".into()),
+        _=>return Err("use site-key INPUT | pack-json INPUT MODEL_SHA TOKENIZER_SHA SITE_SHA OUT | fit DEVICE INPUT TRAIN_LABELS MODE OUT | score DEVICE INPUT BANK OUT | score-as DEVICE INPUT BANK MODE OUT | decode-trace INPUT BANK TRACE OUT_JSON | decode-trace-as INPUT BANK MODE TRACE OUT_JSON | fixtures OUTDIR | factorial-finite DEVICE OUTDIR | connector-finite DEVICE OUTDIR | verify-finite NAME INPUT TRACE BANK".into()),
     }
     Ok(())
 }

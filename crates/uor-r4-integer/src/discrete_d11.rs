@@ -41,6 +41,7 @@ pub const DISCRETE_ROLE_SCHEMA: &str = "uor-r4.lut-discrete-role-copy/1";
 pub const DISCRETE_ALL_STARTS_SCHEMA: &str = "uor-r4.lut-discrete-all-starts/1";
 const DISCRETE_REQUESTED_OCCURRENCE_SCHEMA: &str = "uor-r4.lut-discrete-requested-occurrence/1";
 const DISCRETE_USER_TEXT_ONLY_SCHEMA: &str = "uor-r4.lut-discrete-requested-occurrence/2";
+const DISCRETE_CLAUSE_TO_ENTITY_SCHEMA: &str = "uor-r4.lut-discrete-requested-occurrence/3";
 /// A learned requested/excluded role bank, assertion-local value read and exact-copy agreement.
 pub const DISCRETE_PAIRED_SCHEMA: &str = "uor-r4.lut-discrete-paired-copy/1";
 /// Positional or identity Cl(0,6) role state with the frozen paired writer.
@@ -95,12 +96,17 @@ impl RolePolicy {
 enum RequestedPolicy {
     AssertionAgreement(RoleFraming),
     UserTextOnly(RoleFraming),
+    ClauseToEntity {
+        framing: RoleFraming,
+        separators: [u32; 2],
+    },
 }
 
 impl RequestedPolicy {
     fn framing(&self) -> &RoleFraming {
         match self {
             Self::AssertionAgreement(framing) | Self::UserTextOnly(framing) => framing,
+            Self::ClauseToEntity { framing, .. } => framing,
         }
     }
 
@@ -108,6 +114,9 @@ impl RequestedPolicy {
         match self {
             Self::AssertionAgreement(_) => RequestedContext::FullPrefix,
             Self::UserTextOnly(_) => RequestedContext::UserTextOnly,
+            Self::ClauseToEntity { separators, .. } => {
+                RequestedContext::ClauseToEntity(*separators)
+            }
         }
     }
 }
@@ -116,6 +125,7 @@ fn onset_schema(requested: Option<&RequestedPolicy>) -> &'static str {
     match requested {
         Some(RequestedPolicy::AssertionAgreement(_)) => DISCRETE_REQUESTED_OCCURRENCE_SCHEMA,
         Some(RequestedPolicy::UserTextOnly(_)) => DISCRETE_USER_TEXT_ONLY_SCHEMA,
+        Some(RequestedPolicy::ClauseToEntity { .. }) => DISCRETE_CLAUSE_TO_ENTITY_SCHEMA,
         None => DISCRETE_ALL_STARTS_SCHEMA,
     }
 }
@@ -1640,6 +1650,18 @@ pub fn pack_requested_occurrence_artifact(
     let requested_policy = match context {
         RequestedContext::FullPrefix => RequestedPolicy::AssertionAgreement(framing),
         RequestedContext::UserTextOnly => RequestedPolicy::UserTextOnly(framing),
+        RequestedContext::ClauseToEntity(separators) => {
+            if separators.map(|id| tokenizer.decode_bytes(&[id])) != [b",".to_vec(), b";".to_vec()]
+            {
+                return Err(invalid(
+                    "clause-to-entity separators must be comma and semicolon",
+                ));
+            }
+            RequestedPolicy::ClauseToEntity {
+                framing,
+                separators,
+            }
+        }
     };
     pack_all_starts(
         &parent,
@@ -1734,6 +1756,15 @@ fn validate_onset_bank(
     let Some(paired) = &policy.paired else {
         return Err(invalid("missing onset parent paired policy"));
     };
+    if let Some(RequestedPolicy::ClauseToEntity { separators, .. }) = &requested_policy {
+        if separators[0] == separators[1]
+            || separators
+                .iter()
+                .any(|id| !(2..ROLE_VOCAB as u32).contains(id) || paired.delimiters.contains(id))
+        {
+            return Err(invalid("invalid clause-to-entity separators"));
+        }
+    }
     let paired_copy::Roles::Frozen(roles) = &paired.roles else {
         return Err(invalid("onset parent must use frozen roles"));
     };
@@ -1870,6 +1901,7 @@ impl IntegerDiscreteModel {
             DISCRETE_ALL_STARTS_SCHEMA
                 | DISCRETE_REQUESTED_OCCURRENCE_SCHEMA
                 | DISCRETE_USER_TEXT_ONLY_SCHEMA
+                | DISCRETE_CLAUSE_TO_ENTITY_SCHEMA
         ) {
             if !allow_role {
                 return Err(invalid("nested onset artifact"));

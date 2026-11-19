@@ -1,0 +1,9 @@
+{
+  "schema": "uor-r4.clause-entity-veto-go/1",
+  "decision": "GO",
+  "inputs_sha256": "b5cc4fa2fa2b392ecdb002d3368869d85b978a1c2784d3eae9ee98767e2b7b25",
+  "non_author_fit_sha256": "e935a7b096546b6264dd5fe441fd50199fe8761f1aa0ab35f43745c3e7a77e7d",
+  "finite_controls_sha256": "95bb1a3442d5409c9f37a0e7dc6b3e8b9a42ca55944492a4a5df1ae5a6f46fa8",
+  "pre_run_review_sha256": "61e37adda556eae0fa302bd4fff6c55b0782f24ce00bcb55178409a8c0b64708",
+  "device": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25"
+}

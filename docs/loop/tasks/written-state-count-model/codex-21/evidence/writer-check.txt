@@ -1,0 +1,70 @@
+/Users/casey.allard/uor-r4/local/codex/clause-entity-veto/custody/vast-61518385-held-01/restore/workspace/uor-r4/jobs/codex21-held-01/seed1-primary
+reference: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+treatment: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+no-read: 102/102 rows, 1040 cursor transitions, 0 sourced, capped prompts [40]
+supplied scorer: 104 assertion/sentinel rows, 259 original candidates, 95 identical rows, 9 scoped changes
+prompt 8, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 9, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 14, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 15, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 18, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 19, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 20, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 21, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 33, assertion 0: cleared 9, kept 10 negative, selected 11
+supplied value writer: 96 paired rows with identical roles, 8 changed sources, 8 changed token tapes
+cold.sha256: 426 hashed files verified
+raw.sha256: 851 hashed files verified
+/Users/casey.allard/uor-r4/local/codex/clause-entity-veto/custody/vast-61518385-held-01/restore/workspace/uor-r4/jobs/codex21-held-01/seed1-repeat
+reference: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+treatment: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+no-read: 102/102 rows, 1040 cursor transitions, 0 sourced, capped prompts [40]
+supplied scorer: 104 assertion/sentinel rows, 259 original candidates, 95 identical rows, 9 scoped changes
+prompt 8, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 9, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 14, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 15, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 18, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 19, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 20, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 21, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 33, assertion 0: cleared 9, kept 10 negative, selected 11
+supplied value writer: 96 paired rows with identical roles, 8 changed sources, 8 changed token tapes
+cold.sha256: 426 hashed files verified
+raw.sha256: 851 hashed files verified
+cold repeat equals primary on manifest and all covered bytes
+/Users/casey.allard/uor-r4/local/codex/clause-entity-veto/custody/vast-61518385-held-01/restore/workspace/uor-r4/jobs/codex21-held-01/seed2-primary
+reference: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+treatment: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+no-read: 102/102 rows, 1036 cursor transitions, 0 sourced, capped prompts [40]
+supplied scorer: 104 assertion/sentinel rows, 259 original candidates, 95 identical rows, 9 scoped changes
+prompt 8, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 9, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 14, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 15, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 18, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 19, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 20, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 21, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 33, assertion 0: cleared 9, kept 10 negative, selected 11
+supplied value writer: 96 paired rows with identical roles, 8 changed sources, 8 changed token tapes
+cold.sha256: 426 hashed files verified
+raw.sha256: 851 hashed files verified
+/Users/casey.allard/uor-r4/local/codex/clause-entity-veto/custody/vast-61518385-held-01/restore/workspace/uor-r4/jobs/codex21-held-01/seed2-repeat
+reference: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+treatment: 102/102 rows, 851 cursor transitions, 40 sourced, capped prompts []
+no-read: 102/102 rows, 1036 cursor transitions, 0 sourced, capped prompts [40]
+supplied scorer: 104 assertion/sentinel rows, 259 original candidates, 95 identical rows, 9 scoped changes
+prompt 8, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 9, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 14, assertion 0: cleared 9, kept 10 negative, selected 11
+prompt 15, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 18, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 19, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 20, assertion 0: cleared 17, kept 18 negative, selected 19
+prompt 21, assertion 0: cleared 8, kept 9 negative, selected 10
+prompt 33, assertion 0: cleared 9, kept 10 negative, selected 11
+supplied value writer: 96 paired rows with identical roles, 8 changed sources, 8 changed token tapes
+cold.sha256: 426 hashed files verified
+raw.sha256: 851 hashed files verified
+cold repeat equals primary on manifest and all covered bytes

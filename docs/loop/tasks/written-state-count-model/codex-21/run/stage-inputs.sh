@@ -1,0 +1,1 @@
+../../codex-20/run/stage-inputs.sh

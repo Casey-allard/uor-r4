@@ -34,11 +34,11 @@ fn span(words: &[u32], len: usize) -> Result<Option<RoleSpan>, Box<dyn Error>> {
 fn project(args: &[String]) -> Result<(), Box<dyn Error>> {
     let (artifact, treatment_sha, blind, public, roles, out, policy) = match args {
         [a, b, c, d, e, f] => (a, b, c, d, e, f, "assertion_agreement"),
-        [a, b, c, d, e, f, policy] if policy == "user_text_only" => {
+        [a, b, c, d, e, f, policy] if matches!(policy.as_str(), "user_text_only" | "clause_to_entity") => {
             (a, b, c, d, e, f, policy.as_str())
         }
         _ => return Err(
-            "project-role LEGACY_PAIRED TREATMENT_SHA BLIND PUBLIC_SELECTION DEVICE_ROLES NEW_SELECTION [user_text_only]".into(),
+            "project-role LEGACY_PAIRED TREATMENT_SHA BLIND PUBLIC_SELECTION DEVICE_ROLES NEW_SELECTION [user_text_only|clause_to_entity]".into(),
         ),
     };
     let model = IntegerDiscreteModel::load(Path::new(artifact))?;
@@ -121,6 +121,10 @@ fn rendered_span(
 }
 
 fn render(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let (args, treatment_policy) = match args.split_last() {
+        Some((policy, inputs)) if policy == "clause_to_entity" => (inputs, policy.as_str()),
+        _ => (args, "user_text_only"),
+    };
     let [tokenizer, blind, original, treatment, out] = args else {
         return Err(
             "project-role --render TOKENIZER BLIND ASSERTION_ROLES USER_TEXT_ROLES OUT".into(),
@@ -133,7 +137,7 @@ fn render(args: &[String]) -> Result<(), Box<dyn Error>> {
     let prompts: Vec<Value> = serde_json::from_slice(&blind_bytes)?;
     let arms = [
         ("assertion_agreement", original),
-        ("user_text_only", treatment),
+        (treatment_policy, treatment),
     ];
     let mut rendered = serde_json::Map::new();
     for (policy, device_path) in arms {

@@ -10,10 +10,14 @@ source "$(dirname "$0")/../../codex-19/run/common.sh"
 go=$2; go_sha=$3; fit=$4; finite=$5; review=$6; stage_sha=$7; out=$8
 [[ "$out" == /* && ! -e "$out" ]]
 for file in "$fit" "$finite" "$review"; do [[ "$file" == /* && -s "$file" ]]; done
+go_schema=uor-r4.user-text-only-go/1
+if [[ "$(basename "$(dirname "$(dirname "$0")")")" == codex-21 ]]; then
+    go_schema=uor-r4.clause-entity-veto-go/1
+fi
 pin "$go" "$go_sha"
 pin "$stage/inputs.sha256" "$stage_sha"
-jq -e --arg inputs "$stage_sha" --arg fit "$(sum "$fit")" --arg finite "$(sum "$finite")" --arg review "$(sum "$review")" '
-    .schema=="uor-r4.user-text-only-go/1" and .decision=="GO"
+jq -e --arg schema "$go_schema" --arg inputs "$stage_sha" --arg fit "$(sum "$fit")" --arg finite "$(sum "$finite")" --arg review "$(sum "$review")" '
+    .schema==$schema and .decision=="GO"
     and .inputs_sha256==$inputs and .non_author_fit_sha256==$fit
     and .finite_controls_sha256==$finite and .pre_run_review_sha256==$review
 ' "$go" >/dev/null

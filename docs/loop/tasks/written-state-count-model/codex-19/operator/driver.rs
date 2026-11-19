@@ -61,19 +61,24 @@ fn replay(
                 None => 0,
                 Some(RequestedContext::FullPrefix) => 1,
                 Some(RequestedContext::UserTextOnly) => 2,
+                Some(RequestedContext::ClauseToEntity(_)) => 3,
             },
             rows.len() as u32,
             roles.cells().len() as u32,
         ],
     );
     for (id, [&root, &class]) in roles.sites().iter().map(|s| [&s[0], &s[1]]).enumerate() {
+        let clause = match context {
+            Some(RequestedContext::ClauseToEntity(separators)) => separators.contains(&(id as u32)),
+            _ => false,
+        };
         put(
             &mut packet,
             [
                 root,
                 class,
                 classes[id],
-                u32::from(delimiters.contains(&(id as u32))),
+                u32::from(delimiters.contains(&(id as u32))) | (u32::from(clause) << 1),
             ],
         );
     }
@@ -236,6 +241,7 @@ fn artifact(executable: &Path, carrier: &Path, blind: &Path, output: &Path) -> R
                 None => "legacy",
                 Some(RequestedContext::FullPrefix) => "assertion_agreement",
                 Some(RequestedContext::UserTextOnly) => "user_text_only",
+                Some(RequestedContext::ClauseToEntity(_)) => "clause_to_entity",
             },
             "artifact": model.artifact_sha256(),
             "blind": format!("{:x}", Sha256::digest(&raw)),
@@ -504,6 +510,95 @@ fn finite_user_text_only(executable: &Path, output: &Path) -> Result<(), Failure
     )
 }
 
+const CLAUSE_FENCES: [u32; 2] = [10, 11];
+
+fn clause_fixture_tapes() -> [Vec<u32>; 8] {
+    let facts = [0, FENCE, A[0], A[1], 7, FENCE, B[0], B[1], 7, FENCE];
+    let clause = |name: [u32; 2], cue| [cue, 12, 12, 12, name[0], name[1]];
+    let pair = |left: [u32; 6], right: [u32; 6], delimiter| {
+        [facts.as_slice(), &left, &[delimiter], &right, &[FENCE]].concat()
+    };
+    [
+        pair(clause(A, POS), clause(B, NEG), CLAUSE_FENCES[0]),
+        pair(clause(A, NEG), clause(B, POS), CLAUSE_FENCES[1]),
+        pair(clause(B, POS), clause(A, NEG), CLAUSE_FENCES[1]),
+        pair(clause(B, NEG), clause(A, POS), CLAUSE_FENCES[0]),
+        pair(clause(A, POS), clause(B, POS), CLAUSE_FENCES[0]),
+        pair(clause(A, NEG), clause(B, NEG), CLAUSE_FENCES[0]),
+        pair(clause(A, POS), clause(B, NEG), 12),
+        pair(clause([7, 12], POS), clause(B, NEG), CLAUSE_FENCES[0]),
+    ]
+}
+
+fn clause_fixture_expectations(
+    state: &PairedRoleState,
+    classes: &[u32],
+    rows: &[(&[u32], Range<usize>)],
+) -> Result<Vec<[u32; 8]>, Failure> {
+    let outcomes = [
+        (14, 16, 56, -56),
+        (21, 23, 56, -56),
+        (14, 16, 56, -56),
+        (21, 23, 56, -56),
+        (ABSENT, ABSENT, 56, 56),
+        (ABSENT, ABSENT, -56, -56),
+        (ABSENT, ABSENT, i32::MIN, i32::MIN),
+        (21, 23, -56, i32::MIN),
+    ];
+    rows.iter()
+        .zip(outcomes)
+        .map(|((ids, content), outcome)| {
+            let context = RequestedContext::ClauseToEntity(CLAUSE_FENCES);
+            let words = |context| {
+                state
+                    .predict_requested_occurrence(
+                        ids, content.clone(), 0..ids.len(), &DELIMITERS, classes, context,
+                    )
+                    .map(PairedRoleDecision::words)
+            };
+            let baseline = words(RequestedContext::FullPrefix)?;
+            let treatment = words(context)?;
+            if (treatment[0], treatment[1], treatment[4] as i32, treatment[6] as i32) != outcome
+                || baseline[4] != 0
+                || [2, 3, 5, 7].into_iter().any(|i| baseline[i] != treatment[i])
+            {
+                return Err(format!(
+                    "fixture disagrees with planted clause rank {outcome:?}: {baseline:?}, {treatment:?}"
+                )
+                .into());
+            }
+            Ok(treatment)
+        })
+        .collect()
+}
+
+fn finite_clause_to_entity(executable: &Path, output: &Path) -> Result<(), Failure> {
+    let (state, classes) = fixture_state()?;
+    let tapes = clause_fixture_tapes();
+    let rows = tapes.each_ref().map(|ids| (ids.as_slice(), 2..ids.len()));
+    let expected = clause_fixture_expectations(&state, &classes, &rows)?;
+    let context = RequestedContext::ClauseToEntity(CLAUSE_FENCES);
+    let mut device = replay(
+        executable,
+        &state,
+        &classes,
+        &DELIMITERS,
+        Some(context),
+        &rows,
+        &expected,
+    )?;
+    attach_census(&mut device, &rows, &state, &DELIMITERS, &classes, context)?;
+    save(
+        output,
+        &serde_json::json!({
+            "schema": "uor-r4.clause-to-entity-role-finite/1",
+            "clause_to_entity": device,
+            "fixtures": ["positive_a_first", "positive_b_second", "positive_b_first", "positive_a_second",
+                         "tied_positive", "negative_only", "shared_clause", "unsupported_positive"],
+        }),
+    )
+}
+
 fn main() -> Result<(), Failure> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     match args.as_slice() {
@@ -519,8 +614,11 @@ fn main() -> Result<(), Failure> {
         [flag, executable, output] if flag == "--finite-user-text-only" => {
             finite_user_text_only(Path::new(executable), Path::new(output))
         }
+        [flag, executable, output] if flag == "--finite-clause-to-entity" => {
+            finite_clause_to_entity(Path::new(executable), Path::new(output))
+        }
         _ => Err(
-            "usage: requested-role-device ARTIFACT BLIND EXECUTABLE OUT | --finite EXECUTABLE OUT | --finite-user-text-only EXECUTABLE OUT"
+            "usage: requested-role-device ARTIFACT BLIND EXECUTABLE OUT | --finite EXECUTABLE OUT | --finite-user-text-only EXECUTABLE OUT | --finite-clause-to-entity EXECUTABLE OUT"
                 .into(),
         ),
     }
@@ -542,6 +640,15 @@ mod tests {
         let (state, classes) = user_text_fixture_state()?;
         let tapes = user_text_fixture_tapes();
         user_text_fixture_expectations(&state, &classes, &user_text_fixture_rows(&tapes))?;
+        Ok(())
+    }
+
+    #[test]
+    fn clause_contrast_follows_evidence_across_name_and_clause_orders() -> Result<(), Failure> {
+        let (state, classes) = fixture_state()?;
+        let tapes = clause_fixture_tapes();
+        let rows = tapes.each_ref().map(|ids| (ids.as_slice(), 2..ids.len()));
+        clause_fixture_expectations(&state, &classes, &rows)?;
         Ok(())
     }
 }
