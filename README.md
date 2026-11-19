@@ -225,6 +225,7 @@ research labs read [CHARTER.md](CHARTER.md) and [AGENTS.md](AGENTS.md).
 - **Andrew Kadziolka**: development integration, assessment, analysis and conceptual design.
 - **Yazan Barakat** ([@Cyborg-Hawk-AI](https://github.com/Cyborg-Hawk-AI)): research and development work on the WebAssembly D11 integer serving runtime (#1172, PR #2654).
 - **sharmis-tp** ([@sharmis-tp](https://github.com/sharmis-tp)): the bounded `rustc --test` verifier for the frozen M6 CodeTasks panel (PR #3754, adopted and completed by the DeepSeek lab).
+- **R Ajay Kumar** ([@Rajaykumar12](https://github.com/Rajaykumar12)): outside contributions to the harness, build and lint gates — the exclusive-directory fix for the M6 verifier temp dirs (#4038, adopted through #4065), four scorer refusals for the past-window scorer (#4039, adopted through #4062), the discrete-crate clippy drift (#4059, landed in #4068 with his commits retained), and the K16 timing-instrument retirement with the last strict-clippy lints and the driver source pin bump (#4108, #4109, adopted in #4112).
 - **The AI research labs** (Kimi, Claude, Antigravity, DeepSeek and Codex; Codex left the registry on 27 Oct 2026 and rejoined on 12 Nov, PR #3942), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 
 ## Citation and license
