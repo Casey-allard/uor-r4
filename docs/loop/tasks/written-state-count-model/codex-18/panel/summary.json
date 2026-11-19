@@ -1,0 +1,226 @@
+{
+  "scope": "same numerical census on both pinned seeds",
+  "statuses": {
+    "supported": 36,
+    "unmentioned": 2,
+    "conflict": 2,
+    "unspecified": 2
+  },
+  "structure": {
+    "supported": 36,
+    "reachable_oracle_count": 36,
+    "fixed_last_k": [
+      {
+        "k": 1,
+        "all": 12,
+        "matched": 8
+      },
+      {
+        "k": 2,
+        "all": 12,
+        "matched": 8
+      },
+      {
+        "k": 3,
+        "all": 12,
+        "matched": 8
+      }
+    ],
+    "fixed_offset": [
+      {
+        "offset": 1,
+        "all": 12,
+        "matched": 8
+      },
+      {
+        "offset": 2,
+        "all": 12,
+        "matched": 8
+      },
+      {
+        "offset": 3,
+        "all": 12,
+        "matched": 8
+      }
+    ],
+    "any_target_blind_observation_function": {
+      "all": 20,
+      "matched": 8,
+      "groups": 20,
+      "matched_groups": 8
+    },
+    "legal_candidate_counts": {
+      "all": [
+        {
+          "legal_starts": 1,
+          "rows": 2
+        },
+        {
+          "legal_starts": 2,
+          "rows": 4
+        },
+        {
+          "legal_starts": 3,
+          "rows": 30
+        }
+      ],
+      "matched": [
+        {
+          "legal_starts": 3,
+          "rows": 24
+        }
+      ],
+      "coverage_controls": [
+        {
+          "legal_starts": 1,
+          "rows": 2
+        },
+        {
+          "legal_starts": 2,
+          "rows": 4
+        },
+        {
+          "legal_starts": 3,
+          "rows": 6
+        }
+      ]
+    }
+  },
+  "frozen_train_shape_coverage": {
+    "raw_fit_slots": {
+      "base": 100,
+      "supplement": 100,
+      "total": 200,
+      "reserved_padding": 56
+    },
+    "after": {
+      "all": 36,
+      "matched": 24,
+      "all_testable": 36,
+      "matched_testable": 24
+    }
+  },
+  "novelty": {
+    "history_unique_strings": 45798,
+    "exact_prompt_hits": 0,
+    "person_mentions": [
+      {
+        "surface": "Briony",
+        "hits": 0
+      },
+      {
+        "surface": "Caspian",
+        "hits": 0
+      },
+      {
+        "surface": "Linnea",
+        "hits": 0
+      },
+      {
+        "surface": "Odette",
+        "hits": 0
+      },
+      {
+        "surface": "Oswin",
+        "hits": 0
+      },
+      {
+        "surface": "Romilly",
+        "hits": 0
+      }
+    ],
+    "connectors": [
+      {
+        "surface": "could already take",
+        "hits": 0
+      },
+      {
+        "surface": "could take",
+        "hits": 0
+      },
+      {
+        "surface": "found",
+        "hits": 4781
+      },
+      {
+        "surface": "might find",
+        "hits": 0
+      },
+      {
+        "surface": "might still find",
+        "hits": 0
+      },
+      {
+        "surface": "took",
+        "hits": 768
+      }
+    ],
+    "full_literal_values": [
+      {
+        "surface": "bells",
+        "hits": 0
+      },
+      {
+        "surface": "coins",
+        "hits": 7
+      },
+      {
+        "surface": "gold coins",
+        "hits": 0
+      },
+      {
+        "surface": "heavy metal bells",
+        "hits": 0
+      },
+      {
+        "surface": "large pink rings",
+        "hits": 0
+      },
+      {
+        "surface": "metal bells",
+        "hits": 0
+      },
+      {
+        "surface": "old gold coins",
+        "hits": 0
+      },
+      {
+        "surface": "pink rings",
+        "hits": 0
+      },
+      {
+        "surface": "plates",
+        "hits": 0
+      },
+      {
+        "surface": "red plates",
+        "hits": 0
+      },
+      {
+        "surface": "rings",
+        "hits": 0
+      },
+      {
+        "surface": "round red plates",
+        "hits": 0
+      }
+    ],
+    "frozen_train_field_overlap": {
+      "factual_names": {
+        "train_count": 12,
+        "held_count": 4,
+        "overlap": []
+      },
+      "connectors": {
+        "train_count": 20,
+        "held_count": 6,
+        "overlap": []
+      },
+      "literal_values": {
+        "train_count": 46,
+        "held_count": 12,
+        "overlap": []
+      }
+    }
+  }
+}

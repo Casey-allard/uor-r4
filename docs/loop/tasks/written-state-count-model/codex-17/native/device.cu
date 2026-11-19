@@ -199,6 +199,9 @@ __global__ void infer(const uint32_t* rows,uint32_t n,const uint32_t* bank,uint3
     t[0]=row[0];t[1]=row[1];t[2]=5;
     if(!validate_row(row)) return;
     bool unseen=false;
+    bool outside_radius=false;
+    const bool sum_denominator=mode==3||mode==5;
+    const bool skip_outside=mode==4||mode==5;
     int bn=0,bd=0,rn=0,rd=0;
     uint32_t winner=NONE;
     for(int k=0;k<3;++k) {
@@ -231,8 +234,15 @@ __global__ void infer(const uint32_t* rows,uint32_t n,const uint32_t* bank,uint3
                 radius=e[2];
             }
             v[5]=best[0];v[6]=best[1];v[7]=radius;
-            if(best[0]==NONE||best[1]==NONE||radius==NO_RADIUS||best[0]>radius){unseen=true;continue;}
-            num=int(best[1])-int(best[0]);den=count(g);
+            if(best[0]==NONE||best[1]==NONE||radius==NO_RADIUS){unseen=true;continue;}
+            if(best[0]>radius) {
+                if(skip_outside){v[2]=4;outside_radius=true;}
+                else unseen=true;
+                continue;
+            }
+            num=int(best[1])-int(best[0]);
+            const uint32_t sum=best[0]+best[1];
+            den=sum_denominator?int(sum?sum:1):count(g);
         }
         v[2]=3;v[8]=uint32_t(num);v[9]=uint32_t(den);
         if(!bd||cmp(num,den,bn,bd)>0){rn=bn;rd=bd;bn=num;bd=den;winner=c[0];}
@@ -240,7 +250,7 @@ __global__ void infer(const uint32_t* rows,uint32_t n,const uint32_t* bank,uint3
     }
     if(bd){t[4]=uint32_t(bn);t[5]=uint32_t(bd);}
     if(rd){t[6]=uint32_t(rn);t[7]=uint32_t(rd);}
-    t[2]=unseen?2:!bd?1:bn<=0?4:(rd&&!cmp(bn,bd,rn,rd))?3:0;
+    t[2]=(unseen||(outside_radius&&!bd))?2:!bd?1:bn<=0?4:(rd&&!cmp(bn,bd,rn,rd))?3:0;
     if(!t[2])t[3]=winner;
 }
 
@@ -302,7 +312,7 @@ static bool bank_valid(const uint32_t* bank,uint32_t used,uint32_t mode) {
 }
 int main(int argc,char** argv) {
     bool fit=argc==6 && !std::strcmp(argv[1],"fit");
-    if(!fit && !(argc==5&&!std::strcmp(argv[1],"score"))) return 3;
+    if(!fit && !((argc==5||argc==6)&&!std::strcmp(argv[1],"score"))) return 3;
     auto input=read(argv[2],HEADER+MAX_ROWS*WIDTH);
     if(input.size()<HEADER||input[0]!=INPUT_MAGIC||!input[1]||input[1]>MAX_ROWS||input[2]!=WIDTH||input[3]||
        input.size()!=HEADER+input[1]*WIDTH) return 3;
@@ -338,12 +348,18 @@ int main(int argc,char** argv) {
     } else {
         auto raw=read(argv[3],4+CAP*RECORD);
         if(raw.size()!=4+CAP*RECORD||raw[0]!=RAW_MAGIC||raw[3]!=CAP||!bank_valid(raw.data()+4,raw[2],raw[1]))return 3;
+        uint32_t mode=raw[1];
+        if(argc==6) {
+            if(std::strlen(argv[5])!=1 || argv[5][0]<'0' || argv[5][0]>'5')return 3;
+            mode=argv[5][0]-'0';
+            if((mode>2?0:mode)!=raw[1])return 3;
+        }
         auto bank=copy(raw.data()+4,CAP*RECORD);
         auto results=copy<uint32_t>(nullptr,n*TRACE_WIDTH);
-        infer<<<(n+127)/128,128>>>(rows,n,bank,raw[2],raw[1],results);
+        infer<<<(n+127)/128,128>>>(rows,n,bank,raw[2],mode,results);
         check(cudaGetLastError());
         std::vector<uint32_t> output(4+n*TRACE_WIDTH);
-        output[0]=TRACE_MAGIC;output[1]=n;output[2]=TRACE_WIDTH;output[3]=raw[1];
+        output[0]=TRACE_MAGIC;output[1]=n;output[2]=TRACE_WIDTH;output[3]=mode;
         check(cudaMemcpy(output.data()+4,results,n*TRACE_WIDTH*sizeof(uint32_t),cudaMemcpyDeviceToHost));
         if(!write(argv[4],output))return 6;
     }

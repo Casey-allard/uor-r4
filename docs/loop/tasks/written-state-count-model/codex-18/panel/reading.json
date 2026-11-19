@@ -1,0 +1,39 @@
+{
+  "schema": "uor-r4.factorial-blind-reading/1",
+  "input_inventory_sha256": "09d407fec9a4c4bda19934a405a7a16a08f589151594e10d35cd71a4094018af",
+  "public_prompts_sha256": "e5541839ebe20dbd645b7ef1f476a1d4df3677f2f960b457c32bddd05645e5e2",
+  "readers": [
+    {
+      "reader": "codex top session",
+      "sha256": "063e11365247550835199fe015127edbd173fec3cfc8558daee6ee74b69a4f53"
+    },
+    {
+      "reader": "codex blind_and_fit",
+      "sha256": "063e11365247550835199fe015127edbd173fec3cfc8558daee6ee74b69a4f53"
+    }
+  ],
+  "names_only_sha256": "f681aa2455312ca2f58b5c58c4bb7dbfd7771cacf77585f7d7d674dd6a962efd",
+  "adjudication": {
+    "rows": 42,
+    "statuses": [
+      {
+        "status": "conflict",
+        "rows": 2
+      },
+      {
+        "status": "supported",
+        "rows": 36
+      },
+      {
+        "status": "unmentioned",
+        "rows": 2
+      },
+      {
+        "status": "unspecified",
+        "rows": 2
+      }
+    ],
+    "all_agree": true,
+    "disagreements": []
+  }
+}

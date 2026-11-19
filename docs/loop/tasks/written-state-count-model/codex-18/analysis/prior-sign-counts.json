@@ -1,0 +1,65 @@
+{
+  "source": "codex-17 primary-seed1/2, public ordered traces joined by ordinal to independent held grades",
+  "matched_rows": 24,
+  "counts": [
+    {
+      "stage": "outside_fitted_radius",
+      "gold": "positive",
+      "count": 2,
+      "ordinals": [
+        21,
+        24
+      ]
+    },
+    {
+      "stage": "outside_fitted_radius",
+      "gold": "zero",
+      "count": 4,
+      "ordinals": [
+        1,
+        2,
+        22,
+        23
+      ]
+    },
+    {
+      "stage": "wrong_value_source",
+      "gold": "negative",
+      "count": 10,
+      "ordinals": [
+        0,
+        3,
+        4,
+        7,
+        8,
+        9,
+        10,
+        11,
+        30,
+        31
+      ]
+    },
+    {
+      "stage": "wrong_value_source",
+      "gold": "positive",
+      "count": 2,
+      "ordinals": [
+        29,
+        32
+      ]
+    },
+    {
+      "stage": "wrong_value_source",
+      "gold": "zero",
+      "count": 6,
+      "ordinals": [
+        5,
+        6,
+        25,
+        26,
+        27,
+        28
+      ]
+    }
+  ]
+}

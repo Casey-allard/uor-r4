@@ -1,4 +1,6 @@
 #![forbid(unsafe_code)]
+mod factorial;
+
 use all_starts_native::{packet::*, score::Bank as ReferenceBank};
 use std::{
     env,
@@ -7,15 +9,29 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-use uor_r4_integer::discrete_d11::{ExactCopyState, ROLE_COPY_STOPS};
+use uor_r4_integer::{
+    all_starts::{Bank, OnsetMode, OnsetProfile},
+    discrete_d11::{ExactCopyState, ROLE_COPY_STOPS},
+};
 
-fn mode(text: &OsStr) -> Result<u32> {
+fn policy(text: &OsStr) -> Result<OnsetMode> {
     match text.to_str() {
-        Some("ordered") => Ok(0),
-        Some("neutral") => Ok(1),
-        Some("position") => Ok(2),
-        _ => Err("mode must be ordered, neutral, or position".into()),
+        Some("ordered") => Ok(OnsetMode::Ordered),
+        Some("neutral") => Ok(OnsetMode::Neutral),
+        Some("position") => Ok(OnsetMode::Position),
+        Some("ranked") => Ok(OnsetMode::Ranked),
+        Some("veto") => Ok(OnsetMode::Veto),
+        Some("both") => Ok(OnsetMode::Both),
+        _ => Err("mode must be ordered, neutral, position, ranked, veto, or both".into()),
     }
+}
+
+fn fit_mode(text: &OsStr) -> Result<u32> {
+    let mode = policy(text)?;
+    if mode.fitted_mode() != mode {
+        return Err("selected policy uses the frozen ordered bank".into());
+    }
+    Ok(mode as u32)
 }
 
 fn workdir(out: &Path) -> Result<PathBuf> {
@@ -80,49 +96,122 @@ fn fit(device: &Path, input: &Path, labels: &Path, chosen: u32, output: &Path) -
     Ok(())
 }
 
-fn score(device: &Path, input: &Path, trained: &Path, output: &Path) -> Result<()> {
+fn score(
+    device: &Path,
+    input: &Path,
+    trained: &Path,
+    policy: Option<OnsetMode>,
+    output: &Path,
+) -> Result<()> {
     let rows_bytes = fs::read(input)?;
     let rows = Rows::parse(&rows_bytes)?;
     let trained = fs::read(trained)?;
     let raw = open(&rows, &trained)?;
     let meta = validate_raw(raw)?;
+    let reference = policy
+        .map(|mode| load_policy(&rows, &trained, mode))
+        .transpose()?;
     let work = workdir(output)?;
     let bound_input = work.join("score.packet");
     save(&bound_input, &rows_bytes)?;
     let bank = work.join("score.raw");
     let capture = work.join("score.trace");
     save(&bank, raw)?;
-    call(
-        device,
-        &[
-            OsStr::new("score"),
-            bound_input.as_os_str(),
-            bank.as_os_str(),
-            capture.as_os_str(),
-        ],
-        &work.join("device.log"),
-    )?;
+    let mut args = vec![
+        OsStr::new("score"),
+        bound_input.as_os_str(),
+        bank.as_os_str(),
+        capture.as_os_str(),
+    ];
+    let mode = policy.map_or(meta[1], |mode| mode as u32);
+    let mode_code = mode.to_string();
+    if policy.is_some() {
+        args.push(OsStr::new(&mode_code));
+    }
+    call(device, &args, &work.join("device.log"))?;
     let trace = fs::read(capture)?;
-    trace_rows(&rows, meta[1], &trace)?;
+    let words = trace_rows(&rows, mode, &trace)?;
+    if let Some(reference) = reference {
+        verify_replay(&rows, &words, &reference)?;
+    }
     save(output, &trace)?;
     let receipt = serde_json::to_vec(&serde_json::json!({
         "bank_sha256":hex(digest(&trained)), "input_packet_sha256":hex(digest(&rows_bytes)),
         "blind_capture_sha256":hex(rows.provenance[3]), "trace_sha256":hex(digest(&trace)),
-        "rows":rows.rows.len(), "mode":meta[1], "allocated_bytes":trained.len(), "used_records":meta[2],
+        "rows":rows.rows.len(), "mode":mode, "allocated_bytes":trained.len(), "used_records":meta[2],
     }))?;
     save(&work.join("bindings.json"), &receipt)?;
     Ok(())
 }
 
-fn decode_trace(input: &Path, bank: &Path, trace: &Path, output: &Path) -> Result<()> {
+fn load_policy(rows: &Rows, sealed: &[u8], mode: OnsetMode) -> Result<Bank> {
+    open(rows, sealed)?;
+    let digest_field = |start| {
+        let hash: [u8; 32] = sealed[start..start + 32].try_into()?;
+        Ok::<_, std::array::TryFromSliceError>(hex(hash))
+    };
+    let profile = OnsetProfile {
+        mode,
+        train_sha256: digest_field(112)?,
+        labels_sha256: digest_field(144)?,
+    };
+    Ok(Bank::from_profile(
+        sealed,
+        rows.provenance[0],
+        rows.provenance[1],
+        rows.provenance[2],
+        &profile,
+    )?)
+}
+
+fn verify_replay(rows: &Rows, words: &[u32], reference: &Bank) -> Result<()> {
+    for (row, raw) in rows.rows.iter().zip(words[4..].chunks_exact(OUT)) {
+        let expected = reference.score_legacy_row(&row.0)?;
+        if let Some((offset, (&want, &got))) = expected
+            .iter()
+            .zip(raw)
+            .enumerate()
+            .find(|(_, (want, got))| want != got)
+        {
+            return Err(format!(
+                "native replay mode {} ordinal {} assertion {} word {offset}: Rust {want}, CUDA {got}",
+                reference.mode().name(),
+                row.0[0],
+                row.0[1],
+            ).into());
+        }
+    }
+    Ok(())
+}
+
+fn decode_trace(
+    input: &Path,
+    bank: &Path,
+    trace: &Path,
+    policy: Option<OnsetMode>,
+    output: &Path,
+) -> Result<()> {
     let packet = fs::read(input)?;
     let rows = Rows::parse(&packet)?;
     let sealed = fs::read(bank)?;
     let raw = fs::read(trace)?;
-    let mode = ReferenceBank::load(&rows, &sealed)?.mode();
-    let trace = trace_rows(&rows, mode, &raw)?;
+    let mode = match policy {
+        Some(mode) => mode,
+        None => OnsetMode::from_code(ReferenceBank::load(&rows, &sealed)?.mode())
+            .ok_or("bad fitted mode")?,
+    };
+    let trace = trace_rows(&rows, mode as u32, &raw)?;
+    if policy.is_some() {
+        verify_replay(&rows, &trace, &load_policy(&rows, &sealed, mode)?)?;
+    }
     let named_status = ["selected", "no_candidate", "unseen", "tie", "nonpositive"];
-    let named_slot = ["absent", "cap_rejected", "unseen", "scored"];
+    let named_slot = [
+        "absent",
+        "cap_rejected",
+        "unseen",
+        "scored",
+        "outside_radius",
+    ];
     let maybe = |word| (word != NIL).then_some(word);
     let ratio = |num: u32, den: u32| {
         (den != NIL).then(|| {
@@ -167,8 +256,8 @@ fn decode_trace(input: &Path, bank: &Path, trace: &Path, output: &Path) -> Resul
     }
     let report = serde_json::to_vec(&serde_json::json!({
         "schema":"uor-r4.all-starts-original-sources/1",
-        "mode":(["ordered","neutral","position"][mode as usize]),
-        "positive_negative_evidence":if mode==2 {"votes"}else{"L1 distances"},
+        "mode":mode.name(),
+        "positive_negative_evidence":if mode==OnsetMode::Position {"votes"}else{"L1 distances"},
         "bank_sha256":hex(digest(&sealed)), "input_packet_sha256":hex(digest(&packet)),
         "blind_capture_sha256":hex(rows.provenance[3]), "trace_sha256":hex(digest(&raw)),
         "rows":output_rows,
@@ -199,7 +288,8 @@ fn trace_rows(rows: &Rows, mode: u32, trace: &[u8]) -> Result<Vec<u32>> {
                 || (r[0] != NIL
                     && (r[1] != source[1]
                         || (source[2] == 0 && r[2] != 1)
-                        || (source[2] == 1 && ![2, 3].contains(&r[2]))))
+                        || (source[2] == 1
+                            && !([2, 3].contains(&r[2]) || matches!(mode, 4 | 5) && r[2] == 4))))
             {
                 return Err("raw trace changed original address or eligibility".into());
             }
@@ -415,12 +505,15 @@ fn main() -> Result<()> {
             save(Path::new(out),&rows.encode()?)?;
             println!("packed {} assertion entries",rows.rows.len());
         },
-        [op, device, input, labels, m, out] if op=="fit" => fit(Path::new(device),Path::new(input),Path::new(labels),mode(m)?,Path::new(out))?,
-        [op, device, input, bank, out] if op=="score" => score(Path::new(device),Path::new(input),Path::new(bank),Path::new(out))?,
+        [op, device, input, labels, m, out] if op=="fit" => fit(Path::new(device),Path::new(input),Path::new(labels),fit_mode(m)?,Path::new(out))?,
+        [op, device, input, bank, out] if op=="score" => score(Path::new(device),Path::new(input),Path::new(bank),None,Path::new(out))?,
+        [op, device, input, bank, m, out] if op=="score-as" => score(Path::new(device),Path::new(input),Path::new(bank),Some(policy(m)?),Path::new(out))?,
         [op, out] if op=="fixtures" => make_fixtures(Path::new(out))?,
-        [op, input, bank, trace, out] if op=="decode-trace" => decode_trace(Path::new(input),Path::new(bank),Path::new(trace),Path::new(out))?,
+        [op, device, out] if op=="factorial-finite" => factorial::run(Path::new(device),Path::new(out))?,
+        [op, input, bank, trace, out] if op=="decode-trace" => decode_trace(Path::new(input),Path::new(bank),Path::new(trace),None,Path::new(out))?,
+        [op, input, bank, m, trace, out] if op=="decode-trace-as" => decode_trace(Path::new(input),Path::new(bank),Path::new(trace),Some(policy(m)?),Path::new(out))?,
         [op, name, input, trace, bank] if op=="verify-finite" => verify_finite(name.to_str().ok_or("bad fixture name")?,Path::new(input),Path::new(trace),Path::new(bank))?,
-        _=>return Err("use site-key INPUT | pack-json INPUT MODEL_SHA TOKENIZER_SHA SITE_SHA OUT | fit DEVICE INPUT TRAIN_LABELS MODE OUT | score DEVICE INPUT BANK OUT | decode-trace INPUT BANK TRACE OUT_JSON | fixtures OUTDIR | verify-finite NAME INPUT TRACE BANK".into()),
+        _=>return Err("use site-key INPUT | pack-json INPUT MODEL_SHA TOKENIZER_SHA SITE_SHA OUT | fit DEVICE INPUT TRAIN_LABELS MODE OUT | score DEVICE INPUT BANK OUT | score-as DEVICE INPUT BANK MODE OUT | decode-trace INPUT BANK TRACE OUT_JSON | decode-trace-as INPUT BANK MODE TRACE OUT_JSON | fixtures OUTDIR | factorial-finite DEVICE OUTDIR | verify-finite NAME INPUT TRACE BANK".into()),
     }
     Ok(())
 }

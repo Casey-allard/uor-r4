@@ -1,0 +1,8 @@
+{
+  "schema": "uor-r4.value-start-factorial-go/1",
+  "decision": "GO",
+  "inputs_sha256": "0fdd7b2967f960625b512e27517f94b9a0e4cd5cdac8e286053d215a5f847c70",
+  "non_author_fit_sha256": "2886570513857993fb87d2841434066eb975be8bf7202e08d61ad4b853e75f9e",
+  "finite_controls_sha256": "6b999a6b2b71670ab0efa1a32410b55b68174409349ee9ad105bce64ac93ac63",
+  "pre_run_review_sha256": "ab5a505ad4582930976bc59f5a7503bd4f3923aa90775da8c56b9ea3e6f6dba1"
+}

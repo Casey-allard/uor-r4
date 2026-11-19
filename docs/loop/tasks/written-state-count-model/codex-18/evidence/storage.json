@@ -1,0 +1,35 @@
+{
+  "schema": "uor-r4.value-start-factorial-storage/1",
+  "verified_utc": "2026-11-19T18:15:50Z",
+  "origin": {
+    "instance": "vast-61491576",
+    "result_root": "/workspace/uor-r4/jobs/codex18-held-01",
+    "status": "done 0",
+    "seed_repetitions": ["seed1-primary", "seed2-primary", "seed1-repeat", "seed2-repeat"]
+  },
+  "archive": {
+    "name": "vast-evidence.tar.zst",
+    "format": "PAX tar compressed with Zstandard",
+    "bytes": 10270458,
+    "sha256": "1a2dfdff6dd5a85f72f28f06fbec075b509ec96e264e87084f7f0bbdc10d9d71",
+    "workstation_directory": "~/uor-r4/local/codex/value-start-factorial/custody/vast-61491576-held-01",
+    "wick_directory": "~/uor-codex/20261119-factorial/custody-vast-61491576-held-01",
+    "checksum_manifest_sha256": "56b8a8a7ab0d5e2e6fdf11ecc4bd3a708f8b4bc43d69129c0eadb04d3464dc12"
+  },
+  "readback": {
+    "workstation_verified_regular_files": 2776,
+    "workstation_verified_symbolic_link_targets": 20,
+    "regular_file_manifest_sha256": "ac449c9b9ecf5d2e4bb8c2e7cb2723c60d3da68747a00b98962e5a60463a1ec0",
+    "symbolic_link_manifest_sha256": "6175bd07f669f5ce47e52a4003dea8c2129325a9b8d352db60b6a9d111de8589",
+    "all_seed_raw_and_cold_manifests_verified_on_vast": true,
+    "both_seed_cold_repetition_manifests_match": true,
+    "wick_archive_and_sidecars_sha256_verified": true
+  },
+  "retained_model_blobs": {
+    "host": "wick",
+    "count": 18,
+    "verified_against_vast": true,
+    "manifest": "wick-model-pins.sha256",
+    "manifest_sha256": "ad4b7fa54378f01cf8f2846ea827c96a7fdf283b93ed9818552e3211903890de"
+  }
+}

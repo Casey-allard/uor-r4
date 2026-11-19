@@ -1,0 +1,32 @@
+  427 seed1-primary/cold.sha256
+  542 seed1-primary/raw.sha256
+  969 total
+565a52e6c518e2260845e9f857236f237e7be9b5d3882dc415b84bc9d0c74fbb  seed1-primary/cold.sha256
+b5f0c80e246783ca7fae66ec15c2cad2c7b5bd011321b95ad024fff109a6aa64  seed1-primary/raw.sha256
+7c5a4aac308e2fe02d70d927c691689ff4d726f03f15132b1597b27bcc1bb554  seed1-primary/summary.json
+b2a27491e685512be362ede1bb45c57fda6ce42868018614979d68be6a5eccfe  seed1-primary/requested-summary.json
+  427 seed1-repeat/cold.sha256
+  542 seed1-repeat/raw.sha256
+  969 total
+565a52e6c518e2260845e9f857236f237e7be9b5d3882dc415b84bc9d0c74fbb  seed1-repeat/cold.sha256
+df09a2bb835c6e8f17ee7443b8b8be39bea037a2677b6a42b76163447f079594  seed1-repeat/raw.sha256
+7c5a4aac308e2fe02d70d927c691689ff4d726f03f15132b1597b27bcc1bb554  seed1-repeat/summary.json
+b2a27491e685512be362ede1bb45c57fda6ce42868018614979d68be6a5eccfe  seed1-repeat/requested-summary.json
+  427 seed2-primary/cold.sha256
+  542 seed2-primary/raw.sha256
+  969 total
+702f869ca2be49ab41dc6a0676b32de3efa6cc982d42e7645ce280bd297b9b3b  seed2-primary/cold.sha256
+0789b5bc7e9530d3fc1517bc83193220adbc8868e98f4a0efe317547389263c8  seed2-primary/raw.sha256
+d804279bbe30faaa8dbfc7bf9f81f1f66db8f5a44f35fe2886298121b31b0e3b  seed2-primary/summary.json
+b2a27491e685512be362ede1bb45c57fda6ce42868018614979d68be6a5eccfe  seed2-primary/requested-summary.json
+  427 seed2-repeat/cold.sha256
+  542 seed2-repeat/raw.sha256
+  969 total
+702f869ca2be49ab41dc6a0676b32de3efa6cc982d42e7645ce280bd297b9b3b  seed2-repeat/cold.sha256
+cefe77cf29d8d2e0f19fcf1e035ab569903c237580dfd0d06d222f1fe922702a  seed2-repeat/raw.sha256
+d804279bbe30faaa8dbfc7bf9f81f1f66db8f5a44f35fe2886298121b31b0e3b  seed2-repeat/summary.json
+b2a27491e685512be362ede1bb45c57fda6ce42868018614979d68be6a5eccfe  seed2-repeat/requested-summary.json
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 7:01.83
+	Maximum resident set size (kbytes): 1448916
+	Exit status: 0
+Thu Nov 19 18:15:46 UTC 2026

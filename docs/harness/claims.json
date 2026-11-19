@@ -20,6 +20,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/value-start-factorial": {
+    "branch": "codex/value-start-factorial",
+    "claimed_at": "2026-11-19T11:14:29-05:00",
+    "head": "2b0901008",
+    "lab": "codex",
+    "note": ""
+  },
   "deepseek/admission-headroom": {
     "branch": "deepseek/admission-headroom",
     "claimed_at": "2026-11-04T15:20:00-05:00",

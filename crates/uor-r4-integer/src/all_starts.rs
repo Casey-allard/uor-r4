@@ -28,6 +28,42 @@ pub enum OnsetMode {
     Ordered = 0,
     Neutral = 1,
     Position = 2,
+    Ranked = 3,
+    Veto = 4,
+    Both = 5,
+}
+
+impl OnsetMode {
+    pub const fn from_code(code: u32) -> Option<Self> {
+        match code {
+            0 => Some(Self::Ordered),
+            1 => Some(Self::Neutral),
+            2 => Some(Self::Position),
+            3 => Some(Self::Ranked),
+            4 => Some(Self::Veto),
+            5 => Some(Self::Both),
+            _ => None,
+        }
+    }
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Ordered => "ordered",
+            Self::Neutral => "neutral",
+            Self::Position => "position",
+            Self::Ranked => "ranked",
+            Self::Veto => "veto",
+            Self::Both => "both",
+        }
+    }
+
+    /// New policies select over the same losslessly loaded ordered bank.
+    pub const fn fitted_mode(self) -> Self {
+        match self {
+            Self::Ranked | Self::Veto | Self::Both => Self::Ordered,
+            _ => self,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -48,6 +84,7 @@ pub struct OnsetDecision {
 #[derive(Clone, Debug)]
 pub struct Bank {
     words: Box<[u32]>,
+    mode: OnsetMode,
 }
 impl Bank {
     pub fn from_profile(
@@ -88,7 +125,7 @@ impl Bank {
             .map(|w| u32::from_le_bytes([w[0], w[1], w[2], w[3]]))
             .collect();
         if words[0] != RAW
-            || words[1] != profile.mode as u32
+            || words[1] != profile.mode.fitted_mode() as u32
             || !(1..=CAP as u32).contains(&words[2])
             || words[3] != CAP as u32
         {
@@ -152,15 +189,14 @@ impl Bank {
         if classes != [true, true] {
             return Err(invalid("onset bank lacks one class"));
         }
-        Ok(Self { words })
+        Ok(Self {
+            words,
+            mode: profile.mode,
+        })
     }
 
     pub fn mode(&self) -> OnsetMode {
-        match self.words[1] {
-            0 => OnsetMode::Ordered,
-            1 => OnsetMode::Neutral,
-            _ => OnsetMode::Position,
-        }
+        self.mode
     }
 
     pub(crate) fn choose(
@@ -301,6 +337,9 @@ impl Bank {
         trace[..2].copy_from_slice(&row[..2]);
         let mut margins = [Margin::ABSENT; 3];
         let mut unseen = false;
+        let mut outside_radius = false;
+        let sum_denominator = matches!(self.mode, OnsetMode::Ranked | OnsetMode::Both);
+        let skip_outside = matches!(self.mode, OnsetMode::Veto | OnsetMode::Both);
         for (i, margin) in margins.iter_mut().enumerate() {
             let c = &row[8 + i * 9..17 + i * 9];
             if c[0] == NIL {
@@ -362,10 +401,23 @@ impl Bank {
                     radius = record[2];
                 }
                 out[5..8].copy_from_slice(&[closest[0], closest[1], radius]);
-                if closest.contains(&NIL) || radius == NO_RADIUS || closest[0] > radius {
+                if closest.contains(&NIL) || radius == NO_RADIUS {
+                    None
+                } else if closest[0] > radius && skip_outside {
+                    // The rival is known but lacks positive admission. It is
+                    // excluded from the rank without masking a supported source.
+                    out[2] = 4;
+                    outside_radius = true;
+                    continue;
+                } else if closest[0] > radius {
                     None
                 } else {
-                    Some((closest[1] as i32 - closest[0] as i32, slots as i32))
+                    let denominator = if sum_denominator {
+                        (closest[0] + closest[1]).max(1) as i32
+                    } else {
+                        slots as i32
+                    };
+                    Some((closest[1] as i32 - closest[0] as i32, denominator))
                 }
             };
             if let Some((num, den)) = score {
@@ -390,7 +442,7 @@ impl Bank {
                 dest.copy_from_slice(&[score.num as u32, score.den as u32]);
             }
         }
-        trace[2] = if unseen {
+        trace[2] = if unseen || (outside_radius && best.den == 0) {
             2
         } else if best.den == 0 {
             1

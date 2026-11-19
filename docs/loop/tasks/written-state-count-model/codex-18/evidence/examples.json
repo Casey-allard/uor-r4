@@ -1,0 +1,239 @@
+[
+  {
+    "index": 0,
+    "id": "discovery-0-0-d0",
+    "matched_triple": "discovery-0-d0",
+    "prompt": "Briony found heavy metal bells. Caspian found round red plates. Quote the complete object named in the sentence about Briony.",
+    "classification": "missing",
+    "ordinary_endpoint": null,
+    "ordinary_word": null,
+    "supplied_endpoint": [
+      38,
+      41
+    ],
+    "supplied_word": " Briony",
+    "matching_fact_name": null,
+    "supplied_is_admitted": true,
+    "supplied_score": -8,
+    "supplied_excluded_score": -14,
+    "public_best": 2,
+    "public_second": -8,
+    "public_best_span": [
+      13,
+      17
+    ],
+    "public_best_word": " Caspian",
+    "public_best_tie": false,
+    "public_supporting_facts": 0,
+    "supplied_supporting_facts": 1,
+    "ordinary": {
+      "endpoint": null,
+      "source": null,
+      "exact": false,
+      "ids": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "expected_ids": [
+        1585,
+        3216,
+        2046,
+        85,
+        1
+      ],
+      "first_wrong": 0,
+      "first_actual": 1155,
+      "first_expected": 1585,
+      "text": " Got it, I'll remember that.",
+      "eos": true
+    },
+    "requested_ordered": {
+      "endpoint": [
+        38,
+        41
+      ],
+      "source": null,
+      "exact": false,
+      "ids": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "expected_ids": [
+        1585,
+        3216,
+        2046,
+        85,
+        1
+      ],
+      "first_wrong": 0,
+      "first_actual": 1155,
+      "first_expected": 1585,
+      "text": " Got it, I'll remember that.",
+      "eos": true
+    },
+    "requested_both": {
+      "endpoint": [
+        38,
+        41
+      ],
+      "source": 9,
+      "exact": false,
+      "ids": [
+        3216,
+        2046,
+        85,
+        1
+      ],
+      "expected_ids": [
+        1585,
+        3216,
+        2046,
+        85,
+        1
+      ],
+      "first_wrong": 0,
+      "first_actual": 3216,
+      "first_expected": 1585,
+      "text": " metal bells",
+      "eos": true
+    }
+  },
+  {
+    "index": 22,
+    "id": "selection-0-0-d1",
+    "matched_triple": "selection-0-d1",
+    "prompt": "Oswin took large pink rings. Linnea took old gold coins. Which full object description belongs to the statement about Oswin?",
+    "classification": "wrong question word",
+    "ordinary_endpoint": [
+      36,
+      37
+    ],
+    "ordinary_word": " the",
+    "supplied_endpoint": [
+      41,
+      44
+    ],
+    "supplied_word": " Oswin",
+    "matching_fact_name": null,
+    "supplied_is_admitted": true,
+    "supplied_score": 12,
+    "supplied_excluded_score": -14,
+    "public_best": 84,
+    "public_second": 26,
+    "public_best_span": [
+      36,
+      37
+    ],
+    "public_best_word": " the",
+    "public_best_tie": false,
+    "public_supporting_facts": 0,
+    "supplied_supporting_facts": 1,
+    "ordinary": {
+      "endpoint": [
+        36,
+        37
+      ],
+      "source": null,
+      "exact": false,
+      "ids": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "expected_ids": [
+        2477,
+        1481,
+        336,
+        568,
+        1
+      ],
+      "first_wrong": 0,
+      "first_actual": 1155,
+      "first_expected": 2477,
+      "text": " Got it, I'll remember that.",
+      "eos": true
+    },
+    "requested_ordered": {
+      "endpoint": [
+        41,
+        44
+      ],
+      "source": null,
+      "exact": false,
+      "ids": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "expected_ids": [
+        2477,
+        1481,
+        336,
+        568,
+        1
+      ],
+      "first_wrong": 0,
+      "first_actual": 1155,
+      "first_expected": 2477,
+      "text": " Got it, I'll remember that.",
+      "eos": true
+    },
+    "requested_both": {
+      "endpoint": [
+        41,
+        44
+      ],
+      "source": 8,
+      "exact": true,
+      "ids": [
+        2477,
+        1481,
+        336,
+        568,
+        1
+      ],
+      "expected_ids": [
+        2477,
+        1481,
+        336,
+        568,
+        1
+      ],
+      "first_wrong": null,
+      "first_actual": null,
+      "first_expected": null,
+      "text": " large pink rings",
+      "eos": true
+    }
+  }
+]

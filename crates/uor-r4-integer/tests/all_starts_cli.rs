@@ -231,6 +231,38 @@ fn frozen_role_source_intervention_reaches_normal_text_and_cold_writer() {
         assert_eq!(first["selected"]["source"], target);
         assert_eq!(first["generated_ids"], json!(expected));
         assert_eq!(first["stop"], "eos");
+        if arm == "known-right" {
+            let mut identities = vec![parsed.artifact_sha256().to_owned()];
+            for mode in [OnsetMode::Ranked, OnsetMode::Veto, OnsetMode::Both] {
+                let profile = OnsetProfile {
+                    mode,
+                    ..profile.clone()
+                };
+                let packed =
+                    pack_all_starts_artifact(&legacy, &span_bytes, &bank, &profile).unwrap();
+                let reload = IntegerDiscreteModel::from_bytes(&packed).unwrap();
+                assert_eq!(reload.onset_mode(), Some(mode));
+                assert!(!identities.iter().any(|sha| sha == reload.artifact_sha256()));
+                identities.push(reload.artifact_sha256().to_owned());
+
+                let header_len = u64::from_le_bytes(packed[8..16].try_into().unwrap()) as usize;
+                let bank_start = (16 + header_len).next_multiple_of(64);
+                assert_eq!(&packed[bank_start..bank_start + BANK_BYTES], &bank);
+                assert!(packed.ends_with(&legacy));
+                let path = out_root.join(format!("known-right-{}.d11", mode.name()));
+                fs::write(&path, packed).unwrap();
+                let replay = output(&path, &tokenizer_path, text, "enabled");
+                for field in [
+                    "prompt_ids",
+                    "selected",
+                    "generated_ids",
+                    "copy_step_words",
+                    "stop",
+                ] {
+                    assert_eq!(replay[field], first[field], "{} {field}", mode.name());
+                }
+            }
+        }
         let no_read = output(&on_disk, &tokenizer_path, text, "no_read");
         let legacy_no_read = output(&carrier, &tokenizer_path, text, "no_read");
         assert_eq!(no_read["generated_ids"], legacy_no_read["generated_ids"]);
