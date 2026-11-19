@@ -1,0 +1,23 @@
+{
+  "rows": 70,
+  "statuses": [
+    {
+      "status": "conflict",
+      "rows": 2
+    },
+    {
+      "status": "supported",
+      "rows": 64
+    },
+    {
+      "status": "unmentioned",
+      "rows": 2
+    },
+    {
+      "status": "unspecified",
+      "rows": 2
+    }
+  ],
+  "all_agree": true,
+  "disagreements": []
+}

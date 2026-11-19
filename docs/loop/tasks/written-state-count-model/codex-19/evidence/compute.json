@@ -1,0 +1,20 @@
+{
+  "provider": "Vast",
+  "study_gpu": "RTX 4090",
+  "down_events": [
+    {
+      "pod": "vast-61500738",
+      "ts": "2026-11-19T19:15:18Z",
+      "usd_per_h": 0.563,
+      "uptime_s": 65
+    },
+    {
+      "pod": "vast-61501076",
+      "ts": "2026-11-19T20:16:12Z",
+      "usd_per_h": 0.631,
+      "uptime_s": 3627
+    }
+  ],
+  "estimated_compute_usd": 0.6458977777777778,
+  "rate_source": "project lease ledger; estimate from recorded uptime, not an invoice"
+}

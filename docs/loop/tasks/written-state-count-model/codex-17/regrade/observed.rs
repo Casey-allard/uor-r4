@@ -329,9 +329,20 @@ fn inspect(
 }
 
 pub(super) fn score(args: &[String]) -> Result<()> {
-    let [tokenizer, active, readings, original, writer, out] = args else {
-        return Err("TOKENIZER GRADES INDEPENDENT_READINGS ORIGINAL_GRADES_OR_MINUS OBSERVED_WRITER_GRADE_JSON OUT".into());
+    let ([tokenizer, active, readings, original, writer, out], rows, positives) = match args {
+        [a, b, c, d, e, f] => ([a, b, c, d, e, f], ROWS, POSITIVES),
+        [a, b, c, d, e, f, rows, positives] => (
+            [a, b, c, d, e, f],
+            rows.parse::<usize>()?,
+            positives.parse::<usize>()?,
+        ),
+        _ => {
+            return Err("TOKENIZER GRADES INDEPENDENT_READINGS ORIGINAL_GRADES_OR_MINUS OBSERVED_WRITER_GRADE_JSON OUT [TOTAL_ROWS SUPPORTED_ROWS]".into());
+        }
     };
+    if positives == 0 || positives.checked_add(6) != Some(rows) {
+        return Err("expected supported rows plus two of each genuine negative control".into());
+    }
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(tokenizer)?)
         .ok_or("invalid tokenizer")?;
     if tokenizer.token_id("<|bos|>") != Some(0)
@@ -361,14 +372,14 @@ pub(super) fn score(args: &[String]) -> Result<()> {
     let new = array(&active_rows, "active grades")?;
     let readings_rows = array(&independent, "independent readings")?;
     let trace = array(field(&observed, "rows")?, "observed archive")?;
-    if [old.len(), new.len(), readings_rows.len()] != [ROWS; 3]
-        || !matches!(trace.len(), ROWS | POSITIVES)
-        || (mutated && trace.len() != POSITIVES)
+    if [old.len(), new.len(), readings_rows.len()] != [rows; 3]
+        || (trace.len() != rows && trace.len() != positives)
+        || (mutated && trace.len() != positives)
     {
         return Err("unexpected panel or archive row counts".into());
     }
     let mut ids_seen = BTreeSet::new();
-    let mut labels = Vec::with_capacity(ROWS);
+    let mut labels = Vec::with_capacity(rows);
     for (index, ((old, new), reading)) in old.iter().zip(new).zip(readings_rows).enumerate() {
         if !ids_seen.insert(string(old, "id")?) {
             return Err(format!("duplicate authored row ID at {index}").into());
@@ -381,7 +392,7 @@ pub(super) fn score(args: &[String]) -> Result<()> {
         .iter()
         .filter(|label| label.status == "supported")
         .count()
-        != POSITIVES
+        != positives
         || labels
             .iter()
             .filter(|label| label.status == "absent")
@@ -400,14 +411,14 @@ pub(super) fn score(args: &[String]) -> Result<()> {
     {
         return Err("original panel does not contain the declared cases".into());
     }
-    let public = trace.len() == ROWS;
+    let public = trace.len() == rows;
     let mut records = Vec::with_capacity(trace.len());
     let mut seen = BTreeSet::new();
     for row in trace {
         let index = field(row, "index")?
             .as_u64()
             .and_then(|index| usize::try_from(index).ok())
-            .filter(|&index| index < ROWS)
+            .filter(|&index| index < rows)
             .ok_or("unrecognized archive index")?;
         let label = &new[index];
         if !seen.insert(index)
@@ -466,7 +477,7 @@ pub(super) fn score(args: &[String]) -> Result<()> {
             "selection_sha256":observed["selection"], "gpu_sha256":observed["gpu"],
             "generated_id_tape_sha256":format!("{:x}", tape.finalize()),
             "counts":{
-                "rows":records.len(), "supported":POSITIVES, "independently_exact":count("original_exact", json!(true)),
+                "rows":records.len(), "supported":positives, "independently_exact":count("original_exact", json!(true)),
                 "active_label_exact":count("active_exact", json!(true)),
                 "negative_no":negatives("no"), "negative_copy":negatives("copy"),
                 "negative_fallback":negatives("fallback")
@@ -522,7 +533,8 @@ mod tests {
                         .map_or(vec![1], |lit| lit.ids.clone());
                     writer_full.push(authored(label, index, &actual, true, &tokenizer));
                 }
-                let labels_path = format!("{panel}/value-rank-panel-v5/seed{seed}/{split}/grades.json");
+                let labels_path =
+                    format!("{panel}/value-rank-panel-v5/seed{seed}/{split}/grades.json");
                 let temp = std::env::temp_dir().join(format!(
                     "uor-rank-grade-{}-{seed}-{split}",
                     std::process::id()
@@ -557,9 +569,7 @@ mod tests {
                         format!("{panel}/v5-reader-a-held.json")
                     };
                     score(&[
-                        format!(
-                            "{assets}/tokenizer-seed{seed}.json"
-                        ),
+                        format!("{assets}/tokenizer-seed{seed}.json"),
                         labels_path.clone(),
                         reader.into(),
                         "-".into(),

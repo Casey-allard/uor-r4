@@ -1,0 +1,1006 @@
+{
+  "schema": "uor-r4.requested-occurrence-attribution/1",
+  "seed": 1,
+  "units": "half-open original token spans and signed integer scores",
+  "window_offsets": [
+    "start-3",
+    "start-2",
+    "start-1",
+    "end",
+    "end+1",
+    "end+2"
+  ],
+  "window_weights": [
+    1,
+    2,
+    4,
+    4,
+    2,
+    1
+  ],
+  "supported": [
+    {
+      "about": false,
+      "distractor_first": false,
+      "n": 16,
+      "baseline_correct": 16,
+      "treatment_correct": 16,
+      "recovered": [],
+      "treatment_wrong": [],
+      "treatment_wrong_is_rival": 0
+    },
+    {
+      "about": false,
+      "distractor_first": true,
+      "n": 16,
+      "baseline_correct": 16,
+      "treatment_correct": 16,
+      "recovered": [],
+      "treatment_wrong": [],
+      "treatment_wrong_is_rival": 0
+    },
+    {
+      "about": true,
+      "distractor_first": false,
+      "n": 16,
+      "baseline_correct": 0,
+      "treatment_correct": 0,
+      "recovered": [],
+      "treatment_wrong": [
+        2,
+        6,
+        10,
+        14,
+        18,
+        22,
+        26,
+        30,
+        37,
+        41,
+        45,
+        49,
+        53,
+        57,
+        61,
+        65
+      ],
+      "treatment_wrong_is_rival": 16
+    },
+    {
+      "about": true,
+      "distractor_first": true,
+      "n": 16,
+      "baseline_correct": 0,
+      "treatment_correct": 16,
+      "recovered": [
+        3,
+        7,
+        11,
+        15,
+        19,
+        23,
+        27,
+        31,
+        38,
+        42,
+        46,
+        50,
+        54,
+        58,
+        62,
+        66
+      ],
+      "treatment_wrong": [],
+      "treatment_wrong_is_rival": 0
+    }
+  ],
+  "matched_quartet": [
+    {
+      "index": 2,
+      "about": true,
+      "distractor_first": false,
+      "stratum": "supported",
+      "gold": [
+        37,
+        41
+      ],
+      "rival": [
+        44,
+        47
+      ],
+      "target": "Elspeth",
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Quote exact object wording about Elspeth, ignoring Leander.",
+      "baseline": {
+        "requested": [
+          15,
+          18
+        ],
+        "excluded": [
+          36,
+          37
+        ],
+        "requested_best": 16,
+        "requested_runner_up": -10
+      },
+      "treatment": {
+        "requested": [
+          44,
+          47
+        ],
+        "excluded": [
+          36,
+          37
+        ],
+        "requested_best": -12,
+        "requested_runner_up": -16
+      },
+      "eligible": [
+        {
+          "span": [
+            37,
+            41
+          ],
+          "supporting_head": [
+            4,
+            8
+          ],
+          "scores": [
+            0,
+            16
+          ],
+          "contrast": -16,
+          "feature_keys": [
+            36080,
+            74004,
+            142267,
+            227613,
+            325225,
+            336152
+          ],
+          "roots": [
+            36080,
+            8467,
+            11193,
+            31002,
+            63077,
+            8467
+          ],
+          "context_token_ids": [
+            2708,
+            300,
+            666,
+            14,
+            2832,
+            300
+          ],
+          "context_pieces": [
+            "Ġword",
+            "ing",
+            "Ġabout",
+            ",",
+            "Ġignor",
+            "ing"
+          ],
+          "candidate_pieces": [
+            "ĠE",
+            "l",
+            "sp",
+            "eth"
+          ]
+        },
+        {
+          "span": [
+            44,
+            47
+          ],
+          "supporting_head": [
+            15,
+            18
+          ],
+          "scores": [
+            0,
+            12
+          ],
+          "contrast": -12,
+          "feature_keys": [
+            31002,
+            128614,
+            139541,
+            207366,
+            315677,
+            336689
+          ],
+          "roots": [
+            31002,
+            63077,
+            8467,
+            10755,
+            53529,
+            9004
+          ],
+          "context_token_ids": [
+            14,
+            2832,
+            300,
+            16,
+            201,
+            35
+          ],
+          "context_pieces": [
+            ",",
+            "Ġignor",
+            "ing",
+            ".",
+            "Ċ",
+            "A"
+          ],
+          "candidate_pieces": [
+            "ĠLe",
+            "a",
+            "nder"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "about": true,
+      "distractor_first": true,
+      "stratum": "supported",
+      "gold": [
+        44,
+        48
+      ],
+      "rival": [
+        30,
+        33
+      ],
+      "target": "Elspeth",
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Ignoring Leander, quote exact object wording about Elspeth.",
+      "baseline": {
+        "requested": [
+          15,
+          18
+        ],
+        "excluded": [
+          30,
+          33
+        ],
+        "requested_best": 16,
+        "requested_runner_up": 4
+      },
+      "treatment": {
+        "requested": [
+          44,
+          48
+        ],
+        "excluded": [
+          30,
+          33
+        ],
+        "requested_best": 6,
+        "requested_runner_up": -54
+      },
+      "eligible": [
+        {
+          "span": [
+            30,
+            33
+          ],
+          "supporting_head": [
+            15,
+            18
+          ],
+          "scores": [
+            2,
+            56
+          ],
+          "contrast": -54,
+          "feature_keys": [
+            8464,
+            103217,
+            139541,
+            227613,
+            296823,
+            392391
+          ],
+          "roots": [
+            8464,
+            37680,
+            8467,
+            31002,
+            34675,
+            64706
+          ],
+          "context_token_ids": [
+            80,
+            306,
+            300,
+            14,
+            949,
+            2693
+          ],
+          "context_pieces": [
+            "n",
+            "or",
+            "ing",
+            ",",
+            "Ġqu",
+            "ote"
+          ],
+          "candidate_pieces": [
+            "ĠLe",
+            "a",
+            "nder"
+          ]
+        },
+        {
+          "span": [
+            44,
+            48
+          ],
+          "supporting_head": [
+            4,
+            8
+          ],
+          "scores": [
+            -8,
+            -14
+          ],
+          "contrast": 6,
+          "feature_keys": [
+            36080,
+            74004,
+            142267,
+            207366,
+            315677,
+            336689
+          ],
+          "roots": [
+            36080,
+            8467,
+            11193,
+            10755,
+            53529,
+            9004
+          ],
+          "context_token_ids": [
+            2708,
+            300,
+            666,
+            16,
+            201,
+            35
+          ],
+          "context_pieces": [
+            "Ġword",
+            "ing",
+            "Ġabout",
+            ".",
+            "Ċ",
+            "A"
+          ],
+          "candidate_pieces": [
+            "ĠE",
+            "l",
+            "sp",
+            "eth"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "about": true,
+      "distractor_first": false,
+      "stratum": "supported",
+      "gold": [
+        37,
+        40
+      ],
+      "rival": [
+        43,
+        47
+      ],
+      "target": "Leander",
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Quote exact object wording about Leander, ignoring Elspeth.",
+      "baseline": {
+        "requested": [
+          15,
+          18
+        ],
+        "excluded": [
+          36,
+          37
+        ],
+        "requested_best": 16,
+        "requested_runner_up": 0
+      },
+      "treatment": {
+        "requested": [
+          43,
+          47
+        ],
+        "excluded": [
+          36,
+          37
+        ],
+        "requested_best": -12,
+        "requested_runner_up": -16
+      },
+      "eligible": [
+        {
+          "span": [
+            37,
+            40
+          ],
+          "supporting_head": [
+            15,
+            18
+          ],
+          "scores": [
+            0,
+            16
+          ],
+          "contrast": -16,
+          "feature_keys": [
+            36080,
+            74004,
+            142267,
+            227613,
+            325225,
+            336152
+          ],
+          "roots": [
+            36080,
+            8467,
+            11193,
+            31002,
+            63077,
+            8467
+          ],
+          "context_token_ids": [
+            2708,
+            300,
+            666,
+            14,
+            2832,
+            300
+          ],
+          "context_pieces": [
+            "Ġword",
+            "ing",
+            "Ġabout",
+            ",",
+            "Ġignor",
+            "ing"
+          ],
+          "candidate_pieces": [
+            "ĠLe",
+            "a",
+            "nder"
+          ]
+        },
+        {
+          "span": [
+            43,
+            47
+          ],
+          "supporting_head": [
+            4,
+            8
+          ],
+          "scores": [
+            0,
+            12
+          ],
+          "contrast": -12,
+          "feature_keys": [
+            31002,
+            128614,
+            139541,
+            207366,
+            315677,
+            336689
+          ],
+          "roots": [
+            31002,
+            63077,
+            8467,
+            10755,
+            53529,
+            9004
+          ],
+          "context_token_ids": [
+            14,
+            2832,
+            300,
+            16,
+            201,
+            35
+          ],
+          "context_pieces": [
+            ",",
+            "Ġignor",
+            "ing",
+            ".",
+            "Ċ",
+            "A"
+          ],
+          "candidate_pieces": [
+            "ĠE",
+            "l",
+            "sp",
+            "eth"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "about": true,
+      "distractor_first": true,
+      "stratum": "supported",
+      "gold": [
+        45,
+        48
+      ],
+      "rival": [
+        30,
+        34
+      ],
+      "target": "Leander",
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Ignoring Elspeth, quote exact object wording about Leander.",
+      "baseline": {
+        "requested": [
+          15,
+          18
+        ],
+        "excluded": [
+          30,
+          34
+        ],
+        "requested_best": 16,
+        "requested_runner_up": 4
+      },
+      "treatment": {
+        "requested": [
+          45,
+          48
+        ],
+        "excluded": [
+          30,
+          34
+        ],
+        "requested_best": 6,
+        "requested_runner_up": -54
+      },
+      "eligible": [
+        {
+          "span": [
+            30,
+            34
+          ],
+          "supporting_head": [
+            4,
+            8
+          ],
+          "scores": [
+            2,
+            56
+          ],
+          "contrast": -54,
+          "feature_keys": [
+            8464,
+            103217,
+            139541,
+            227613,
+            296823,
+            392391
+          ],
+          "roots": [
+            8464,
+            37680,
+            8467,
+            31002,
+            34675,
+            64706
+          ],
+          "context_token_ids": [
+            80,
+            306,
+            300,
+            14,
+            949,
+            2693
+          ],
+          "context_pieces": [
+            "n",
+            "or",
+            "ing",
+            ",",
+            "Ġqu",
+            "ote"
+          ],
+          "candidate_pieces": [
+            "ĠE",
+            "l",
+            "sp",
+            "eth"
+          ]
+        },
+        {
+          "span": [
+            45,
+            48
+          ],
+          "supporting_head": [
+            15,
+            18
+          ],
+          "scores": [
+            -8,
+            -14
+          ],
+          "contrast": 6,
+          "feature_keys": [
+            36080,
+            74004,
+            142267,
+            207366,
+            315677,
+            336689
+          ],
+          "roots": [
+            36080,
+            8467,
+            11193,
+            10755,
+            53529,
+            9004
+          ],
+          "context_token_ids": [
+            2708,
+            300,
+            666,
+            16,
+            201,
+            35
+          ],
+          "context_pieces": [
+            "Ġword",
+            "ing",
+            "Ġabout",
+            ".",
+            "Ċ",
+            "A"
+          ],
+          "candidate_pieces": [
+            "ĠLe",
+            "a",
+            "nder"
+          ]
+        }
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "index": 32,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "unmentioned",
+      "gold": [
+        38,
+        42
+      ],
+      "rival": null,
+      "target": "Beatrix",
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Quote the exact object wording about Beatrix, if any entry supports it.",
+      "baseline": {
+        "requested": [
+          35,
+          37
+        ],
+        "excluded": [
+          37,
+          38
+        ],
+        "requested_best": 24,
+        "requested_runner_up": 16
+      },
+      "treatment": {
+        "requested": null,
+        "excluded": [
+          37,
+          38
+        ],
+        "requested_best": -2147483648,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": []
+    },
+    {
+      "index": 33,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "conflict",
+      "gold": [
+        42,
+        46
+      ],
+      "rival": null,
+      "target": "Elspeth",
+      "text": "Elspeth might take red brass keys. Leander might take silk scarves. Elspeth might take silk scarves. With both entries for Elspeth presented as equally credible versions of one event, what exact object can be determined?",
+      "baseline": {
+        "requested": [
+          42,
+          46
+        ],
+        "excluded": [
+          61,
+          63
+        ],
+        "requested_best": 40,
+        "requested_runner_up": 20
+      },
+      "treatment": {
+        "requested": [
+          42,
+          46
+        ],
+        "excluded": [
+          61,
+          63
+        ],
+        "requested_best": 52,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": [
+        {
+          "span": [
+            42,
+            46
+          ],
+          "supporting_head": [
+            4,
+            8
+          ],
+          "scores": [
+            40,
+            -12
+          ],
+          "contrast": 52,
+          "feature_keys": [
+            58434,
+            116598,
+            139551,
+            210001,
+            305556,
+            392983
+          ],
+          "roots": [
+            58434,
+            51061,
+            8477,
+            13390,
+            43408,
+            65298
+          ],
+          "context_token_ids": [
+            2307,
+            1512,
+            388,
+            2911,
+            266,
+            450
+          ],
+          "context_pieces": [
+            "Ġent",
+            "ries",
+            "Ġfor",
+            "Ġpresent",
+            "ed",
+            "Ġas"
+          ],
+          "candidate_pieces": [
+            "ĠE",
+            "l",
+            "sp",
+            "eth"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "unspecified",
+      "gold": null,
+      "rival": null,
+      "target": null,
+      "text": "Elspeth found red brass keys. Leander might take silk scarves. Quote the exact object wording for the person I have in mind.",
+      "baseline": {
+        "requested": [
+          38,
+          39
+        ],
+        "excluded": [
+          37,
+          38
+        ],
+        "requested_best": 44,
+        "requested_runner_up": 16
+      },
+      "treatment": {
+        "requested": null,
+        "excluded": [
+          37,
+          38
+        ],
+        "requested_best": -2147483648,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": []
+    },
+    {
+      "index": 67,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "unmentioned",
+      "gold": [
+        36,
+        39
+      ],
+      "rival": null,
+      "target": "Cerys",
+      "text": "Maren could still find brushes. Ivor took small glass jars. Quote the exact object wording about Cerys, if any entry supports it.",
+      "baseline": {
+        "requested": [
+          17,
+          18
+        ],
+        "excluded": [
+          35,
+          36
+        ],
+        "requested_best": 28,
+        "requested_runner_up": 16
+      },
+      "treatment": {
+        "requested": null,
+        "excluded": [
+          35,
+          36
+        ],
+        "requested_best": -2147483648,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": []
+    },
+    {
+      "index": 68,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "conflict",
+      "gold": [
+        35,
+        38
+      ],
+      "rival": null,
+      "target": "Maren",
+      "text": "Maren took brushes. Ivor took small glass jars. Maren took small glass jars. With both entries for Maren presented as equally credible versions of one event, what exact object can be determined?",
+      "baseline": {
+        "requested": [
+          35,
+          38
+        ],
+        "excluded": [
+          53,
+          55
+        ],
+        "requested_best": 40,
+        "requested_runner_up": 28
+      },
+      "treatment": {
+        "requested": [
+          35,
+          38
+        ],
+        "excluded": [
+          53,
+          55
+        ],
+        "requested_best": 52,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": [
+        {
+          "span": [
+            35,
+            38
+          ],
+          "supporting_head": [
+            4,
+            7
+          ],
+          "scores": [
+            40,
+            -12
+          ],
+          "contrast": 52,
+          "feature_keys": [
+            58434,
+            116598,
+            139551,
+            210001,
+            305556,
+            392983
+          ],
+          "roots": [
+            58434,
+            51061,
+            8477,
+            13390,
+            43408,
+            65298
+          ],
+          "context_token_ids": [
+            2307,
+            1512,
+            388,
+            2911,
+            266,
+            450
+          ],
+          "context_pieces": [
+            "Ġent",
+            "ries",
+            "Ġfor",
+            "Ġpresent",
+            "ed",
+            "Ġas"
+          ],
+          "candidate_pieces": [
+            "ĠM",
+            "are",
+            "n"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 69,
+      "about": null,
+      "distractor_first": null,
+      "stratum": "unspecified",
+      "gold": null,
+      "rival": null,
+      "target": null,
+      "text": "Maren could still find brushes. Ivor took small glass jars. Quote the exact object wording for the person I have in mind.",
+      "baseline": {
+        "requested": [
+          36,
+          37
+        ],
+        "excluded": [
+          35,
+          36
+        ],
+        "requested_best": 44,
+        "requested_runner_up": 28
+      },
+      "treatment": {
+        "requested": null,
+        "excluded": [
+          35,
+          36
+        ],
+        "requested_best": -2147483648,
+        "requested_runner_up": -2147483648
+      },
+      "eligible": []
+    }
+  ]
+}

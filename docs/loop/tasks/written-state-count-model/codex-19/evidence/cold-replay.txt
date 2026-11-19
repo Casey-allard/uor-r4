@@ -1,0 +1,27 @@
+  310 seed1-primary/cold.sha256
+  413 seed1-primary/raw.sha256
+  723 total
+133d447344a6c52ee06f61ec005dca307d084fc9238f4eff1959da1981dac18f  seed1-primary/cold.sha256
+bb2a81eac8d02573f67213e49f6af1419b157307ad922d2e4f33bf6e99685206  seed1-primary/raw.sha256
+5d91dec696b39a164e0206253ec1ebf020e1dfa77d51f124e36d096b785d59e7  seed1-primary/summary.json
+  310 seed1-repeat/cold.sha256
+  413 seed1-repeat/raw.sha256
+  723 total
+133d447344a6c52ee06f61ec005dca307d084fc9238f4eff1959da1981dac18f  seed1-repeat/cold.sha256
+fe52b85738321deae8aa874fed8f835d69cb7cf3d3cd9ba1aaa2d9135bac899f  seed1-repeat/raw.sha256
+5d91dec696b39a164e0206253ec1ebf020e1dfa77d51f124e36d096b785d59e7  seed1-repeat/summary.json
+  310 seed2-primary/cold.sha256
+  413 seed2-primary/raw.sha256
+  723 total
+ad742a1d699220c6d3f1c01d161c5cc219a4f641724862b37bf053008c3dff52  seed2-primary/cold.sha256
+fbc71b1f4afeff37d536420689a771e45b70f4a691b26c8799450525844b09f1  seed2-primary/raw.sha256
+575b025cb5d6da6aaac90d25508b561418407480c308c15d60cabb76696cf275  seed2-primary/summary.json
+  310 seed2-repeat/cold.sha256
+  413 seed2-repeat/raw.sha256
+  723 total
+ad742a1d699220c6d3f1c01d161c5cc219a4f641724862b37bf053008c3dff52  seed2-repeat/cold.sha256
+8e89f3b2fad2aaf0281d8ea4f216f1fda21fa97818efce89922f550487f2578d  seed2-repeat/raw.sha256
+575b025cb5d6da6aaac90d25508b561418407480c308c15d60cabb76696cf275  seed2-repeat/summary.json
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 52:24.25
+	Maximum resident set size (kbytes): 1449300
+	Exit status: 0

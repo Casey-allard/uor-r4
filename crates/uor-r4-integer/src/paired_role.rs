@@ -55,6 +55,33 @@ pub struct FrozenRoleCandidateTrace {
     pub scores: [i32; 2],
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct RequestedOccurrenceCandidateTrace {
+    pub span: [usize; 2],
+    pub scores: [i32; 2],
+    pub feature_keys: [u32; ROLE_OFFSETS],
+    pub eligibility: RequestedEligibility,
+    pub supporting_head: Option<[usize; 2]>,
+    pub contrast: Option<i32>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestedEligibility {
+    NoBoundary,
+    OutsideQuery,
+    OutsideRegion,
+    NoExactAssertionHead,
+    Eligible,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RequestedOccurrenceTrace {
+    pub content: [usize; 2],
+    pub query_boundary: Option<usize>,
+    pub candidates: Vec<RequestedOccurrenceCandidateTrace>,
+}
+
 #[derive(Clone, Debug)]
 pub struct PairedRoleState {
     /// Model, tokenizer, TRAIN tape and TRAIN labels, in that order.
@@ -182,6 +209,131 @@ impl PairedRoleState {
             requested_runner_up: ranks[0].runner_up,
             excluded_runner_up: ranks[1].runner_up,
         })
+    }
+
+    /// Rank requested occurrences in the final clause with an earlier exact
+    /// assertion head. The original excluded decision is retained.
+    pub fn predict_assertion_agreement(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+    ) -> Result<PairedRoleDecision> {
+        self.replay_assertion_agreement(ids, content, region, delimiters, assertion_classes, |_| {})
+            .map(|(decision, _)| decision)
+    }
+
+    pub fn trace_assertion_agreement(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+    ) -> Result<RequestedOccurrenceTrace> {
+        let mut candidates = Vec::new();
+        let (_, query_boundary) = self.replay_assertion_agreement(
+            ids,
+            content.clone(),
+            region,
+            delimiters,
+            assertion_classes,
+            |candidate| candidates.push(candidate),
+        )?;
+        Ok(RequestedOccurrenceTrace {
+            content: [content.start, content.end],
+            query_boundary,
+            candidates,
+        })
+    }
+
+    fn replay_assertion_agreement(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+        mut visit: impl FnMut(RequestedOccurrenceCandidateTrace),
+    ) -> Result<(PairedRoleDecision, Option<usize>)> {
+        use RequestedEligibility::*;
+        let candidates = role_candidates(&self.sites, ids)?;
+        if content.start > content.end
+            || content.end > ids.len()
+            || region.start > region.end
+            || region.end > ids.len()
+            || assertion_classes.len() != ROLE_VOCAB
+        {
+            return Err(invalid("invalid requested occurrence state"));
+        }
+
+        let last_word = content
+            .clone()
+            .rfind(|&p| self.sites[ids[p] as usize][1] == 1);
+        let boundary = last_word
+            .and_then(|last| (content.start..last).rfind(|&p| delimiters.contains(&ids[p])));
+        let mut requested_rank = RoleRank::new();
+        let mut excluded_rank = RoleRank::new();
+        for (span, keys) in candidates {
+            let [requested, excluded] = self.scores(keys);
+            let in_region = span.start >= region.start && span.end <= region.end;
+            if in_region && excluded > requested {
+                excluded_rank.update(span, excluded);
+            }
+            let (eligibility, supporting_head) = match boundary {
+                None => (NoBoundary, None),
+                Some(boundary) if span.start <= boundary || span.end > content.end => {
+                    (OutsideQuery, None)
+                }
+                Some(_) if !in_region => (OutsideRegion, None),
+                Some(boundary) => {
+                    let head = (content.start.max(1)..boundary).find_map(|start| {
+                        use crate::span_selector::{bounds, START};
+                        if assertion_classes[ids[start] as usize] != START
+                            || !delimiters.contains(&ids[start - 1])
+                        {
+                            return None;
+                        }
+                        let end = bounds(ids, assertion_classes, start).1 + 1;
+                        (end <= boundary && ids[start..end] == ids[span.start..span.end])
+                            .then_some([start, end])
+                    });
+                    (
+                        if head.is_some() {
+                            Eligible
+                        } else {
+                            NoExactAssertionHead
+                        },
+                        head,
+                    )
+                }
+            };
+            let contrast = supporting_head.map(|_| requested - excluded);
+            if let Some(contrast) = contrast {
+                requested_rank.update(span, contrast);
+            }
+            visit(RequestedOccurrenceCandidateTrace {
+                span: [span.start, span.end],
+                scores: [requested, excluded],
+                feature_keys: keys,
+                eligibility,
+                supporting_head,
+                contrast,
+            });
+        }
+        let decision = PairedRoleDecision {
+            requested: requested_rank
+                .span
+                .filter(|_| requested_rank.score > requested_rank.runner_up),
+            excluded: excluded_rank.winner(),
+            requested_score: requested_rank.score,
+            excluded_score: excluded_rank.score,
+            requested_runner_up: requested_rank.runner_up,
+            excluded_runner_up: excluded_rank.runner_up,
+        };
+        Ok((decision, boundary))
     }
 
     pub fn trace_where(

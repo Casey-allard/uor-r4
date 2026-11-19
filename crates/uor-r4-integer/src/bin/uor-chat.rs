@@ -2023,10 +2023,13 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
             "role-copy text uses literal dialogue protocol 2".into(),
         ));
     }
-    if let (Some(framing), Some((tokenizer, _, _))) = (model.ordered_role_framing(), &text_mode) {
+    let role_framing = model
+        .ordered_role_framing()
+        .or_else(|| model.requested_role_framing());
+    if let (Some(framing), Some((tokenizer, _, _))) = (role_framing, &text_mode) {
         if *framing != uor_r4_integer::ordered_role::RoleFraming::from_tokenizer(tokenizer)? {
             return Err(IntegerError::Invalid(
-                "ordered-role artifact does not bind the tokenizer protocol 2 framing".into(),
+                "role artifact does not bind the tokenizer protocol 2 framing".into(),
             ));
         }
     }

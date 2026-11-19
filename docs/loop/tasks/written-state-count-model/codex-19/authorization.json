@@ -1,0 +1,9 @@
+{
+  "schema": "uor-r4.requested-occurrence-go/1",
+  "decision": "GO",
+  "inputs_sha256": "8a7f9169e52ec2f486126c1e4612939cb9b71897a6225ce9ea6f65bb701f3b61",
+  "non_author_fit_sha256": "4978864173809f11af7c4c5c8e6e5a662a0181209f90caf5d28b2159f23871c7",
+  "finite_controls_sha256": "cdef6c94b9afd24dce8f2778bc52cd774aa337a320510c26b175fcd4d734811a",
+  "pre_run_review_sha256": "7645bca479a9c0503f817496f63dad9e70218667d46df0592cc9d9ed0e5877a2",
+  "device": "GPU-635e0488-ca33-a7ca-dfcb-5b8b0b6944e5"
+}

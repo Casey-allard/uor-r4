@@ -1,0 +1,49 @@
+{
+  "schema": "uor-r4.requested-occurrence-storage/1",
+  "verified_utc": "2026-11-19T20:15:47Z",
+  "origin": {
+    "instance": "vast-61501076",
+    "result_root": "/workspace/uor-r4/jobs/codex19-held-01",
+    "status": "done 0",
+    "stage_input_manifest_sha256": "8a7f9169e52ec2f486126c1e4612939cb9b71897a6225ce9ea6f65bb701f3b61",
+    "seed_repetitions": [
+      "seed1-primary",
+      "seed2-primary",
+      "seed1-repeat",
+      "seed2-repeat"
+    ]
+  },
+  "archive": {
+    "name": "vast-evidence.tar.zst",
+    "format": "PAX tar compressed with Zstandard",
+    "bytes": 11721911,
+    "sha256": "fbd209483f99671789fa9c4c8a7b42fa6bf657df7c0c51bf5d8779b243bd1fa2",
+    "checksum_manifest_sha256": "a7db65ab3525da5dd413af1d348c2710d4d2116add044bc3993db658e945fc64",
+    "workstation_directory": "~/uor-r4/local/codex/requested-occurrence-ranking/custody/vast-61501076-held-01-replay",
+    "wick_directory": "~/uor-codex/20261119-requested-occurrence/custody-vast-61501076-held-01-replay/archive"
+  },
+  "readback": {
+    "workstation_verified_regular_files": 2318,
+    "workstation_verified_symbolic_link_targets": 2,
+    "regular_file_manifest_sha256": "9516efc0146f8bc33c6b8b71a9ccf70c5a653f49f30a98e32761439cc48d6f7d",
+    "symbolic_link_manifest_sha256": "d2a3bad2dd604a0faa7aa3fd34a027d4f49e518b3b1eb33c5bad051918ef7fdd",
+    "all_seed_raw_and_cold_manifests_verified_on_vast": true,
+    "both_seed_cold_repetition_manifests_match": true,
+    "wick_archive_and_sidecars_sha256_verified": true,
+    "seed_primary_raw_manifest_sha256": [
+      "bb2a81eac8d02573f67213e49f6af1419b157307ad922d2e4f33bf6e99685206",
+      "fbc71b1f4afeff37d536420689a771e45b70f4a691b26c8799450525844b09f1"
+    ],
+    "paired_seed_cold_manifest_sha256": [
+      "133d447344a6c52ee06f61ec005dca307d084fc9238f4eff1959da1981dac18f",
+      "ad742a1d699220c6d3f1c01d161c5cc219a4f641724862b37bf053008c3dff52"
+    ]
+  },
+  "retained_model_blobs": {
+    "host": "wick",
+    "count": 14,
+    "verified_against_vast": true,
+    "manifest": "wick-model-pins.sha256",
+    "manifest_sha256": "8790386a4778254bcc138590770feb6933225fa5448c1964dedd9f45a8dfb28d"
+  }
+}

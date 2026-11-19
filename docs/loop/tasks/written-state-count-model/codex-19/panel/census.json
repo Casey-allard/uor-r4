@@ -1,0 +1,36 @@
+{
+  "rows": 70,
+  "supported": 64,
+  "unsupported": [
+    {
+      "stratum": "conflict",
+      "rows": 2
+    },
+    {
+      "stratum": "unmentioned",
+      "rows": 2
+    },
+    {
+      "stratum": "unspecified",
+      "rows": 2
+    }
+  ],
+  "factorial_families": [
+    {
+      "family": "collection",
+      "cells": 32
+    },
+    {
+      "family": "inventory",
+      "cells": 32
+    }
+  ],
+  "fixed_positions": {
+    "first_fact": 32,
+    "second_fact": 32,
+    "first_query_name": 32,
+    "second_query_name": 32
+  },
+  "copyable_gold_rows": 64,
+  "copyable_opposing_rows": 64
+}

@@ -1,0 +1,2402 @@
+[
+  {
+    "index": 0,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 4,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 6,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 7,
+    "name": "Elspeth",
+    "gold": 9,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 8,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 9,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 10,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 11,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 12,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 13,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 14,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 15,
+    "name": "Leander",
+    "gold": 20,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 20,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 16,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 17,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 18,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 19,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 20,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 21,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 22,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 23,
+    "name": "Elspeth",
+    "gold": 19,
+    "chosen": null,
+    "reason": "nonpositive",
+    "candidates": [
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 48,
+        "radius": 48,
+        "negative_distance": 40,
+        "margin": {
+          "denominator": 2,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 88,
+        "radius": 92,
+        "negative_distance": 84,
+        "margin": {
+          "denominator": 4,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 24,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 25,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 26,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 27,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 28,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 29,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 30,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 31,
+    "name": "Leander",
+    "gold": 9,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 44,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 4
+        }
+      },
+      {
+        "source": 9,
+        "status": "unseen",
+        "gold": true,
+        "positive_distance": 120,
+        "radius": 92,
+        "negative_distance": 116,
+        "margin": null
+      }
+    ]
+  },
+  {
+    "index": 35,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 36,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 37,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 38,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 39,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 40,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 41,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 42,
+    "name": "Maren",
+    "gold": 10,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 43,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 44,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 45,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 46,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 47,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 48,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 49,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 50,
+    "name": "Ivor",
+    "gold": 18,
+    "chosen": 18,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 20,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 51,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 52,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 53,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 54,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 55,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 56,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 57,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 58,
+    "name": "Maren",
+    "gold": 19,
+    "chosen": null,
+    "reason": "unseen",
+    "candidates": [
+      {
+        "source": 17,
+        "status": "unseen",
+        "gold": false,
+        "positive_distance": 52,
+        "radius": 48,
+        "negative_distance": 44,
+        "margin": null
+      },
+      {
+        "source": 18,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 68,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -4
+        }
+      },
+      {
+        "source": 19,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 76,
+        "radius": 176,
+        "negative_distance": 72,
+        "margin": {
+          "denominator": 6,
+          "numerator": -4
+        }
+      }
+    ]
+  },
+  {
+    "index": 59,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 60,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 61,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 62,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 63,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 64,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 65,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  },
+  {
+    "index": 66,
+    "name": "Ivor",
+    "gold": 8,
+    "chosen": 8,
+    "reason": "selected",
+    "candidates": [
+      {
+        "source": 8,
+        "status": "scored",
+        "gold": true,
+        "positive_distance": 32,
+        "radius": 48,
+        "negative_distance": 48,
+        "margin": {
+          "denominator": 2,
+          "numerator": 16
+        }
+      },
+      {
+        "source": 9,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 72,
+        "radius": 72,
+        "negative_distance": 64,
+        "margin": {
+          "denominator": 3,
+          "numerator": -8
+        }
+      },
+      {
+        "source": 10,
+        "status": "scored",
+        "gold": false,
+        "positive_distance": 108,
+        "radius": 136,
+        "negative_distance": 100,
+        "margin": {
+          "denominator": 5,
+          "numerator": -8
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,50 @@
+{
+  "baseline": {
+    "rows": 70,
+    "supported": 64,
+    "role_exact": 32,
+    "exact_replies": 8,
+    "first_wrong": [
+      {
+        "index": 0,
+        "count": 56
+      }
+    ],
+    "unsupported_writes": 0
+  },
+  "treatment": {
+    "rows": 70,
+    "supported": 64,
+    "role_exact": 48,
+    "exact_replies": 12,
+    "first_wrong": [
+      {
+        "index": 0,
+        "count": 52
+      }
+    ],
+    "unsupported_writes": 0
+  },
+  "role_switches": {
+    "ordered": {
+      "first_query_name": 16,
+      "last_query_name": 16,
+      "neither_query_name": 32,
+      "pairs_by_result": {
+        "both_correct": 16,
+        "one_or_both_outside_query_names": 16
+      },
+      "pairs_both_replies_exact": 0
+    },
+    "treatment": {
+      "first_query_name": 16,
+      "last_query_name": 48,
+      "neither_query_name": 0,
+      "pairs_by_result": {
+        "both_correct": 24,
+        "both_distractors": 8
+      },
+      "pairs_both_replies_exact": 0
+    }
+  }
+}
