@@ -1,0 +1,13 @@
+8448 signed route and exact-span words matched
+8448 signed route and exact-span words matched
+8448 signed route and exact-span words matched
+8448 signed route and exact-span words matched
+40255252f8ace7d834c39d511ff4ce0e583611d6f94af2174eb3757f3ef29362  target/release/paired-role-device
+149119c0509ba7dfccc99dfa64cb6168f8e5a13fd754826bebb31fb3a295bfda  ../role/bin/device
+3b372d591a8eff0921baec8f88915f46003b4e5e1c5e588c758f9ac506b7a1fe  crates/uor-r4-integer/src/paired_role.rs
+619e8217109d1922419d5ccdffdc8e6d7201ce5efb56a7a603141c28763434f5  docs/loop/tasks/written-state-count-model/codex-12/role/driver.rs
+61c2618aa49fb0dee18b7d5ae664ce91c00cf882a25c0fd83e7b14d541ca1d13  results/finite.txt
+29037c528b27e7eab436308cbf132210a4678be7fd429c915b3513058bacdd42  results/seed1-fresh.json
+b62f9d21b2b6b89c004a3be0c32e2e870954e3916d28f7eb3a69850b2130d316  results/seed1-held.json
+dd480aebbe98fcec1c532cf984f9921d4435a440db9f9654abebeb7090664c60  results/seed2-fresh.json
+c78bf8e681558fe1e259aa67c2a2790ede7f78dbd6e6cd282a15e35d7edba5fb  results/seed2-held.json

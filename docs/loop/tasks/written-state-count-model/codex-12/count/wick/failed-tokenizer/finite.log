@@ -1,0 +1,6 @@
+order 0: 84 triples, 84 retained, 3 ms
+order 1: 538 triples, 538 retained, 4 ms
+order 2: 968 triples, 968 retained, 4 ms
+order 3: 726 triples, 107 retained, 5 ms
+order 4: 484 triples, 53 retained, 8 ms
+count D11 round-trip identity failure

@@ -30,12 +30,19 @@ const S2_HEADER_BYTES: usize = 96;
 const S2_ROW_BYTES: usize = 20;
 /// Learned read-only role selection, followed by the frozen span, WordStart and continuation operators.
 pub const DISCRETE_ROLE_SCHEMA: &str = "uor-r4.lut-discrete-role-copy/1";
+/// A learned requested/excluded role bank, assertion-local value read and exact-copy agreement.
+pub const DISCRETE_PAIRED_SCHEMA: &str = "uor-r4.lut-discrete-paired-copy/1";
+#[path = "paired_copy.rs"]
+mod paired_copy;
+pub use paired_copy::PairedCopyDecision;
 /// Version 1 stops at a period, EOS, BOS or newline. A witnessed delimiter after a nonempty copy emits EOS.
 pub const ROLE_COPY_STOPS: [u32; 4] = [16, 1, 0, 201];
 
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RolePolicy {
+    #[serde(skip)]
+    paired: Option<paired_copy::Policy>,
     occurrence: [Vec<[u32; 6]>; 3],
     span: crate::span_selector::Bank,
     exact: crate::value_selector::ExactBank,
@@ -60,6 +67,8 @@ struct RoleEnvelope {
     base_sha256: String,
     tokenizer_sha256: String,
     policy: RolePolicy,
+    #[serde(default)]
+    paired: Option<paired_copy::Header>,
 }
 
 impl RolePolicy {
@@ -1466,7 +1475,7 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
-        if schema == crate::count_mixer::SCHEMA {
+        if schema == crate::count_mixer::SCHEMA || schema == crate::count_mixer::CONTEXT_SCHEMA {
             if !allow_role {
                 return Err(invalid("nested count mixer"));
             }
@@ -1490,26 +1499,60 @@ impl IntegerDiscreteModel {
             {
                 return Err(invalid("count mixer carrier identity mismatch"));
             }
-            model.count_mixer = Some(crate::count_mixer::CountMixer::from_words(state)?);
+            model.count_mixer = Some(if schema == crate::count_mixer::CONTEXT_SCHEMA {
+                crate::count_mixer::CountMixer::from_context_words(state)?
+            } else {
+                crate::count_mixer::CountMixer::from_words(state)?
+            });
             model.tokenizer_sha256 = Some(env.tokenizer_sha256);
             model.artifact_sha256 = hex::encode(Sha256::digest(bytes));
             return Ok(model);
         }
-        if schema == DISCRETE_ROLE_SCHEMA {
+        if schema == DISCRETE_ROLE_SCHEMA || schema == DISCRETE_PAIRED_SCHEMA {
             if !allow_role {
                 return Err(invalid("nested role-copy artifact"));
             }
-            let envelope: RoleEnvelope = serde_json::from_slice(encoded_header)?;
+            let mut envelope: RoleEnvelope = serde_json::from_slice(encoded_header)?;
             let start = end_header.next_multiple_of(ALIGN);
-            let base = bytes
+            let payload = bytes
                 .get(start..)
                 .ok_or_else(|| invalid("missing embedded role-copy trunk"))?;
-            if envelope.schema != DISCRETE_ROLE_SCHEMA
+            if (envelope.schema == DISCRETE_PAIRED_SCHEMA) != envelope.paired.is_some()
                 || bytes[end_header..start].iter().any(|&v| v != 0)
             {
                 return Err(invalid("invalid role-copy envelope"));
             }
             envelope.policy.validate()?;
+            let base = if let Some(header) = envelope.paired {
+                if header.bank_bytes > payload.len()
+                    || header.delimiters.is_empty()
+                    || header.delimiters.len() > 4096
+                    || header.delimiters.iter().any(|&id| id >= 4096)
+                    || header.delimiters.windows(2).any(|ids| ids[0] >= ids[1])
+                {
+                    return Err(invalid("invalid paired bank bounds or delimiter IDs"));
+                }
+                let (raw, base) = payload.split_at(header.bank_bytes);
+                if hex::encode(Sha256::digest(raw)) != header.bank_sha256 {
+                    return Err(invalid("paired role bank SHA-256 mismatch"));
+                }
+                let roles = crate::paired_role::PairedRoleState::from_bytes(raw)?;
+                let binding = roles.bindings();
+                if hex::encode(binding[0]) != envelope.base_sha256
+                    || hex::encode(binding[1]) != envelope.tokenizer_sha256
+                {
+                    return Err(invalid(
+                        "paired role fit belongs to a different model or tokenizer",
+                    ));
+                }
+                envelope.policy.paired = Some(paired_copy::Policy {
+                    roles,
+                    delimiters: header.delimiters,
+                });
+                base
+            } else {
+                payload
+            };
             let mut model = Self::read_container(base, false)?;
             if model.artifact_schema() != DISCRETE_TRUNK_SCHEMA
                 || model.artifact_sha256() != envelope.base_sha256
@@ -1963,10 +2006,14 @@ impl IntegerDiscreteModel {
 
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
-        if self.count_mixer.is_some() {
-            crate::count_mixer::SCHEMA
-        } else if self.role_policy.is_some() {
-            DISCRETE_ROLE_SCHEMA
+        if let Some(mixer) = &self.count_mixer {
+            mixer.schema()
+        } else if let Some(policy) = &self.role_policy {
+            if policy.paired.is_some() {
+                DISCRETE_PAIRED_SCHEMA
+            } else {
+                DISCRETE_ROLE_SCHEMA
+            }
         } else if self.frozen_s2().is_some() {
             DISCRETE_S2_SCHEMA
         } else if self.is_trunk_d11() {
@@ -1983,6 +2030,9 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         read: bool,
     ) -> Result<Option<crate::content_selector::Choice>> {
+        if let Some(result) = self.paired_copy_decision(prompt, read)? {
+            return Ok(Some(result.choice));
+        }
         self.role_policy
             .as_ref()
             .map(|policy| {
@@ -1993,6 +2043,27 @@ impl IntegerDiscreteModel {
                 }
             })
             .transpose()
+    }
+
+    /// Trace the learned role, count of complete supporting values and exact accepted source.
+    pub fn paired_copy_decision(
+        &self,
+        prompt: &[u32],
+        read: bool,
+    ) -> Result<Option<PairedCopyDecision>> {
+        let Some(policy) = &self.role_policy else {
+            return Ok(None);
+        };
+        let Some(paired) = &policy.paired else {
+            return Ok(None);
+        };
+        if read {
+            paired
+                .choose(policy, prompt, &self.packed_codebook_roots())
+                .map(Some)
+        } else {
+            Ok(Some(PairedCopyDecision::default()))
+        }
     }
 
     pub fn source(&self) -> &DiscreteLutSource {
@@ -2510,12 +2581,24 @@ impl IntegerDiscreteModel {
         }
         if let Some(mixer) = self.count_mixer() {
             let previous = prefix[prefix.len() - 1] as u16;
-            let ranked = mixer.top8(previous);
+            let ranked = mixer.top8_for_prefix(prefix);
             let winner = ranked[0];
             let trace_words = if retain_trace {
-                let mass = mixer.mass_q32(previous, winner);
-                vec![u32::from(previous), mixer.conditional_weight(), u32::from(winner),
-                     mass as u32, (mass >> 32) as u32]
+                let mass = mixer.mass_q32_for_prefix(prefix, winner);
+                let mut trace = vec![
+                    u32::from(previous),
+                    mixer.conditional_weight(),
+                    u32::from(winner),
+                    mass as u32,
+                    (mass >> 32) as u32,
+                ];
+                if let Some(weights) = mixer.context_weights() {
+                    trace.extend(weights);
+                    for route in mixer.context_routes(prefix) {
+                        trace.extend([route as u32, (route >> 32) as u32]);
+                    }
+                }
+                trace
             } else {
                 Vec::new()
             };
@@ -2641,7 +2724,9 @@ impl IntegerDiscreteModel {
     /// and rival counts against `target` (`0..vocabulary`).
     pub fn observe_target(&self, prefix: &[u32], target: u32) -> Result<DiscreteTargetObservation> {
         if self.count_mixer().is_some() {
-            return Err(invalid("the count mixer uses target mass instead of trunk hinge loss"));
+            return Err(invalid(
+                "the count mixer uses target mass instead of trunk hinge loss",
+            ));
         }
         if target >= self.shape.vocabulary {
             return Err(invalid("target token ID outside vocabulary"));
@@ -3157,7 +3242,10 @@ mod tests {
         assert_eq!(first.evaluation.top8[0], 18);
         assert_eq!(first.evaluation.top8.len(), 8);
         assert!(first.evaluation.admitted_cells.is_empty());
-        assert_eq!(first.trace_words, vec![1, 250, 18, mass as u32, (mass >> 32) as u32]);
+        assert_eq!(
+            first.trace_words,
+            vec![1, 250, 18, mass as u32, (mass >> 32) as u32]
+        );
         assert_eq!(model.evaluate_prefix(&[99, 1]).unwrap(), first.evaluation);
         assert_eq!(model.evaluate_prefix(&[0, 1, 18]).unwrap().prediction, 7);
         assert_eq!(model.evaluate_prefix(&[999]).unwrap().prediction, 1);

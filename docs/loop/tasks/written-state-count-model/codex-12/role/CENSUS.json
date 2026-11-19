@@ -1,0 +1,114 @@
+{
+  "train": {
+    "rows": 1824,
+    "by_kind": {
+      "absent": 224,
+      "conflict": 112,
+      "duplicate_agree": 112,
+      "negated": 112,
+      "ordinary": 96,
+      "removed": 112,
+      "unique": 672,
+      "unspecified": 384
+    },
+    "by_case": {
+      "lower": 912,
+      "title": 912
+    },
+    "by_evidence": {
+      "absent": 304,
+      "conflict": 304,
+      "duplicate_agree": 304,
+      "negated": 304,
+      "removed": 304,
+      "unique": 304
+    },
+    "by_construction": {
+      "belongs-to": 192,
+      "beside": 192,
+      "between": 192,
+      "either": 192,
+      "excluding-before": 192,
+      "for-ignore": 192,
+      "for-rather": 192,
+      "ignoring-by": 192,
+      "ordinary": 96,
+      "regarding": 192
+    },
+    "fixed_fact_swap_pairs": 864,
+    "labelled_requested": 1344,
+    "labelled_excluded": 768
+  },
+  "held": {
+    "rows": 1056,
+    "by_kind": {
+      "absent": 128,
+      "conflict": 64,
+      "duplicate_agree": 64,
+      "negated": 64,
+      "ordinary": 96,
+      "removed": 64,
+      "unique": 384,
+      "unspecified": 192
+    },
+    "by_case": {
+      "lower": 528,
+      "title": 528
+    },
+    "by_evidence": {
+      "absent": 176,
+      "conflict": 176,
+      "duplicate_agree": 176,
+      "negated": 176,
+      "removed": 176,
+      "unique": 176
+    },
+    "by_construction": {
+      "belongs-after": 192,
+      "excluding-after": 192,
+      "ignoring-after": 192,
+      "ordinary-after": 96,
+      "regarding-tail": 192,
+      "unspecified-after": 192
+    },
+    "fixed_fact_swap_pairs": 480,
+    "labelled_requested": 768,
+    "labelled_excluded": 576
+  },
+  "fresh": {
+    "rows": 1056,
+    "by_kind": {
+      "absent": 128,
+      "conflict": 64,
+      "duplicate_agree": 64,
+      "negated": 64,
+      "ordinary": 96,
+      "removed": 64,
+      "unique": 384,
+      "unspecified": 192
+    },
+    "by_case": {
+      "lower": 528,
+      "title": 528
+    },
+    "by_evidence": {
+      "absent": 176,
+      "conflict": 176,
+      "duplicate_agree": 176,
+      "negated": 176,
+      "removed": 176,
+      "unique": 176
+    },
+    "by_construction": {
+      "except-before": 192,
+      "for-conversation": 192,
+      "ordinary-fresh": 96,
+      "set-aside": 192,
+      "skip-serve": 192,
+      "someone-unknown": 192
+    },
+    "fixed_fact_swap_pairs": 480,
+    "labelled_requested": 768,
+    "labelled_excluded": 576
+  }
+}

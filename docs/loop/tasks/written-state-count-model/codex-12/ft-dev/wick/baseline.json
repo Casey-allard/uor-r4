@@ -1,0 +1,54 @@
+{
+  "address_hinge_sum": 157120,
+  "admitted": 9012,
+  "artifact_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "cell_rank_hinge_sum": 466789,
+  "device": {
+    "compute_capability": [
+      8,
+      9
+    ],
+    "cubin_sha256": "b41d72ce289ff5daf29055687e2586929321fed6ddb800d10cddfc650e2eeb28",
+    "image_target": "sm_89",
+    "ordinal": 0,
+    "ptx_sha256": "31d4c01f1609382f8e68f7fe5e6994b947055db02ba047d932d0004060222aae",
+    "resources": "ptxas info    : 0 bytes gmem, 5040 bytes cmem[3]\nptxas info    : Compiling entry function 'd11_score_rows' for 'sm_89'\nptxas info    : Function properties for d11_score_rows\n    800 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads\nptxas info    : Used 126 registers, used 0 barriers, 800 bytes cumulative stack size, 480 bytes cmem[0], 64 bytes cmem[2]\nptxas info    : Compile time = 1040.209 ms\n"
+  },
+  "loss_ta_numerator_sum": 9748864,
+  "loss_tr_numerator_sum": 19658272,
+  "planted_fault_b4": {
+    "b4_pass": true,
+    "container_cells_tamper_rejected": true,
+    "container_routes_lsb_hash_changed": true,
+    "container_routes_oob_rejected": true,
+    "in_memory_cells_fault": {
+      "mismatched_rows": 1260,
+      "mutated_token": 1155,
+      "total_rows": 14287
+    },
+    "in_memory_route_or_gate_fault": {
+      "mismatched_rows": 656,
+      "read_mode_code": 2,
+      "total_rows": 14287
+    }
+  },
+  "psucc_admitted": 2312,
+  "psucc_rows": 3847,
+  "psucc_top1": 1779,
+  "psucc_top8": 1906,
+  "reference": {
+    "agreed": 14287,
+    "checked": 14287,
+    "first_mismatch": null
+  },
+  "refused": 0,
+  "row_records_sha256": "9c88ee8d20518a0063f1a8eabb0b37ed84861d52cce561604093404840c8caac",
+  "rows": 14287,
+  "rows_sha256": "d933c533b8b95b4ed6cb54cf96fe83c25a221e3e3226f9a212f52c7bfc1a7074",
+  "schema": "uor-r4.d11-scorer-score/1",
+  "score_elapsed_us": 87234,
+  "scores_sha256": "bd0b3b6a2db3e99d473a454953feb95d635ffd9bb9ec8d8ba086ea597336e0a8",
+  "token_hinge_sum": 590128,
+  "top1": 7002,
+  "top8": 7485
+}

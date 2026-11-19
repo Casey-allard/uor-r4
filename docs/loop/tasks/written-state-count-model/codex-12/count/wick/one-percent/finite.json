@@ -1,0 +1,1596 @@
+{
+  "arms": [
+    {
+      "against_depth1_relative_saved_ppm_estimate_low_high": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm": "depth1-full",
+      "d11_bytes": 86559376,
+      "d11_sha256": "899b3f4784b1adcc49f3e2c157fb2ef8a58a3b73cdcee66627f9717db4a81c0f",
+      "limits": [
+        538,
+        0,
+        0,
+        0
+      ],
+      "scores": {
+        "device_tape_sha256": "2071b660eac0c09f3746f50cfad3a3584f4eea030a89558b14af023f8792e4b6",
+        "examples": [
+          {
+            "index": 1,
+            "q32": 521059744,
+            "recent": [
+              0
+            ],
+            "routes": [
+              281474976710656,
+              0,
+              0,
+              0
+            ],
+            "target": 20,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 2,
+            "q32": 4162658088,
+            "recent": [
+              0,
+              20
+            ],
+            "routes": [
+              282849366245376,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 3,
+            "q32": 2081340824,
+            "recent": [
+              0,
+              20,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              0,
+              0,
+              0
+            ],
+            "target": 4,
+            "winner": 5,
+            "winner_q32": 2081340832
+          },
+          {
+            "index": 4,
+            "q32": 4161715608,
+            "recent": [
+              0,
+              20,
+              3,
+              4
+            ],
+            "routes": [
+              281749854617600,
+              0,
+              0,
+              0
+            ],
+            "target": 8,
+            "winner": 8,
+            "winner_q32": 4161715608
+          },
+          {
+            "index": 5,
+            "q32": 4168312936,
+            "recent": [
+              20,
+              3,
+              4,
+              8
+            ],
+            "routes": [
+              282024732524544,
+              0,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 7,
+            "q32": 521059744,
+            "recent": [
+              4,
+              8,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              0,
+              0,
+              0
+            ],
+            "target": 21,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 8,
+            "q32": 4162658088,
+            "recent": [
+              8,
+              1,
+              0,
+              21
+            ],
+            "routes": [
+              282918085722112,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 9,
+            "q32": 2081340832,
+            "recent": [
+              1,
+              0,
+              21,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              0,
+              0,
+              0
+            ],
+            "target": 5,
+            "winner": 5,
+            "winner_q32": 2081340832
+          },
+          {
+            "index": 10,
+            "q32": 4161715616,
+            "recent": [
+              0,
+              21,
+              3,
+              5
+            ],
+            "routes": [
+              281818574094336,
+              0,
+              0,
+              0
+            ],
+            "target": 9,
+            "winner": 9,
+            "winner_q32": 4161715616
+          },
+          {
+            "index": 11,
+            "q32": 4168312936,
+            "recent": [
+              21,
+              3,
+              5,
+              9
+            ],
+            "routes": [
+              282093452001280,
+              0,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 13,
+            "q32": 23576,
+            "recent": [
+              5,
+              9,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              0,
+              0,
+              0
+            ],
+            "target": 4095,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 14,
+            "q32": 61072640,
+            "recent": [
+              9,
+              1,
+              0,
+              4095
+            ],
+            "routes": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 1,
+            "winner_q32": 242027776
+          }
+        ],
+        "fallbacks": [
+          2,
+          0,
+          0,
+          0
+        ],
+        "greedy_correct_probes": 8,
+        "greedy_probes": 14,
+        "minimum_observed_q32": 23576,
+        "novel": {
+          "bits_q12": 219875,
+          "bytes": 14,
+          "targets": 14
+        },
+        "overall": {
+          "bits_q12": 219875,
+          "bytes": 14,
+          "targets": 14
+        },
+        "score_and_parity_ms": 179
+      },
+      "state_bytes": 22860,
+      "train_fit_q8": [
+        [
+          8,
+          248,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          248,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          248,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          248,
+          0,
+          0,
+          0
+        ]
+      ],
+      "words_sha256": "4b6b458a14c24ef8c89d0828f013871f30a276c61de8e5fd22d9e62ac1a9fdcb"
+    },
+    {
+      "against_depth1_relative_saved_ppm_estimate_low_high": [
+        [
+          25678,
+          0,
+          163226
+        ],
+        [
+          25678,
+          0,
+          163226
+        ]
+      ],
+      "arm": "depth2-equal",
+      "d11_bytes": 86559376,
+      "d11_sha256": "24a1091c38224acaa79486ee6fb7bc8aeeda621513f7b4b232aa20c69efe9a19",
+      "limits": [
+        404,
+        134,
+        0,
+        0
+      ],
+      "scores": {
+        "device_tape_sha256": "9adbf35624b510a5efff3d6f98805643fa8dd3ba945a80237f446fff9d547002",
+        "examples": [
+          {
+            "index": 1,
+            "q32": 521059744,
+            "recent": [
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 20,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 2,
+            "q32": 4162658088,
+            "recent": [
+              0,
+              20
+            ],
+            "routes": [
+              282849366245376,
+              564324342956032,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 3,
+            "q32": 3356409240,
+            "recent": [
+              0,
+              20,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156447395840,
+              0,
+              0
+            ],
+            "target": 4,
+            "winner": 4,
+            "winner_q32": 3356409240
+          },
+          {
+            "index": 4,
+            "q32": 4161715608,
+            "recent": [
+              0,
+              20,
+              3,
+              4
+            ],
+            "routes": [
+              281749854617600,
+              563224881659904,
+              0,
+              0
+            ],
+            "target": 8,
+            "winner": 8,
+            "winner_q32": 4161715608
+          },
+          {
+            "index": 5,
+            "q32": 4168312936,
+            "recent": [
+              20,
+              3,
+              4,
+              8
+            ],
+            "routes": [
+              282024732524544,
+              563499776344064,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 7,
+            "q32": 521059744,
+            "recent": [
+              4,
+              8,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 21,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 8,
+            "q32": 4162658088,
+            "recent": [
+              8,
+              1,
+              0,
+              21
+            ],
+            "routes": [
+              282918085722112,
+              564393062432768,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 9,
+            "q32": 3356409248,
+            "recent": [
+              1,
+              0,
+              21,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156464173056,
+              0,
+              0
+            ],
+            "target": 5,
+            "winner": 5,
+            "winner_q32": 3356409248
+          },
+          {
+            "index": 10,
+            "q32": 4161715616,
+            "recent": [
+              0,
+              21,
+              3,
+              5
+            ],
+            "routes": [
+              281818574094336,
+              563293601136640,
+              0,
+              0
+            ],
+            "target": 9,
+            "winner": 9,
+            "winner_q32": 4161715616
+          },
+          {
+            "index": 11,
+            "q32": 4168312936,
+            "recent": [
+              21,
+              3,
+              5,
+              9
+            ],
+            "routes": [
+              282093452001280,
+              563568512598016,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 13,
+            "q32": 23576,
+            "recent": [
+              5,
+              9,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 4095,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 14,
+            "q32": 61072640,
+            "recent": [
+              9,
+              1,
+              0,
+              4095
+            ],
+            "routes": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 1,
+            "winner_q32": 242027776
+          }
+        ],
+        "fallbacks": [
+          2,
+          6,
+          0,
+          0
+        ],
+        "greedy_correct_probes": 9,
+        "greedy_probes": 14,
+        "minimum_observed_q32": 23576,
+        "novel": {
+          "bits_q12": 214229,
+          "bytes": 14,
+          "targets": 14
+        },
+        "overall": {
+          "bits_q12": 214229,
+          "bytes": 14,
+          "targets": 14
+        },
+        "score_and_parity_ms": 185
+      },
+      "state_bytes": 22860,
+      "train_fit_q8": [
+        [
+          8,
+          117,
+          131,
+          0,
+          0
+        ],
+        [
+          8,
+          110,
+          138,
+          0,
+          0
+        ],
+        [
+          8,
+          103,
+          145,
+          0,
+          0
+        ],
+        [
+          8,
+          96,
+          152,
+          0,
+          0
+        ]
+      ],
+      "words_sha256": "db70eaacf4f88453e6b2544ac2ecc974e35c18cb34a603dcf43ea12e9cf54580"
+    },
+    {
+      "against_depth1_relative_saved_ppm_estimate_low_high": [
+        [
+          30317,
+          0,
+          192714
+        ],
+        [
+          30317,
+          0,
+          192714
+        ]
+      ],
+      "arm": "depth3-equal",
+      "d11_bytes": 86559376,
+      "d11_sha256": "88b68b7a8fae6b0ca78aea6355ba661bc0dfef586318096568679fd96a5a8e46",
+      "limits": [
+        270,
+        188,
+        80,
+        0
+      ],
+      "scores": {
+        "device_tape_sha256": "6e600ffb85035eb3d5e3f4ddbeec6f5bdc3a4a06b2e09209ad1cc3a6fdd5c2b4",
+        "examples": [
+          {
+            "index": 1,
+            "q32": 521059744,
+            "recent": [
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              0
+            ],
+            "target": 20,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 2,
+            "q32": 4162658088,
+            "recent": [
+              0,
+              20
+            ],
+            "routes": [
+              282849366245376,
+              564324342956032,
+              564324342956032,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 3,
+            "q32": 3658399128,
+            "recent": [
+              0,
+              20,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156447395840,
+              844631424106496,
+              0
+            ],
+            "target": 4,
+            "winner": 4,
+            "winner_q32": 3658399128
+          },
+          {
+            "index": 4,
+            "q32": 4161715608,
+            "recent": [
+              0,
+              20,
+              3,
+              4
+            ],
+            "routes": [
+              281749854617600,
+              563224881659904,
+              844699858452480,
+              0
+            ],
+            "target": 8,
+            "winner": 8,
+            "winner_q32": 4161715608
+          },
+          {
+            "index": 5,
+            "q32": 4168312936,
+            "recent": [
+              20,
+              3,
+              4,
+              8
+            ],
+            "routes": [
+              282024732524544,
+              563499776344064,
+              844974753067008,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 7,
+            "q32": 521059744,
+            "recent": [
+              4,
+              8,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              0
+            ],
+            "target": 21,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 8,
+            "q32": 4162658088,
+            "recent": [
+              8,
+              1,
+              0,
+              21
+            ],
+            "routes": [
+              282918085722112,
+              564393062432768,
+              564393062432768,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 9,
+            "q32": 3658399136,
+            "recent": [
+              1,
+              0,
+              21,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156464173056,
+              844631440883712,
+              0
+            ],
+            "target": 5,
+            "winner": 5,
+            "winner_q32": 3658399136
+          },
+          {
+            "index": 10,
+            "q32": 4161715616,
+            "recent": [
+              0,
+              21,
+              3,
+              5
+            ],
+            "routes": [
+              281818574094336,
+              563293601136640,
+              844768577933312,
+              0
+            ],
+            "target": 9,
+            "winner": 9,
+            "winner_q32": 4161715616
+          },
+          {
+            "index": 11,
+            "q32": 4168312936,
+            "recent": [
+              21,
+              3,
+              5,
+              9
+            ],
+            "routes": [
+              282093452001280,
+              563568512598016,
+              845043489320960,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 13,
+            "q32": 23576,
+            "recent": [
+              5,
+              9,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              0
+            ],
+            "target": 4095,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 14,
+            "q32": 61072640,
+            "recent": [
+              9,
+              1,
+              0,
+              4095
+            ],
+            "routes": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 1,
+            "winner_q32": 242027776
+          }
+        ],
+        "fallbacks": [
+          2,
+          6,
+          8,
+          0
+        ],
+        "greedy_correct_probes": 9,
+        "greedy_probes": 14,
+        "minimum_observed_q32": 23576,
+        "novel": {
+          "bits_q12": 213209,
+          "bytes": 14,
+          "targets": 14
+        },
+        "overall": {
+          "bits_q12": 213209,
+          "bytes": 14,
+          "targets": 14
+        },
+        "score_and_parity_ms": 185
+      },
+      "state_bytes": 22860,
+      "train_fit_q8": [
+        [
+          8,
+          76,
+          86,
+          86,
+          0
+        ],
+        [
+          8,
+          70,
+          89,
+          89,
+          0
+        ],
+        [
+          8,
+          65,
+          91,
+          92,
+          0
+        ],
+        [
+          8,
+          60,
+          93,
+          95,
+          0
+        ]
+      ],
+      "words_sha256": "a617bdc17b538f94575fbf66e7b596ab9be40aeba3a90dfcd85b7acd74849cba"
+    },
+    {
+      "against_depth1_relative_saved_ppm_estimate_low_high": [
+        [
+          32245,
+          0,
+          204972
+        ],
+        [
+          32245,
+          0,
+          204972
+        ]
+      ],
+      "arm": "depth4-equal",
+      "d11_bytes": 86559376,
+      "d11_sha256": "07b0f3b3adf5017e007fcfdf3bbcbeef313dd1442eb7bb93234e73fee2a7add0",
+      "limits": [
+        217,
+        161,
+        107,
+        53
+      ],
+      "scores": {
+        "device_tape_sha256": "19eef8d3ec23e536693c0935ae2470d178de6a43c94a5a16e63d2ac7cc46ee41",
+        "examples": [
+          {
+            "index": 1,
+            "q32": 521059744,
+            "recent": [
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              281474976710656
+            ],
+            "target": 20,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 2,
+            "q32": 4162658088,
+            "recent": [
+              0,
+              20
+            ],
+            "routes": [
+              282849366245376,
+              564324342956032,
+              564324342956032,
+              564324342956032
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 3,
+            "q32": 3792616856,
+            "recent": [
+              0,
+              20,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156447395840,
+              844631424106496,
+              844631424106496
+            ],
+            "target": 4,
+            "winner": 4,
+            "winner_q32": 3792616856
+          },
+          {
+            "index": 4,
+            "q32": 4161715608,
+            "recent": [
+              0,
+              20,
+              3,
+              4
+            ],
+            "routes": [
+              281749854617600,
+              563224881659904,
+              844699858452480,
+              1126174835163136
+            ],
+            "target": 8,
+            "winner": 8,
+            "winner_q32": 4161715608
+          },
+          {
+            "index": 5,
+            "q32": 4168312936,
+            "recent": [
+              20,
+              3,
+              4,
+              8
+            ],
+            "routes": [
+              282024732524544,
+              563499776344064,
+              844974753067008,
+              1126449729777684
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 7,
+            "q32": 521059744,
+            "recent": [
+              4,
+              8,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              281474976710656
+            ],
+            "target": 21,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 8,
+            "q32": 4162658088,
+            "recent": [
+              8,
+              1,
+              0,
+              21
+            ],
+            "routes": [
+              282918085722112,
+              564393062432768,
+              564393062432768,
+              564393062432768
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 9,
+            "q32": 3792616864,
+            "recent": [
+              1,
+              0,
+              21,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156464173056,
+              844631440883712,
+              844631440883712
+            ],
+            "target": 5,
+            "winner": 5,
+            "winner_q32": 3792616864
+          },
+          {
+            "index": 10,
+            "q32": 4161715616,
+            "recent": [
+              0,
+              21,
+              3,
+              5
+            ],
+            "routes": [
+              281818574094336,
+              563293601136640,
+              844768577933312,
+              1126243554643968
+            ],
+            "target": 9,
+            "winner": 9,
+            "winner_q32": 4161715616
+          },
+          {
+            "index": 11,
+            "q32": 4168312936,
+            "recent": [
+              21,
+              3,
+              5,
+              9
+            ],
+            "routes": [
+              282093452001280,
+              563568512598016,
+              845043489320960,
+              1126518466031637
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 13,
+            "q32": 23576,
+            "recent": [
+              5,
+              9,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              281474976710656,
+              281474976710656
+            ],
+            "target": 4095,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 14,
+            "q32": 61072640,
+            "recent": [
+              9,
+              1,
+              0,
+              4095
+            ],
+            "routes": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 1,
+            "winner_q32": 242027776
+          }
+        ],
+        "fallbacks": [
+          2,
+          6,
+          8,
+          10
+        ],
+        "greedy_correct_probes": 9,
+        "greedy_probes": 14,
+        "minimum_observed_q32": 23576,
+        "novel": {
+          "bits_q12": 212785,
+          "bytes": 14,
+          "targets": 14
+        },
+        "overall": {
+          "bits_q12": 212785,
+          "bytes": 14,
+          "targets": 14
+        },
+        "score_and_parity_ms": 181
+      },
+      "state_bytes": 22860,
+      "train_fit_q8": [
+        [
+          8,
+          57,
+          64,
+          63,
+          64
+        ],
+        [
+          8,
+          52,
+          66,
+          64,
+          66
+        ],
+        [
+          8,
+          48,
+          67,
+          65,
+          68
+        ],
+        [
+          8,
+          44,
+          68,
+          66,
+          70
+        ]
+      ],
+      "words_sha256": "9b410bd151d56b23f16c42756f3c1e3c000c691a460d8c2b4fece54468ef1a70"
+    },
+    {
+      "against_depth1_relative_saved_ppm_estimate_low_high": [
+        [
+          25678,
+          0,
+          163226
+        ],
+        [
+          25678,
+          0,
+          163226
+        ]
+      ],
+      "arm": "depth2-unpruned",
+      "d11_bytes": 86570992,
+      "d11_sha256": "1f885273de135ac02c36fe1a90579f13064714f776479cd2ae0e077d3daf7e70",
+      "limits": [
+        538,
+        968,
+        0,
+        0
+      ],
+      "scores": {
+        "device_tape_sha256": "9adbf35624b510a5efff3d6f98805643fa8dd3ba945a80237f446fff9d547002",
+        "examples": [
+          {
+            "index": 1,
+            "q32": 521059744,
+            "recent": [
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 20,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 2,
+            "q32": 4162658088,
+            "recent": [
+              0,
+              20
+            ],
+            "routes": [
+              282849366245376,
+              564324342956032,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 3,
+            "q32": 3356409240,
+            "recent": [
+              0,
+              20,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156447395840,
+              0,
+              0
+            ],
+            "target": 4,
+            "winner": 4,
+            "winner_q32": 3356409240
+          },
+          {
+            "index": 4,
+            "q32": 4161715608,
+            "recent": [
+              0,
+              20,
+              3,
+              4
+            ],
+            "routes": [
+              281749854617600,
+              563224881659904,
+              0,
+              0
+            ],
+            "target": 8,
+            "winner": 8,
+            "winner_q32": 4161715608
+          },
+          {
+            "index": 5,
+            "q32": 4168312936,
+            "recent": [
+              20,
+              3,
+              4,
+              8
+            ],
+            "routes": [
+              282024732524544,
+              563499776344064,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 7,
+            "q32": 521059744,
+            "recent": [
+              4,
+              8,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 21,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 8,
+            "q32": 4162658088,
+            "recent": [
+              8,
+              1,
+              0,
+              21
+            ],
+            "routes": [
+              282918085722112,
+              564393062432768,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 3,
+            "winner_q32": 4162658088
+          },
+          {
+            "index": 9,
+            "q32": 3356409248,
+            "recent": [
+              1,
+              0,
+              21,
+              3
+            ],
+            "routes": [
+              281681135140864,
+              563156464173056,
+              0,
+              0
+            ],
+            "target": 5,
+            "winner": 5,
+            "winner_q32": 3356409248
+          },
+          {
+            "index": 10,
+            "q32": 4161715616,
+            "recent": [
+              0,
+              21,
+              3,
+              5
+            ],
+            "routes": [
+              281818574094336,
+              563293601136640,
+              0,
+              0
+            ],
+            "target": 9,
+            "winner": 9,
+            "winner_q32": 4161715616
+          },
+          {
+            "index": 11,
+            "q32": 4168312936,
+            "recent": [
+              21,
+              3,
+              5,
+              9
+            ],
+            "routes": [
+              282093452001280,
+              563568512598016,
+              0,
+              0
+            ],
+            "target": 1,
+            "winner": 1,
+            "winner_q32": 4168312936
+          },
+          {
+            "index": 13,
+            "q32": 23576,
+            "recent": [
+              5,
+              9,
+              1,
+              0
+            ],
+            "routes": [
+              281474976710656,
+              281474976710656,
+              0,
+              0
+            ],
+            "target": 4095,
+            "winner": 52,
+            "winner_q32": 521201112
+          },
+          {
+            "index": 14,
+            "q32": 61072640,
+            "recent": [
+              9,
+              1,
+              0,
+              4095
+            ],
+            "routes": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "target": 3,
+            "winner": 1,
+            "winner_q32": 242027776
+          }
+        ],
+        "fallbacks": [
+          2,
+          6,
+          0,
+          0
+        ],
+        "greedy_correct_probes": 9,
+        "greedy_probes": 14,
+        "minimum_observed_q32": 23576,
+        "novel": {
+          "bits_q12": 214229,
+          "bytes": 14,
+          "targets": 14
+        },
+        "overall": {
+          "bits_q12": 214229,
+          "bytes": 14,
+          "targets": 14
+        },
+        "score_and_parity_ms": 181
+      },
+      "state_bytes": 34476,
+      "train_fit_q8": [
+        [
+          8,
+          117,
+          131,
+          0,
+          0
+        ],
+        [
+          8,
+          110,
+          138,
+          0,
+          0
+        ],
+        [
+          8,
+          103,
+          145,
+          0,
+          0
+        ],
+        [
+          8,
+          96,
+          152,
+          0,
+          0
+        ]
+      ],
+      "words_sha256": "c8be5616e600bcae195f464b372a073d3cdc9ba5581708d25230541aff95d541"
+    }
+  ],
+  "base_d11_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "carrier_tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "corpus_tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "corpus_train_sha256": "c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460",
+  "count_streams": [
+    {
+      "contexts": 1,
+      "contexts_sha256": "c7ab206268b0e0d4054bde353302eb2fb7491510efd5b517191458523ffc1796",
+      "depth": 0,
+      "targets": 1600,
+      "triples": 84,
+      "triples_sha256": "7973fb279790ef8395e4ce8faedea256df8de115fe37887357debe71df131e68"
+    },
+    {
+      "contexts": 84,
+      "contexts_sha256": "e0e4e4fcacb26ad040424aafc7ab853695ded34c14e145ffc6f3682851d66e9f",
+      "depth": 1,
+      "targets": 1600,
+      "triples": 538,
+      "triples_sha256": "54cebfc8add8bd21755e3c1edf0930648473a3a8b0bbed0bbfeea5ae61d85550"
+    },
+    {
+      "contexts": 530,
+      "contexts_sha256": "2567d8fa2e15e1412d3682470cc780073bb5a53cd1172ef4f0bb77f5544489f4",
+      "depth": 2,
+      "targets": 1280,
+      "triples": 968,
+      "triples_sha256": "d63377d54f4927cc5afa05308a296ad1d92699c08de4504e2c25045757b4df0f"
+    },
+    {
+      "contexts": 726,
+      "contexts_sha256": "91474c4eccd1dd55eb4e6e26e0bcdc7637b36512439d3077cb154a144c7aba1a",
+      "depth": 3,
+      "targets": 960,
+      "triples": 726,
+      "triples_sha256": "e85a5bb5e7bad7e574c7209f76d675905267c4b2d1c7da42f907d8645e02510f"
+    },
+    {
+      "contexts": 484,
+      "contexts_sha256": "f0d44432266c9d75225251b3c9d833f02398a1ee5e5294f698514080b7a8423e",
+      "depth": 4,
+      "targets": 640,
+      "triples": 484,
+      "triples_sha256": "497793d1c49739de2ceffaf22d74077e0558ef7c7a73976e6c70bd2f6a463b4d"
+    }
+  ],
+  "fit": {
+    "records": 3,
+    "sha256": "7afe415db94b3754c95c3658b728f635211a667d6a5045d2ab2bf9b2d4bf9172",
+    "tokens": 17
+  },
+  "fixed_unigram_q8": 8,
+  "fixture": true,
+  "legacy_gpu_score_scope": "Historical GPU replay at 1%; current readback/denominator cross-check on host",
+  "legacy_order1_weight242_host": {
+    "novel_targets_bytes_bits_q12": [
+      14,
+      14,
+      214665
+    ],
+    "overall_targets_bytes_bits_q12": [
+      14,
+      14,
+      214665
+    ]
+  },
+  "novel_sha256": "7ca2cf1d0d4cd483873ecb255fa484f72d989572595706d3525a9d08d4c93ac6",
+  "query": {
+    "records": 3,
+    "sha256": "7afe415db94b3754c95c3658b728f635211a667d6a5045d2ab2bf9b2d4bf9172",
+    "tokens": 17
+  },
+  "row_bytes": 12,
+  "shared_tokenizer_projection_sha256": "a4a39bfa70272bcc18fab12eaf20511e4ee38bd9d129f02e004f25b1e8e1ed0e",
+  "train": {
+    "records": 320,
+    "sha256": "1ec0de82f7804b475782498405259ccab3bd8c6b1d7d3211f4f801f221ac242e",
+    "tokens": 1920
+  },
+  "train_count_oracle_pass": true,
+  "train_fraction_percent": 1,
+  "wall_ms": 8067
+}

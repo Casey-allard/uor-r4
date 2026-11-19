@@ -1,0 +1,9 @@
+order 0: 4079 triples, 4079 retained, 8139 ms
+order 1: 3287149 triples, 3287149 retained, 2799 ms
+order 2: 52970273 triples, 1150502 retained, 4801 ms
+order 3: 200928647 triples, 657429 retained, 7965 ms
+order 4: 411458384 triples, 328714 retained, 12940 ms
+depth1-full: 125998708 bytes, weights Some([8, 248, 0, 0, 0]); overall 248536519573 novel 187786002467
+depth2-equal: 125998708 bytes, weights Some([8, 59, 189, 0, 0]); overall 199048185989 novel 158795638071
+depth3-equal: 125998708 bytes, weights Some([8, 50, 79, 119, 0]); overall 188712668281 novel 153497720910
+depth4-equal: 125998708 bytes, weights Some([8, 50, 57, 63, 78]); overall 186838554347 novel 153319998052

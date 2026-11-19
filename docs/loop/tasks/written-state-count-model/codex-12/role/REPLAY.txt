@@ -1,0 +1,39 @@
+primary
+2026-11-19T02:05:52+00:00
+2026-11-19T02:11:30+00:00
+name, uuid, driver_version
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02
+PASS GPU and Rust fit/reload decisions, exact multi-piece endpoints, no candidate, tied candidates, truncated state and blind grade rejection
+1179666 fitted words matched, 387 occupied cells, 39096 bytes, bank SHA-256 56610eab5073cc4b1c8edc7bbae9a9345cbe12876d47b9aec81f4862630087d0
+1179666 fitted words matched, 387 occupied cells, 39096 bytes, bank SHA-256 1c386426e4b5395de9cfa0e4fd4e2d59b2867e55ce1c930bc1eff4ee534f9d44
+Error: "role bank model/tokenizer binding differs"
+	User time (seconds): 1.92
+	System time (seconds): 2.97
+	Percent of CPU this job got: 1%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:38.62
+	Maximum resident set size (kbytes): 780532
+	Exit status: 0
+96800 device/reference decision words
+repeat
+2026-11-19T02:11:30+00:00
+2026-11-19T02:14:35+00:00
+name, uuid, driver_version
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02
+PASS GPU and Rust fit/reload decisions, exact multi-piece endpoints, no candidate, tied candidates, truncated state and blind grade rejection
+1179666 fitted words matched, 387 occupied cells, 39096 bytes, bank SHA-256 56610eab5073cc4b1c8edc7bbae9a9345cbe12876d47b9aec81f4862630087d0
+1179666 fitted words matched, 387 occupied cells, 39096 bytes, bank SHA-256 1c386426e4b5395de9cfa0e4fd4e2d59b2867e55ce1c930bc1eff4ee534f9d44
+Error: "role bank model/tokenizer binding differs"
+	User time (seconds): 1.82
+	System time (seconds): 2.89
+	Percent of CPU this job got: 2%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:04.82
+	Maximum resident set size (kbytes): 780520
+	Exit status: 0
+96800 device/reference decision words
+primary/seed1.role c4937568c038a733b4a7c5658c5b5c1d22824c391e86eb8ea4d46b96fe48f706  -
+primary/seed2.role c4937568c038a733b4a7c5658c5b5c1d22824c391e86eb8ea4d46b96fe48f706  -
+a973e27d8283b7d87be0a0dd1ef311f24b02580a82a6b0f1af03b7cbe53bd48a  primary/decisions.sha256
+a973e27d8283b7d87be0a0dd1ef311f24b02580a82a6b0f1af03b7cbe53bd48a  repeat/decisions.sha256
+d99587b7f463d0b860f9db1bd6c2ef6870ce9b8463e0e61562e1f1741829c61e  grades-02/grades.sha256
+d99587b7f463d0b860f9db1bd6c2ef6870ce9b8463e0e61562e1f1741829c61e  grades-repeat/grades.sha256
+e55a8a65e4e2e5f7f18ab04b7a2a6c90e274b324112403dd235c50fa2a1ae335  /tmp/uor-codex12-role-restored-manifest.txt

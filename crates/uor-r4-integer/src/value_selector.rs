@@ -66,6 +66,27 @@ pub fn decide(
     exact: &ExactBank,
     frozen: SpanChoice,
 ) -> Result<Decisions> {
+    let Some(frozen_source) = frozen.source else {
+        validate_input(ids, roots, span_bank, exact)?;
+        return Ok(Decisions::default());
+    };
+    let end = frozen.fact_end.ok_or(invalid("missing fact endpoint"))? as usize;
+    let limit = frozen
+        .query_start
+        .ok_or(invalid("missing query endpoint"))? as usize;
+    let out = decide_before(ids, roots, span_bank, exact, end, limit)?;
+    if out.current != Some(frozen_source) {
+        return Err(invalid("frozen span source differed"));
+    }
+    Ok(out)
+}
+
+pub(crate) fn validate_input(
+    ids: &[u32],
+    roots: &[u32],
+    span_bank: &Bank,
+    exact: &ExactBank,
+) -> Result<()> {
     span_bank.validate()?;
     exact.validate()?;
     if ids.is_empty()
@@ -77,14 +98,19 @@ pub fn decide(
     {
         return Err(invalid("invalid value selector prefix or roots"));
     }
-    let Some(frozen_source) = frozen.source else {
-        return Ok(Decisions::default());
-    };
-    let end = frozen.fact_end.ok_or(invalid("missing fact endpoint"))? as usize;
-    let limit = frozen
-        .query_start
-        .ok_or(invalid("missing query endpoint"))? as usize;
-    if end >= limit || limit >= ids.len() || frozen_source >= limit as u32 {
+    Ok(())
+}
+
+pub(crate) fn decide_before(
+    ids: &[u32],
+    roots: &[u32],
+    span_bank: &Bank,
+    exact: &ExactBank,
+    end: usize,
+    limit: usize,
+) -> Result<Decisions> {
+    validate_input(ids, roots, span_bank, exact)?;
+    if end >= limit || limit >= ids.len() {
         return Err(invalid("invalid value search bounds"));
     }
     let orbit = spiralcore_orbit_roots();
@@ -129,9 +155,6 @@ pub fn decide(
     let address = |len: u32| end as u32 + 1 + len;
     out.current = winners[0].map(|(_, len)| address(len));
     out.word_start = winners[1].map(|(_, len)| address(len));
-    if out.current != Some(frozen_source) {
-        return Err(invalid("frozen span source differed"));
-    }
     for c in &exact.connectors {
         let len = c[0] as usize;
         let bit = 1 << (len - 1);

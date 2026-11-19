@@ -53,6 +53,24 @@ pub fn decide(
     frozen: SpanChoice,
     baseline: Decisions,
 ) -> Result<Continuation> {
+    decide_before(
+        ids,
+        roots,
+        bank,
+        frozen.fact_end,
+        frozen.query_start,
+        baseline,
+    )
+}
+
+pub(crate) fn decide_before(
+    ids: &[u32],
+    roots: &[u32],
+    bank: &Bank,
+    fact_end: Option<u32>,
+    limit: Option<u32>,
+    baseline: Decisions,
+) -> Result<Continuation> {
     bank.validate()?;
     if ids.is_empty()
         || ids.len() > WIDTH
@@ -66,10 +84,8 @@ pub fn decide(
     let Some(start) = baseline.word_start else {
         return Ok(Continuation::default());
     };
-    let end = frozen.fact_end.ok_or(invalid("missing frozen fact end"))? as usize;
-    let limit = frozen
-        .query_start
-        .ok_or(invalid("missing frozen query start"))? as usize;
+    let end = fact_end.ok_or(invalid("missing frozen fact end"))? as usize;
+    let limit = limit.ok_or(invalid("missing continuation limit"))? as usize;
     let start = start as usize;
     if end >= limit
         || limit >= ids.len()

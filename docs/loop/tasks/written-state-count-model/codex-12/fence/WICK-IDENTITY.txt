@@ -1,0 +1,11 @@
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02
+Cuda compilation tools, release 13.1, V13.1.115
+Build cuda_13.1.r13.1/compiler.37061995_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+a9c01a10b5c19163ca80580e67212e529e8019d626540a6e03b265652f822813  bin/assertion-fence
+39e26e64e96c1fdd34e1818e732de7d3a6cd8b800617c5ffdae08adb58506645  bin/assertion-fence-final
+81b1f8d35527b2ba4fcc4cf3bafb8b7f610f0e35989f6abfb829b1cecfd885c1  bin/fence-device
+8a8747f12df80ea7ef5c5259363adacaa3ed09f93a4fcaaa5f41b897a98e93a2  d11_tables.h
+004cc78a1d0b616c15986c2032b6c07f661536851c4d24a627d6eb6d4258e592  /home/callard/uor-codex/20261118-role-boundary-count/bin/action-writer
+PASS 91 device/Rust words; crossed stop, multi-piece value, empty value, no stop, seven-token EOS, eight-token cap and no-read
+PASS 91 device/Rust words; crossed stop, multi-piece value, empty value, no stop, seven-token EOS, eight-token cap and no-read

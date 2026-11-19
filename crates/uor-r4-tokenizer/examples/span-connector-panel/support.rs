@@ -14,7 +14,7 @@ fn query(train: bool, form: usize, requested: &str, other: &str) -> String {
     }
 }
 
-fn token_span(
+pub(super) fn token_span(
     t: &ByteBpeTokenizer,
     prefix: &[u32],
     surface: &str,

@@ -42,3 +42,8 @@ arrayref = { path = "../../../../third_party/arrayref" }
 name = "count-score"
 path = "src/bin/count-score.rs"
 required-features = ["count-replay"]
+
+[[bin]]
+name = "context-score"
+path = "src/bin/context-score.rs"
+required-features = ["count-replay"]

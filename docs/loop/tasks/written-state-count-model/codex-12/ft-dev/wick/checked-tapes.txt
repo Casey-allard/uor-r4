@@ -1,0 +1,12 @@
+1-depth1-full.gpu: OK
+1-depth2-equal.gpu: OK
+1-depth3-equal.gpu: OK
+1-depth4-equal.gpu: OK
+10-depth1-full.gpu: OK
+10-depth2-equal.gpu: OK
+10-depth3-equal.gpu: OK
+10-depth4-equal.gpu: OK
+100-depth1-full.gpu: OK
+100-depth2-equal.gpu: OK
+100-depth3-equal.gpu: OK
+100-depth4-equal.gpu: OK

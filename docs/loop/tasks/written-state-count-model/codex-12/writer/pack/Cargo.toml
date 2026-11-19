@@ -1,0 +1,20 @@
+[package]
+name = "pack-paired-copy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "pack-paired-copy"
+path = "main.rs"
+
+[dependencies]
+uor-r4-integer = { path = "../../../../../../../crates/uor-r4-integer" }
+serde_json = "1"
+sha2 = "0.10"
+
+[[bin]]
+name = "verify-paired-client"
+path = "verify.rs"

@@ -1,0 +1,24 @@
+PASS depth1-full.d11
+PASS depth2-equal.d11
+PASS depth2-unpruned.d11
+PASS depth3-equal.d11
+PASS depth4-equal.d11
+PASS depth1-full.gpu
+PASS depth2-equal.gpu
+PASS depth2-unpruned.gpu
+PASS depth3-equal.gpu
+PASS depth4-equal.gpu
+PASS depth1-full-fit.u32
+PASS depth2-equal-fit.u32
+PASS depth2-unpruned-fit.u32
+PASS depth3-equal-fit.u32
+PASS depth4-equal-fit.u32
+PASS depth1-full.reload.words
+PASS depth2-equal.reload.words
+PASS depth2-unpruned.reload.words
+PASS depth3-equal.reload.words
+PASS depth4-equal.reload.words
+PASS fit.u16
+PASS query.u16
+PASS result scientific JSON (timing excluded)
+PASS finite scientific JSON (timing excluded)

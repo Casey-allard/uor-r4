@@ -1,0 +1,10 @@
+PASS out-of-vocabulary: token ID outside context-score vocabulary
+PASS weights-gap: discontinuous context-score weights
+PASS weights-sum: bad context-score weights
+PASS count-zero: invalid or unordered context-score row
+PASS invalid-key: invalid context-score context key
+PASS overflow: context-score row total overflows
+PASS duplicate: invalid or unordered context-score row
+PASS missing-order: missing configured context-score order
+PASS bad-unigram: invalid context-score unigram
+PASS corrupted raw ft/dev tape rejected before launch

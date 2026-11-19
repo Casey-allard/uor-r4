@@ -1,0 +1,848 @@
+{
+  "held": [
+    {
+      "id": "held-0-true-0-0-absent-excluding-after-0",
+      "pair": "held-0-true-0-0-absent-excluding-after",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "excluding-after",
+      "direction": "0",
+      "prompt": "may held pink. joe held brown. The record was closed. Tell me the thing for zura, excluding joe.",
+      "q": [
+        25,
+        28
+      ],
+      "e": [
+        33,
+        35
+      ],
+      "pick": [
+        25,
+        28
+      ],
+      "exclude": [
+        33,
+        35
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        25,
+        28,
+        33,
+        35,
+        42,
+        50,
+        38,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġzura"
+    },
+    {
+      "id": "held-0-false-0-0-absent-excluding-after-0",
+      "pair": "held-0-false-0-0-absent-excluding-after",
+      "kind": "absent",
+      "case": "title",
+      "construction": "excluding-after",
+      "direction": "0",
+      "prompt": "May held pink. Joe held brown. The record was closed. Tell me the thing for Zura, excluding Joe.",
+      "q": [
+        24,
+        27
+      ],
+      "e": [
+        32,
+        33
+      ],
+      "pick": [
+        24,
+        27
+      ],
+      "exclude": [
+        32,
+        33
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        24,
+        27,
+        32,
+        33,
+        42,
+        50,
+        4294967286,
+        4294967288
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠZura"
+    },
+    {
+      "id": "held-0-true-0-0-absent-ignoring-after-0",
+      "pair": "held-0-true-0-0-absent-ignoring-after",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "ignoring-after",
+      "direction": "0",
+      "prompt": "may held pink. joe held brown. The record was closed. What did zura keep, ignoring joe?",
+      "q": [
+        21,
+        24
+      ],
+      "e": [
+        28,
+        30
+      ],
+      "pick": [
+        11,
+        12
+      ],
+      "exclude": [
+        24,
+        25
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        11,
+        12,
+        24,
+        25,
+        38,
+        16,
+        28,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġheld"
+    },
+    {
+      "id": "held-1-true-0-0-absent-ignoring-after-0",
+      "pair": "held-1-true-0-0-absent-ignoring-after",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "ignoring-after",
+      "direction": "0",
+      "prompt": "lava held large cup. lavi held large hat. The record was closed. What did jim keep, ignoring lavi?",
+      "q": [
+        25,
+        27
+      ],
+      "e": [
+        31,
+        34
+      ],
+      "pick": [
+        25,
+        27
+      ],
+      "exclude": [
+        null,
+        null
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        25,
+        27,
+        4294967295,
+        4294967295,
+        28,
+        6,
+        20,
+        4294967288
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġjim"
+    },
+    {
+      "id": "held-0-false-0-0-absent-ignoring-after-0",
+      "pair": "held-0-false-0-0-absent-ignoring-after",
+      "kind": "absent",
+      "case": "title",
+      "construction": "ignoring-after",
+      "direction": "0",
+      "prompt": "May held pink. Joe held brown. The record was closed. What did Zura keep, ignoring Joe?",
+      "q": [
+        20,
+        23
+      ],
+      "e": [
+        27,
+        28
+      ],
+      "pick": [
+        20,
+        23
+      ],
+      "exclude": [
+        23,
+        24
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        20,
+        23,
+        23,
+        24,
+        28,
+        16,
+        20,
+        4294967288
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠZura"
+    },
+    {
+      "id": "held-0-true-0-0-absent-regarding-tail-0",
+      "pair": "held-0-true-0-0-absent-regarding-tail",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "regarding-tail",
+      "direction": "0",
+      "prompt": "may held pink. joe held brown. The record was closed. Regarding zura, name the object, even if Cedar saw joe.",
+      "q": [
+        24,
+        27
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        11,
+        12
+      ],
+      "exclude": [
+        24,
+        27
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        11,
+        12,
+        24,
+        27,
+        38,
+        40,
+        4294967294,
+        2
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġheld"
+    },
+    {
+      "id": "held-1-true-0-0-absent-regarding-tail-0",
+      "pair": "held-1-true-0-0-absent-regarding-tail",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "regarding-tail",
+      "direction": "0",
+      "prompt": "lava held large cup. lavi held large hat. The record was closed. Regarding jim, name the object, even if Cedar saw lavi.",
+      "q": [
+        28,
+        30
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        28,
+        30
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        4294967295,
+        4294967295,
+        28,
+        30,
+        0,
+        40,
+        4294967282,
+        2
+      ],
+      "low_evidence": true,
+      "tied": false,
+      "requested_text": null
+    },
+    {
+      "id": "held-1-false-0-0-absent-regarding-tail-1",
+      "pair": "held-1-false-0-0-absent-regarding-tail",
+      "kind": "absent",
+      "case": "title",
+      "construction": "regarding-tail",
+      "direction": "1",
+      "prompt": "Lava held large cup. Lavi held large hat. The record was closed. Regarding Roy, name the object, even if Cedar saw Lava.",
+      "q": [
+        28,
+        30
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        23,
+        28
+      ],
+      "exclude": [
+        28,
+        30
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        23,
+        28,
+        28,
+        30,
+        17,
+        40,
+        4294967294,
+        2
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠRegarding"
+    },
+    {
+      "id": "held-0-false-0-0-absent-regarding-tail-0",
+      "pair": "held-0-false-0-0-absent-regarding-tail",
+      "kind": "absent",
+      "case": "title",
+      "construction": "regarding-tail",
+      "direction": "0",
+      "prompt": "May held pink. Joe held brown. The record was closed. Regarding Zura, name the object, even if Cedar saw Joe.",
+      "q": [
+        23,
+        26
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        23,
+        26
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        4294967295,
+        4294967295,
+        23,
+        26,
+        4294967294,
+        40,
+        4294967287,
+        2
+      ],
+      "low_evidence": true,
+      "tied": false,
+      "requested_text": null
+    }
+  ],
+  "fresh": [
+    {
+      "id": "fresh-0-true-0-0-unique-ordinary-fresh-0",
+      "pair": "fresh-0-true-0-0-unique-ordinary-fresh",
+      "kind": "ordinary",
+      "case": "lower",
+      "construction": "ordinary-fresh",
+      "direction": "0",
+      "prompt": "ben kept green. eve kept black. Can Cedar and Summit be used as names for colors?",
+      "q": [
+        null,
+        null
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        27,
+        28
+      ],
+      "exclude": [
+        null,
+        null
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        27,
+        28,
+        4294967295,
+        4294967295,
+        56,
+        2147483648,
+        3,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġcolors"
+    },
+    {
+      "id": "fresh-0-false-0-0-unique-ordinary-fresh-0",
+      "pair": "fresh-0-false-0-0-unique-ordinary-fresh",
+      "kind": "ordinary",
+      "case": "title",
+      "construction": "ordinary-fresh",
+      "direction": "0",
+      "prompt": "Ben kept green. Eve kept black. Can Cedar and Summit be used as names for colors?",
+      "q": [
+        null,
+        null
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        27,
+        28
+      ],
+      "exclude": [
+        null,
+        null
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        27,
+        28,
+        4294967295,
+        4294967295,
+        56,
+        2147483648,
+        3,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġcolors"
+    },
+    {
+      "id": "fresh-1-true-0-0-conflict-set-aside-1",
+      "pair": "fresh-1-true-0-0-conflict-set-aside",
+      "kind": "conflict",
+      "case": "lower",
+      "construction": "set-aside",
+      "direction": "1",
+      "prompt": "sani kept small ring. sana kept small tray. sani kept small tray. Set aside sana, and describe the possession of sani.",
+      "q": [
+        45,
+        48
+      ],
+      "e": [
+        29,
+        32
+      ],
+      "pick": [
+        23,
+        24
+      ],
+      "exclude": [
+        29,
+        32
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        23,
+        24,
+        29,
+        32,
+        12,
+        12,
+        8,
+        4294967292
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġtray"
+    },
+    {
+      "id": "fresh-0-true-0-0-absent-set-aside-0",
+      "pair": "fresh-0-true-0-0-absent-set-aside",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "set-aside",
+      "direction": "0",
+      "prompt": "ben kept green. eve kept black. The record was closed. Set aside eve, and describe the possession of vela.",
+      "q": [
+        37,
+        39
+      ],
+      "e": [
+        22,
+        24
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        22,
+        24
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        4294967295,
+        4294967295,
+        22,
+        24,
+        4294967294,
+        12,
+        4294967285,
+        2147483648
+      ],
+      "low_evidence": true,
+      "tied": false,
+      "requested_text": null
+    },
+    {
+      "id": "fresh-1-false-0-0-absent-set-aside-0",
+      "pair": "fresh-1-false-0-0-absent-set-aside",
+      "kind": "absent",
+      "case": "title",
+      "construction": "set-aside",
+      "direction": "0",
+      "prompt": "Sani kept small ring. Sana kept small tray. The record was closed. Set aside Sana, and describe the possession of Umber.",
+      "q": [
+        43,
+        46
+      ],
+      "e": [
+        27,
+        30
+      ],
+      "pick": [
+        9,
+        10
+      ],
+      "exclude": [
+        27,
+        30
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        9,
+        10,
+        27,
+        30,
+        14,
+        12,
+        8,
+        4294967280
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "Ġring"
+    },
+    {
+      "id": "fresh-1-false-0-0-conflict-set-aside-1",
+      "pair": "fresh-1-false-0-0-conflict-set-aside",
+      "kind": "conflict",
+      "case": "title",
+      "construction": "set-aside",
+      "direction": "1",
+      "prompt": "Sani kept small ring. Sana kept small tray. Sani kept small tray. Set aside Sana, and describe the possession of Sani.",
+      "q": [
+        45,
+        48
+      ],
+      "e": [
+        29,
+        32
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        29,
+        32
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        4294967295,
+        4294967295,
+        29,
+        32,
+        14,
+        12,
+        14,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": true,
+      "requested_text": null
+    },
+    {
+      "id": "fresh-0-false-0-0-absent-set-aside-0",
+      "pair": "fresh-0-false-0-0-absent-set-aside",
+      "kind": "absent",
+      "case": "title",
+      "construction": "set-aside",
+      "direction": "0",
+      "prompt": "Ben kept green. Eve kept black. The record was closed. Set aside Eve, and describe the possession of Vela.",
+      "q": [
+        37,
+        40
+      ],
+      "e": [
+        22,
+        24
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        22,
+        24
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        4294967295,
+        4294967295,
+        22,
+        24,
+        4294967294,
+        12,
+        4294967294,
+        2147483648
+      ],
+      "low_evidence": true,
+      "tied": false,
+      "requested_text": null
+    },
+    {
+      "id": "fresh-0-true-0-0-absent-skip-serve-0",
+      "pair": "fresh-0-true-0-0-absent-skip-serve",
+      "kind": "absent",
+      "case": "lower",
+      "construction": "skip-serve",
+      "direction": "0",
+      "prompt": "ben kept green. eve kept black. The record was closed. Skip eve. Report what vela was carrying for Cedar.",
+      "q": [
+        28,
+        30
+      ],
+      "e": [
+        21,
+        23
+      ],
+      "pick": [
+        34,
+        37
+      ],
+      "exclude": [
+        33,
+        34
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        34,
+        37,
+        33,
+        34,
+        36,
+        12,
+        4294967285,
+        8
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠCedar"
+    },
+    {
+      "id": "fresh-0-false-0-0-absent-skip-serve-0",
+      "pair": "fresh-0-false-0-0-absent-skip-serve",
+      "kind": "absent",
+      "case": "title",
+      "construction": "skip-serve",
+      "direction": "0",
+      "prompt": "Ben kept green. Eve kept black. The record was closed. Skip Eve. Report what Vela was carrying for Cedar.",
+      "q": [
+        28,
+        31
+      ],
+      "e": [
+        21,
+        23
+      ],
+      "pick": [
+        35,
+        38
+      ],
+      "exclude": [
+        34,
+        35
+      ],
+      "old_start": null,
+      "prior_start": null,
+      "words": [
+        35,
+        38,
+        34,
+        35,
+        36,
+        12,
+        4294967285,
+        8
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠCedar"
+    }
+  ],
+  "historical": [
+    {
+      "id": "held-0-0-0-0-1-conflict",
+      "pair": "held-0-0-0-1-conflict",
+      "kind": "conflict",
+      "case": "historical",
+      "construction": "excluding-after",
+      "direction": "0",
+      "prompt": "May held pink. Joe held brown. May held brown. Tell me the thing for May, excluding Joe.",
+      "q": [
+        24,
+        26
+      ],
+      "e": [
+        31,
+        32
+      ],
+      "pick": [
+        24,
+        26
+      ],
+      "exclude": [
+        31,
+        32
+      ],
+      "old_start": 31,
+      "prior_start": 31,
+      "words": [
+        24,
+        26,
+        31,
+        32,
+        42,
+        50,
+        4294967288,
+        2147483648
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠMay"
+    },
+    {
+      "id": "held-0-0-0-1-0-third",
+      "pair": "held-0-0-0-0-third",
+      "kind": "third",
+      "case": "historical",
+      "construction": "regarding",
+      "direction": "1",
+      "prompt": "May held pink. Joe held brown. Regarding Roy, what object did the record name?",
+      "q": [
+        18,
+        20
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        13,
+        18
+      ],
+      "exclude": [
+        18,
+        20
+      ],
+      "old_start": 27,
+      "prior_start": 18,
+      "words": [
+        13,
+        18,
+        18,
+        20,
+        18,
+        48,
+        4294967294,
+        4
+      ],
+      "low_evidence": false,
+      "tied": false,
+      "requested_text": "ĠRegarding"
+    },
+    {
+      "id": "held-0-0-0-0-0-conflict",
+      "pair": "held-0-0-0-0-conflict",
+      "kind": "conflict",
+      "case": "historical",
+      "construction": "regarding",
+      "direction": "0",
+      "prompt": "May held pink. Joe held brown. May held brown. Regarding May, what object did the record name?",
+      "q": [
+        23,
+        25
+      ],
+      "e": [
+        null,
+        null
+      ],
+      "pick": [
+        null,
+        null
+      ],
+      "exclude": [
+        23,
+        25
+      ],
+      "old_start": 32,
+      "prior_start": 23,
+      "words": [
+        4294967295,
+        4294967295,
+        23,
+        25,
+        4294967294,
+        48,
+        4294967290,
+        2147483648
+      ],
+      "low_evidence": true,
+      "tied": false,
+      "requested_text": null
+    }
+  ]
+}

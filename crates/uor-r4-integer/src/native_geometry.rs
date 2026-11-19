@@ -18,6 +18,8 @@ compile_error!(
 #[cfg(feature = "serving-wasm")]
 include!("serving_root.rs");
 
+pub mod assertion_value;
+
 #[cfg(not(feature = "serving-wasm"))]
 pub mod count_mixer;
 #[cfg(not(feature = "serving-wasm"))]
@@ -32,6 +34,7 @@ pub mod value_selector;
 pub mod continuation_selector;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod occurrence_selector;
+pub mod paired_role;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod fbs_address;
 #[cfg(not(feature = "serving-wasm"))]

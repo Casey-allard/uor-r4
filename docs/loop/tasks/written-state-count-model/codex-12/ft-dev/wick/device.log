@@ -1,0 +1,30 @@
+tokens.u16: OK
+response_mask.u8: OK
+name, memory.free [MiB]
+NVIDIA GeForce RTX 4090, 19649 MiB
+14287 rows: top1 7002, top8 7485, admitted 9012, loss_ta 9748864, loss_tr 19658272, refused 0
+baseline.jsonl: OK
+../count/primary-1-v2/run/depth1-full.d11: OK
+a9982496a15479cb9cdd6297ae88877334fcb2973d328d19926857d28d8dc4b6  1-depth1-full.gpu
+../count/primary-1-v2/run/depth2-equal.d11: OK
+996a84a4d9a4e0a38bfd8c15cabb149dc38261ab93701d5a26f3c66e99e06b1b  1-depth2-equal.gpu
+../count/primary-1-v2/run/depth3-equal.d11: OK
+4327e8aa37bdcc565eaa80e5557861bba0b68100718d8703cfd14e0603abc0fc  1-depth3-equal.gpu
+../count/primary-1-v2/run/depth4-equal.d11: OK
+c585f34b69f9adf6da0181ee9c35134cba49cb728c69110188893d0f9b38056f  1-depth4-equal.gpu
+../count/primary-10/run/depth1-full.d11: OK
+a4d1f2d764be805900ee89b479c93e926fe2a3ed5b3e89602d888f218c7113a4  10-depth1-full.gpu
+../count/primary-10/run/depth2-equal.d11: OK
+eca86ba1225424c64aa24b668fbac16e19341d4d28d25e692dead7ec55620ba7  10-depth2-equal.gpu
+../count/primary-10/run/depth3-equal.d11: OK
+8254566c2e87a6f9e0a2fde4dc90792e3c39aaa98b2a8b260b1d0c0f5c908c0b  10-depth3-equal.gpu
+../count/primary-10/run/depth4-equal.d11: OK
+dee8298e9d18d3530391bef63f9d23af2bad7c0ced110fba926e2a90ee542dbd  10-depth4-equal.gpu
+../count/primary-100/run/depth1-full.d11: OK
+92224f2e276e303727fd5a7e960eb990c5bf27f2b91755436c0eecda200d680d  100-depth1-full.gpu
+../count/primary-100/run/depth2-equal.d11: OK
+43ca383a7680c5e54ba0f1891c63c30787184b91a2cb85ec6975c7a1c9b728ee  100-depth2-equal.gpu
+../count/primary-100/run/depth3-equal.d11: OK
+cc3ee6cc2369492f84e01db42319f8cdd415061ec2f4e0d3817ed58d9c9da8e5  100-depth3-equal.gpu
+../count/primary-100/run/depth4-equal.d11: OK
+f6a87aaba5129dba59931c24b3dd589b37a4169d95519a1339faa722e872fa1f  100-depth4-equal.gpu

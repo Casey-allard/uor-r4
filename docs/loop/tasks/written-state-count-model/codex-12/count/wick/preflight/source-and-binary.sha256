@@ -1,0 +1,5 @@
+9340ee70853d34a5609914ab3ff90b9b7ac2ccded9bb0d32ff968e5e3288fda0  /home/callard/uor-codex/20261118-paired-role-fence/count/context-score-device
+8259ff7f9852d915acf99debe0616b1a26cd0c037d209a14acc91b64594e4be4  context-score-device
+6596a576a95a09183641053b679746befb3fa676e31100eedc06e56c2a446485  src/context-score.cu
+b65f75be4e62e06d85399e5bb2edff6560777f7af7f610b64c52fc13892e687f  src/count-score.cu
+a29696d7c90549a0f24018029ae33684f571913eb917f8e8799e5568c445de7b  ft-run-wick.sh

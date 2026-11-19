@@ -1,0 +1,3 @@
+27099bbe04ef63a216fe7e0200c4c01bbb9b5c8cb2bca42682861c1a1809eddd  /home/callard/uor-codex/20261118-paired-role-fence/count/primary-100/run/query.u16
+902a9fe1c21162b1f9645255e4586d4bf94a4aa04f863b6f2567ff56c53459db  /home/callard/uor-codex/20261118-paired-role-fence/count/primary-100/run/depth4-equal.gpu
+902a9fe1c21162b1f9645255e4586d4bf94a4aa04f863b6f2567ff56c53459db  /home/callard/uor-codex/20261118-paired-role-fence/count/preflight-v2/replay-03/repaired-dev.gpu

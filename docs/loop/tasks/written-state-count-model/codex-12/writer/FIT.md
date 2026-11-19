@@ -1,0 +1,7 @@
+# [codex] Independent FIT — paired role and boundary writer
+
+Reviewed by the fence subtask at 2026-11-19T01:57:31Z. Bound writer/SHEET.md SHA-256 `21a0e96b4d61609fe6579c8b13cf94d89d31c07d46b56e427e1164a33ec28f48`. **FIT, conditional go** on the existing Wick RTX 4090 with the shared lock and no paid compute.
+
+This test can isolate source-routing contribution within the existing native integer writer by holding query/fact upstream choices fixed in each boundary contrast. The actual feedback path closes the gap between a correct first address and exact output through EOS. The two frozen seeds, fixed writer, raw device/reference equality, independent fresh wording, no-read, known-source control, negative joins and rerun are sufficient for a component decision under the written-state roadmap.
+
+Before scoring, bind distinct immutable blind inputs and output handoffs to the same ordered prompt hashes. Seal blind handoffs before opening grade projections or producing forced/oracle arm handoffs. Compare a recovering arm against the prior arm with both directions of paired movement. A successful gate must report copy actions on unsupported rows even if the emitted output later becomes fluent. Require a same-state device/runtime comparison for the client replay. Report grade, operator parity and artifact packaging separately if any part is missing. Preserve count evidence on its separately preregistered path and leave milestone gates unchanged.

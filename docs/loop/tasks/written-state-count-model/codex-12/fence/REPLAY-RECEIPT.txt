@@ -1,0 +1,18 @@
+a52cdaa6bd358881068ce1e7d9acf872eea116b1
+1b6c7cc0ce57c4e0884cf37d0de1d03708d35ffd78f979ac12ba30454fb5478a  fence-wick.tar.gz
+1b6c7cc0ce57c4e0884cf37d0de1d03708d35ffd78f979ac12ba30454fb5478a  readback/results/codex/paired-role-fence-count-20261118/fence-wick.tar.gz
+d8995fe1c9041bcb3b9b9170be970f6e1abc0af52894cc3597533c8843fbd057  results/primary/historical/SHA256SUMS
+3513520538761fb903f16dc0d04fbaf60cce90a52fb14b641e72f9b828568dee  results/primary/prior-nominee/SHA256SUMS
+346eeea981462ea9e2f083d35910bfb0a75c68891c608d36aa0d58dade04a011  results/primary/paired-role/SHA256SUMS
+6c2d363d5fab7099fa6efd2efe50eee5aa1c447d769f8476e8312f56100399a8  results/primary/fresh-oracle/SHA256SUMS
+6fbdab104c6aa7e232077b217bc6fc7a4da87a43ea20686829978df6e3f93abf  cross-grades/primary/SHA256SUMS
+5eef368ff96aefd7c9d2951ca403bf6d0a1a201397b95819acc9af42b47611dd  results/final-verification/SHA256SUMS
+runlogs/fresh-oracle-repeat.log:	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:16.77
+runlogs/fresh-oracle-repeat.log:	Exit status: 0
+runlogs/historical-repeat.log:	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:54.63
+runlogs/historical-repeat.log:	Exit status: 0
+runlogs/paired-role-repeat.log:	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:49.98
+runlogs/paired-role-repeat.log:	Exit status: 0
+runlogs/prior-nominee-repeat.log:	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:39.84
+runlogs/prior-nominee-repeat.log:	Exit status: 0
+36841458

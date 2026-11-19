@@ -1,0 +1,14 @@
+[
+  {
+    "revision": "7b179448847e05ae59ace917f10b728ac6262002",
+    "path": "results/codex/paired-role-fence-count-20261118/writer-wick.tar.gz",
+    "sha256": "1cadb3750c782cf7b2055211c8893c2f89a7ef017a54608538f2d5af641eac55",
+    "redownload_byte_match": true
+  },
+  {
+    "revision": "8ba3d9583056713fe4f94f00b5633796da1f1800",
+    "path": "results/codex/paired-role-fence-count-20261118/seed1-paired.d11",
+    "sha256": "b78c4ddc9dfca0b0c0f7f6fcab84ad6c09bdcb3c9c404a817dda7fa2548b3c33",
+    "redownload_byte_match": true
+  }
+]

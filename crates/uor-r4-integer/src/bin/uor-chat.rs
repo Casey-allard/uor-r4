@@ -1973,21 +1973,26 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
             .ok_or_else(|| IntegerError::Invalid("invalid discrete tokenizer JSON".into()))?;
         if tokenizer.vocab_size() != model.shape().vocabulary as usize {
-            return Err(IntegerError::Invalid("discrete tokenizer vocabulary mismatch".into()));
+            return Err(IntegerError::Invalid(
+                "discrete tokenizer vocabulary mismatch".into(),
+            ));
         }
         let protocol = DialogueProtocol::literal_roles_version(&tokenizer, cli.protocol)
             .map_err(|e| IntegerError::Invalid(e.to_string()))?;
         encoded = protocol
             .bind(&tokenizer)
             .map_err(|e| IntegerError::Invalid(e.to_string()))?
-            .encode_assistant_prefix(&[Message { role: "user", content: text }])
+            .encode_assistant_prefix(&[Message {
+                role: "user",
+                content: text,
+            }])
             .tokens;
         text_mode = Some((tokenizer, protocol, digest));
         encoded.as_slice()
     } else {
-        cli.prompt_ids.as_deref().ok_or_else(|| {
-            IntegerError::Invalid("missing discrete prompt".into())
-        })?
+        cli.prompt_ids
+            .as_deref()
+            .ok_or_else(|| IntegerError::Invalid("missing discrete prompt".into()))?
     };
     let context_limit = model.shape().context as usize;
     if prompt.len() > context_limit {
@@ -2003,12 +2008,24 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         )));
     }
 
-    use uor_r4_integer::discrete_d11::{ExactCopyState, DISCRETE_ROLE_SCHEMA, ROLE_COPY_STOPS};
-    let role_carrier = model.artifact_schema() == DISCRETE_ROLE_SCHEMA;
+    use uor_r4_integer::discrete_d11::{
+        ExactCopyState, DISCRETE_PAIRED_SCHEMA, DISCRETE_ROLE_SCHEMA, ROLE_COPY_STOPS,
+    };
+    let role_carrier = matches!(
+        model.artifact_schema(),
+        DISCRETE_ROLE_SCHEMA | DISCRETE_PAIRED_SCHEMA
+    );
     if role_carrier && text_mode.is_some() && cli.protocol != 2 {
-        return Err(IntegerError::Invalid("role-copy text uses literal dialogue protocol 2".into()));
+        return Err(IntegerError::Invalid(
+            "role-copy text uses literal dialogue protocol 2".into(),
+        ));
     }
-    let choice = model.role_choice(prompt, cli.read_mode == ReadMode::Enabled)?;
+    let read_enabled = cli.read_mode == ReadMode::Enabled;
+    let paired = model.paired_copy_decision(prompt, read_enabled)?;
+    let choice = match &paired {
+        Some(decision) => Some(decision.choice),
+        None => model.role_choice(prompt, read_enabled)?,
+    };
     let mut cursor = ExactCopyState::new(choice.and_then(|c| c.source), prompt.len() as u32);
     let mut copy_steps = Vec::new();
     let mut context = prompt.to_vec();
@@ -2018,16 +2035,19 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         let ordinary = model.evaluate_prefix(&context)?.prediction;
         if let Some(mixer) = model.count_mixer() {
             // evaluate_prefix validates the full context before selecting the count winner.
-            let previous = context[context.len() - 1] as u16;
-            count_masses.push(mixer.mass_q32(previous, ordinary as u16));
+            count_masses.push(mixer.mass_q32_for_prefix(&context, ordinary as u16));
         }
         let prediction = if role_carrier {
             // Cursor addresses stay relative to the captured prompt even when the decode window slides.
-            let step = cursor.write(prompt, ordinary, ROLE_COPY_STOPS)?.finish_with_eos(true, 1);
+            let step = cursor
+                .write(prompt, ordinary, ROLE_COPY_STOPS)?
+                .finish_with_eos(true, 1);
             cursor = step.state;
             copy_steps.push(step.words());
             step.emitted
-        } else { ordinary };
+        } else {
+            ordinary
+        };
         generated_ids.push(prediction);
         if text_mode
             .as_ref()
@@ -2051,20 +2071,36 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         "generated_ids": generated_ids,
     });
     if let Some(choice) = choice {
-        record["decoding"] = "role-only selector, WordStart, continuation and exact-copy EOS".into();
+        record["decoding"] =
+            "role-only selector, WordStart, continuation and exact-copy EOS".into();
         record["read_enabled"] = (cli.read_mode == ReadMode::Enabled).into();
         record["selected"] = serde_json::to_value(choice)?;
         record["copy_step_words"] = serde_json::to_value(copy_steps)?;
     }
+    if let Some(decision) = paired {
+        record["decoding"] =
+            "paired role, assertion-local value agreement and exact-copy EOS".into();
+        record["paired"] = serde_json::to_value(decision)?;
+    }
     if let Some(mixer) = model.count_mixer() {
         record["decoding"] = "greedy full-support count mixer".into();
-        record["conditional_weight_of_256"] = mixer.conditional_weight().into();
+        if mixer.context_order() > 1 {
+            record["context_order"] = mixer.context_order().into();
+            record["context_weights"] = serde_json::to_value(mixer.context_weights())?;
+        } else {
+            record["conditional_weight_of_256"] = mixer.conditional_weight().into();
+        }
         record["generated_mass_q32"] = serde_json::to_value(count_masses)?;
     }
     if let Some((tokenizer, protocol, digest)) = text_mode {
         let visible = generated_ids.strip_suffix(&[protocol.eos_id]);
         record["schema"] = "uor-r4.uor-chat-discrete-text/1".into();
-        record["stop"] = if visible.is_some() { "eos" } else { "max_tokens" }.into();
+        record["stop"] = if visible.is_some() {
+            "eos"
+        } else {
+            "max_tokens"
+        }
+        .into();
         record["text"] = tokenizer.decode(visible.unwrap_or(&generated_ids)).into();
         record["tokenizer_sha256"] = digest.into();
         record["protocol"] = protocol.schema.into();

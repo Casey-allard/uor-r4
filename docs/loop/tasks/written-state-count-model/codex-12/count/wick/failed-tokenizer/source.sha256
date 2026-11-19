@@ -1,0 +1,7 @@
+1d8529178e06b2fbd7b2a987707adbc8e1ef608054fac4a4b920cdbceacb5c8d  src/crates/uor-r4-integer/src/count_mixer.rs
+045efdfc86fe7bd9cedb408ddef5ea53a6234dc90f26e09b0e233a743417e4b5  src/crates/uor-r4-integer/src/discrete_d11.rs
+f936ebdc7113f7e6ef70f94a38e40b0c84ecccd50ab82d5339cafc0150a1da57  src/docs/labs/kn-reference/instrument/Cargo.toml
+3f639a2f22a4db5993a7ea3a4f27988adce8c78f50dda9b88e5c5584c36e40c7  src/docs/labs/kn-reference/instrument/Cargo.lock
+fca4f43a88db4bff8d99e6f108ba1e6e059be40f3d4b34c3da29a84831f007c2  src/docs/labs/kn-reference/instrument/src/bin/context-score.rs
+3007a2269cdb79ee766d2c0297fe7c60da8550a2c2c8208612aaf48a67838e11  src/docs/labs/kn-reference/instrument/src/bin/context-score.cu
+b65f75be4e62e06d85399e5bb2edff6560777f7af7f610b64c52fc13892e687f  src/docs/labs/kn-reference/instrument/src/bin/count-score.cu

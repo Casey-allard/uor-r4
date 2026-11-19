@@ -1,0 +1,34 @@
+--- a/crates/uor-r4-integer/src/discrete_d11.rs
++++ b/crates/uor-r4-integer/src/discrete_d11.rs
+@@ -1469 +1469 @@
+-        if schema == crate::count_mixer::SCHEMA {
++        if schema == crate::count_mixer::SCHEMA || schema == crate::count_mixer::CONTEXT_SCHEMA {
+@@ -1493 +1493,5 @@
+-            model.count_mixer = Some(crate::count_mixer::CountMixer::from_words(state)?);
++            model.count_mixer = Some(if schema == crate::count_mixer::CONTEXT_SCHEMA {
++                crate::count_mixer::CountMixer::from_context_words(state)?
++            } else {
++                crate::count_mixer::CountMixer::from_words(state)?
++            });
+@@ -1966,2 +1970,2 @@
+-        if self.count_mixer.is_some() {
+-            crate::count_mixer::SCHEMA
++        if let Some(mixer) = &self.count_mixer {
++            mixer.schema()
+@@ -2513 +2517 @@
+-            let ranked = mixer.top8(previous);
++            let ranked = mixer.top8_for_prefix(prefix);
+@@ -2516,3 +2520,10 @@
+-                let mass = mixer.mass_q32(previous, winner);
+-                vec![u32::from(previous), mixer.conditional_weight(), u32::from(winner),
+-                     mass as u32, (mass >> 32) as u32]
++                let mass = mixer.mass_q32_for_prefix(prefix, winner);
++                let mut trace = vec![u32::from(previous), mixer.conditional_weight(), u32::from(winner),
++                     mass as u32, (mass >> 32) as u32];
++                if let Some(weights) = mixer.context_weights() {
++                    trace.extend(weights);
++                    for route in mixer.context_routes(prefix) {
++                        trace.extend([route as u32, (route >> 32) as u32]);
++                    }
++                }
++                trace
