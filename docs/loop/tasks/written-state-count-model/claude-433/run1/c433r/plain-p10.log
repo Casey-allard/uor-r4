@@ -1,0 +1,41 @@
+read: train 20914089 of 2091560001 tokens, query 107280 of 10810087, 3355 ms
+sweep: 2 shared ranges for orders 1..=10
+sweep phases ms: wall 3384 | own count 2618 extension count 0 | histogram 14 select 233 sort 549 emit 252 download 766 records 624 | runs 0 adjust 0 | push 508 keep 243 | 22 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 2 keep 1
+order 2 sink ms: push 15 keep 5
+order 3 sink ms: push 34 keep 13
+order 4 sink ms: push 49 keep 21
+order 5 sink ms: push 57 keep 26
+order 6 sink ms: push 63 keep 30
+order 7 sink ms: push 65 keep 33
+order 8 sink ms: push 68 keep 35
+order 9 sink ms: push 70 keep 37
+order 10 sink ms: push 79 keep 38
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 0: 1 partitions, grams 3988 contexts 1, kept triples 2123 contexts 1, 7055 ms
+order 1 push parts ms: triple checks 0 context checks 0 census 2 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 6 context 0
+order 1: 2 partitions, grams 570661 contexts 3988, kept triples 20556 contexts 2123, 7057 ms
+order 2 push parts ms: triple checks 2 context checks 0 census 10 triple feed 1 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 30 context 13
+order 2: 2 partitions, grams 3029662 contexts 570489, kept triples 31745 contexts 20546, 7061 ms
+order 3 push parts ms: triple checks 5 context checks 3 census 21 triple feed 4 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 59 context 60
+order 3: 2 partitions, grams 6217943 contexts 3028473, kept triples 30875 contexts 31729, 7065 ms
+order 4 push parts ms: triple checks 8 context checks 7 census 27 triple feed 6 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 85 context 121
+order 4: 2 partitions, grams 8974223 contexts 6215707, kept triples 25669 contexts 30865, 7067 ms
+order 5 push parts ms: triple checks 9 context checks 9 census 30 triple feed 8 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 108 context 173
+order 5: 2 partitions, grams 11051741 contexts 8971284, kept triples 20542 contexts 25660, 7070 ms
+order 6 push parts ms: triple checks 10 context checks 11 census 31 triple feed 9 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 116 context 210
+order 6: 2 partitions, grams 12537213 contexts 11048389, kept triples 16819 contexts 20533, 7073 ms
+order 7 push parts ms: triple checks 11 context checks 13 census 31 triple feed 9 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 129 context 246
+order 7: 2 partitions, grams 13613989 contexts 12533338, kept triples 14144 contexts 16811, 7074 ms
+order 8 push parts ms: triple checks 12 context checks 14 census 31 triple feed 10 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 137 context 260
+order 8: 2 partitions, grams 14412774 contexts 13609812, kept triples 12463 contexts 14137, 7077 ms
+order 9 push parts ms: triple checks 12 context checks 15 census 32 triple feed 10 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 139 context 277
+order 9: 2 partitions, grams 15024072 contexts 14408448, kept triples 11335 contexts 12456, 7079 ms
+order 10 push parts ms: triple checks 13 context checks 16 census 38 triple feed 11 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 145 context 288
+order 10: 2 partitions, grams 15511689 contexts 15019665, kept triples 10340 contexts 11329, 7081 ms
+push parts ms, all orders: triple checks 88 context checks 91 census 256 triple feed 71 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 959 context 1652
+gpu scored 107257 targets, 7229 ms
+masses at the one-unit floor: 0
+wrote /workspace/out/c433/run1/plain-p10.json, 7235 ms
+plain-p10 rc=0 wall s: 7 peak rss KiB: 8207724 peak GPU used MiB (whole device): 7376

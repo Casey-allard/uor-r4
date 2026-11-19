@@ -1,0 +1,16 @@
+head 5a7bbd03245e08b2947e5ba2359210332737a8d3
+ceiling-p1 GPU before: 3850 MiB, 97 %; load 3.95 3.51 2.97
+ceiling-p1 rc=0 wall s: 5 peak rss KiB: 8207828 peak GPU used MiB (whole device): 7612
+plain-p1 GPU before: 3882 MiB, 94 %; load 3.79 3.49 2.97
+plain-p1 rc=0 wall s: 4 peak rss KiB: 8207792 peak GPU used MiB (whole device): 5864
+plain-p10 GPU before: 3882 MiB, 96 %; load 3.65 3.46 2.96
+plain-p10 rc=0 wall s: 7 peak rss KiB: 8207724 peak GPU used MiB (whole device): 7376
+ceiling-p10 GPU before: 3466 MiB, 76 %; load 4.04 3.55 2.99
+ceiling-p10 rc=0 wall s: 11 peak rss KiB: 8207844 peak GPU used MiB (whole device): 5361
+plain-p100 GPU before: 3946 MiB, 98 %; load 3.80 3.51 2.99
+plain-p100 rc=0 wall s: 34 peak rss KiB: 8207940 peak GPU used MiB (whole device): 8416
+ceiling-p100 GPU before: 3946 MiB, 98 %; load 4.00 3.58 3.03
+ceiling-p100 rc=0 wall s: 65 peak rss KiB: 8207844 peak GPU used MiB (whole device): 6385
+/workspace/out/c433/run1/ceiling-p1.json: kn_only 2305596 u_count 2283303 u_split 2352219 kn_u 2304294 | novel kn_only 2445080 u_count 2423371
+/workspace/out/c433/run1/ceiling-p10.json: kn_only 2145471 u_count 2132625 u_split 2152248 kn_u 2144002 | novel kn_only 2404087 u_count 2399391
+/workspace/out/c433/run1/ceiling-p100.json: kn_only 1691806 u_count 1690355 u_split 1691831 kn_u 1691572 | novel kn_only 1986542 u_count 1984416

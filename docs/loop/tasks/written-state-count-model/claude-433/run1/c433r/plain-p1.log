@@ -1,0 +1,18 @@
+read: train 2089971 of 2091560001 tokens, query 8315 of 10810087, 3326 ms
+sweep: 1 shared ranges for orders 1..=10
+order 0: 1 partitions, grams 3686 contexts 1, kept triples 977 contexts 1, 4096 ms
+order 1: 1 partitions, grams 169519 contexts 3686, kept triples 3266 contexts 977, 4099 ms
+order 2: 1 partitions, grams 545871 contexts 169453, kept triples 3108 contexts 3262, 4102 ms
+order 3: 1 partitions, grams 873953 contexts 545562, kept triples 2301 contexts 3105, 4105 ms
+order 4: 1 partitions, grams 1107910 contexts 873492, kept triples 1505 contexts 2299, 4108 ms
+order 5: 1 partitions, grams 1271919 contexts 1107368, kept triples 963 contexts 1504, 4111 ms
+order 6: 1 partitions, grams 1386281 contexts 1271330, kept triples 626 contexts 962, 4112 ms
+order 7: 1 partitions, grams 1469415 contexts 1385612, kept triples 443 contexts 625, 4114 ms
+order 8: 1 partitions, grams 1531258 contexts 1468718, kept triples 332 contexts 442, 4115 ms
+order 9: 1 partitions, grams 1578748 contexts 1530550, kept triples 256 contexts 331, 4116 ms
+order 10: 1 partitions, grams 1616484 contexts 1578037, kept triples 206 contexts 255, 4118 ms
+gpu scored 8311 targets, 4270 ms
+host = GPU at all 8311 targets, 4275 ms
+masses at the one-unit floor: 0
+wrote /workspace/out/c433/run1/plain-p1.json, 4279 ms
+plain-p1 rc=0 wall s: 4 peak rss KiB: 8207792 peak GPU used MiB (whole device): 5864

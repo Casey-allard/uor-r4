@@ -1,0 +1,7 @@
+head 5a7bbd03245e08b2947e5ba2359210332737a8d3
+NVIDIA GeForce RTX 5090, 32607 MiB, 580.178.04
+NVIDIA GeForce RTX 5090, 32607 MiB, 580.178.04
+cpus 255 mem 503 GiB
+ceiling-p1000 rc=0 wall s: 779 peak rss KiB: 10797072 peak GPU used MiB (whole device): 16028
+B1 p1000: kn_only = claude-422 (1432318 / 1747150)
+kn_only 1432318 u_count 1433181 u_split 1433324 kn_u 1432191 | novel kn_only 1747150 u_count 1746268 u_split 1746430 kn_u 1747006

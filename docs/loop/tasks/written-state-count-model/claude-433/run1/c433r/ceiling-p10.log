@@ -1,0 +1,56 @@
+read: train 20914089 of 2091560001 tokens, query 107280 of 10810087, 3337 ms
+sweep: 2 shared ranges for orders 1..=10
+sweep phases ms: wall 3348 | own count 2594 extension count 0 | histogram 5 select 221 sort 505 emit 260 download 775 records 632 | runs 0 adjust 0 | push 505 keep 242 | 22 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 2 keep 1
+order 2 sink ms: push 15 keep 5
+order 3 sink ms: push 34 keep 13
+order 4 sink ms: push 48 keep 20
+order 5 sink ms: push 60 keep 25
+order 6 sink ms: push 63 keep 30
+order 7 sink ms: push 66 keep 33
+order 8 sink ms: push 67 keep 35
+order 9 sink ms: push 67 keep 36
+order 10 sink ms: push 80 keep 38
+raw order 0: grams 3988 contexts 1, kept triples 2123 contexts 1, 6982 ms
+raw order 1: grams 570661 contexts 3988, kept triples 20556 contexts 2123, 7029 ms
+raw order 2: grams 3029662 contexts 570489, kept triples 31745 contexts 20546, 7141 ms
+raw order 3: grams 6217943 contexts 3028473, kept triples 30875 contexts 31729, 7337 ms
+raw order 4: grams 8974223 contexts 6215707, kept triples 25669 contexts 30865, 7649 ms
+raw order 5: grams 11051741 contexts 8971284, kept triples 20542 contexts 25660, 8072 ms
+raw order 6: grams 12537213 contexts 11048389, kept triples 16819 contexts 20533, 8581 ms
+raw order 7: grams 13613989 contexts 12533338, kept triples 14144 contexts 16811, 9133 ms
+raw order 8: grams 14412774 contexts 13609812, kept triples 12463 contexts 14137, 9745 ms
+raw order 9: grams 15024072 contexts 14408448, kept triples 11335 contexts 12456, 10395 ms
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 0: 1 partitions, grams 3988 contexts 1, kept triples 2123 contexts 1, 10468 ms
+order 1 push parts ms: triple checks 0 context checks 0 census 2 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 6 context 0
+order 1: 2 partitions, grams 570661 contexts 3988, kept triples 20556 contexts 2123, 10470 ms
+order 2 push parts ms: triple checks 2 context checks 0 census 10 triple feed 1 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 29 context 12
+order 2: 2 partitions, grams 3029662 contexts 570489, kept triples 31745 contexts 20546, 10473 ms
+order 3 push parts ms: triple checks 5 context checks 3 census 20 triple feed 4 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 58 context 57
+order 3: 2 partitions, grams 6217943 contexts 3028473, kept triples 30875 contexts 31729, 10476 ms
+order 4 push parts ms: triple checks 7 context checks 6 census 27 triple feed 6 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 83 context 118
+order 4: 2 partitions, grams 8974223 contexts 6215707, kept triples 25669 contexts 30865, 10477 ms
+order 5 push parts ms: triple checks 11 context checks 9 census 31 triple feed 7 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 104 context 173
+order 5: 2 partitions, grams 11051741 contexts 8971284, kept triples 20542 contexts 25660, 10480 ms
+order 6 push parts ms: triple checks 11 context checks 11 census 32 triple feed 8 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 119 context 217
+order 6: 2 partitions, grams 12537213 contexts 11048389, kept triples 16819 contexts 20533, 10483 ms
+order 7 push parts ms: triple checks 11 context checks 12 census 32 triple feed 9 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 127 context 239
+order 7: 2 partitions, grams 13613989 contexts 12533338, kept triples 14144 contexts 16811, 10485 ms
+order 8 push parts ms: triple checks 12 context checks 14 census 30 triple feed 10 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 139 context 263
+order 8: 2 partitions, grams 14412774 contexts 13609812, kept triples 12463 contexts 14137, 10487 ms
+order 9 push parts ms: triple checks 12 context checks 14 census 30 triple feed 9 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 139 context 273
+order 9: 2 partitions, grams 15024072 contexts 14408448, kept triples 11335 contexts 12456, 10490 ms
+order 10 push parts ms: triple checks 13 context checks 16 census 38 triple feed 11 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 144 context 286
+order 10: 2 partitions, grams 15511689 contexts 15019665, kept triples 10340 contexts 11329, 10491 ms
+push parts ms, all orders: triple checks 89 context checks 90 census 256 triple feed 69 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 953 context 1642
+gpu scored 107257 targets, 10648 ms
+masses at the one-unit floor: 0
+gpu looked up 107257 targets, 10815 ms
+ceiling u_count fitted
+ceiling u_split fitted
+ceiling kn_u fitted
+ceiling phases ms: raw-count 3463 lookup 164 em 648
+wrote /workspace/out/c433/run1/ceiling-p10.json, 11469 ms
+ceiling-p10 rc=0 wall s: 11 peak rss KiB: 8207844 peak GPU used MiB (whole device): 5361

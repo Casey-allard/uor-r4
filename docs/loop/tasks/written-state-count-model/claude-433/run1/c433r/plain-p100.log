@@ -1,0 +1,42 @@
+read: train 209155800 of 2091560001 tokens, query 1066994 of 10810087, 3334 ms
+sweep: 14 shared ranges for orders 1..=10
+sweep phases ms: wall 29319 | own count 23099 extension count 0 | histogram 33 select 2027 sort 5849 emit 2507 download 5938 records 6045 | runs 0 adjust 0 | push 4190 keep 1995 | 154 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 8 keep 3
+order 2 sink ms: push 69 keep 25
+order 3 sink ms: push 202 keep 79
+order 4 sink ms: push 352 keep 144
+order 5 sink ms: push 460 keep 203
+order 6 sink ms: push 535 keep 251
+order 7 sink ms: push 586 keep 289
+order 8 sink ms: push 610 keep 316
+order 9 sink ms: push 640 keep 334
+order 10 sink ms: push 722 keep 349
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 0: 1 partitions, grams 4054 contexts 1, kept triples 3359 contexts 1, 33554 ms
+order 1 push parts ms: triple checks 1 context checks 0 census 6 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 16 context 0
+order 1: 14 partitions, grams 1528378 contexts 4054, kept triples 103985 contexts 3359, 33554 ms
+order 2 push parts ms: triple checks 12 context checks 1 census 47 triple feed 7 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 132 context 32
+order 2: 14 partitions, grams 13812372 contexts 1527825, kept triples 265613 contexts 103957, 33558 ms
+order 3 push parts ms: triple checks 34 context checks 14 census 129 triple feed 24 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 343 context 263
+order 3: 14 partitions, grams 37829769 contexts 13807906, kept triples 329966 contexts 265496, 33561 ms
+order 4 push parts ms: triple checks 58 context checks 41 census 208 triple feed 44 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 581 context 708
+order 4: 14 partitions, grams 64106933 contexts 37816932, kept triples 321488 contexts 329860, 33564 ms
+order 5 push parts ms: triple checks 75 context checks 70 census 254 triple feed 59 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 785 context 1203
+order 5: 14 partitions, grams 87142481 contexts 64087370, kept triples 283315 contexts 321390, 33566 ms
+order 6 push parts ms: triple checks 89 context checks 94 census 280 triple feed 71 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 946 context 1635
+order 6: 14 partitions, grams 105048351 contexts 87117959, kept triples 240715 contexts 283222, 33570 ms
+order 7 push parts ms: triple checks 101 context checks 113 census 287 triple feed 82 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1069 context 1983
+order 7: 14 partitions, grams 118483064 contexts 105018999, kept triples 205170 contexts 240618, 33574 ms
+order 8 push parts ms: triple checks 108 context checks 124 census 288 triple feed 88 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1155 context 2226
+order 8: 14 partitions, grams 128574380 contexts 118449893, kept triples 177310 contexts 205083, 33577 ms
+order 9 push parts ms: triple checks 115 context checks 138 census 294 triple feed 92 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1221 context 2415
+order 9: 14 partitions, grams 136352007 contexts 128538870, kept triples 155746 contexts 177238, 33580 ms
+order 10 push parts ms: triple checks 120 context checks 139 census 364 triple feed 98 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1278 context 2558
+order 10: 14 partitions, grams 142529189 contexts 136315145, kept triples 138625 contexts 155685, 33584 ms
+push parts ms, all orders: triple checks 718 context checks 738 census 2162 triple feed 570 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 7532 context 13029
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 1066742 targets, 33796 ms
+masses at the one-unit floor: 0
+wrote /workspace/out/c433/run1/plain-p100.json, 33821 ms
+plain-p100 rc=0 wall s: 34 peak rss KiB: 8207940 peak GPU used MiB (whole device): 8416

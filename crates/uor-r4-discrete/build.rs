@@ -73,6 +73,8 @@ const NGRAM_COUNT_ENTRIES: [&str; 22] = [
 ];
 // The modified Kneser-Ney scorer (claude-421): its own source, PTX and cubin.
 const KN_SCORE_ENTRIES: [&str; 1] = ["kn_score_targets"];
+// The raw count lookups (claude-433): its own source, PTX and cubin.
+const KN_LOOKUP_ENTRIES: [&str; 1] = ["kn_lookup_targets"];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as
 /// evidence of its instructions. Integer index products are not prohibited.
@@ -409,6 +411,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/native_vector.cu");
     println!("cargo:rerun-if-changed=src/ngram_count.cu");
     println!("cargo:rerun-if-changed=src/kn_score.cu");
+    println!("cargo:rerun-if-changed=src/kn_lookup.cu");
     println!("cargo:rerun-if-changed=src/equal_count.cu");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
@@ -480,6 +483,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     admit_ptx_inventory(
         &fs::read_to_string(out.join("kn-score.ptx"))?,
         &KN_SCORE_ENTRIES,
+    )?;
+    // The raw count lookups (claude-433): an independent source and module.
+    let status = Command::new(env::var("NVCC").unwrap_or_else(|_| "nvcc".into()))
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .args(["-o"])
+        .arg(out.join("kn-lookup.ptx"))
+        .arg("src/kn_lookup.cu")
+        .status()?;
+    if !status.success() {
+        return Err(format!("kn-lookup PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("kn-lookup.ptx"))?,
+        &KN_LOOKUP_ENTRIES,
     )?;
     let status = Command::new(env::var("NVCC").unwrap_or_else(|_| "nvcc".into()))
         .args(["-ptx", "-std=c++17"])
@@ -668,6 +686,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("native-vector", out.join("native-vector.ptx")),
         ("ngram-count", out.join("ngram-count.ptx")),
         ("kn-score", out.join("kn-score.ptx")),
+        ("kn-lookup", out.join("kn-lookup.ptx")),
         ("equal-count", out.join("equal-count.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
