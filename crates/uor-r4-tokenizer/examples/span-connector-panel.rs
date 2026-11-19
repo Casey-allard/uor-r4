@@ -1,10 +1,10 @@
 //! Generate tokenizer-only role and connector panels for the span-selector study.
 #[path = "span-connector-panel/action.rs"]
 mod action;
-#[path = "span-connector-panel/support.rs"]
-mod support;
 #[path = "span-connector-panel/paired_role.rs"]
 mod paired_role;
+#[path = "span-connector-panel/support.rs"]
+mod support;
 
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
@@ -528,8 +528,8 @@ fn run() -> Result<()> {
     let root = Path::new(out);
     fs::create_dir(root)?;
     let mut census = BTreeSet::new();
-    if previous == "--paired-role" {
-        return paired_role::generate(root, &t, &encoder);
+    if previous == "--paired-role" || previous == "--query-region" {
+        return paired_role::generate(root, &t, &encoder, previous == "--query-region");
     }
     if previous == "--requested-support" {
         return support::generate(root, &t, &encoder);

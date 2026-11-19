@@ -47,3 +47,8 @@ required-features = ["count-replay"]
 name = "context-score"
 path = "src/bin/context-score.rs"
 required-features = ["count-replay"]
+
+[[bin]]
+name = "pick-reachability"
+path = "src/bin/pick-reachability.rs"
+required-features = ["cuda"]

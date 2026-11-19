@@ -131,8 +131,24 @@ impl PairedRoleState {
     }
 
     pub fn predict(&self, ids: &[u32]) -> Result<PairedRoleDecision> {
+        self.predict_in_region(ids, 0..ids.len())
+    }
+
+    /// Diagnostic candidate filter over original token offsets. Feature reads
+    /// and returned endpoints always address the full, unchanged prompt.
+    pub fn predict_in_region(
+        &self,
+        ids: &[u32],
+        region: core::ops::Range<usize>,
+    ) -> Result<PairedRoleDecision> {
+        if region.start > region.end || region.end > ids.len() {
+            return Err(invalid("invalid paired-role candidate region"));
+        }
         let mut ranks = [RoleRank::new(); 2];
         for (span, keys) in role_candidates(&self.sites, ids)? {
+            if span.start < region.start || span.end > region.end {
+                continue;
+            }
             let mut scores = [0; 2];
             for (offset, key) in keys.into_iter().enumerate() {
                 if let Ok(i) = self.cells.binary_search_by_key(&key, |c| c[0]) {

@@ -1,0 +1,17 @@
+{
+  "lossless_raw": {
+    "revision": "b2198fdb406c0f0586e09b927a222c02814cc6db",
+    "path": "results/codex/query-region-pick-20261118/pick-wick-lossless.tar.zst",
+    "sha256": "707360ec33b601ba3b3bc2d0ab3acf78883511db15c74aa508ea8ffccd83aad4",
+    "redownload_byte_match": true
+  },
+  "source_overlay": {
+    "revision": "dfdb1a9b36c49ab53cf456ffdc39b264ebe0e2ef",
+    "path": "results/codex/query-region-pick-20261118/pick-exact-source-overlay.tar.zst",
+    "sha256": "a826c4b82e01acfa2707d1547a9a4960e6e8a6440eba77f040b8ec4b67c83ea9",
+    "redownload_byte_match": true
+  },
+  "uncompressed_tar_sha256": "9f63d2cf0201182bbe99350d883f1150120201a5ce2386a3236cff1a10369aff",
+  "decoder": "zstd --long=28 -dc",
+  "original_tar_stream_equal": true
+}

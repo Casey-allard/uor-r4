@@ -1194,6 +1194,15 @@ pub(crate) struct PickRead {
     pub(crate) blocks: Vec<[i32; 8]>,
     pub(crate) pick: Option<usize>,
     pub(crate) distance: Option<u32>,
+    pub(crate) ties: u32,
+}
+
+/// Exact read observations from the explicit identity-transport diagnostic.
+#[doc(hidden)]
+pub struct IdentityPickDiagnostic {
+    pub vector: Vec<i32>,
+    pub block_words: Vec<[u32; 5]>,
+    pub successor: Option<u32>,
 }
 
 /// 16-bit code of an anchor-orbit block: bit `2d` is `x[d] > 0`, bit `2d + 1` is `x[d] < 0`.
@@ -1235,6 +1244,7 @@ pub(crate) fn pick_read(
             blocks: query.clone(),
             pick: None,
             distance: None,
+            ties: 0,
         });
     }
     // transported[p][b]: block b of tok(p) carried from p to t.
@@ -1268,15 +1278,20 @@ pub(crate) fn pick_read(
         .collect();
     let mut pick = 1usize;
     let mut best = u32::MAX;
+    let mut ties = 0;
     for p in 1..t {
         let mut d = 0u32;
         for b in 0..blocks {
             d += (codes[p - 1][b] ^ codes[t - 1][b]).count_ones();
             d += (codes[p][b] ^ codes[t][b]).count_ones();
         }
+        if d < best {
+            ties = 0;
+        }
         if d <= best {
             pick = p;
             best = d;
+            ties += 1;
         }
     }
     let mut out = Vec::with_capacity(blocks);
@@ -1300,6 +1315,7 @@ pub(crate) fn pick_read(
         blocks: out,
         pick: Some(pick),
         distance: Some(best),
+        ties,
     })
 }
 
@@ -2104,6 +2120,69 @@ impl IntegerDiscreteModel {
             .iter()
             .map(|&r| u32::from(pack_4block_roots(r)))
             .collect()
+    }
+
+    /// Reuse only the underlying Relation trunk's common orbit table, routes
+    /// and level gates. Extra relation gates and relation transport are excluded.
+    #[doc(hidden)]
+    pub fn identity_pick_inventory(&self) -> Result<(Vec<i32>, Vec<u32>, Vec<i32>)> {
+        if !self.is_trunk_d11()
+            || !matches!(self.read_mode, DiscreteReadMode::Relation { .. })
+            || self.shape.read_position != 0
+        {
+            return Err(invalid(
+                "identity Pick diagnostic requires a Relation trunk",
+            ));
+        }
+        Ok((
+            self.token_blocks
+                .iter()
+                .flatten()
+                .flatten()
+                .copied()
+                .collect(),
+            self.routes.iter().flatten().copied().collect(),
+            self.level_gates.iter().flatten().copied().collect(),
+        ))
+    }
+
+    /// This raw availability diagnostic supplies identity transport explicitly.
+    /// The successor is the stored original ID and is independent of gate trits.
+    #[doc(hidden)]
+    pub fn observe_identity_pick(&self, prefix: &[u32]) -> Result<IdentityPickDiagnostic> {
+        if !self.is_trunk_d11()
+            || !matches!(self.read_mode, DiscreteReadMode::Relation { .. })
+            || self.shape.read_position != 0
+            || prefix.is_empty()
+            || prefix.len() > self.shape.context as usize
+            || prefix
+                .iter()
+                .enumerate()
+                .any(|(at, &id)| id >= self.shape.vocabulary || id == 1 || (id == 0 && at != 0))
+        {
+            return Err(invalid("invalid causal prefix or Relation Pick source"));
+        }
+        let gates: Vec<_> = self.level_gates.iter().map(|g| g[0]).collect();
+        let read = pick_read(&self.token_blocks, &gates, &PickTransport::Identity, prefix)?;
+        let block_words = read
+            .blocks
+            .iter()
+            .zip(gates)
+            .map(|(block, gate)| {
+                Ok([
+                    read.pick.map_or(u32::MAX, |p| p as u32),
+                    read.distance.unwrap_or(u32::MAX),
+                    read.ties,
+                    (gate + 1) as u32,
+                    root_id(block).ok_or_else(|| invalid("Pick output outside orbit"))? as u32,
+                ])
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(IdentityPickDiagnostic {
+            vector: read.blocks.into_iter().flatten().collect(),
+            block_words,
+            successor: read.pick.map(|p| prefix[p + 1]),
+        })
     }
 
     fn route_read(

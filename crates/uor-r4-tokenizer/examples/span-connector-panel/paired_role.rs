@@ -147,8 +147,43 @@ fn render(variant: &Variant, people: [&str; 2]) -> Result<(String, Vec<(u8, usiz
     Ok((question, sites))
 }
 
-pub(super) fn generate(root: &Path, t: &ByteBpeTokenizer, enc: &DialogueEncoder<'_>) -> Result<()> {
+fn region_receipt(
+    t: &ByteBpeTokenizer,
+    prefix: &[u32],
+    statement: &str,
+    question: &str,
+    suffix: &str,
+    labeled: &[Option<(usize, usize)>; 3],
+) -> Result<Value> {
+    let (start, end) = token_span(t, prefix, question, USER.len() + statement.len() + 1)?;
+    let preceding = format!("{USER}{statement}");
+    let following = format!("{suffix}\nAssistant:");
+    if t.decode(&prefix[..start]) != preceding
+        || t.decode(&prefix[start..end]) != format!(" {question}")
+        || t.decode(&prefix[end..]) != following
+        || labeled
+            .iter()
+            .flatten()
+            .any(|&(a, b)| a < start || b > end || a >= b)
+    {
+        return Err("query receipt does not divide original tape at renderer boundaries".into());
+    }
+    Ok(json!({
+        "start":start,"end":end,"prefix":prefix,
+        "statement":statement,"question":question,"post_query":suffix
+    }))
+}
+
+pub(super) fn generate(
+    root: &Path,
+    t: &ByteBpeTokenizer,
+    enc: &DialogueEncoder<'_>,
+    collect_regions: bool,
+) -> Result<()> {
     let mut all = BTreeSet::new();
+    let mut nuisance_blind = Vec::new();
+    let mut nuisance_grade = Vec::new();
+    let mut nuisance_regions = Vec::new();
     for (split, variants, rosters, values, verb) in [
         (
             "train",
@@ -181,6 +216,7 @@ pub(super) fn generate(root: &Path, t: &ByteBpeTokenizer, enc: &DialogueEncoder<
             "kept",
         ),
     ] {
+        let mut regions = Vec::new();
         let mut blind = Vec::new();
         let mut grade = Vec::new();
         for (roster_id, roster) in rosters.iter().enumerate() {
@@ -374,7 +410,94 @@ pub(super) fn generate(root: &Path, t: &ByteBpeTokenizer, enc: &DialogueEncoder<
                                         role_sites[role].map(|s| if end { s.1 } else { s.0 })
                                     };
                                     let id = format!("{group}-{swap}");
-                                    grade.push(json!({"id":id,"pair":group,"kind":kind,"evidence":evidence,"construction":variant.family,"case":if lower {"lower"} else {"title"},"query_start":boundary(1,false),"query_end":boundary(1,true),"excluded_start":boundary(2,false),"excluded_end":boundary(2,true),"prompt":prompt,"prefix":prefix,"supports":supports,"assertions":assertions,"expected":expected,"answer_text":answer,"asked_start":first.map(|s|s["value_start"].clone()),"asked_end":first.map(|s|s["value_end"].clone()),"other_start":peer_source,"forced_fact_source":first.map(|s|s["value_start"].clone()).or(peer_source.map(Value::from))}));
+                                    let row = json!({"id":id,"pair":group,"kind":kind,"evidence":evidence,"construction":variant.family,"case":if lower {"lower"} else {"title"},"query_start":boundary(1,false),"query_end":boundary(1,true),"excluded_start":boundary(2,false),"excluded_end":boundary(2,true),"prompt":prompt,"prefix":prefix,"supports":supports,"assertions":assertions,"expected":expected,"answer_text":answer,"asked_start":first.map(|s|s["value_start"].clone()),"asked_end":first.map(|s|s["value_end"].clone()),"other_start":peer_source,"forced_fact_source":first.map(|s|s["value_start"].clone()).or(peer_source.map(Value::from))});
+                                    if collect_regions && split != "train" {
+                                        regions.push(region_receipt(
+                                            t,
+                                            &prefix,
+                                            &statement,
+                                            &question,
+                                            "",
+                                            &role_sites,
+                                        )?);
+                                    }
+                                    if collect_regions
+                                        && split == "held"
+                                        && roster_id == 0
+                                        && order == 0
+                                        && assignment == 0
+                                        && evidence == "unique"
+                                        && matches!(variant.family, "excluding-after" | "ordinary-after")
+                                    {
+                                        // The no-tail counterparts are identical to their held rows.
+                                        // Added text is deliberately outside the whole question interval.
+                                        let extra =
+                                            format!(" The margin reads: Report the thing for {}.", roster[1 - swap]);
+                                        for suffix in ["", extra.as_str()] {
+                                            let prompt_with_tail = format!("{prompt}{suffix}");
+                                            let user = Message {
+                                                role: "user",
+                                                content: &prompt_with_tail,
+                                            };
+                                            let ids =
+                                                enc.encode_assistant_prefix(&[user.clone()]).tokens;
+                                            if ids.len() + 16 > 192 || ids.contains(&2) {
+                                                return Err("invalid nuisance prefix".into());
+                                            }
+                                            let receipt = region_receipt(
+                                                t,
+                                                &ids,
+                                                &statement,
+                                                &question,
+                                                suffix,
+                                                &role_sites,
+                                            )?;
+                                            let end = receipt["end"]
+                                                .as_u64()
+                                                .ok_or("bad nuisance interval")?
+                                                as usize;
+                                            if ids[..end] != prefix[..end] {
+                                                return Err(
+                                                    "nuisance changes prefix through query".into(),
+                                                );
+                                            }
+                                            if let Some(answer) = answer {
+                                                let with_answer = enc
+                                                    .encode_document(&[
+                                                        user,
+                                                        Message {
+                                                            role: "assistant",
+                                                            content: answer,
+                                                        },
+                                                    ])
+                                                    .tokens;
+                                                if with_answer.strip_prefix(ids.as_slice())
+                                                    != expected.as_deref()
+                                                {
+                                                    return Err(
+                                                        "nuisance changes the literal value IDs"
+                                                            .into(),
+                                                    );
+                                                }
+                                            }
+                                            let mut nuisance = row.clone();
+                                            let variant = if suffix.is_empty() {
+                                                "plain"
+                                            } else {
+                                                "trailing"
+                                            };
+                                            nuisance["id"] =
+                                                json!(format!("nuisance-{id}-{variant}"));
+                                            nuisance["nuisance_pair"] = json!(id);
+                                            nuisance["nuisance"] = json!(variant);
+                                            nuisance["prefix"] = json!(ids);
+                                            nuisance["prompt"] = json!(prompt_with_tail);
+                                            nuisance_grade.push(nuisance);
+                                            nuisance_blind.push(json!({"prefix":ids}));
+                                            nuisance_regions.push(receipt);
+                                        }
+                                    }
+                                    grade.push(row);
                                     blind.push(json!({"prefix":prefix}));
                                 }
                             }
@@ -385,6 +508,14 @@ pub(super) fn generate(root: &Path, t: &ByteBpeTokenizer, enc: &DialogueEncoder<
         }
         write_rows(root, &format!("{split}-blind.json"), &blind)?;
         write_rows(root, &format!("{split}-grade.json"), &grade)?;
+        if collect_regions && split != "train" {
+            write_rows(root, &format!("{split}-regions.json"), &regions)?;
+        }
+    }
+    if collect_regions {
+        write_rows(root, "nuisance-blind.json", &nuisance_blind)?;
+        write_rows(root, "nuisance-grade.json", &nuisance_grade)?;
+        write_rows(root, "nuisance-regions.json", &nuisance_regions)?;
     }
     Ok(())
 }

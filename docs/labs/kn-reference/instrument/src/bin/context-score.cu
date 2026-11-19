@@ -186,6 +186,43 @@ __global__ void greedy_witness(Index index, const ID *tokens, size_t n, const U3
     }
 }
 
+// Target-blind capture. Input holds only four causal IDs per row, left-padded
+// with EOS to prevent resolution outside each independent caller window.
+__global__ void support_witness(Index index, const ID *prefixes, unsigned rows,
+                                const U32 *weights, U64 *records, uint8_t *support) {
+    unsigned j = blockIdx.x * blockDim.x + threadIdx.x;
+    if (j >= rows) return;
+    unsigned active[DEPTH];
+    resolve(index, prefixes + size_t(j) * DEPTH, DEPTH, active);
+    auto *bits = support + size_t(j) * V;
+    ID uni = 1;
+    for (ID id = 2; id < V; ++id) {
+        if (index.uni[id] > index.uni[uni]) uni = id;
+    }
+    bits[uni] = 1;
+    for (unsigned k = 0; k < index.depth; ++k) {
+        unsigned row = active[k];
+        if (row == NO_ROW) continue;
+        for (unsigned at = index.starts[row]; at < index.starts[row+1]; ++at) {
+            bits[index.followers[at]] |= 1U << (k+1);
+        }
+    }
+    U64 best = 0;
+    ID winner = 1;
+    for (ID target = 1; target < V; ++target) {
+        U64 mass = mixed(index, weights, active, target);
+        if (mass > best) {
+            winner = target;
+            best = mass;
+        }
+    }
+    U64 *out = records + size_t(j) * (DEPTH + 2);
+    out[0] = winner;
+    out[1] = best;
+    for (unsigned k = 0; k < DEPTH; ++k)
+        out[k+2] = k < index.depth && active[k] != NO_ROW ? index.keys[active[k]] : 0;
+}
+
 template<class T> T word(const uint8_t *raw) {
     T value = 0;
     for (unsigned i = 0; i < sizeof(T); ++i) value |= T(raw[i]) << (i * 8);
@@ -204,9 +241,10 @@ bool canonical_context(U64 key, unsigned order) {
 }
 
 int main(int argc, char **argv) try {
-    if (argc != 6) throw std::runtime_error("expected fit|score STATE IDS OUTPUT STRIDE");
+    if (argc != 6) throw std::runtime_error("expected fit|score|support STATE IDS OUTPUT STRIDE");
     std::string mode = argv[1];
-    if (mode != "fit" && mode != "score") throw std::runtime_error("unknown context-score mode");
+    if (mode != "fit" && mode != "score" && mode != "support")
+        throw std::runtime_error("unknown context-score mode");
     auto words = read<uint8_t>(argv[2]);
     auto ids = read<ID>(argv[3]);
     std::string stride_arg = argv[5];
@@ -215,7 +253,8 @@ int main(int argc, char **argv) try {
     size_t stride = std::stoul(stride_arg);
     if (!stride || words.size() <= HEADER || (words.size() - HEADER) % ROW_BYTES ||
         (words.size() - HEADER) / ROW_BYTES > UINT32_MAX || ids.size() > UINT32_MAX ||
-        ids.front() != 0 || ids.back() != 1)
+        ids.empty() || (mode == "support" ? (stride != 1 || ids.size() % DEPTH != 0)
+                                         : (ids.front() != 0 || ids.back() != 1)))
         throw std::runtime_error("invalid context-score shape");
     if (std::any_of(ids.begin(), ids.end(), [](ID id) { return id >= V; }))
         throw std::runtime_error("token ID outside context-score vocabulary");
@@ -293,6 +332,16 @@ int main(int argc, char **argv) try {
             update_weights<<<1,1>>>(depth, totals.p, d_weights.p);
             save(out, COMPONENTS, d_weights.p);
         }
+    } else if (mode == "support") {
+        unsigned rows = static_cast<unsigned>(ids.size() / DEPTH);
+        Device<U64> records(size_t(rows) * (DEPTH + 2));
+        Device<uint8_t> support(size_t(rows) * V);
+        check(cudaMemset(support.p, 0, size_t(rows) * V));
+        support_witness<<<1+(rows-1)/128,128>>>(index, tokens.p, rows, d_weights.p,
+                                                 records.p, support.p);
+        check(cudaGetLastError());
+        save(out, size_t(rows) * (DEPTH + 2), records.p);
+        save(out, size_t(rows) * V, support.p);
     } else {
         Device<U64> masses(ids.size());
         Device<U32> bits(ids.size());

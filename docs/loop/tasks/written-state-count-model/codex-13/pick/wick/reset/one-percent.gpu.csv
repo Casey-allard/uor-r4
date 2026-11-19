@@ -1,0 +1,3 @@
+timestamp, name, driver_version, memory.used [MiB], memory.free [MiB]
+2026/11/18 21:58:00.944, NVIDIA GeForce RTX 4090, 595.99.02, 3946 MiB, 20138 MiB
+2026/11/18 21:58:01.144, NVIDIA GeForce RTX 4090, 595.99.02, 3946 MiB, 20138 MiB

@@ -1,0 +1,192 @@
+{
+  "all": {
+    "rows": 14287,
+    "pick": {
+      "rows": 14287,
+      "eligible": 14287,
+      "correct": 3788
+    },
+    "exact": {
+      "rows": 14287,
+      "eligible": 3965,
+      "correct": 3067
+    },
+    "rotated": {
+      "rows": 14287,
+      "eligible": 14287,
+      "correct": 201
+    },
+    "count": {
+      "rows": 14287,
+      "eligible": 14287,
+      "correct": 1553
+    },
+    "oracle_binary_switch": {
+      "correct": 5033,
+      "baseline_correct": 7002,
+      "gains": 2620,
+      "harms": 4589,
+      "net": -1969,
+      "paired_band": 170
+    },
+    "pick_exact_same_id": 3965,
+    "pick_exact_both_correct": 3067,
+    "pick_correct_exact_wrong": 721,
+    "exact_correct_pick_wrong": 0,
+    "pick_correct_s2_absent": 991,
+    "pick_correct_at_positive_distance": 721,
+    "pick_correct_and_count_correct": 308
+  },
+  "early": {
+    "rows": 3678,
+    "pick": {
+      "rows": 3678,
+      "eligible": 3678,
+      "correct": 420
+    },
+    "exact": {
+      "rows": 3678,
+      "eligible": 299,
+      "correct": 216
+    },
+    "rotated": {
+      "rows": 3678,
+      "eligible": 3678,
+      "correct": 53
+    },
+    "count": {
+      "rows": 3678,
+      "eligible": 3678,
+      "correct": 425
+    },
+    "oracle_binary_switch": {
+      "correct": 815,
+      "baseline_correct": 1582,
+      "gains": 278,
+      "harms": 1045,
+      "net": -767,
+      "paired_band": 73
+    },
+    "pick_exact_same_id": 299,
+    "pick_exact_both_correct": 216,
+    "pick_correct_exact_wrong": 204,
+    "exact_correct_pick_wrong": 0,
+    "pick_correct_s2_absent": 93,
+    "pick_correct_at_positive_distance": 204,
+    "pick_correct_and_count_correct": 30
+  },
+  "eos": {
+    "rows": 1226,
+    "pick": {
+      "rows": 1226,
+      "eligible": 1226,
+      "correct": 0
+    },
+    "exact": {
+      "rows": 1226,
+      "eligible": 297,
+      "correct": 0
+    },
+    "rotated": {
+      "rows": 1226,
+      "eligible": 1226,
+      "correct": 0
+    },
+    "count": {
+      "rows": 1226,
+      "eligible": 1226,
+      "correct": 0
+    },
+    "oracle_binary_switch": {
+      "correct": 0,
+      "baseline_correct": 1177,
+      "gains": 0,
+      "harms": 1177,
+      "net": -1177,
+      "paired_band": 69
+    },
+    "pick_exact_same_id": 297,
+    "pick_exact_both_correct": 0,
+    "pick_correct_exact_wrong": 0,
+    "exact_correct_pick_wrong": 0,
+    "pick_correct_s2_absent": 0,
+    "pick_correct_at_positive_distance": 0,
+    "pick_correct_and_count_correct": 0
+  },
+  "distance_zero": {
+    "rows": 3965,
+    "pick": {
+      "rows": 3965,
+      "eligible": 3965,
+      "correct": 3067
+    },
+    "exact": {
+      "rows": 3965,
+      "eligible": 3965,
+      "correct": 3067
+    },
+    "rotated": {
+      "rows": 3965,
+      "eligible": 3965,
+      "correct": 73
+    },
+    "count": {
+      "rows": 3965,
+      "eligible": 3965,
+      "correct": 211
+    },
+    "oracle_binary_switch": {
+      "correct": 3082,
+      "baseline_correct": 1526,
+      "gains": 1961,
+      "harms": 405,
+      "net": 1556,
+      "paired_band": 98
+    },
+    "pick_exact_same_id": 3965,
+    "pick_exact_both_correct": 3067,
+    "pick_correct_exact_wrong": 0,
+    "exact_correct_pick_wrong": 0,
+    "pick_correct_s2_absent": 874,
+    "pick_correct_at_positive_distance": 0,
+    "pick_correct_and_count_correct": 196
+  },
+  "distance_positive": {
+    "rows": 10322,
+    "pick": {
+      "rows": 10322,
+      "eligible": 10322,
+      "correct": 721
+    },
+    "exact": {
+      "rows": 10322,
+      "eligible": 0,
+      "correct": 0
+    },
+    "rotated": {
+      "rows": 10322,
+      "eligible": 10322,
+      "correct": 128
+    },
+    "count": {
+      "rows": 10322,
+      "eligible": 10322,
+      "correct": 1342
+    },
+    "oracle_binary_switch": {
+      "correct": 1951,
+      "baseline_correct": 5476,
+      "gains": 659,
+      "harms": 4184,
+      "net": -3525,
+      "paired_band": 140
+    },
+    "pick_exact_same_id": 0,
+    "pick_exact_both_correct": 0,
+    "pick_correct_exact_wrong": 721,
+    "exact_correct_pick_wrong": 0,
+    "pick_correct_s2_absent": 117,
+    "pick_correct_at_positive_distance": 721,
+    "pick_correct_and_count_correct": 112
+  }
+}

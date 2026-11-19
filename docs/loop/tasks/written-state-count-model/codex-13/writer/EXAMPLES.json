@@ -1,0 +1,234 @@
+{
+  "held": [
+    {
+      "id": "held-0-true-0-0-unique-ignoring-after-0",
+      "expected": [
+        1481,
+        1
+      ],
+      "before": [
+        11,
+        12
+      ],
+      "expected_request": [
+        16,
+        18
+      ],
+      "actual_request": [
+        16,
+        18
+      ],
+      "original": {
+        "source": null,
+        "ids": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "exact": false,
+        "first_wrong": 0,
+        "expected_id": 1481,
+        "wrong_id": 1155,
+        "copied": false,
+        "stop": "eos",
+        "delimiter_eos": false
+      },
+      "region": {
+        "source": 7,
+        "ids": [
+          1481,
+          1
+        ],
+        "exact": true,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": true,
+        "stop": "eos",
+        "delimiter_eos": true
+      },
+      "role_oracle": {
+        "source": 7,
+        "ids": [
+          1481,
+          1
+        ],
+        "exact": true,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": true,
+        "stop": "eos",
+        "delimiter_eos": true
+      }
+    },
+    {
+      "id": "held-0-true-0-0-duplicate_agree-ignoring-after-0",
+      "expected": [
+        1481,
+        1
+      ],
+      "before": [
+        11,
+        12
+      ],
+      "expected_request": [
+        21,
+        23
+      ],
+      "actual_request": [
+        21,
+        23
+      ],
+      "original": {
+        "source": null,
+        "ids": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          915,
+          261,
+          563,
+          450,
+          85,
+          71,
+          418,
+          300,
+          519,
+          14,
+          340
+        ],
+        "exact": false,
+        "first_wrong": 0,
+        "expected_id": 1481,
+        "wrong_id": 1155,
+        "copied": false,
+        "stop": "cap",
+        "delimiter_eos": false
+      },
+      "region": {
+        "source": 7,
+        "ids": [
+          1481,
+          1
+        ],
+        "exact": true,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": true,
+        "stop": "eos",
+        "delimiter_eos": true
+      },
+      "role_oracle": {
+        "source": 7,
+        "ids": [
+          1481,
+          1
+        ],
+        "exact": true,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": true,
+        "stop": "eos",
+        "delimiter_eos": true
+      }
+    }
+  ],
+  "nuisance": [
+    {
+      "id": "nuisance-held-0-false-0-0-unique-ordinary-after-0-trailing",
+      "prompt": "May held pink. Joe held brown. When might Harbor and Summit agree about a blue sky? The margin reads: Report the thing for Joe.",
+      "original": {
+        "source": 11,
+        "ids": [
+          1730,
+          1
+        ],
+        "exact": false,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": true,
+        "stop": "eos",
+        "delimiter_eos": true
+      },
+      "region": {
+        "source": null,
+        "ids": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "exact": false,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": false,
+        "stop": "eos",
+        "delimiter_eos": false
+      },
+      "adverse": {
+        "source": null,
+        "ids": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "exact": false,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": false,
+        "stop": "eos",
+        "delimiter_eos": false
+      },
+      "role_oracle": {
+        "source": null,
+        "ids": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "exact": false,
+        "first_wrong": null,
+        "expected_id": null,
+        "wrong_id": null,
+        "copied": false,
+        "stop": "eos",
+        "delimiter_eos": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+cc4826600eca1318e80751b1d749a89e0241db8d594b954e3dd008693fc38467  region-wick.tar.gz
+a737c86158e41b734a98a64b495336e0d18e3267aabf68fe1865f93deaa36b27  panels/collection.sha256
+6d0f83d92d7907b177875d7c50744a58d88a00a2a9e5b50e3f44dc41c24da854  primary/decisions.sha256
+6d0f83d92d7907b177875d7c50744a58d88a00a2a9e5b50e3f44dc41c24da854  repeat/decisions.sha256
+c655ec7323218bebf7ed509f77f22abf64004df9a8b44e74aca3b9453a43fa5d  grades-primary-v2/grades.sha256
+c655ec7323218bebf7ed509f77f22abf64004df9a8b44e74aca3b9453a43fa5d  grades-repeat/grades.sha256
+780d1a7a300f79ad20660ed0fa8708de3803d14b69cc0eabb6ed2b7d1df6f374  rank-primary-v2/rank.sha256
+780d1a7a300f79ad20660ed0fa8708de3803d14b69cc0eabb6ed2b7d1df6f374  rank-repeat/rank.sha256
+4d4c164fd774725c4df6a58dfc0b84d90c85f0d3c4096340fb0e7716f2e680d5  grade-source.sha256
+name, uuid, driver_version
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02
+Built on Tue_Dec_16_07:23:41_PM_PST_2025
+Cuda compilation tools, release 13.1, V13.1.115
+Build cuda_13.1.r13.1/compiler.37061995_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+Fresh harness native-space contract: 1 rule, 0 failed.

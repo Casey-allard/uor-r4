@@ -1,0 +1,1 @@
+{"admissible_weight_vectors_checked":2604125,"can_win":[true,false,true,true,true,false],"committed_eos_rejected":true,"interior_bos_rejected":true,"max_prefix":192,"out_of_range_id_rejected":true,"overflowing_prefix_rejected":true,"tie_count":3,"tie_distance":0,"tie_position":4}

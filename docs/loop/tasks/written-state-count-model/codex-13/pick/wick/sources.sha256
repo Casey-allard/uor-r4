@@ -1,0 +1,11 @@
+9f1c33453e47f62634830708e1806d724d869ef5f7225898177e8423dcbeb09b  crates/uor-r4-integer/src/count_mixer.rs
+c91bdf65cdb518f03ffd32fd14f518e9081c0b73c9c3913e030ec5f39f002b03  crates/uor-r4-integer/src/discrete_d11.rs
+b193670483af7647eef7456cf5e4b3934de97d65280af7cb355db968a757bc3b  crates/uor-r4-discrete/build.rs
+1a7725b087e595bca38de1404bab8a8477e761f7bb308eeb22c0e37630cd4bdd  crates/uor-r4-discrete/src/discrete.cu
+b9510f2dc88b9666021534a41c54c57e07c033cf14c3f67c89234b9e0abb4a7e  crates/uor-r4-discrete/src/device.rs
+77fb8672ef70f79a003538a92144592f95571bdf136a6eda3026515c4608d54c  crates/uor-r4-discrete/src/position_mechanism.rs
+109d13078b1f3eac61850875ddace561893e0d373fc3a2f490db424484d5cbdc  docs/labs/kn-reference/instrument/Cargo.toml
+3f639a2f22a4db5993a7ea3a4f27988adce8c78f50dda9b88e5c5584c36e40c7  docs/labs/kn-reference/instrument/Cargo.lock
+b65f75be4e62e06d85399e5bb2edff6560777f7af7f610b64c52fc13892e687f  docs/labs/kn-reference/instrument/src/bin/count-score.cu
+dc08cfdefcebd7fe3bead48152764d5dced59b60954559cd2bc0f83aa6c0e9ae  docs/labs/kn-reference/instrument/src/bin/context-score.cu
+fd77a049e89c0983ab66097ede160aab804d8548086c2a5d23cf61eb2097622e  docs/labs/kn-reference/instrument/src/bin/pick-reachability.rs

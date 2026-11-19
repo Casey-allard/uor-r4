@@ -1,0 +1,22 @@
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02
+7398021b8216bedffd342d529ba31ea6f79d9e0ddd520f94e74c539dc2b5f456  bin/query-region-writer
+69 matched JSON files
+e79fa99550e3e7562d9709fdf13413a41841db6542a420eb1491246fe2d3a7d5  primary/seed1-fresh/SHA256SUMS
+77 matched JSON files
+23b72dbf22d727ad58afd205cd3d1dce9089bde853aad6000dbd37adef8b7cd2  primary/seed1-held/SHA256SUMS
+57 matched JSON files
+7f6cd3ec6c2050f4e668879c3059fb2fba4b0a99117db75ce728b91343945b8a  primary/seed1-nuisance/SHA256SUMS
+69 matched JSON files
+bea37fca3fb490be366b73162850d6af194722cb827118808f81955f10278926  primary/seed2-fresh/SHA256SUMS
+77 matched JSON files
+280de31dcdb56fb25e16f344f100485ff12d226f81b22ad0facec69b75c005d3  primary/seed2-held/SHA256SUMS
+57 matched JSON files
+e5a23e02db26552d8300eb3f11cd6bba715cdf68ff9f149914d0da9b06d354a4  primary/seed2-nuisance/SHA256SUMS
+35777c8365201072232dcec7e5943f1c97c3077a80da959e1c4e812064238c48  verified/SHA256SUMS
+PASS 91 device/Rust words; crossed stop, multi-piece value, empty value, no stop, seven-token EOS, eight-token cap and no-read
+PASS zero/single/equal/conflict/missing copy/cap release, all four CUDA and host decision words
+refused: different bare prefix or source beyond prompt
+b02fc0da9d17d5a86aa6dcab6cec6dd21b48f279fa7c037761bd270eb40c6e52  writer-wick.tar.zst
+8d1ef6d9b3205b8165929c252d37384bcee3764b
+b02fc0da9d17d5a86aa6dcab6cec6dd21b48f279fa7c037761bd270eb40c6e52  readback/results/codex/query-region-pick-20261118/writer-wick.tar.zst
+5633998 archive/writer-wick.tar.zst

@@ -1,0 +1,9 @@
+/home/callard/uor-codex/20261118-value-connectors/inputs/seed1.d11: OK
+/home/callard/uor-codex/20261118-paired-role-fence/count/primary-1-v2/run/depth3-equal.d11: OK
+/home/callard/uor-codex/20261118-paired-role-fence/count/primary-1-v2/run/depth3-equal.reload.words: OK
+/home/callard/uor-codex/20261118-paired-role-fence/count/primary-100/run/depth4-equal.d11: OK
+/home/callard/uor-codex/20261118-paired-role-fence/count/primary-100/run/depth4-equal.reload.words: OK
+/home/callard/uor-codex/20261118-query-region-pick/pick/SHEET.md: OK
+Error: "identity Pick full-word mismatch at row 1"
+Error: "identity Pick full-word mismatch at row 0"
+Error: "noncausal frozen prefix at row 10"

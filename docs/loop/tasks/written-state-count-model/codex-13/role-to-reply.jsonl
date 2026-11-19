@@ -1,0 +1,12 @@
+{"split":"held","seed":1,"arm":"original","denominator":448,"role_exact_reply_exact":308,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":140,"first_wrong":{"0":140}}
+{"split":"held","seed":1,"arm":"region","denominator":448,"role_exact_reply_exact":316,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":132,"first_wrong":{"0":132}}
+{"split":"held","seed":1,"arm":"role-oracle","denominator":448,"role_exact_reply_exact":448,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":0,"first_wrong":{}}
+{"split":"fresh","seed":1,"arm":"original","denominator":448,"role_exact_reply_exact":224,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":224,"first_wrong":{"0":224}}
+{"split":"fresh","seed":1,"arm":"region","denominator":448,"role_exact_reply_exact":224,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":224,"first_wrong":{"0":224}}
+{"split":"fresh","seed":1,"arm":"role-oracle","denominator":448,"role_exact_reply_exact":448,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":0,"first_wrong":{}}
+{"split":"held","seed":2,"arm":"original","denominator":448,"role_exact_reply_exact":308,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":140,"first_wrong":{"0":140}}
+{"split":"held","seed":2,"arm":"region","denominator":448,"role_exact_reply_exact":316,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":132,"first_wrong":{"0":132}}
+{"split":"held","seed":2,"arm":"role-oracle","denominator":448,"role_exact_reply_exact":448,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":0,"first_wrong":{}}
+{"split":"fresh","seed":2,"arm":"original","denominator":448,"role_exact_reply_exact":224,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":224,"first_wrong":{"0":224}}
+{"split":"fresh","seed":2,"arm":"region","denominator":448,"role_exact_reply_exact":224,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":224,"first_wrong":{"0":224}}
+{"split":"fresh","seed":2,"arm":"role-oracle","denominator":448,"role_exact_reply_exact":448,"role_exact_reply_wrong":0,"role_wrong_reply_exact":0,"role_wrong_reply_wrong":0,"first_wrong":{}}

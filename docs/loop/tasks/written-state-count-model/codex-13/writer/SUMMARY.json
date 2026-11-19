@@ -1,0 +1,986 @@
+[
+  {
+    "tag": "seed1-held",
+    "overall": {
+      "original": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 308,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 308,
+        "eos": 1002,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 54,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 140,
+          "exact→exact": 308
+        }
+      },
+      "region": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 316,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 316,
+        "eos": 1004,
+        "recovered": 8,
+        "lost": 0,
+        "source_changed": 8,
+        "ends_at_cap": 52,
+        "first_wrong_changed": 8,
+        "first_wrong_transitions": {
+          "0→0": 132,
+          "0→exact": 8,
+          "exact→exact": 308
+        }
+      },
+      "adverse": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 997,
+        "recovered": 0,
+        "lost": 308,
+        "source_changed": 308,
+        "ends_at_cap": 59,
+        "first_wrong_changed": 308,
+        "first_wrong_transitions": {
+          "0→0": 140,
+          "exact→0": 308
+        }
+      },
+      "role_oracle": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 448,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 448,
+        "eos": 1023,
+        "recovered": 140,
+        "lost": 0,
+        "source_changed": 140,
+        "ends_at_cap": 33,
+        "first_wrong_changed": 140,
+        "first_wrong_transitions": {
+          "0→exact": 140,
+          "exact→exact": 308
+        }
+      }
+    },
+    "identity": {
+      "identity": 1056,
+      "prior_original": true,
+      "same_request": {
+        "adverse": 422,
+        "region": 908,
+        "role-oracle": 672
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 576,
+          "exact": 88,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 576,
+          "exact": 96,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 576,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 576,
+          "exact": 128,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 480,
+          "exact": 220,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 480,
+          "exact": 220,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 480,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 480,
+          "exact": 320,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 88,
+      "region": 88,
+      "adverse": 0,
+      "role_oracle": 128
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "region": {
+        "observed_trajectories": 20,
+        "device_feedback_steps": 40,
+        "rank_uses": 2112
+      },
+      "adverse": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 180,
+        "device_feedback_steps": 440,
+        "rank_uses": 2112
+      }
+    }
+  },
+  {
+    "tag": "seed1-fresh",
+    "overall": {
+      "original": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 224,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 224,
+        "eos": 1037,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 19,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→exact": 224
+        }
+      },
+      "region": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 224,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 224,
+        "eos": 1037,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 19,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→exact": 224
+        }
+      },
+      "adverse": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 1035,
+        "recovered": 0,
+        "lost": 224,
+        "source_changed": 224,
+        "ends_at_cap": 21,
+        "first_wrong_changed": 224,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→0": 224
+        }
+      },
+      "role_oracle": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 448,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 448,
+        "eos": 1042,
+        "recovered": 224,
+        "lost": 0,
+        "source_changed": 224,
+        "ends_at_cap": 14,
+        "first_wrong_changed": 224,
+        "first_wrong_transitions": {
+          "0→exact": 224,
+          "exact→exact": 224
+        }
+      }
+    },
+    "identity": {
+      "identity": 1056,
+      "prior_original": true,
+      "same_request": {
+        "adverse": 336,
+        "region": 972,
+        "role-oracle": 508
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 576,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 576,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 576,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 576,
+          "exact": 272,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 480,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 480,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 480,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 480,
+          "exact": 176,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 64,
+      "region": 64,
+      "adverse": 0,
+      "role_oracle": 128
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "region": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "adverse": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 320,
+        "device_feedback_steps": 800,
+        "rank_uses": 2112
+      }
+    }
+  },
+  {
+    "tag": "seed1-nuisance",
+    "overall": {
+      "original": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 1,
+        "nonempty_delimiter_eos": 9,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      },
+      "region": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 8,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 1,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      },
+      "adverse": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 8,
+        "source_changed": 9,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 8,
+        "first_wrong_transitions": {
+          "exact→0": 8
+        }
+      },
+      "role_oracle": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 8,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 1,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      }
+    },
+    "identity": {
+      "identity": 12,
+      "prior_original": false,
+      "same_request": {
+        "adverse": 2,
+        "region": 9,
+        "role-oracle": 8
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 1
+        },
+        "region": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 8,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 4,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 4,
+      "region": 4,
+      "adverse": 0,
+      "role_oracle": 4
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 12,
+        "device_feedback_steps": 48,
+        "rank_uses": 12
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 12
+      },
+      "region": {
+        "observed_trajectories": 1,
+        "device_feedback_steps": 10,
+        "rank_uses": 12
+      },
+      "adverse": {
+        "observed_trajectories": 8,
+        "device_feedback_steps": 79,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 12
+      }
+    }
+  },
+  {
+    "tag": "seed2-held",
+    "overall": {
+      "original": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 308,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 308,
+        "eos": 983,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 73,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 140,
+          "exact→exact": 308
+        }
+      },
+      "region": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 316,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 316,
+        "eos": 985,
+        "recovered": 8,
+        "lost": 0,
+        "source_changed": 8,
+        "ends_at_cap": 71,
+        "first_wrong_changed": 8,
+        "first_wrong_transitions": {
+          "0→0": 132,
+          "0→exact": 8,
+          "exact→exact": 308
+        }
+      },
+      "adverse": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 975,
+        "recovered": 0,
+        "lost": 308,
+        "source_changed": 308,
+        "ends_at_cap": 81,
+        "first_wrong_changed": 308,
+        "first_wrong_transitions": {
+          "0→0": 140,
+          "exact→0": 308
+        }
+      },
+      "role_oracle": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 448,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 448,
+        "eos": 1005,
+        "recovered": 140,
+        "lost": 0,
+        "source_changed": 140,
+        "ends_at_cap": 51,
+        "first_wrong_changed": 140,
+        "first_wrong_transitions": {
+          "0→exact": 140,
+          "exact→exact": 308
+        }
+      }
+    },
+    "identity": {
+      "identity": 1056,
+      "prior_original": true,
+      "same_request": {
+        "adverse": 422,
+        "region": 908,
+        "role-oracle": 672
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 576,
+          "exact": 88,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 576,
+          "exact": 96,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 576,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 576,
+          "exact": 128,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 480,
+          "exact": 220,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 480,
+          "exact": 220,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 480,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 480,
+          "exact": 320,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 88,
+      "region": 88,
+      "adverse": 0,
+      "role_oracle": 128
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "region": {
+        "observed_trajectories": 20,
+        "device_feedback_steps": 40,
+        "rank_uses": 2112
+      },
+      "adverse": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 180,
+        "device_feedback_steps": 440,
+        "rank_uses": 2112
+      }
+    }
+  },
+  {
+    "tag": "seed2-fresh",
+    "overall": {
+      "original": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 224,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 224,
+        "eos": 1040,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 16,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→exact": 224
+        }
+      },
+      "region": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 224,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 224,
+        "eos": 1040,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 16,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→exact": 224
+        }
+      },
+      "adverse": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 1038,
+        "recovered": 0,
+        "lost": 224,
+        "source_changed": 224,
+        "ends_at_cap": 18,
+        "first_wrong_changed": 224,
+        "first_wrong_transitions": {
+          "0→0": 224,
+          "exact→0": 224
+        }
+      },
+      "role_oracle": {
+        "rows": 1056,
+        "answerable": 448,
+        "unsupported": 608,
+        "exact": 448,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 448,
+        "eos": 1044,
+        "recovered": 224,
+        "lost": 0,
+        "source_changed": 224,
+        "ends_at_cap": 12,
+        "first_wrong_changed": 224,
+        "first_wrong_transitions": {
+          "0→exact": 224,
+          "exact→exact": 224
+        }
+      }
+    },
+    "identity": {
+      "identity": 1056,
+      "prior_original": true,
+      "same_request": {
+        "adverse": 336,
+        "region": 972,
+        "role-oracle": 508
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 576,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 576,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 576,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 576,
+          "exact": 272,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 480,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 480,
+          "exact": 112,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 480,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 480,
+          "exact": 176,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 64,
+      "region": 64,
+      "adverse": 0,
+      "role_oracle": 128
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "region": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 2112
+      },
+      "adverse": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 320,
+        "device_feedback_steps": 800,
+        "rank_uses": 2112
+      }
+    }
+  },
+  {
+    "tag": "seed2-nuisance",
+    "overall": {
+      "original": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 1,
+        "nonempty_delimiter_eos": 9,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 0,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      },
+      "region": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 8,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 1,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      },
+      "adverse": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 0,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 0,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 8,
+        "source_changed": 9,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 8,
+        "first_wrong_transitions": {
+          "exact→0": 8
+        }
+      },
+      "role_oracle": {
+        "rows": 12,
+        "answerable": 8,
+        "unsupported": 4,
+        "exact": 8,
+        "unsupported_copy": 0,
+        "nonempty_delimiter_eos": 8,
+        "eos": 12,
+        "recovered": 0,
+        "lost": 0,
+        "source_changed": 1,
+        "ends_at_cap": 0,
+        "first_wrong_changed": 0,
+        "first_wrong_transitions": {
+          "exact→exact": 8
+        }
+      }
+    },
+    "identity": {
+      "identity": 12,
+      "prior_original": false,
+      "same_request": {
+        "adverse": 2,
+        "region": 9,
+        "role-oracle": 8
+      }
+    },
+    "direction": {
+      "0": {
+        "original": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 1
+        },
+        "region": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 8,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 8,
+          "exact": 4,
+          "unsupported_copy": 0
+        }
+      },
+      "1": {
+        "original": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "region": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        },
+        "adverse": {
+          "rows": 4,
+          "exact": 0,
+          "unsupported_copy": 0
+        },
+        "role_oracle": {
+          "rows": 4,
+          "exact": 4,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    "pair_exact": {
+      "original": 4,
+      "region": 4,
+      "adverse": 0,
+      "role_oracle": 4
+    },
+    "device": {
+      "original": {
+        "observed_trajectories": 12,
+        "device_feedback_steps": 48,
+        "rank_uses": 12
+      },
+      "identity": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 12
+      },
+      "region": {
+        "observed_trajectories": 1,
+        "device_feedback_steps": 10,
+        "rank_uses": 12
+      },
+      "adverse": {
+        "observed_trajectories": 8,
+        "device_feedback_steps": 79,
+        "rank_uses": 0
+      },
+      "role_oracle": {
+        "observed_trajectories": 0,
+        "device_feedback_steps": 0,
+        "rank_uses": 12
+      }
+    }
+  }
+]

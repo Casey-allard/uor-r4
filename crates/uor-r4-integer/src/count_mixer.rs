@@ -292,6 +292,24 @@ impl CountMixer {
         self.context.as_ref().map(|state| state.weights)
     }
 
+    /// Target-independent support for the frozen suffix mixture. Bit zero marks
+    /// the first unigram maximizer; bits 1..=4 mark each resolved suffix row's
+    /// retained IDs, including explicit entries with rounded-zero Q24 mass.
+    #[doc(hidden)]
+    pub fn context_support<T: Copy + Into<u32>>(&self, prefix: &[T]) -> Option<[u8; VOCAB]> {
+        let state = self.context.as_ref()?;
+        let mut support = [0; VOCAB];
+        support[usize::from(state.unigram_top8[0])] = 1;
+        for (depth, row) in state.active(prefix).into_iter().enumerate() {
+            if let Some(row) = row {
+                for &word in row {
+                    support[(word & 0xfff) as usize] |= 1 << (depth + 1);
+                }
+            }
+        }
+        Some(support)
+    }
+
     /// Q24 probability per occupied depth. A missing row reads the shorter suffix.
     pub fn context_masses<T: Copy + Into<u32>>(
         &self,
