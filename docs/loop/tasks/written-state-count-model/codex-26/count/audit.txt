@@ -1,0 +1,16 @@
+order 0: 4 triples, 1 contexts, 1 pages, 12 payload bytes
+order 1: 14740 triples, 3912 contexts, 31 pages, 35309 payload bytes
+order 2: 556034 triples, 287163 contexts, 2244 pages, 1532490 payload bytes
+order 3: 1433768 triples, 986120 contexts, 7705 pages, 4874853 payload bytes
+order 4: 1869601 triples, 1481109 contexts, 11572 pages, 7985383 payload bytes
+order 5: 1963743 triples, 1675455 contexts, 13090 pages, 10429082 payload bytes
+order 6: 1921214 triples, 1708755 contexts, 13350 pages, 12401296 payload bytes
+order 7: 1839067 triples, 1677063 contexts, 13103 pages, 14082957 payload bytes
+order 8: 1753211 triples, 1629223 contexts, 12729 pages, 15589216 payload bytes
+order 9: 1675429 triples, 1577284 contexts, 12323 pages, 17014142 payload bytes
+order 10: 1024 exact misses after changing only the oldest token
+order 10: 1607548 triples, 1527560 contexts, 11935 pages, 18395505 payload bytes
+roundtrip 14634359 triples; 217676 directory and flat-oracle queries
+header 152; directory 1961660; body 102340245; section 104302057; base 86536132; total 190838189; cap 125998708; over cap 64839481
+negative control: zero rank
+negative controls: short header, truncated final page, nonzero restart delta, bad initial offset

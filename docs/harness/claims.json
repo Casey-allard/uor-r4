@@ -55,6 +55,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/pre-gate-source-comparison": {
+    "branch": "codex/pre-gate-source-comparison",
+    "claimed_at": "2026-11-19T18:33:43-05:00",
+    "head": "c75dbe8dd",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/requested-occurrence-ranking": {
     "branch": "codex/requested-occurrence-ranking",
     "claimed_at": "2026-11-19T14:05:18-05:00",

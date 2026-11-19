@@ -42,9 +42,9 @@ fn writer(ids: &[u32], start: usize, fence: usize) -> Result<Vec<u32>> {
     Err("forced writer did not preserve exact original IDs through EOS".into())
 }
 
-fn key() -> Result<BTreeMap<u32, [&'static str; 3]>> {
+fn key(source: &str) -> Result<BTreeMap<u32, [&str; 3]>> {
     let mut entries = BTreeMap::new();
-    for line in include_str!("key.tsv").lines() {
+    for line in source.lines() {
         let fields: Vec<_> = line.split('\t').collect();
         let [row, early, late, reading] = fields.as_slice() else {
             return Err("bad key row".into());
@@ -59,7 +59,15 @@ fn key() -> Result<BTreeMap<u32, [&'static str; 3]>> {
     Ok(entries)
 }
 
-fn prepare(model_path: &str, model_hash: &str, tokenizer_path: &str, out: &Path) -> Result<()> {
+fn prepare(
+    model_path: &str,
+    model_hash: &str,
+    tokenizer_path: &str,
+    out: &Path,
+    fixtures: [&str; 3],
+    key_source: &str,
+    donors: &BTreeMap<u32, u32>,
+) -> Result<()> {
     let model = IntegerDiscreteModel::load(Path::new(model_path))?;
     let tokenizer_data = fs::read(tokenizer_path)?;
     if model.artifact_sha256() != model_hash
@@ -72,12 +80,9 @@ fn prepare(model_path: &str, model_hash: &str, tokenizer_path: &str, out: &Path)
         ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_data).ok_or("invalid tokenizer")?;
     let protocol = DialogueProtocol::literal_roles_v2(&tokenizer)?;
     let encoder = protocol.bind(&tokenizer)?;
-    let mut key = key()?;
-    for (split, fixture) in [
-        ("train", include_str!("train.tsv")),
-        ("held", include_str!("held.tsv")),
-        ("exposed", include_str!("exposed.tsv")),
-    ] {
+    let mut key = key(key_source)?;
+    let mut unique_prompts = BTreeSet::new();
+    for (split, fixture) in ["train", "held", "exposed"].into_iter().zip(fixtures) {
         let mut packet = b"D25ROWS1\n".to_vec();
         let mut ordinary = Vec::new();
         let mut grading = Vec::new();
@@ -105,6 +110,9 @@ fn prepare(model_path: &str, model_hash: &str, tokenizer_path: &str, out: &Path)
                     text.push(' ');
                     text.push_str(part);
                 }
+            }
+            if !unique_prompts.insert(text.clone()) {
+                return Err(format!("row {row} duplicates a complete prompt").into());
             }
             let ids = encoder
                 .encode_assistant_prefix(&[Message {
@@ -278,23 +286,26 @@ fn prepare(model_path: &str, model_hash: &str, tokenizer_path: &str, out: &Path)
             ordinary.push(json!({"row": row, "messages": [{"role": "user", "content": text}]}));
         }
         if split == "held" {
+            for (&row, partner) in donors {
+                if row == *partner
+                    || donors.get(partner) != Some(&row)
+                    || !row_context.contains_key(&row)
+                {
+                    return Err(format!("invalid held context swap {row}/{partner}").into());
+                }
+            }
             let mut swapped = b"D25ROWS1\n".to_vec();
             for line in std::str::from_utf8(&packet)?.lines().skip(1) {
                 let fields: Vec<_> = line.split(' ').collect();
                 let row: u32 = fields[0].parse()?;
-                let partner = match row {
-                    201 | 203 | 205 | 207 => Some(row + 1),
-                    202 | 204 | 206 | 208 => Some(row - 1),
-                    _ => None,
-                };
-                if let Some(partner) = partner {
+                if let Some(partner) = donors.get(&row) {
                     if fields.len() != 69 {
                         return Err("malformed candidate row packet".into());
                     }
                     write!(swapped, "{}", fields[..37].join(" "))?;
                     write_fields(
                         &mut swapped,
-                        row_context.get(&partner).ok_or("missing swap partner")?,
+                        row_context.get(partner).ok_or("missing swap partner")?,
                     )?;
                 } else {
                     writeln!(swapped, "{line}")?;
@@ -439,7 +450,43 @@ fn main() -> Result<()> {
     match args.as_slice() {
         [command, model, hash, tokenizer, out] if command == "prepare" => {
             fs::create_dir(out)?;
-            prepare(model, hash, tokenizer, Path::new(out))
+            let donors = BTreeMap::from_iter(
+                [201, 203, 205, 207]
+                    .into_iter()
+                    .flat_map(|row| [(row, row + 1), (row + 1, row)]),
+            );
+            prepare(
+                model, hash, tokenizer, Path::new(out),
+                [include_str!("train.tsv"), include_str!("held.tsv"), include_str!("exposed.tsv")],
+                include_str!("key.tsv"), &donors,
+            )
+        }
+        [command, model, hash, tokenizer, fixture_dir, out] if command == "prepare-d26" => {
+            let fixture_dir = Path::new(fixture_dir);
+            let train = format!(
+                "{}{}",
+                include_str!("train.tsv"),
+                fs::read_to_string(fixture_dir.join("train.tsv"))?
+            );
+            let held = fs::read_to_string(fixture_dir.join("held.tsv"))?;
+            let exposed = concat!(include_str!("held.tsv"), include_str!("exposed.tsv"));
+            let key = format!(
+                "{}{}",
+                include_str!("key.tsv"),
+                fs::read_to_string(fixture_dir.join("key.tsv"))?
+            );
+            let mut donors = BTreeMap::new();
+            let donor_source = fs::read_to_string(fixture_dir.join("held.donors.tsv"))?;
+            for line in donor_source.lines() {
+                let (row, partner) = line.split_once('\t').ok_or("invalid donor line")?;
+                if donors.insert(row.parse()?, partner.parse()?).is_some() {
+                    return Err("duplicate donor row".into());
+                }
+            }
+            fs::create_dir(out)?;
+            prepare(model, hash, tokenizer, Path::new(out), [&train, &held, exposed], &key, &donors)?;
+            fs::write(Path::new(out).join("held.donors.tsv"), donor_source)?;
+            Ok(())
         }
         [command, key, results] if command == "grade" => {
             println!("{}", serde_json::to_string_pretty(&grade(key, results)?)?);
@@ -452,6 +499,6 @@ fn main() -> Result<()> {
             }
             write_local_tables(&model, Path::new(out))
         }
-        _ => Err("usage: d25-contextual-source-panel prepare MODEL MODEL_SHA256 TOKENIZER NEW_OUT | grade GRADE_KEY RESULTS | tables MODEL MODEL_SHA256 NEW_OUTPUT_FILE".into()),
+        _ => Err("usage: d25-contextual-source-panel prepare MODEL MODEL_SHA256 TOKENIZER NEW_OUT | prepare-d26 MODEL MODEL_SHA256 TOKENIZER FIXTURE_DIR NEW_OUT | grade GRADE_KEY RESULTS | tables MODEL MODEL_SHA256 NEW_OUTPUT_FILE".into()),
     }
 }

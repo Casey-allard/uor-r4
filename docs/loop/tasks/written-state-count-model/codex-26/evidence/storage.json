@@ -1,0 +1,79 @@
+{
+  "schema": "uor-r4.pre-gate-source-storage/1",
+  "core": {
+    "verified_utc": "2026-11-19T23:49:17Z",
+    "source_snapshot": "6a94b840945318d1f90dd9a71e8975e4d3800d49",
+    "filename": "observations.tar.zst",
+    "format": "PAX tar with relative paths, compressed with Zstandard",
+    "bytes": 210490,
+    "sha256": "52b19c1c7bd2ae181dfb1bd7c47ebf71e6854e3961009ff8c8186f01e1bcc224",
+    "file_manifest": "files.sha256",
+    "file_manifest_sha256": "445a64be7644cfe0be9de7efc2d4eda0822b4672b1891d82ec05b890b85aaa86",
+    "entries_verified_on_mac_wick_and_hub_readback": 288,
+    "original_input_and_observation_checks_before_snapshot": 213,
+    "ordinary_original_transcripts": 60,
+    "additional_role_control_transcripts": 12,
+    "workstation_directory": "~/uor-r4/local/codex/pre-gate-source-26/custody-01",
+    "wick_directory": "/home/callard/uor-codex/20261119-pre-gate-source-26/custody-01",
+    "scope": "Native protocol-2 tapes, keys and masks, original local and context projector inputs, scored view and donor packets, ordinary transcripts, role traces and controls, Wick projection and Vast raw projection/finite/scoring outputs, cold replay banks and traces, writer grades and summary, count packing logs, and source and executable identity receipts.",
+    "score_mirror": "score-01 matched vast-readback/raw/score byte for byte. The archive retains the Vast copy and the independent score-01 manifest."
+  },
+  "core_hub": {
+    "dataset": "caseyallard/uor-r4-store",
+    "private": true,
+    "revision": "b2b5a9971321ce2a772b04ab9186874196221dfe",
+    "path": "results/codex/2026-11-19-pre-gate-source-26-52b19c1/core-base64",
+    "representation": "Lexically ordered chunk-*.txt files concatenate to standard Base64 for the original archive bytes.",
+    "delivery_manifest": "delivery.sha256",
+    "delivery_manifest_sha256": "bcbfa99fac99c4be8dab76a09108e0b9ede1cce84a533967db01629b3c24e14a",
+    "pinned_download_decoded_archive_and_members_match": true,
+    "binary_upload_outcome": "Private storage quota rejected the compressed binary upload. The regular Git text form was committed and read back at the pinned revision."
+  },
+  "standalone_count_sidecar": {
+    "filename": "packed.s2p",
+    "bytes": 104302057,
+    "sha256": "0874e970d7da2176bdce891985189011cf140646175017dc2dcefb87061ce608",
+    "workstation_path": "~/uor-r4/local/codex/pre-gate-source-26/count/packed.s2p",
+    "wick_path": "/home/callard/uor-codex/20261119-pre-gate-source-26/custody-01/packed.s2p",
+    "mac_repeat_and_wick_copy_match": true
+  },
+  "supplement": {
+    "verified_utc": "2026-11-19T23:53:42Z",
+    "source_snapshot": "d6c99a26cbd9e72f06fdb44bbb111f53f69a2df4",
+    "filename": "supplement.tar.zst",
+    "bytes": 164239,
+    "sha256": "9b4443e7447a948f97267a5d74cb8708e78f613c4dc475aae3edea3e478cc021",
+    "file_manifest": "supplement-files.sha256",
+    "file_manifest_sha256": "d5bd66b653ea0dc2971f615f9056a099511a6e050c887e1c59c44e3899f3971e",
+    "entries_verified_on_mac_wick_and_hub_readback": 68,
+    "ordinary_carrier_transcripts": 30,
+    "distinct_factorial_policy_row_combinations": 120,
+    "workstation_directory": "~/uor-r4/local/codex/pre-gate-source-26/custody-01",
+    "wick_directory": "/home/callard/uor-codex/20261119-pre-gate-source-26/custody-01/supplement",
+    "scope": "Protocol-2 carrier transcripts, native writer and model parity receipt, all four role and source factorial trace inputs and grade, exact source snapshot and executable hashes, and reproduction identity for both rebuilt recurrence artifacts."
+  },
+  "supplement_hub": {
+    "dataset": "caseyallard/uor-r4-store",
+    "private": true,
+    "revision": "90a5f5ef9ac227bba4441efd01b7b7d3655f03a7",
+    "path": "results/codex/2026-11-19-pre-gate-source-26-52b19c1/supplement-base64",
+    "representation": "Lexically ordered chunk-*.txt files concatenate to standard Base64 for the original archive bytes.",
+    "delivery_manifest": "delivery.sha256",
+    "delivery_manifest_sha256": "a8312a264e843ca5abd34f25b990983342dfa6fdb6d3b8dce2a5871e84cd73cb",
+    "pinned_download_decoded_archive_and_members_match": true
+  },
+  "standalone_recurrence_carrier": {
+    "filename": "recurrence.d11",
+    "schema": "uor-r4.lut-discrete-contextual-source/2",
+    "bytes": 86616190,
+    "sha256": "b17352679c64a96bf657fad7640d4bb05ea3de0ecd08dadd13e9d2756e979bc4",
+    "workstation_path": "~/uor-r4/local/codex/pre-gate-source-26/serve-native-01/recurrence.d11",
+    "independent_cold_rebuild_byte_identical": true,
+    "reproduction_in_supplement": [
+      "reproduction.txt",
+      "carrier-reproduction.sha256",
+      "serve-native-01/model-inputs.sha256",
+      "executables.sha256"
+    ]
+  }
+}

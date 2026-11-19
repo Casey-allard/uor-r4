@@ -6,7 +6,7 @@ use uor_r4_integer::discrete_d11::{
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = env::args_os().skip(1).collect();
-    const USAGE: &str = "usage: pack-contextual-source D21_PARENT D25_BANK TRAIN_SHA256 ARM OUT";
+    const USAGE: &str = "usage: pack-contextual-source D21_PARENT SOURCE_BANK TRAIN_SHA256 ARM OUT\nARM: narrow_local, wide_local, narrow_contextual, wide_contextual, or wide_recurrence";
     let [parent, bank, train, arm, output] = args.as_slice() else {
         return Err(USAGE.into());
     };
@@ -15,6 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("wide_local") => SourceArm::WideLocal,
         Some("narrow_contextual") => SourceArm::NarrowContextual,
         Some("wide_contextual") => SourceArm::WideContextual,
+        Some("wide_recurrence") => SourceArm::WideRecurrence,
         _ => return Err(USAGE.into()),
     };
     let train = hex::decode(train.to_str().ok_or(USAGE)?)?

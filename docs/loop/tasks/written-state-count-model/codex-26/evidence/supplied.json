@@ -1,0 +1,244 @@
+{
+  "bindings": {
+    "banks": {
+      "post": {
+        "bytes": 8118,
+        "records": 42,
+        "sha256": "76be8b3ac1cbc6cd5dcde0560b99db93857109744eaa052f6efc273bcecc4f6e"
+      },
+      "recurrence": {
+        "bytes": 10820,
+        "records": 56,
+        "sha256": "019f76d5cf9dd47d50b41b43a81acdbb3d0a122f196b850802c241060f64d2e5"
+      },
+      "relation": {
+        "bytes": 10820,
+        "records": 56,
+        "sha256": "ccd888fec00e4d56a4444e29c3496b621b56ccfbd51b5b3e4666ff7959a4363c"
+      }
+    },
+    "parent_sha256": "02b922d37308593de956bf9c7c8ee0dbb259d2152528d6993eb9c89be84f65e3",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+  },
+  "groups": [
+    {
+      "group": "control",
+      "arms": [
+        {
+          "arm": "reference",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "parent_supplied",
+          "exact_eos": [],
+          "unsupported_false_source": [
+            413
+          ]
+        },
+        {
+          "arm": "local",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "post",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "relation",
+          "exact_eos": [],
+          "unsupported_false_source": [
+            413
+          ]
+        },
+        {
+          "arm": "recurrence",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        }
+      ]
+    },
+    {
+      "group": "primary",
+      "arms": [
+        {
+          "arm": "reference",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "parent_supplied",
+          "exact_eos": [
+            403,
+            406,
+            407,
+            412
+          ],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "local",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "post",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "relation",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "recurrence",
+          "exact_eos": [
+            405,
+            406,
+            407
+          ],
+          "unsupported_false_source": []
+        }
+      ]
+    },
+    {
+      "group": "prior_D24",
+      "arms": [
+        {
+          "arm": "reference",
+          "exact_eos": [
+            303
+          ],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "parent_supplied",
+          "exact_eos": [
+            301,
+            303
+          ],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "local",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "post",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "relation",
+          "exact_eos": [
+            301,
+            302
+          ],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "recurrence",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        }
+      ]
+    },
+    {
+      "group": "prior_D25",
+      "arms": [
+        {
+          "arm": "reference",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "parent_supplied",
+          "exact_eos": [
+            202,
+            203,
+            206,
+            207
+          ],
+          "unsupported_false_source": [
+            209
+          ]
+        },
+        {
+          "arm": "local",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "post",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "relation",
+          "exact_eos": [
+            202,
+            208
+          ],
+          "unsupported_false_source": [
+            209
+          ]
+        },
+        {
+          "arm": "recurrence",
+          "exact_eos": [
+            202,
+            203,
+            207
+          ],
+          "unsupported_false_source": [
+            209
+          ]
+        }
+      ]
+    },
+    {
+      "group": "secondary",
+      "arms": [
+        {
+          "arm": "reference",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "parent_supplied",
+          "exact_eos": [
+            401,
+            410
+          ],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "local",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "post",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "relation",
+          "exact_eos": [],
+          "unsupported_false_source": []
+        },
+        {
+          "arm": "recurrence",
+          "exact_eos": [
+            402
+          ],
+          "unsupported_false_source": []
+        }
+      ]
+    }
+  ]
+}

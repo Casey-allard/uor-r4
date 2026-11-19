@@ -1,0 +1,876 @@
+{
+  "summary": [
+    {
+      "group": "exposed_directional",
+      "source": "legacy",
+      "role": "last_supported",
+      "n": 12,
+      "selected_roles": 12,
+      "correct_annotated_roles": 12,
+      "copies": 4,
+      "exact": 1,
+      "eos": 12,
+      "first_at_zero": 11,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_directional",
+      "source": "legacy",
+      "role": "ordinary",
+      "n": 12,
+      "selected_roles": 4,
+      "correct_annotated_roles": 4,
+      "copies": 3,
+      "exact": 1,
+      "eos": 12,
+      "first_at_zero": 11,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_directional",
+      "source": "recurrence",
+      "role": "last_supported",
+      "n": 12,
+      "selected_roles": 12,
+      "correct_annotated_roles": 12,
+      "copies": 2,
+      "exact": 0,
+      "eos": 12,
+      "first_at_zero": 12,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_directional",
+      "source": "recurrence",
+      "role": "ordinary",
+      "n": 12,
+      "selected_roles": 4,
+      "correct_annotated_roles": 4,
+      "copies": 1,
+      "exact": 0,
+      "eos": 12,
+      "first_at_zero": 12,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_unsupported",
+      "source": "legacy",
+      "role": "last_supported",
+      "n": 3,
+      "selected_roles": 3,
+      "correct_annotated_roles": 1,
+      "copies": 1,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 1
+    },
+    {
+      "group": "exposed_unsupported",
+      "source": "legacy",
+      "role": "ordinary",
+      "n": 3,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_unsupported",
+      "source": "recurrence",
+      "role": "last_supported",
+      "n": 3,
+      "selected_roles": 3,
+      "correct_annotated_roles": 1,
+      "copies": 0,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "exposed_unsupported",
+      "source": "recurrence",
+      "role": "ordinary",
+      "n": 3,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "held_unsupported",
+      "source": "legacy",
+      "role": "last_supported",
+      "n": 3,
+      "selected_roles": 3,
+      "correct_annotated_roles": 1,
+      "copies": 1,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 1
+    },
+    {
+      "group": "held_unsupported",
+      "source": "legacy",
+      "role": "ordinary",
+      "n": 3,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "held_unsupported",
+      "source": "recurrence",
+      "role": "last_supported",
+      "n": 3,
+      "selected_roles": 3,
+      "correct_annotated_roles": 1,
+      "copies": 1,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 1
+    },
+    {
+      "group": "held_unsupported",
+      "source": "recurrence",
+      "role": "ordinary",
+      "n": 3,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 3,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "primary",
+      "source": "legacy",
+      "role": "last_supported",
+      "n": 8,
+      "selected_roles": 8,
+      "correct_annotated_roles": 8,
+      "copies": 3,
+      "exact": 2,
+      "eos": 7,
+      "first_at_zero": 6,
+      "false_writes": 0
+    },
+    {
+      "group": "primary",
+      "source": "legacy",
+      "role": "ordinary",
+      "n": 8,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 7,
+      "first_at_zero": 8,
+      "false_writes": 0
+    },
+    {
+      "group": "primary",
+      "source": "recurrence",
+      "role": "last_supported",
+      "n": 8,
+      "selected_roles": 8,
+      "correct_annotated_roles": 8,
+      "copies": 1,
+      "exact": 1,
+      "eos": 7,
+      "first_at_zero": 7,
+      "false_writes": 0
+    },
+    {
+      "group": "primary",
+      "source": "recurrence",
+      "role": "ordinary",
+      "n": 8,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 7,
+      "first_at_zero": 8,
+      "false_writes": 0
+    },
+    {
+      "group": "secondary",
+      "source": "legacy",
+      "role": "last_supported",
+      "n": 4,
+      "selected_roles": 4,
+      "correct_annotated_roles": 4,
+      "copies": 2,
+      "exact": 1,
+      "eos": 4,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "secondary",
+      "source": "legacy",
+      "role": "ordinary",
+      "n": 4,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 4,
+      "first_at_zero": 4,
+      "false_writes": 0
+    },
+    {
+      "group": "secondary",
+      "source": "recurrence",
+      "role": "last_supported",
+      "n": 4,
+      "selected_roles": 4,
+      "correct_annotated_roles": 4,
+      "copies": 1,
+      "exact": 1,
+      "eos": 4,
+      "first_at_zero": 3,
+      "false_writes": 0
+    },
+    {
+      "group": "secondary",
+      "source": "recurrence",
+      "role": "ordinary",
+      "n": 4,
+      "selected_roles": 0,
+      "correct_annotated_roles": 0,
+      "copies": 0,
+      "exact": 0,
+      "eos": 4,
+      "first_at_zero": 4,
+      "false_writes": 0
+    }
+  ],
+  "changed_held_rows": [
+    {
+      "row": 401,
+      "source_policy": "legacy",
+      "role": {
+        "end": 85,
+        "start": 82
+      },
+      "source": 55,
+      "gold_source": 55,
+      "exact": true,
+      "eos": true,
+      "first_error": null,
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " rescue divers"
+    },
+    {
+      "row": 402,
+      "source_policy": "legacy",
+      "role": {
+        "end": 78,
+        "start": 75
+      },
+      "source": 48,
+      "gold_source": 49,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 279,
+        "generated_id": 4026,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " rescue divers"
+    },
+    {
+      "row": 403,
+      "source_policy": "legacy",
+      "role": {
+        "end": 80,
+        "start": 78
+      },
+      "source": 49,
+      "gold_source": 49,
+      "exact": true,
+      "eos": true,
+      "first_error": null,
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " scout troops"
+    },
+    {
+      "row": 404,
+      "source_policy": "legacy",
+      "role": {
+        "end": 100,
+        "start": 98
+      },
+      "source": null,
+      "gold_source": 71,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 748,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 405,
+      "source_policy": "legacy",
+      "role": {
+        "end": 82,
+        "start": 81
+      },
+      "source": 55,
+      "gold_source": 57,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 1712,
+        "generated_id": 861,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " foster children"
+    },
+    {
+      "row": 406,
+      "source_policy": "legacy",
+      "role": {
+        "end": 93,
+        "start": 92
+      },
+      "source": null,
+      "gold_source": 66,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 861,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 407,
+      "source_policy": "legacy",
+      "role": {
+        "end": 85,
+        "start": 83
+      },
+      "source": null,
+      "gold_source": 59,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 408,
+      "source_policy": "legacy",
+      "role": {
+        "end": 91,
+        "start": 89
+      },
+      "source": null,
+      "gold_source": 64,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 3494,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'm aack."
+    },
+    {
+      "row": 409,
+      "source_policy": "legacy",
+      "role": {
+        "end": 88,
+        "start": 86
+      },
+      "source": null,
+      "gold_source": 58,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 707,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 410,
+      "source_policy": "legacy",
+      "role": {
+        "end": 83,
+        "start": 81
+      },
+      "source": null,
+      "gold_source": 54,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 1118,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 411,
+      "source_policy": "legacy",
+      "role": {
+        "end": 81,
+        "start": 80
+      },
+      "source": null,
+      "gold_source": 54,
+      "exact": false,
+      "eos": false,
+      "first_error": {
+        "expected_id": 2141,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember what you tell me, I'll remember that"
+    },
+    {
+      "row": 412,
+      "source_policy": "legacy",
+      "role": {
+        "end": 85,
+        "start": 84
+      },
+      "source": 57,
+      "gold_source": 57,
+      "exact": true,
+      "eos": true,
+      "first_error": null,
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " train drivers"
+    },
+    {
+      "row": 413,
+      "source_policy": "legacy",
+      "role": {
+        "end": 92,
+        "start": 89
+      },
+      "source": 62,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 4026,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " rescue divers"
+    },
+    {
+      "row": 414,
+      "source_policy": "legacy",
+      "role": {
+        "end": 50,
+        "start": 47
+      },
+      "source": null,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 415,
+      "source_policy": "legacy",
+      "role": {
+        "end": 71,
+        "start": 68
+      },
+      "source": null,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 401,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 85,
+        "start": 82
+      },
+      "source": null,
+      "gold_source": 55,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 4026,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 402,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 78,
+        "start": 75
+      },
+      "source": 49,
+      "gold_source": 49,
+      "exact": true,
+      "eos": true,
+      "first_error": null,
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " divers"
+    },
+    {
+      "row": 403,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 80,
+        "start": 78
+      },
+      "source": null,
+      "gold_source": 49,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 514,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 404,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 100,
+        "start": 98
+      },
+      "source": null,
+      "gold_source": 71,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 748,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 2,
+      "supporting_facts": 2,
+      "values_disagree": true,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 405,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 82,
+        "start": 81
+      },
+      "source": 57,
+      "gold_source": 57,
+      "exact": true,
+      "eos": true,
+      "first_error": null,
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " children"
+    },
+    {
+      "row": 406,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 93,
+        "start": 92
+      },
+      "source": null,
+      "gold_source": 66,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 861,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 407,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 85,
+        "start": 83
+      },
+      "source": null,
+      "gold_source": 59,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 2,
+      "supporting_facts": 2,
+      "values_disagree": true,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 408,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 91,
+        "start": 89
+      },
+      "source": null,
+      "gold_source": 64,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 3494,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'm aack."
+    },
+    {
+      "row": 409,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 88,
+        "start": 86
+      },
+      "source": null,
+      "gold_source": 58,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 707,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 2,
+      "supporting_facts": 2,
+      "values_disagree": true,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 410,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 83,
+        "start": 81
+      },
+      "source": null,
+      "gold_source": 54,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 1118,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 411,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 81,
+        "start": 80
+      },
+      "source": null,
+      "gold_source": 54,
+      "exact": false,
+      "eos": false,
+      "first_error": {
+        "expected_id": 2141,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember what you tell me, I'll remember that"
+    },
+    {
+      "row": 412,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 85,
+        "start": 84
+      },
+      "source": null,
+      "gold_source": 57,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 1504,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    },
+    {
+      "row": 413,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 92,
+        "start": 89
+      },
+      "source": null,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 0,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " Got it, I'm sorry you."
+    },
+    {
+      "row": 414,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 50,
+        "start": 47
+      },
+      "source": 18,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 2117,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 1,
+      "values_disagree": false,
+      "text": " taking Thursday off"
+    },
+    {
+      "row": 415,
+      "source_policy": "recurrence",
+      "role": {
+        "end": 71,
+        "start": 68
+      },
+      "source": null,
+      "gold_source": null,
+      "exact": false,
+      "eos": true,
+      "first_error": {
+        "expected_id": 340,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "complete_values": 1,
+      "supporting_facts": 2,
+      "values_disagree": false,
+      "text": " Got it, I'll remember that."
+    }
+  ]
+}

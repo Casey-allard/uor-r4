@@ -1,0 +1,12 @@
+501	order-polarity	Rowan	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Give me Rowan's item; omit Isabel's item?
+502	order-polarity	Rowan	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Omit Isabel's item; give me Rowan's item?
+503	order-polarity	Isabel	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Omit Rowan's item; give me Isabel's item?
+504	order-polarity	Isabel	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Give me Isabel's item; omit Rowan's item?
+505	dual	Rowan,Isabel	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Give me Rowan's item and Isabel's item?
+506	binder	Rowan	The storeroom opened early. Rowan carried blue glass jars. Give me Rowan's item?
+507	binder	Rowan	The storeroom opened early. Rowan carried blue glass jars. Rowan carried blue glass jars. Give me Rowan's item?
+508	binder	Rowan	The storeroom opened early. Rowan carried blue glass jars. Rowan carried red paper kites. Give me Rowan's item?
+509	no-request	-	The storeroom opened early. Rowan carried blue glass jars. Rowan carried blue glass jars. The door stuck overnight.
+510	unrelated-tail	Rowan	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. Give me Rowan's item? Isabel waited by the gate.
+511	no-request	-	The storeroom opened early. Rowan carried blue glass jars. Isabel carried red paper kites. The tally was entered beside Rowan's name.
+512	no-request	-	The storeroom opened early. Rowan carried blue glass jars. The tally mentioned Rowan. The door stuck overnight.

@@ -1,0 +1,16 @@
+# D26 source panel
+
+Read only `held.tsv` for blind language adjudication. The five columns are row ID, prior context, target assertion, neutral tail and ordinary question. Within each directional pair the target assertion, tail and question are identical. The paired contexts use different situations and alternate the required original whole-word start. The eleven D25 held rows and four D24 Morgan/Jo prompts enter the exposed split. The D26 TRAIN split includes the eight original D25 TRAIN rows and six new rows grouped into three pairs. The D26 control rows cover unresolved ambiguity, a missing assertion and a competing same-person assertion about a different subject.
+
+Build the [D25 panel extractor](../../codex-25/panel/) with `cargo build --locked` and pass these fixtures to its opt-in command.
+
+```text
+d25-contextual-source-panel prepare-d26 MODEL MODEL_SHA256 TOKENIZER FIXTURE_DIR NEW_OUT
+d25-contextual-source-panel grade NEW_OUT/held.grade.json DEVICE_RESULTS
+```
+
+Use assertion-agreement parent SHA-256 `02b922d37308593de956bf9c7c8ee0dbb259d2152528d6993eb9c89be84f65e3` and tokenizer SHA-256 `a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377`. Every extracted prompt uses the original protocol-2 vocabulary bytes. The extractor requires the literal early and late noun phrase suffixes to correspond to eligible whole-word onsets. It forces both native source cursors, checking the original token tape and completion through EOS. It supplies the intended assertion and query for directional rows and the ambiguity control. The missing-assertion and competing-assertion controls get an empty candidate packet in this intervention. Actual rejection of a wrong assertion remains an ordinary-reader test.
+
+Only stage the model projections and inputs needed by the device. The inherited `D25ROWS1` schema has signed TRAIN labels and zeros for all held and exposed candidate labels, with no expected address. Keep `key.tsv` and generated `*.grade.json` on the host. The grade metadata carries exact preserved token IDs, half-open fact and query ranges, the assertion fence, writer tapes for both readings, and the native legacy reference audit. The ordinary prompts contain only the user message. The local projector receives original full tapes with half-open local candidate and assertion ranges. The pre-gate projector receives original prefixes ending immediately before the target assertion. `held.donors.tsv` gives a bidirectional row-ID mapping for the diagnostic context transfer; the three controls keep their original contexts.
+
+Both blind readers supplied the same reading or refusal for each of rows 401–415. Before device scoring, the lab assigned 401–402 to secondary because the opening rescue-unit context makes the crew's diving role less explicit, and 409–410 to secondary because “show birds” is a less conventional compound. The four remaining directional pairs form the eight-row primary split. `held.strata.tsv` records these assignments. Row 403–404 challenges transfer to the lexical construction “scout troops,” absent from both TRAIN and the exposed fixtures. “Train drivers” was already exposed in D24, and “foster children” and “guard dogs” have TRAIN examples. All four primary pairs use held wording and situations.

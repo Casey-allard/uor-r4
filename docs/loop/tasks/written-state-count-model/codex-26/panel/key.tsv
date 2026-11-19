@@ -1,0 +1,21 @@
+401	rescue divers	divers	early
+402	rescue divers	divers	late
+403	scout troops	troops	early
+404	scout troops	troops	late
+405	foster children	children	late
+406	foster children	children	early
+407	guard dogs	dogs	late
+408	guard dogs	dogs	early
+409	show birds	birds	early
+410	show birds	birds	late
+411	train drivers	drivers	late
+412	train drivers	drivers	early
+413	rescue divers	divers	ambiguous
+414			missing
+415			irrelevant
+501	foster children	children	early
+502	foster children	children	late
+503	rescue divers	divers	early
+504	rescue divers	divers	late
+505	guide dogs	dogs	early
+506	guide dogs	dogs	late

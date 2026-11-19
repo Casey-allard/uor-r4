@@ -1905,7 +1905,10 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
-        if schema == contextual_source::SCHEMA {
+        if matches!(
+            schema.as_str(),
+            contextual_source::SCHEMA | contextual_source::RECURRENCE_SCHEMA
+        ) {
             return contextual_source::read_carrier(bytes, encoded_header, end_header, allow_role);
         }
         if matches!(
@@ -2557,8 +2560,8 @@ impl IntegerDiscreteModel {
 
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
-        if self.contextual_source.is_some() {
-            contextual_source::SCHEMA
+        if let Some(arm) = self.contextual_source_arm() {
+            arm.schema()
         } else if let Some(mixer) = &self.count_mixer {
             mixer.schema()
         } else if let Some(policy) = &self.role_policy {
@@ -4315,6 +4318,30 @@ mod tests {
         let expected_b4: Vec<i32> = tok2.iter().flatten().copied().collect();
         assert_eq!(eval.read_vector, expected_b4);
         assert_eq!(eval.prediction, 2);
+
+        // The recurrence source sees only the same causal tape passed to the
+        // trunk, even when the later assertion and query tokens are changed.
+        let recurrence = contextual_source::SourceArm::WideRecurrence;
+        let trunk = model.trunk.as_ref().unwrap();
+        let code = trunk.compute_rec_code(&[0], &model.codebook_roots).unwrap();
+        let expected: Vec<i32> = (0..4)
+            .flat_map(|block| orbit_root_coords(usize::from((code >> (4 * block)) & 15)))
+            .collect();
+        let a = model
+            .contextual_source_coordinates(&[0, 1, 2, 1], 1, Some(recurrence))
+            .unwrap();
+        let b = model
+            .contextual_source_coordinates(&[0, 2, 0, 2], 1, Some(recurrence))
+            .unwrap();
+        assert_eq!(a.as_slice(), expected);
+        assert_eq!(a, b);
+        assert_eq!(
+            model
+                .contextual_source_coordinates(&[0, 1, 2, 1], 1, None)
+                .unwrap()
+                .as_slice(),
+            expected_b4,
+        );
 
         // Causal pointer successor `[0, 1, 2, 0]` points to successor token `1` (`ptr_boost = 256 > 5`),
         // rotating `q_blocks` to `tok1` (`[NEG_A, NEG_A, NEG_A, NEG_A]`) and predicting `1`.

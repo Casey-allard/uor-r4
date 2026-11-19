@@ -1,8 +1,8 @@
-//! Source-start exemplars and the native integer decision shared by all D25 arms.
+//! Source-start exemplars and the native integer decision shared by D25 and D26.
 #![forbid(unsafe_code)]
 
 use super::{
-    paired_copy, read_role_digest, IntegerDiscreteModel, ALIGN,
+    orbit_root_coords, paired_copy, read_role_digest, root_id, IntegerDiscreteModel, ALIGN,
     DISCRETE_REQUESTED_OCCURRENCE_SCHEMA, MAGIC as D11_MAGIC, ROLE_COPY_STOPS,
 };
 use crate::{
@@ -17,6 +17,7 @@ use sha2::{Digest, Sha256};
 
 const MAGIC: &[u8; 8] = b"D25BANK1";
 pub const SCHEMA: &str = "uor-r4.lut-discrete-contextual-source/1";
+pub const RECURRENCE_SCHEMA: &str = "uor-r4.lut-discrete-contextual-source/2";
 pub const DIMENSIONS: usize = 32;
 pub const RECORD_BYTES: usize = 1 + 2 * DIMENSIONS + 4 * DIMENSIONS;
 pub const MAX_BANK_BYTES: usize = 12 + 8192 * RECORD_BYTES;
@@ -28,15 +29,37 @@ pub enum SourceArm {
     WideLocal,
     NarrowContextual,
     WideContextual,
+    /// D26 opt-in recurrence read for engineering replay. The parent policy
+    /// remains the default. A fit's qualification is external to this schema.
+    WideRecurrence,
 }
 
 impl SourceArm {
     pub fn includes(self, candidate: &SourceCandidate) -> bool {
-        candidate.narrow || matches!(self, Self::WideLocal | Self::WideContextual)
+        candidate.narrow
+            || matches!(
+                self,
+                Self::WideLocal | Self::WideContextual | Self::WideRecurrence
+            )
     }
 
     fn uses_context(self) -> bool {
-        matches!(self, Self::NarrowContextual | Self::WideContextual)
+        matches!(
+            self,
+            Self::NarrowContextual | Self::WideContextual | Self::WideRecurrence
+        )
+    }
+
+    fn uses_recurrence(self) -> bool {
+        self == Self::WideRecurrence
+    }
+
+    pub(super) fn schema(self) -> &'static str {
+        if self.uses_recurrence() {
+            RECURRENCE_SCHEMA
+        } else {
+            SCHEMA
+        }
     }
 }
 
@@ -235,13 +258,18 @@ impl SourceArm {
             Self::WideLocal => 1,
             Self::NarrowContextual => 2,
             Self::WideContextual => 3,
+            Self::WideRecurrence => 4,
         }
     }
 }
 
 fn policy_digest(arm: SourceArm, parent: [u8; 32], train: [u8; 32], bank: [u8; 32]) -> [u8; 32] {
     let mut hash = Sha256::new();
-    hash.update(b"uor-r4.contextual-source/1;D21-frozen-assertion-agreement;assertion-local-positional;D11-before-fact;first-stop-writer-EOS;2..4;L1-signed-unique-positive");
+    if arm.uses_recurrence() {
+        hash.update(b"uor-r4.contextual-source/2;D21-frozen-assertion-agreement;assertion-local-positional;D11-active-holonomy-scale-matched-snap-before-fact;4x8-low-nibble-first;first-stop-writer-EOS;wide;L1-signed-unique-positive");
+    } else {
+        hash.update(b"uor-r4.contextual-source/1;D21-frozen-assertion-agreement;assertion-local-positional;D11-before-fact;first-stop-writer-EOS;2..4;L1-signed-unique-positive");
+    }
     hash.update(crate::ordered_role::orbit_action_digest());
     hash.update([arm.code()]);
     hash.update(parent);
@@ -250,6 +278,9 @@ fn policy_digest(arm: SourceArm, parent: [u8; 32], train: [u8; 32], bank: [u8; 3
     hash.finalize().into()
 }
 
+/// Bind the supplied bank and TRAIN digest to the chosen read and exact parent.
+/// The caller verifies fit provenance. Post-gate and recurrence records can
+/// share a byte layout, and an orbit membership check cannot identify their fit.
 pub fn pack_contextual_source_artifact(
     parent: &[u8],
     bank: &[u8],
@@ -259,7 +290,7 @@ pub fn pack_contextual_source_artifact(
     let parent_digest = Sha256::digest(parent).into();
     let bank_digest = Sha256::digest(bank).into();
     let encoded = serde_json::to_vec(&Envelope {
-        schema: SCHEMA.to_owned(),
+        schema: arm.schema().to_owned(),
         arm,
         bank_bytes: bank.len(),
         parent_sha256: hex::encode(parent_digest),
@@ -287,6 +318,9 @@ pub(super) fn read_carrier(
         return Err(invalid("nested contextual source carrier"));
     }
     let envelope: Envelope = serde_json::from_slice(encoded_header)?;
+    if envelope.schema != envelope.arm.schema() {
+        return Err(invalid("contextual source schema and read arm disagree"));
+    }
     let start = end_header.next_multiple_of(ALIGN);
     let payload = bytes
         .get(start..)
@@ -306,6 +340,18 @@ pub(super) fn read_carrier(
             != read_role_digest(&envelope.policy_sha256)?
     {
         return Err(invalid("contextual source carrier binding mismatch"));
+    }
+    let bank = SourceBank::from_bytes(bank)?;
+    if envelope.arm.uses_recurrence()
+        && bank.0.iter().any(|row| {
+            row.contextual
+                .chunks_exact(8)
+                .any(|block| root_id(&core::array::from_fn(|i| block[i])).is_none())
+        })
+    {
+        return Err(invalid(
+            "contextual source recurrence exemplar is outside the D11 orbit",
+        ));
     }
     // The existing D21 carrier is the only legal parent. Inspect its envelope
     // before parsing so recursive contextual carriers cannot reach this path.
@@ -334,14 +380,18 @@ pub(super) fn read_carrier(
         ));
     }
     let mut model = IntegerDiscreteModel::from_bytes(parent)?;
-    if model.shape.blocks != 4 || model.active_s2().is_some() || model.count_mixer().is_some() {
+    if model.shape.blocks != 4
+        || model.active_s2().is_some()
+        || model.count_mixer().is_some()
+        || (envelope.arm.uses_recurrence() && !model.is_trunk_d11())
+    {
         return Err(invalid(
             "contextual source parent requires the original 4x8 D11 read",
         ));
     }
     model.contextual_source = Some(SourcePolicy {
         arm: envelope.arm,
-        bank: SourceBank::from_bytes(bank)?,
+        bank,
         bindings: SourceCarrierBindings {
             parent_sha256: envelope.parent_sha256,
             bank_sha256: envelope.bank_sha256,
@@ -469,11 +519,8 @@ impl IntegerDiscreteModel {
                 "contextual source requires a bounded causal 4x8 D11 read",
             ));
         }
-        let (blocks, _, _) = self.causal_geometric_read(&ids[..fact.start], None)?;
-        let blocks: [[i32; 8]; 4] = blocks
-            .try_into()
-            .map_err(|_| invalid("contextual source D11 read width differs from 32"))?;
-        let contextual = core::array::from_fn(|i| blocks[i / 8][i % 8]);
+        let contextual =
+            self.contextual_source_coordinates(ids, fact.start, self.contextual_source_arm())?;
         let projected = RoleSites::from_span_classes(&self.codebook_roots, &policy.span.classes)
             .prompt(ids, 1..ids.len())?;
         let region = fact.start..fence_position;
@@ -505,6 +552,39 @@ impl IntegerDiscreteModel {
             });
         consume(fence, &mut candidates)
     }
+
+    pub(super) fn contextual_source_coordinates(
+        &self,
+        ids: &[u32],
+        fact_start: usize,
+        arm: Option<SourceArm>,
+    ) -> Result<[i32; DIMENSIONS]> {
+        let prefix = ids
+            .get(..fact_start)
+            .filter(|prefix| !prefix.is_empty() && prefix.len() <= self.shape.context as usize)
+            .ok_or_else(|| {
+                invalid("contextual source requires a nonempty bounded causal prefix")
+            })?;
+        if arm.is_some_and(SourceArm::uses_recurrence) {
+            let trunk = self
+                .trunk
+                .as_ref()
+                .ok_or_else(|| invalid("contextual recurrence requires the D11 trunk"))?;
+            let code = trunk.compute_rec_code(prefix, &self.codebook_roots)?;
+            return Ok(expand_recurrence_code(code));
+        }
+        let (blocks, _, _) = self.causal_geometric_read(prefix, None)?;
+        let blocks: [[i32; 8]; 4] = blocks
+            .try_into()
+            .map_err(|_| invalid("contextual source D11 read width differs from 32"))?;
+        Ok(core::array::from_fn(|i| blocks[i / 8][i % 8]))
+    }
+}
+
+fn expand_recurrence_code(code: u16) -> [i32; DIMENSIONS] {
+    let blocks: [[i32; 8]; 4] =
+        core::array::from_fn(|b| orbit_root_coords(usize::from((code >> (b * 4)) & 15)));
+    core::array::from_fn(|i| blocks[i / 8][i % 8])
 }
 
 #[cfg(test)]
@@ -623,5 +703,61 @@ mod tests {
         assert_eq!(trace.margin, trace.nearest_negative);
         assert_eq!(bank.score(SourceArm::WideLocal, &sample).margin, Some(0));
         Ok(())
+    }
+
+    #[test]
+    fn recurrence_expands_signed_orbit_words_in_cuda_block_order() {
+        let expected = [0, 3, 2, 1].map(orbit_root_coords).concat();
+        assert_eq!(expand_recurrence_code(0x1230).as_slice(), expected);
+    }
+
+    #[test]
+    fn carrier_rejects_crossed_read_versions_and_malformed_recurrence_state() -> Result<()> {
+        fn rejected(envelope: &Envelope, bank: &[u8], expected: &str) -> Result<()> {
+            let header = serde_json::to_vec(envelope)?;
+            let mut file = D11_MAGIC.to_vec();
+            file.extend_from_slice(&(header.len() as u64).to_le_bytes());
+            file.extend_from_slice(&header);
+            file.resize(file.len().next_multiple_of(ALIGN), 0);
+            file.extend_from_slice(bank);
+            let error = IntegerDiscreteModel::from_bytes(&file)
+                .err()
+                .ok_or_else(|| invalid("invalid carrier loaded"))?;
+            assert!(error.to_string().contains(expected), "{error}");
+            Ok(())
+        }
+        let mut raw = MAGIC.to_vec();
+        raw.extend_from_slice(&2u32.to_le_bytes());
+        record(&mut raw, 1, 0, i32::MAX);
+        record(&mut raw, -1, 0, i32::MIN);
+        let parent = Sha256::digest([]).into();
+        let train = [1; 32];
+        let bank = Sha256::digest(&raw).into();
+        let arm = SourceArm::WideRecurrence;
+        let mut envelope = Envelope {
+            schema: SCHEMA.to_owned(),
+            arm,
+            bank_bytes: raw.len(),
+            parent_sha256: hex::encode(parent),
+            train_sha256: hex::encode(train),
+            bank_sha256: hex::encode(bank),
+            policy_sha256: hex::encode(policy_digest(arm, parent, train, bank)),
+        };
+        rejected(&envelope, &raw, "schema and read arm disagree")?;
+        envelope.schema = RECURRENCE_SCHEMA.to_owned();
+        envelope.arm = SourceArm::WideContextual;
+        rejected(&envelope, &raw, "schema and read arm disagree")?;
+        envelope.arm = arm;
+        envelope.train_sha256 = hex::encode([2; 32]);
+        rejected(&envelope, &raw, "binding mismatch")?;
+        envelope.train_sha256 = hex::encode(train);
+        let mut changed = raw.clone();
+        changed[13] ^= 1;
+        rejected(&envelope, &changed, "binding mismatch")?;
+        rejected(
+            &envelope,
+            &raw,
+            "recurrence exemplar is outside the D11 orbit",
+        )
     }
 }

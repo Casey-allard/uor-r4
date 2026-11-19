@@ -1,0 +1,13 @@
+row	requested_set	expected_literal	criterion
+501	Rowan	blue glass jars	Exact named set and literal through EOS.
+502	Rowan	blue glass jars	Exact named set and literal through EOS.
+503	Isabel	red paper kites	Exact named set and literal through EOS.
+504	Isabel	red paper kites	Exact named set and literal through EOS.
+505	Rowan,Isabel	blue glass jars | red paper kites	Exact requested-set cardinality two, both values in unambiguous order, no prescribed separator.
+506	Rowan	blue glass jars	One complete matching assertion, exact literal through EOS.
+507	Rowan	blue glass jars	Two complete equal matching assertions, exact literal through EOS.
+508	Rowan	-	Two complete unequal matching assertions, no factual copy.
+509	-	-	No request and zero factual copy.
+510	Rowan	blue glass jars	Preserve explicitly requested person over a later unrelated mention, exact literal through EOS.
+511	-	-	No request and zero factual copy.
+512	-	-	No request and zero factual copy.
