@@ -168,7 +168,7 @@ fn kn_lookup_cuda_matches_host_on_counted_tables() {
                 "order {k} has no hit"
             );
         }
-        assert!(totals.iter().any(|&t| t == 0));
+        assert!(totals.contains(&0));
     }
 }
 

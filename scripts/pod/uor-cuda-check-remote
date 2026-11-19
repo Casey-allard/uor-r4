@@ -32,8 +32,15 @@ case "$MODE" in
     MANIFEST=${4:?repository-relative Cargo.toml}
     [[ "$SESSION" =~ ^[a-z0-9][a-z0-9-]+$ ]] || exit 2
     case "$MANIFEST" in
+      # Retired 2026-11-19 (#3168). The K16 timing instrument no longer builds
+      # against uor-r4-discrete (stale Cargo.lock, archived include paths, three
+      # new Snapshot fields); its line was superseded by the rows timing adapter
+      # on 2026-10-18 and its source stays byte-identical as a dated record. The
+      # admission-rank fixture runner moved to archive/ in #2789, so its
+      # manifest no longer exists. A repaired instrument is re-admitted by an
+      # arm that sets GATE_PROFILE=instrument, whose gates are kept below.
       docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml|docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml)
-        GATE_PROFILE=instrument ;;
+        echo 'manifest was retired from the compile gate on 2026-11-19 (#3168); see the note in this script' >&2; exit 2;;
       crates/uor-r4-training/Cargo.toml)
         # Compiles the crate's cuda-gated test targets too (the D29 source-scan
         # tests are required-features = ["cuda"], so only --all-targets reaches

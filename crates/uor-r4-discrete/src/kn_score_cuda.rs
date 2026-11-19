@@ -173,7 +173,7 @@ fn small_vocabulary_stream(seed: u64, len: usize) -> Vec<u16> {
         state ^= state >> 7;
         state ^= state << 17;
         let r = (state >> 16) as u32;
-        stream.push(if r % 300 == 0 {
+        stream.push(if r.is_multiple_of(300) {
             NGRAM_BOS
         } else {
             (5 + (r >> 9) % 40) as u16

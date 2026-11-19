@@ -2254,7 +2254,10 @@ mod tests {
         Ok(())
     }
     /// Block coordinate lists (vector blocks, read blocks) in visit order.
-    fn k3_cycle(schedule: SchedulePolicy, steps: u64) -> Result<(Vec<Vec<u32>>, Vec<Vec<u32>>)> {
+    type BlockLists = (Vec<Vec<u32>>, Vec<Vec<u32>>);
+
+    /// [`BlockLists`] for `steps` blocks of the K3 fixture under `schedule`.
+    fn k3_cycle(schedule: SchedulePolicy, steps: u64) -> Result<BlockLists> {
         let driver = block_fixture(3, ReadSpec::Flock { kept: 2 }, SPEC24, schedule)?;
         assert_eq!(driver.families(), (20, 4));
         let mut cursor = driver.initial_cursor();

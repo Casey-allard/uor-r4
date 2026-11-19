@@ -26,8 +26,8 @@ The [PM-commissioned recipe](https://github.com/UOR-Foundation/uor-r4/issues/202
 is implemented by [`scripts/pod/uor-cuda-check-remote`](../../scripts/pod/uor-cuda-check-remote).
 It is **compile/lint only**, not bootstrap parity, model execution or qualification.
 Use a fresh single RTX5090 Vast lease within the per-manifest allowance:
-**15 minutes** for the admitted instrument manifests (the explicitly
-authorized cap) and **30 minutes** for `crates/uor-r4-training/Cargo.toml`
+**15 minutes** for an admitted instrument manifest (the explicitly
+authorized cap; none is admitted since 19 November) and **30 minutes** for `crates/uor-r4-training/Cargo.toml`
 (cold training-crate plus vendored candle CUDA builds; the standing owner
 rule treats self-set budgets as extendable estimates within the ≤ 4 pods /
 ≤ $8/h caps). No laptop CUDA fallback. Do not replace the declared standalone
@@ -50,8 +50,11 @@ never report the unrun gate as PASS. No source repair/retry on that lease.
 
 From an owned worktree use **bash**, with the following variables set to your
 lab, unique session, exact pushed head, branch, PR URL and local archive path.
-`MANIFEST=docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml` for the timing
-instrument; the fixture instrument path is also explicitly admitted by the script.
+The K16 timing instrument and the admission-rank fixture runner were retired
+from the script's admitted manifests on 19 November
+([#3168](https://github.com/UOR-Foundation/uor-r4/issues/3168)). The timing
+instrument no longer builds against `uor-r4-discrete`, and the fixture runner
+moved to `archive/` in #2789, so the script now refuses both.
 `crates/uor-r4-training/Cargo.toml` is admitted for compile-gate coverage of the
 training crate's cuda-gated targets (the D29 source-scan tests are
 `required-features = ["cuda"]`, so only `--all-targets` reaches them on a pod).
