@@ -1,0 +1,7 @@
+b62eb32807678917cacc48fd2c12eca8318196028233f06181a0860ede9ed40e  specs/fit-seed1.json
+fcec77347fbee62faeebe6cc60d9f4a36a5c679d2185713b259d67a28492ff49  specs/fit-seed2.json
+5a0abf077cd7ac099a62492ea508a4d1b61e32f3d854b003c635b682defccd9c  specs/held-seed1.json
+a859dbe4eaae3df1a9442c971499a771187336d98d5a90bcdc916b7f833730eb  specs/held-seed2.json
+8d860aa992c60c5452145a8c110998e89d373efffbd985597ecd8679ee023784  src/docs/loop/tasks/written-state-count-model/codex-17/capture/run-wick.sh
+59723f768dc19332afbcdbdcce1d84c2476c78e60d6e75fdd34611ea672d8de1  ../20261118-ordered-role-transfer/driver/oracle-pins.sha256
+fe24f039ad3075dda724415b66d89ae9314258ce45717603baf54a8f737c5134  ../20261118-paired-role-fence/fence/identity/INPUTS.sha256

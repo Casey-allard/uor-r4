@@ -1,0 +1,296 @@
+[
+  {
+    "index": 0,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "“thin wire rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 1,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "“fine glass tiles” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 2,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "“fine glass tiles” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 3,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "“thin wire rods” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 4,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "“wire rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 5,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "“glass tiles” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 6,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "“glass tiles” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 7,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "“wire rods” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 8,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "“rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 9,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "“tiles” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 10,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "“tiles” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 11,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "“rods” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 12,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "“rods” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 13,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "“wire rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 14,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "“rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 15,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "“thin wire rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 16,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "“wire rods” is the entire object phrase in the statement for Marceline."
+  },
+  {
+    "index": 17,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "“thin wire rods” is the entire object phrase in the statement for Alaric."
+  },
+  {
+    "index": 18,
+    "person": "Lysandra",
+    "status": "absent",
+    "answer": null,
+    "why": "Neither entry concerns Lysandra."
+  },
+  {
+    "index": 19,
+    "person": "Marceline",
+    "status": "conflict",
+    "answer": null,
+    "why": "The competing versions give “thin wire rods” and “tiles” for the same record, with no basis to choose."
+  },
+  {
+    "index": 20,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The request supplies no referent for “the person I mean.” Marceline and Alaric have different items."
+  },
+  {
+    "index": 21,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "“long white slats” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 22,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "“hard black strips” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 23,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "“hard black strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 24,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "“long white slats” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 25,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "“white slats” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 26,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "“black strips” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 27,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "“black strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 28,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "“white slats” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 29,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "slats",
+    "why": "“slats” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 30,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "“strips” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 31,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "“strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 32,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "slats",
+    "why": "“slats” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 33,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "“strips” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 34,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "“black strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 35,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "“strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 36,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "“hard black strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 37,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "“black strips” is the entire object phrase in the statement for Winifred."
+  },
+  {
+    "index": 38,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "“hard black strips” is the entire object phrase in the statement for Silas."
+  },
+  {
+    "index": 39,
+    "person": "Pelagia",
+    "status": "absent",
+    "answer": null,
+    "why": "Neither entry concerns Pelagia."
+  },
+  {
+    "index": 40,
+    "person": "Winifred",
+    "status": "conflict",
+    "answer": null,
+    "why": "The competing versions give “long white slats” and “strips” for the same record, with no basis to choose."
+  },
+  {
+    "index": 41,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The request supplies no referent for “the person I mean.” Winifred and Silas have different items."
+  }
+]

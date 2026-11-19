@@ -1,0 +1,12 @@
+id	gold_start	gold_fence	connector_length	current	word_start	continuation	ordered	ordered_and_word_start	final_source	gold_geometry	first_nonconnector	residual_mechanism	first_wrong	expected	emitted
+reserve-0-0-d0	8	12	1	10	10	10			10	connector	10	word_start_selected_later_forward_only	0	woven baskets	 baskets
+reserve-0-1-d1	8	12	1	10	10	10			10	connector	10	word_start_selected_later_forward_only	0	woven baskets	 baskets
+reserve-1-0-d1	21	26	3	20	19	19			19	onset	20	continuation_stopped_at_earlier_nonconnector	0	striped napkins	 aside striped napkins
+reserve-1-1-d0	21	26	3	20	19	19			19	onset	20	continuation_stopped_at_earlier_nonconnector	0	striped napkins	 aside striped napkins
+store-1-0-d1	9	15	2	8	8	8			8	connector		continuation_found_only_connectors	0	braided cords	 away braided cords
+store-1-1-d0	9	15	2	8	8	8			8	connector		continuation_found_only_connectors	0	braided cords	 away braided cords
+counter-d1	16	18	2	15	15	15			15	connector		continuation_found_only_connectors	0	paper cups	 away paper cups
+tray-d1	16	19	3	15	14	14			14	connector	15	continuation_stopped_at_earlier_nonconnector	0	spare cards	 aside spare cards
+shelves-d0	8	11	1	10	9	9			9	connector		word_start_selected_later_forward_only	0	clay pots	 pots
+shelves-d1	17	21	2	16	16	16			16	connector		continuation_found_only_connectors	0	rubber stamps	 away rubber stamps
+tally-d1	17	20	1	18	18	18			18	connector	18	word_start_selected_later_forward_only	0	glass jars	 jars

@@ -1,0 +1,23 @@
+[
+  {
+    "index": 0,
+    "person": "Roderick",
+    "status": "absent",
+    "answer": null,
+    "why": "Only Helena and her item are identified; Roderick has no entry."
+  },
+  {
+    "index": 1,
+    "person": "Helena",
+    "status": "conflict",
+    "answer": null,
+    "why": "The two stated items are competing versions of the same line, with no basis to choose either."
+  },
+  {
+    "index": 2,
+    "person": null,
+    "status": "ambiguous",
+    "answer": null,
+    "why": "The intended person is not identified: Helena handled paper seals and Ansel handled wooden shutters."
+  }
+]

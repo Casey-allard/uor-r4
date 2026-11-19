@@ -1,0 +1,296 @@
+[
+  {
+    "index": 0,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 1,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 2,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 3,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 4,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 5,
+    "person": "Alaric",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “glass tiles,” or a possession verb with painted modifying the object, giving “painted glass tiles.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 6,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “glass tiles,” or a possession verb with painted modifying the object, giving “painted glass tiles.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 7,
+    "person": "Alaric",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 8,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 9,
+    "person": "Alaric",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “tiles,” or a possession verb with painted modifying the object, giving “painted tiles.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 10,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “tiles,” or a possession verb with painted modifying the object, giving “painted tiles.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 11,
+    "person": "Alaric",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 12,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 13,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 14,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 15,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “thin wire rods,” or a possession verb with painted modifying the object, giving “painted thin wire rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 16,
+    "person": "Marceline",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 17,
+    "person": "Alaric",
+    "status": "ambiguous",
+    "answer": null,
+    "why": "Has can be a perfect auxiliary with painted as the verb, giving “thin wire rods,” or a possession verb with painted modifying the object, giving “painted thin wire rods.” The parallel entries favor the perfect reading but allow both."
+  },
+  {
+    "index": 18,
+    "person": "Lysandra",
+    "status": "absent",
+    "answer": null,
+    "why": "Neither entry names the requested person."
+  },
+  {
+    "index": 19,
+    "person": "Marceline",
+    "status": "conflict",
+    "answer": null,
+    "why": "One version gives thin wire rods. The other gives tiles or painted tiles, depending on whether has is auxiliary or possessive. Neither reading reconciles the versions."
+  },
+  {
+    "index": 20,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The text gives no way to identify the intended person."
+  },
+  {
+    "index": 21,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 22,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 23,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 24,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 25,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 26,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 27,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 28,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 29,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "slats",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 30,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 31,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 32,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "slats",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 33,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 34,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 35,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 36,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry gives this full object phrase."
+  },
+  {
+    "index": 37,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 38,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "Once can indicate a prior occasion or a single occurrence. Either reading gives the same full object phrase."
+  },
+  {
+    "index": 39,
+    "person": "Pelagia",
+    "status": "absent",
+    "answer": null,
+    "why": "Neither entry names the requested person."
+  },
+  {
+    "index": 40,
+    "person": "Winifred",
+    "status": "conflict",
+    "answer": null,
+    "why": "The two versions give long white slats and strips for the same record."
+  },
+  {
+    "index": 41,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The text gives no way to identify the intended person."
+  }
+]

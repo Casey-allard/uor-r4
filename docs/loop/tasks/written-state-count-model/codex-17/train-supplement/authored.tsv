@@ -1,0 +1,52 @@
+sale	Corinne	sold	soft mats	1	1
+sale	Corinne	sold	masks	1	2
+sale	Corinne	sold	hinges	1	3
+sale	Corinne	can sell	soft mats	2	1
+sale	Corinne	can sell	masks	2	2
+sale	Corinne	can sell	hinges	2	3
+sale	Corinne	will soon sell	soft mats	3	1
+sale	Corinne	will soon sell	masks	3	2
+sale	Corinne	will soon sell	hinges	3	3
+wash	Desmond	washed	bright trays	1	1
+wash	Desmond	washed	towels	1	2
+wash	Desmond	washed	brushes	1	3
+wash	Desmond	will wash	bright trays	2	1
+wash	Desmond	will wash	towels	2	2
+wash	Desmond	will wash	brushes	2	3
+wash	Desmond	can then wash	bright trays	3	1
+wash	Desmond	can then wash	towels	3	2
+wash	Desmond	can then wash	brushes	3	3
+sale	Corinne	sold	clean masks	1	1
+sale	Corinne	sold	cool hinges	1	1
+wash	Desmond	will wash	warm towels	2	1
+wash	Desmond	will wash	thick brushes	2	1
+organize	Gideon	sorted	hard slings	2	1
+organize	Gideon	sorted	tins	2	2
+organize	Gideon	sorted	gauges	2	3
+shine	Isolde	polished	dry wraps	2	1
+shine	Isolde	polished	vases	2	2
+shine	Isolde	polished	sockets	2	3
+organize	Gideon	sorted out	hard slings	3	1
+organize	Gideon	sorted out	tins	3	2
+organize	Gideon	sorted out	gauges	3	3
+shine	Isolde	polished up	dry wraps	3	1
+shine	Isolde	polished up	vases	3	2
+shine	Isolde	polished up	sockets	3	3
+organize	Gideon	sorted	bright cups	2	1
+organize	Gideon	sorted	cold glasses	2	1
+shine	Isolde	polished	smooth spheres	2	1
+pricing	Berenice	will price	pale keys	3	1
+pricing	Berenice	will price	trays	3	2
+pricing	Berenice	will price	disks	3	3
+trim	Edmund	did trim	full sacks	3	1
+trim	Edmund	did trim	ropes	3	2
+trim	Edmund	did trim	spools	3	3
+sale	Corinne	sold	plain cups	1	2
+sale	Corinne	sold	plain pins	1	2
+wash	Desmond	washed	plain gloves	1	2
+stack	Aurelia	stacked	rough pads	3	1
+stack	Aurelia	stacked	mugs	3	2
+stack	Aurelia	stacked	tubes	3	3
+repair	Felix	repaired	thick flaps	3	1
+repair	Felix	repaired	bricks	3	2
+repair	Felix	repaired	latches	3	3

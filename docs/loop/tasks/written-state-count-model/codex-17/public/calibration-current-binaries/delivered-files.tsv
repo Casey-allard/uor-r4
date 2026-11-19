@@ -1,0 +1,3 @@
+seed	paired_parent_bytes	rank_bank_bytes	span_state_bytes	aligned_header_bytes	serialized_d11_bytes	client_elf_bytes	tokenizer_bytes	three_file_sum_bytes
+1	86580524	8416	9118	576	86598634	4266808	265393	91130835
+2	84987720	8416	9118	576	85005830	4266808	265393	89538031

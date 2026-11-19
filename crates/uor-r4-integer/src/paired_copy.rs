@@ -59,6 +59,8 @@ pub struct PairedCopyDecision {
 pub struct PairedAssertionWitness {
     pub fact_span: [usize; 2],
     pub assertion: assertion_value::AssertionValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub onset: Option<crate::all_starts::OnsetDecision>,
     pub completed_source_range: Option<[u32; 2]>,
 }
 
@@ -123,8 +125,20 @@ impl Policy {
                 fact_end: Some(last as u32),
                 source: None,
             };
-            let value =
+            let mut value =
                 assertion_value::decide(ids, roots, &old.span, &old.exact, span, ROLE_COPY_STOPS)?;
+            let onset = old
+                .onset
+                .as_ref()
+                .map(|policy| {
+                    policy
+                        .bank
+                        .choose(ids, roots, &old.span.classes, last, q, value)
+                })
+                .transpose()?;
+            if let Some(decision) = onset {
+                value.source = decision.source;
+            }
             let completion = match value.source {
                 Some(source) => completed_sequence(ids, source)?.map(|sequence| (source, sequence)),
                 None => None,
@@ -132,6 +146,7 @@ impl Policy {
             visit(PairedAssertionWitness {
                 fact_span: [f, last + 1],
                 assertion: value,
+                onset,
                 completed_source_range: completion
                     .map(|(source, sequence)| [source, source + sequence.len() as u32]),
             });

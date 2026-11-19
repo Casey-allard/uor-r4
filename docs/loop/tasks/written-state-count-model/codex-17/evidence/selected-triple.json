@@ -1,0 +1,722 @@
+{
+  "source": "sealed primary-seed1 only",
+  "matched_triple": "parcel-0-d1",
+  "rows": [
+    {
+      "ordinal": 1,
+      "id": "parcel-0-0-d1",
+      "text": "Marceline painted thin wire rods. Alaric painted fine glass tiles. Tell me the full item description from the entry for Alaric.",
+      "assertion_index": 0,
+      "entity_span": [
+        15,
+        18
+      ],
+      "fact_last_inclusive": 17,
+      "fence": 24,
+      "candidates": [
+        19,
+        20,
+        21
+      ],
+      "gold_source": 19,
+      "gold_ids": [
+        2740,
+        2537,
+        259,
+        599,
+        85,
+        1
+      ],
+      "frozen": {
+        "source": 20,
+        "generated": [
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " glass tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 2537,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "ordered": {
+        "source": null,
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "text": " Got it, I'll remember that.",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 1155,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "neutral": {
+        "source": null,
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "text": " Got it, I'll remember that.",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 1155,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "position": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 259,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "no_read": {
+        "source": null,
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "text": " Got it, I'll remember that.",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 1155,
+        "requested": null
+      },
+      "forced_gold": {
+        "source": 19,
+        "generated": [
+          2740,
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": true,
+        "terminal_eos": true,
+        "first_wrong": null,
+        "expected_wrong_id": null,
+        "actual_wrong_id": null,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_1": {
+        "source": 20,
+        "generated": [
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 2537,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_2": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2740,
+        "actual_wrong_id": 259,
+        "requested": [
+          42,
+          45
+        ]
+      }
+    },
+    {
+      "ordinal": 5,
+      "id": "parcel-1-0-d1",
+      "text": "Marceline will paint wire rods. Alaric will paint glass tiles. Tell me the full item description from the entry for Alaric.",
+      "assertion_index": 0,
+      "entity_span": [
+        15,
+        18
+      ],
+      "fact_last_inclusive": 17,
+      "fence": 24,
+      "candidates": [
+        19,
+        20,
+        21
+      ],
+      "gold_source": 20,
+      "gold_ids": [
+        2537,
+        259,
+        599,
+        85,
+        1
+      ],
+      "frozen": {
+        "source": 19,
+        "generated": [
+          1514,
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " paint glass tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 1514,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "ordered": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 259,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "neutral": {
+        "source": 20,
+        "generated": [
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " glass tiles",
+        "exact": true,
+        "terminal_eos": true,
+        "first_wrong": null,
+        "expected_wrong_id": null,
+        "actual_wrong_id": null,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "position": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 259,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "no_read": {
+        "source": null,
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "text": " Got it, I'll remember that.",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 1155,
+        "requested": null
+      },
+      "forced_gold": {
+        "source": 20,
+        "generated": [
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": true,
+        "terminal_eos": true,
+        "first_wrong": null,
+        "expected_wrong_id": null,
+        "actual_wrong_id": null,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_1": {
+        "source": 19,
+        "generated": [
+          1514,
+          2537,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 1514,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_2": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 2537,
+        "actual_wrong_id": 259,
+        "requested": [
+          42,
+          45
+        ]
+      }
+    },
+    {
+      "ordinal": 9,
+      "id": "parcel-2-0-d1",
+      "text": "Marceline will now paint rods. Alaric will now paint tiles. Tell me the full item description from the entry for Alaric.",
+      "assertion_index": 0,
+      "entity_span": [
+        15,
+        18
+      ],
+      "fact_last_inclusive": 17,
+      "fence": 24,
+      "candidates": [
+        19,
+        20,
+        21
+      ],
+      "gold_source": 21,
+      "gold_ids": [
+        259,
+        599,
+        85,
+        1
+      ],
+      "frozen": {
+        "source": 19,
+        "generated": [
+          960,
+          1514,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " now paint tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 960,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "ordered": {
+        "source": 20,
+        "generated": [
+          1514,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " paint tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 1514,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "neutral": {
+        "source": 20,
+        "generated": [
+          1514,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " paint tiles",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 1514,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "position": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": " tiles",
+        "exact": true,
+        "terminal_eos": true,
+        "first_wrong": null,
+        "expected_wrong_id": null,
+        "actual_wrong_id": null,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "no_read": {
+        "source": null,
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "text": " Got it, I'll remember that.",
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 1155,
+        "requested": null
+      },
+      "forced_gold": {
+        "source": 21,
+        "generated": [
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": true,
+        "terminal_eos": true,
+        "first_wrong": null,
+        "expected_wrong_id": null,
+        "actual_wrong_id": null,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_1": {
+        "source": 19,
+        "generated": [
+          960,
+          1514,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 960,
+        "requested": [
+          42,
+          45
+        ]
+      },
+      "forced_rival_2": {
+        "source": 20,
+        "generated": [
+          1514,
+          259,
+          599,
+          85,
+          1
+        ],
+        "text": null,
+        "exact": false,
+        "terminal_eos": true,
+        "first_wrong": 0,
+        "expected_wrong_id": 259,
+        "actual_wrong_id": 1514,
+        "requested": [
+          42,
+          45
+        ]
+      }
+    }
+  ],
+  "matched_summary": [
+    {
+      "arm": "frozen-normal-public",
+      "supported_exact": 3,
+      "matched_exact": 0,
+      "matched_terminal_eos": 24,
+      "matched_first_error_counts": [
+        {
+          "value": "wrong_value_source",
+          "count": 24
+        }
+      ],
+      "negative_controls": [
+        {
+          "class": "fallback",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "arm": "frozen-normal-no-read",
+      "supported_exact": 0,
+      "matched_exact": 0,
+      "matched_terminal_eos": 23,
+      "matched_first_error_counts": [
+        {
+          "value": "missing_requested_role",
+          "count": 24
+        }
+      ],
+      "negative_controls": [
+        {
+          "class": "fallback",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "arm": "forced-gold",
+      "supported_exact": 36,
+      "matched_exact": 24,
+      "matched_terminal_eos": 24,
+      "matched_first_error_counts": [
+        {
+          "value": "exact",
+          "count": 24
+        }
+      ],
+      "negative_controls": []
+    },
+    {
+      "arm": "forced-rival-1",
+      "supported_exact": 0,
+      "matched_exact": 0,
+      "matched_terminal_eos": 24,
+      "matched_first_error_counts": [
+        {
+          "value": "wrong_value_source",
+          "count": 24
+        }
+      ],
+      "negative_controls": []
+    },
+    {
+      "arm": "forced-rival-2",
+      "supported_exact": 0,
+      "matched_exact": 0,
+      "matched_terminal_eos": 24,
+      "matched_first_error_counts": [
+        {
+          "value": "wrong_value_source",
+          "count": 24
+        }
+      ],
+      "negative_controls": []
+    },
+    {
+      "arm": "learned-normal-ordered",
+      "supported_exact": 4,
+      "matched_exact": 0,
+      "matched_terminal_eos": 23,
+      "matched_first_error_counts": [
+        {
+          "value": "outside_fitted_radius",
+          "count": 6
+        },
+        {
+          "value": "wrong_value_source",
+          "count": 18
+        }
+      ],
+      "negative_controls": [
+        {
+          "class": "fallback",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "arm": "learned-normal-neutral",
+      "supported_exact": 10,
+      "matched_exact": 8,
+      "matched_terminal_eos": 23,
+      "matched_first_error_counts": [
+        {
+          "value": "exact",
+          "count": 8
+        },
+        {
+          "value": "outside_fitted_radius",
+          "count": 6
+        },
+        {
+          "value": "wrong_value_source",
+          "count": 10
+        }
+      ],
+      "negative_controls": [
+        {
+          "class": "fallback",
+          "count": 6
+        }
+      ]
+    },
+    {
+      "arm": "learned-normal-position",
+      "supported_exact": 13,
+      "matched_exact": 8,
+      "matched_terminal_eos": 24,
+      "matched_first_error_counts": [
+        {
+          "value": "exact",
+          "count": 8
+        },
+        {
+          "value": "wrong_value_source",
+          "count": 16
+        }
+      ],
+      "negative_controls": [
+        {
+          "class": "fallback",
+          "count": 6
+        }
+      ]
+    }
+  ]
+}

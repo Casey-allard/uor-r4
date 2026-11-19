@@ -1,0 +1,3215 @@
+{
+  "supported": 36,
+  "reachable_oracle_count": 36,
+  "fixed_last_k": [
+    {
+      "k": 1,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "k": 2,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "k": 3,
+      "all": 12,
+      "matched": 8
+    }
+  ],
+  "fixed_offset": [
+    {
+      "offset": 1,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "offset": 2,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "offset": 3,
+      "all": 12,
+      "matched": 8
+    }
+  ],
+  "any_target_blind_observation_function": {
+    "all": 20,
+    "matched": 8,
+    "groups": 20,
+    "matched_groups": 8
+  },
+  "observations_with_exact_candidate_words_and_ids": {
+    "contradictory_groups": 0
+  },
+  "matched_triples": [
+    {
+      "id": "accident-0-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              13,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  10,
+                  13
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              14,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 55,
+        "question_bounds": [
+          25,
+          49
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          44,
+          48
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "accident-0-0-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "added",
+            "value": "long white slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  738,
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " long white slats",
+                "first_word": " long",
+                "first_word_ids": [
+                  738
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " white slats",
+                "first_word": " white",
+                "first_word_ids": [
+                  1605
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-1-0-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "will add",
+            "value": "white slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " add white slats",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " white slats",
+                "first_word": " white",
+                "first_word_ids": [
+                  1605
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-2-0-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 21,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "will later add",
+            "value": "slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2274,
+                  2729,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " later add slats",
+                "first_word": " later",
+                "first_word_ids": [
+                  2274
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " add slats",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accident-0-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              13,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  10,
+                  13
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              14,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 54,
+        "question_bounds": [
+          25,
+          48
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          44,
+          47
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "accident-0-0-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 8,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "added",
+            "value": "hard black strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  881,
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " hard black strips",
+                "first_word": " hard",
+                "first_word_ids": [
+                  881
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " black strips",
+                "first_word": " black",
+                "first_word_ids": [
+                  1588
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  13
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-1-0-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "will add",
+            "value": "black strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " add black strips",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " black strips",
+                "first_word": " black",
+                "first_word_ids": [
+                  1588
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  13
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-2-0-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "will later add",
+            "value": "strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2274,
+                  2729,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " later add strips",
+                "first_word": " later",
+                "first_word_ids": [
+                  2274
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " add strips",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  13
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accident-1-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              14,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  11,
+                  14
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              15,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 55,
+        "question_bounds": [
+          25,
+          49
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          44,
+          48
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "accident-0-1-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "added",
+            "value": "hard black strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  881,
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " hard black strips",
+                "first_word": " hard",
+                "first_word_ids": [
+                  881
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " black strips",
+                "first_word": " black",
+                "first_word_ids": [
+                  1588
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  14
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-1-1-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "will add",
+            "value": "black strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " add black strips",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1588,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " black strips",
+                "first_word": " black",
+                "first_word_ids": [
+                  1588
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  14
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-2-1-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 11,
+          "supporting": {
+            "name": "Winifred",
+            "verb_phrase": "will later add",
+            "value": "strips",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2274,
+                  2729,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " later add strips",
+                "first_word": " later",
+                "first_word_ids": [
+                  2274
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " add strips",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2830,
+                  82,
+                  85,
+                  1
+                ],
+                "entire_copy": " strips",
+                "first_word": " strips",
+                "first_word_ids": [
+                  2830,
+                  82,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  14
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "accident-1-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              14,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  11,
+                  14
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              15,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 54,
+        "question_bounds": [
+          25,
+          48
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          44,
+          47
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "accident-0-1-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "added",
+            "value": "long white slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  738,
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " long white slats",
+                "first_word": " long",
+                "first_word_ids": [
+                  738
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " white slats",
+                "first_word": " white",
+                "first_word_ids": [
+                  1605
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-1-1-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "will add",
+            "value": "white slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " add white slats",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1605,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " white slats",
+                "first_word": " white",
+                "first_word_ids": [
+                  1605
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "accident-2-1-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 21,
+          "supporting": {
+            "name": "Silas",
+            "verb_phrase": "will later add",
+            "value": "slats",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2274,
+                  2729,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " later add slats",
+                "first_word": " later",
+                "first_word_ids": [
+                  2274
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2729,
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " add slats",
+                "first_word": " add",
+                "first_word_ids": [
+                  2729
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  756,
+                  299,
+                  85,
+                  1
+                ],
+                "entire_copy": " slats",
+                "first_word": " slats",
+                "first_word_ids": [
+                  756,
+                  299,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "parcel-0-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              14,
+              16
+            ],
+            "name_span": [
+              4,
+              9
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  11,
+                  12
+                ],
+                "start": 11
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  12,
+                  14
+                ],
+                "start": 12
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              15,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 54,
+        "question_bounds": [
+          25,
+          48
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          42,
+          47
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "parcel-0-0-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "painted",
+            "value": "thin wire rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2220,
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " thin wire rods",
+                "first_word": " thin",
+                "first_word_ids": [
+                  2220
+                ],
+                "offset": 1,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " wire rods",
+                "first_word": " wire",
+                "first_word_ids": [
+                  3392
+                ],
+                "offset": 2,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 12,
+                "word_span": [
+                  12,
+                  14
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-1-0-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 11,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "will paint",
+            "value": "wire rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " paint wire rods",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 1,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " wire rods",
+                "first_word": " wire",
+                "first_word_ids": [
+                  3392
+                ],
+                "offset": 2,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 12,
+                "word_span": [
+                  12,
+                  14
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-2-0-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 12,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "will now paint",
+            "value": "rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  960,
+                  1514,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " now paint rods",
+                "first_word": " now",
+                "first_word_ids": [
+                  960
+                ],
+                "offset": 1,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " paint rods",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 2,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 12,
+                "word_span": [
+                  12,
+                  14
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "parcel-0-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              14,
+              16
+            ],
+            "name_span": [
+              4,
+              9
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  11,
+                  12
+                ],
+                "start": 11
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  12,
+                  14
+                ],
+                "start": 12
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              15,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 52,
+        "question_bounds": [
+          25,
+          46
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          42,
+          45
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "parcel-0-0-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "painted",
+            "value": "fine glass tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2740,
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " fine glass tiles",
+                "first_word": " fine",
+                "first_word_ids": [
+                  2740
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " glass tiles",
+                "first_word": " glass",
+                "first_word_ids": [
+                  2537
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-1-0-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "will paint",
+            "value": "glass tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " paint glass tiles",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " glass tiles",
+                "first_word": " glass",
+                "first_word_ids": [
+                  2537
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-2-0-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 21,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "will now paint",
+            "value": "tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  960,
+                  1514,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " now paint tiles",
+                "first_word": " now",
+                "first_word_ids": [
+                  960
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " paint tiles",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "parcel-1-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  10,
+                  12
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              13,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 54,
+        "question_bounds": [
+          25,
+          48
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          42,
+          47
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "parcel-0-1-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "painted",
+            "value": "fine glass tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2740,
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " fine glass tiles",
+                "first_word": " fine",
+                "first_word_ids": [
+                  2740
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " glass tiles",
+                "first_word": " glass",
+                "first_word_ids": [
+                  2537
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-1-1-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "will paint",
+            "value": "glass tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " paint glass tiles",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2537,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " glass tiles",
+                "first_word": " glass",
+                "first_word_ids": [
+                  2537
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-2-1-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 21,
+          "supporting": {
+            "name": "Marceline",
+            "verb_phrase": "will now paint",
+            "value": "tiles",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  960,
+                  1514,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " now paint tiles",
+                "first_word": " now",
+                "first_word_ids": [
+                  960
+                ],
+                "offset": 1,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " paint tiles",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 2,
+                "start": 20,
+                "word_span": [
+                  20,
+                  21
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  259,
+                  599,
+                  85,
+                  1
+                ],
+                "entire_copy": " tiles",
+                "first_word": " tiles",
+                "first_word_ids": [
+                  259,
+                  599,
+                  85
+                ],
+                "offset": 3,
+                "start": 21,
+                "word_span": [
+                  21,
+                  24
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "parcel-1-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  10,
+                  12
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              24,
+              16
+            ],
+            "name_span": [
+              13,
+              18
+            ],
+            "starts": [
+              {
+                "completion_len": 6,
+                "offset": 1,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 5,
+                "offset": 2,
+                "span": [
+                  20,
+                  21
+                ],
+                "start": 20
+              },
+              {
+                "completion_len": 4,
+                "offset": 3,
+                "span": [
+                  21,
+                  24
+                ],
+                "start": 21
+              }
+            ]
+          }
+        ],
+        "prefix_len": 52,
+        "question_bounds": [
+          25,
+          46
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          42,
+          45
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          0,
+          1,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "parcel-0-1-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 8,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "painted",
+            "value": "thin wire rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  2220,
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " thin wire rods",
+                "first_word": " thin",
+                "first_word_ids": [
+                  2220
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " wire rods",
+                "first_word": " wire",
+                "first_word_ids": [
+                  3392
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-1-1-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "will paint",
+            "value": "wire rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " paint wire rods",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3392,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " wire rods",
+                "first_word": " wire",
+                "first_word_ids": [
+                  3392
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "parcel-2-1-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Alaric",
+            "verb_phrase": "will now paint",
+            "value": "rods",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  960,
+                  1514,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " now paint rods",
+                "first_word": " now",
+                "first_word_ids": [
+                  960
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1514,
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " paint rods",
+                "first_word": " paint",
+                "first_word_ids": [
+                  1514
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  483,
+                  1549,
+                  1
+                ],
+                "entire_copy": " rods",
+                "first_word": " rods",
+                "first_word_ids": [
+                  483,
+                  1549
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "legal_candidate_counts": {
+    "all": [
+      {
+        "legal_starts": 1,
+        "rows": 2
+      },
+      {
+        "legal_starts": 2,
+        "rows": 4
+      },
+      {
+        "legal_starts": 3,
+        "rows": 30
+      }
+    ],
+    "matched": [
+      {
+        "legal_starts": 3,
+        "rows": 24
+      }
+    ],
+    "coverage_controls": [
+      {
+        "legal_starts": 1,
+        "rows": 2
+      },
+      {
+        "legal_starts": 2,
+        "rows": 4
+      },
+      {
+        "legal_starts": 3,
+        "rows": 6
+      }
+    ]
+  },
+  "written_words_cross_gold_rank": [
+    {
+      "gold_offset": 1,
+      "words": 1,
+      "rows": 2
+    },
+    {
+      "gold_offset": 1,
+      "words": 2,
+      "rows": 2
+    },
+    {
+      "gold_offset": 1,
+      "words": 3,
+      "rows": 8
+    },
+    {
+      "gold_offset": 2,
+      "words": 1,
+      "rows": 2
+    },
+    {
+      "gold_offset": 2,
+      "words": 2,
+      "rows": 8
+    },
+    {
+      "gold_offset": 2,
+      "words": 3,
+      "rows": 2
+    },
+    {
+      "gold_offset": 3,
+      "words": 1,
+      "rows": 8
+    },
+    {
+      "gold_offset": 3,
+      "words": 2,
+      "rows": 2
+    },
+    {
+      "gold_offset": 3,
+      "words": 3,
+      "rows": 2
+    }
+  ],
+  "negative_rows": [
+    {
+      "id": "parcel-unmentioned",
+      "stratum": "unmentioned",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "parcel-conflict",
+      "stratum": "conflict",
+      "all_requested_facts": [
+        0,
+        2
+      ],
+      "per_fact_legal_starts": [
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "parcel-unspecified",
+      "stratum": "unspecified",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "accident-unmentioned",
+      "stratum": "unmentioned",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "accident-conflict",
+      "stratum": "conflict",
+      "all_requested_facts": [
+        0,
+        2
+      ],
+      "per_fact_legal_starts": [
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "accident-unspecified",
+      "stratum": "unspecified",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    }
+  ],
+  "not_run": [
+    "native writer",
+    "learned scores",
+    "end-to-end public conversation"
+  ]
+}

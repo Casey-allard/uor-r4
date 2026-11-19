@@ -37,6 +37,8 @@ const S2_HEADER_BYTES: usize = 96;
 const S2_ROW_BYTES: usize = 20;
 /// Learned read-only role selection, followed by the frozen span, WordStart and continuation operators.
 pub const DISCRETE_ROLE_SCHEMA: &str = "uor-r4.lut-discrete-role-copy/1";
+/// Frozen paired carrier with an explicit learned all-starts onset bank.
+pub const DISCRETE_ALL_STARTS_SCHEMA: &str = "uor-r4.lut-discrete-all-starts/1";
 /// A learned requested/excluded role bank, assertion-local value read and exact-copy agreement.
 pub const DISCRETE_PAIRED_SCHEMA: &str = "uor-r4.lut-discrete-paired-copy/1";
 /// Positional or identity Cl(0,6) role state with the frozen paired writer.
@@ -52,11 +54,39 @@ pub const ROLE_COPY_STOPS: [u32; 4] = [16, 1, 0, 201];
 struct RolePolicy {
     #[serde(skip)]
     paired: Option<paired_copy::Policy>,
+    #[serde(skip)]
+    onset: Option<OnsetPolicy>,
     occurrence: [Vec<[u32; 6]>; 3],
     span: crate::span_selector::Bank,
     exact: crate::value_selector::ExactBank,
     legacy_root: u32,
 }
+
+#[derive(Clone)]
+struct OnsetPolicy {
+    bank: crate::all_starts::Bank,
+    packed_roots: Vec<u32>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct OnsetEnvelope {
+    schema: String,
+    parent_sha256: String,
+    span_sha256: String,
+    bank_sha256: String,
+    span_bytes: usize,
+    profile: crate::all_starts::OnsetProfile,
+}
+
+#[derive(Deserialize)]
+struct OnsetSpanState {
+    artifact_sha256: String,
+    tokenizer_sha256: String,
+    bank: crate::span_selector::Bank,
+}
+
+const MAX_ONSET_SPAN_BYTES: usize = 1 << 20;
 
 impl std::fmt::Debug for RolePolicy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -1498,6 +1528,119 @@ fn role_bindings(
     ])
 }
 
+/// Pack an explicitly bound onset bank around an exact frozen paired-copy/1 carrier.
+/// All source bytes needed to verify the frozen site profile survive cold reload.
+pub fn pack_all_starts_artifact(
+    frozen_paired: &[u8],
+    span_state: &[u8],
+    bank: &[u8],
+    profile: &crate::all_starts::OnsetProfile,
+) -> Result<Vec<u8>> {
+    let parent = read_onset_parent(frozen_paired)?;
+    validate_onset_bank(&parent, span_state, bank, profile)?;
+    let header = serde_json::to_vec(&OnsetEnvelope {
+        schema: DISCRETE_ALL_STARTS_SCHEMA.to_owned(),
+        parent_sha256: parent.artifact_sha256.clone(),
+        span_sha256: hex::encode(Sha256::digest(span_state)),
+        bank_sha256: hex::encode(Sha256::digest(bank)),
+        span_bytes: span_state.len(),
+        profile: profile.clone(),
+    })?;
+    let mut bytes = MAGIC.to_vec();
+    bytes.extend_from_slice(&(header.len() as u64).to_le_bytes());
+    bytes.extend(header);
+    bytes.resize(bytes.len().next_multiple_of(ALIGN), 0);
+    bytes.extend_from_slice(bank);
+    bytes.extend_from_slice(span_state);
+    bytes.extend_from_slice(frozen_paired);
+    Ok(bytes)
+}
+
+fn read_onset_parent(bytes: &[u8]) -> Result<IntegerDiscreteModel> {
+    let prefix = bytes
+        .get(..16)
+        .ok_or_else(|| invalid("missing frozen onset carrier"))?;
+    if &prefix[..8] != MAGIC {
+        return Err(invalid("missing frozen onset carrier magic"));
+    }
+    let length = u64::from_le_bytes(
+        <[u8; 8]>::try_from(&prefix[8..])
+            .map_err(|_| invalid("invalid frozen onset carrier header"))?,
+    );
+    if length > MAX_HEADER {
+        return Err(invalid("frozen onset carrier header too large"));
+    }
+    #[derive(Deserialize)]
+    struct Schema {
+        schema: String,
+    }
+    let header = bytes
+        .get(16..16 + length as usize)
+        .ok_or_else(|| invalid("truncated frozen onset carrier header"))?;
+    if serde_json::from_slice::<Schema>(header)?.schema != DISCRETE_PAIRED_SCHEMA {
+        return Err(invalid(
+            "onset carrier requires its frozen paired-copy/1 parent",
+        ));
+    }
+    IntegerDiscreteModel::read_container(bytes, true)
+}
+
+fn validate_onset_bank(
+    parent: &IntegerDiscreteModel,
+    span_state: &[u8],
+    raw: &[u8],
+    profile: &crate::all_starts::OnsetProfile,
+) -> Result<OnsetPolicy> {
+    if span_state.len() > MAX_ONSET_SPAN_BYTES {
+        return Err(invalid("frozen onset span state too large"));
+    }
+    let span: OnsetSpanState = serde_json::from_slice(span_state)?;
+    let policy = parent
+        .role_policy
+        .as_ref()
+        .ok_or_else(|| invalid("missing onset parent policy"))?;
+    let Some(paired) = &policy.paired else {
+        return Err(invalid("missing onset parent paired policy"));
+    };
+    let paired_copy::Roles::Frozen(roles) = &paired.roles else {
+        return Err(invalid("onset parent must use frozen roles"));
+    };
+    let bindings = roles.bindings();
+    if read_role_digest(&span.artifact_sha256)? != bindings[0]
+        || read_role_digest(&span.tokenizer_sha256)? != bindings[1]
+        || span.bank.classes != policy.span.classes
+        || span.bank.relations != policy.span.relations
+    {
+        return Err(invalid("onset span state differs from frozen parent"));
+    }
+    let packed_roots = parent.packed_codebook_roots();
+    let mut roots = Sha256::new();
+    for &word in &packed_roots {
+        roots.update((word as u16).to_le_bytes());
+    }
+    let mut classes = Sha256::new();
+    for &class in &policy.span.classes {
+        classes.update([class as u8]);
+    }
+    let mut sites = Sha256::new();
+    sites.update(b"uor-r4/all-starts-sites/1");
+    sites.update(read_role_digest(&parent.artifact_sha256)?);
+    sites.update(roots.finalize());
+    sites.update(classes.finalize());
+    sites.update(Sha256::digest(span_state));
+    for root in spiralcore_orbit_roots() {
+        sites.update(root.map(|coordinate| coordinate as u8));
+    }
+    let bank = crate::all_starts::Bank::from_profile(
+        raw,
+        bindings[0],
+        bindings[1],
+        sites.finalize().into(),
+        profile,
+    )?;
+    Ok(OnsetPolicy { bank, packed_roots })
+}
+
 /// Pack a checked bank into a versioned D11 paired-copy container. Frozen
 /// writer policy, fact delimiters, classes and the embedded trunk are reused.
 #[cfg(feature = "serving-wasm")]
@@ -1586,6 +1729,42 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if schema == DISCRETE_ALL_STARTS_SCHEMA {
+            if !allow_role {
+                return Err(invalid("nested onset artifact"));
+            }
+            let envelope: OnsetEnvelope = serde_json::from_slice(encoded_header)?;
+            let start = end_header.next_multiple_of(ALIGN);
+            let payload = bytes
+                .get(start..)
+                .ok_or_else(|| invalid("missing onset artifact payload"))?;
+            if envelope.span_bytes > MAX_ONSET_SPAN_BYTES
+                || bytes[end_header..start].iter().any(|&byte| byte != 0)
+            {
+                return Err(invalid("invalid onset span length or padding"));
+            }
+            let (raw, attachment) = payload
+                .split_at_checked(crate::all_starts::BANK_BYTES)
+                .ok_or_else(|| invalid("truncated onset bank"))?;
+            let (span, paired) = attachment
+                .split_at_checked(envelope.span_bytes)
+                .ok_or_else(|| invalid("truncated onset span state"))?;
+            if Sha256::digest(raw).as_slice() != read_role_digest(&envelope.bank_sha256)?
+                || Sha256::digest(span).as_slice() != read_role_digest(&envelope.span_sha256)?
+                || Sha256::digest(paired).as_slice() != read_role_digest(&envelope.parent_sha256)?
+            {
+                return Err(invalid("onset artifact attachment checksum mismatch"));
+            }
+            let mut parent = read_onset_parent(paired)?;
+            let onset = validate_onset_bank(&parent, span, raw, &envelope.profile)?;
+            parent
+                .role_policy
+                .as_mut()
+                .ok_or_else(|| invalid("missing onset role policy"))?
+                .onset = Some(onset);
+            parent.artifact_sha256 = hex::encode(Sha256::digest(bytes));
+            return Ok(parent);
+        }
         if schema == crate::count_mixer::SCHEMA || schema == crate::count_mixer::CONTEXT_SCHEMA {
             if !allow_role {
                 return Err(invalid("nested count mixer"));
@@ -2168,6 +2347,9 @@ impl IntegerDiscreteModel {
         if let Some(mixer) = &self.count_mixer {
             mixer.schema()
         } else if let Some(policy) = &self.role_policy {
+            if policy.onset.is_some() {
+                return DISCRETE_ALL_STARTS_SCHEMA;
+            }
             match policy.paired.as_ref().map(|paired| &paired.roles) {
                 Some(paired_copy::Roles::Frozen(_)) => DISCRETE_PAIRED_SCHEMA,
                 Some(paired_copy::Roles::Ordered { .. }) => DISCRETE_ORDERED_ROLE_SCHEMA,
@@ -2180,6 +2362,10 @@ impl IntegerDiscreteModel {
         } else {
             DISCRETE_SCHEMA
         }
+    }
+
+    pub fn onset_mode(&self) -> Option<crate::all_starts::OnsetMode> {
+        Some(self.role_policy.as_ref()?.onset.as_ref()?.bank.mode())
     }
 
     /// A loaded role-copy schema uses the exact-copy cursor.
@@ -2347,7 +2533,11 @@ impl IntegerDiscreteModel {
             return Err(invalid("frozen role trace requires its paired artifact"));
         };
         roles.trace_where(prompt, region, |span| {
-            !lexical_only || paired.assertion_sites(policy, prompt, span).next().is_some()
+            !lexical_only
+                || paired
+                    .assertion_sites(policy, prompt, span)
+                    .next()
+                    .is_some()
         })
     }
 
@@ -2386,9 +2576,10 @@ impl IntegerDiscreteModel {
         requested_override: Option<RoleSpan>,
     ) -> Result<(PairedCopyDecision, Vec<PairedAssertionWitness>)> {
         let mut witnesses = Vec::new();
-        let decision = self.paired_copy_diagnostic_inner(prompt, roles, requested_override, |item| {
-            witnesses.push(item);
-        })?;
+        let decision =
+            self.paired_copy_diagnostic_inner(prompt, roles, requested_override, |item| {
+                witnesses.push(item);
+            })?;
         Ok((decision, witnesses))
     }
 
@@ -2429,10 +2620,17 @@ impl IntegerDiscreteModel {
         roles: PairedRoleDecision,
         visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
+        if let Some(onset) = &policy.onset {
+            return paired.choose_with_roles(policy, prompt, &onset.packed_roots, roles, visit);
+        }
         match &paired.roles {
-            paired_copy::Roles::Frozen(_) => {
-                paired.choose_with_roles(policy, prompt, &self.packed_codebook_roots(), roles, visit)
-            }
+            paired_copy::Roles::Frozen(_) => paired.choose_with_roles(
+                policy,
+                prompt,
+                &self.packed_codebook_roots(),
+                roles,
+                visit,
+            ),
             paired_copy::Roles::Ordered { packed_roots, .. } => {
                 paired.choose_with_roles(policy, prompt, packed_roots, roles, visit)
             }

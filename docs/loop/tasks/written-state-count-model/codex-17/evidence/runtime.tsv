@@ -1,0 +1,33 @@
+seed	cohort	arm	scope	bank_bytes	bank_used_records	bank_sha256	d11_bytes	d11_sha256	client_bytes	tokenizer_bytes	delivered_file_bytes	fit_wall_s	fit_maxrss_kib	public_score_wall_s	public_score_maxrss_kib	requested_score_wall_s	requested_score_maxrss_kib	ordinary_or_scope_wall_s	ordinary_or_scope_maxrss_kib
+1	primary	ordered	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	10b0d19005d0a40de2c8394f1d6c9340d95091492d54f4a07a25301aa934b508	86604794	52b2d457144c57cf6293f99ec52ffccc33f070d78bc5730a2b40b2d17c4f6bee	4266808	265393	91136995	0.19	159068	0.18	159640	0.18	157708	25.34	774120
+1	primary	neutral	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	93dcceb5ead9891857055cf1165d4d426c9af3e6b56dd848f20036673164e314	86604794	44746a2ce60897cd1b09263e7224046f78829051f8ea75e3df7a0e21daef8059	4266808	265393	91136995	0.19	158276	0.19	158016	0.17	158244	25.31	774344
+1	primary	position	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	50499de1e2c57a347b542242abdc01a3e803db2e5aa922873b8a20e62e89dcc5	86604794	592885e6a543cd23e191860a28a246353188e2721ab5d2052d5e881176d42336	4266808	265393	91136995	0.19	158424	0.18	158832	0.16	159200	25.29	774368
+1	primary	client-public	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	28.97	774016
+1	primary	client-no-read	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	23.72	774316
+1	primary	control-writer	shared forced gold/rivals GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.65	1030816
+1	primary	writer	shared conditional GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.45	1035132
+1	primary	run-total	whole study process tree; outer GNU time	-	-	-	-	-	-	-	-	-	-	-	-	-	-	141.30	1035132
+2	primary	ordered	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	3fd9539dd533dc34dda293d176524c12a99407a2897ab1fc3038083a1b8eaebf	85011990	8ad1058707aeb620698fe491ff108be8798ee2b0257f1375cf8f33498d621d84	4266808	265393	89544191	0.16	159524	0.15	159464	0.15	158708	25.37	755576
+2	primary	neutral	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	afeefe3d22edc24a0128d4811191ef464194dc45da910e552b4a08ea5f7ca507	85011990	188f552e5ef30895ba7d2b28dcabe0436938e0731d9f347c6730595d10a1651a	4266808	265393	89544191	0.14	159476	0.15	158816	0.15	159068	25.31	755592
+2	primary	position	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	1a3928da2221b626923f7c5d29eaafa3d53f0af382bdaa54901dd1d68a2b1dfd	85011990	eef6dc9f21a71dc487d4e2014cc1d482f5b6502cc797f991c2e3de5af57c6db5	4266808	265393	89544191	0.16	159620	0.13	159192	0.14	158432	25.28	755456
+2	primary	client-public	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	25.68	755296
+2	primary	client-no-read	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	24.30	755484
+2	primary	control-writer	shared forced gold/rivals GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.21	1015352
+2	primary	writer	shared conditional GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.61	1015104
+2	primary	run-total	whole study process tree; outer GNU time	-	-	-	-	-	-	-	-	-	-	-	-	-	-	136.51	1015352
+1	repeat	ordered	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	10b0d19005d0a40de2c8394f1d6c9340d95091492d54f4a07a25301aa934b508	86604794	52b2d457144c57cf6293f99ec52ffccc33f070d78bc5730a2b40b2d17c4f6bee	4266808	265393	91136995	0.17	159064	0.14	159708	0.14	158812	26.68	774376
+1	repeat	neutral	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	93dcceb5ead9891857055cf1165d4d426c9af3e6b56dd848f20036673164e314	86604794	44746a2ce60897cd1b09263e7224046f78829051f8ea75e3df7a0e21daef8059	4266808	265393	91136995	0.15	159076	0.15	159224	0.14	159840	26.71	774236
+1	repeat	position	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	50499de1e2c57a347b542242abdc01a3e803db2e5aa922873b8a20e62e89dcc5	86604794	592885e6a543cd23e191860a28a246353188e2721ab5d2052d5e881176d42336	4266808	265393	91136995	0.16	158264	0.16	159428	0.14	159524	26.13	774292
+1	repeat	client-public	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	29.69	774116
+1	repeat	client-no-read	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	25.68	774168
+1	repeat	control-writer	shared forced gold/rivals GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.23	1032120
+1	repeat	writer	shared conditional GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.27	1034524
+1	repeat	run-total	whole study process tree; outer GNU time	-	-	-	-	-	-	-	-	-	-	-	-	-	-	145.22	1034524
+2	repeat	ordered	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	3fd9539dd533dc34dda293d176524c12a99407a2897ab1fc3038083a1b8eaebf	85011990	8ad1058707aeb620698fe491ff108be8798ee2b0257f1375cf8f33498d621d84	4266808	265393	89544191	0.16	158736	0.13	159424	0.13	159336	25.68	755516
+2	repeat	neutral	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	afeefe3d22edc24a0128d4811191ef464194dc45da910e552b4a08ea5f7ca507	85011990	188f552e5ef30895ba7d2b28dcabe0436938e0731d9f347c6730595d10a1651a	4266808	265393	89544191	0.13	158924	0.17	159616	0.15	159852	25.31	755572
+2	repeat	position	native adapter+CUDA child for fit and scoring; 42 cold CPU --say children via writer-c for ordinary	8416	200	1a3928da2221b626923f7c5d29eaafa3d53f0af382bdaa54901dd1d68a2b1dfd	85011990	eef6dc9f21a71dc487d4e2014cc1d482f5b6502cc797f991c2e3de5af57c6db5	4266808	265393	89544191	0.13	159036	0.17	159544	0.17	159028	24.90	755644
+2	repeat	client-public	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	24.39	755404
+2	repeat	client-no-read	frozen CPU client batch of 42 --say children via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	23.88	755308
+2	repeat	control-writer	shared forced gold/rivals GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.12	1017128
+2	repeat	writer	shared conditional GPU writer launch via writer-c	-	-	-	-	-	-	-	-	-	-	-	-	-	-	1.55	1015992
+2	repeat	run-total	whole study process tree; outer GNU time	-	-	-	-	-	-	-	-	-	-	-	-	-	-	135.23	1017128

@@ -1,0 +1,55 @@
+{
+  "fit": {
+    "names": [
+      "Cedric",
+      "Ewan",
+      "Leonie",
+      "Mireille",
+      "Norbert",
+      "Rowena"
+    ],
+    "connectors": [
+      "bought",
+      "did buy",
+      "did just buy",
+      "did just move",
+      "did move",
+      "moved"
+    ],
+    "literals": [
+      "blue cloth dolls",
+      "dark cloth covers",
+      "green paper boxes",
+      "small wood frames"
+    ]
+  },
+  "held": {
+    "names": [
+      "Ariadne",
+      "Aveline",
+      "Beatrix",
+      "Fergus",
+      "Malcolm",
+      "Sylvester"
+    ],
+    "connectors": [
+      "dropped",
+      "had dropped",
+      "had once dropped",
+      "has now wrapped",
+      "has wrapped",
+      "wrapped"
+    ],
+    "literals": [
+      "fine gold chains",
+      "hard black balls",
+      "long white feathers",
+      "round wire loops"
+    ]
+  },
+  "overlap": {
+    "names": [],
+    "connectors": [],
+    "literals": []
+  }
+}

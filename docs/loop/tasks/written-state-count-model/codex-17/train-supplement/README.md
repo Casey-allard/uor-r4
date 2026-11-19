@@ -1,0 +1,7 @@
+# TRAIN-only supplementation
+
+The sealed original fit corpus could supply both classes with two positive wording families for only six held assertions. None were in the primary set. Fifty-two independently worded training prompts add 100 candidate records. The unchanged original inputs supply 100 more, bringing the total to 200 of 256 slots. Two blind readers independently recovered all 52 positive descriptions. They identified the same three control circumstances. One described an unresolved requested person as “ambiguous,” the other as “unspecified.” Both identified the missing referent and neither assigned a source. Supplemental controls add zero bank records.
+
+The vocabulary and shape design were sealed before using the anonymous held signature file. The combined shape-only calculation now admits all 24 primary assertions for measurement and 35 of 36 overall. The one outstanding off-diagonal candidate at depth one consumes all three possible positions with a three-piece word. Under the single unique reachable-source training contract, a rival witness of that shape is structurally impossible. Keep it in the denominator. Coverage precedes distance, radius, nomination and real writing.
+
+The canonical sealed source is in SHA256SUMS. Coverage.jq and the anonymous held-shapes.json reproduce the structural comparison without reading held words or answers. The deciding Wick program must still fit and score a model. The extra prompts do not modify the held panel.

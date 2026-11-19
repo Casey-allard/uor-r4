@@ -1,0 +1,366 @@
+[
+  {
+    "index": 0,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "soft mats",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 1,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "masks",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 2,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "hinges",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 3,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "soft mats",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 4,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "masks",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 5,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "hinges",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 6,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "soft mats",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 7,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "masks",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 8,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "hinges",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 9,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "bright trays",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 10,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "towels",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 11,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "brushes",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 12,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "bright trays",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 13,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "towels",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 14,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "brushes",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 15,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "bright trays",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 16,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "towels",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 17,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "brushes",
+    "why": "The question asks for wording on the line. The ability statement explicitly names the item without asserting a completed action."
+  },
+  {
+    "index": 18,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "clean masks",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 19,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "cool hinges",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 20,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "warm towels",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 21,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "thick brushes",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 22,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "hard slings",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 23,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "tins",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 24,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "gauges",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 25,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "dry wraps",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 26,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "vases",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 27,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "sockets",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 28,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "hard slings",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 29,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "tins",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 30,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "gauges",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 31,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "dry wraps",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 32,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "vases",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 33,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "sockets",
+    "why": "The line explicitly names this item for the requested person. The particle belongs to the verb and falls outside the item description."
+  },
+  {
+    "index": 34,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "bright cups",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 35,
+    "person": "Gideon",
+    "status": "supported",
+    "answer": "cold glasses",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 36,
+    "person": "Isolde",
+    "status": "supported",
+    "answer": "smooth spheres",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 37,
+    "person": "Berenice",
+    "status": "supported",
+    "answer": "pale keys",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 38,
+    "person": "Berenice",
+    "status": "supported",
+    "answer": "trays",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 39,
+    "person": "Berenice",
+    "status": "supported",
+    "answer": "disks",
+    "why": "The question asks for wording on the line. The future action explicitly names the item without asserting completion."
+  },
+  {
+    "index": 40,
+    "person": "Edmund",
+    "status": "supported",
+    "answer": "full sacks",
+    "why": "The line explicitly names this item for Edmund. Emphatic did belongs to the verb phrase."
+  },
+  {
+    "index": 41,
+    "person": "Edmund",
+    "status": "supported",
+    "answer": "ropes",
+    "why": "The line explicitly names this item for Edmund. Emphatic did belongs to the verb phrase."
+  },
+  {
+    "index": 42,
+    "person": "Edmund",
+    "status": "supported",
+    "answer": "spools",
+    "why": "The line explicitly names this item for Edmund. Emphatic did belongs to the verb phrase."
+  },
+  {
+    "index": 43,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "plain cups",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 44,
+    "person": "Corinne",
+    "status": "supported",
+    "answer": "plain pins",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 45,
+    "person": "Desmond",
+    "status": "supported",
+    "answer": "plain gloves",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 46,
+    "person": "Aurelia",
+    "status": "supported",
+    "answer": "rough pads",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 47,
+    "person": "Aurelia",
+    "status": "supported",
+    "answer": "mugs",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 48,
+    "person": "Aurelia",
+    "status": "supported",
+    "answer": "tubes",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 49,
+    "person": "Felix",
+    "status": "supported",
+    "answer": "thick flaps",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 50,
+    "person": "Felix",
+    "status": "supported",
+    "answer": "bricks",
+    "why": "The line gives one explicit item phrase for the requested person."
+  },
+  {
+    "index": 51,
+    "person": "Felix",
+    "status": "supported",
+    "answer": "latches",
+    "why": "The line gives one explicit item phrase for the requested person."
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "schema": "uor-r4.value-rank-evidence-storage/1",
+  "archive_sha256": "e79764026f7cd371690d2ee6a6d21fde7b798fc8421a1686a21fea8d66d7d60b",
+  "bytes": 1113531,
+  "wick": "uor-codex/rank-custody-d4688456ef77.VVpzv6/qualified-chain/evidence.tar.zst",
+  "workstation": "local/codex/fresh-boundary-validity-20261119/rank-evidence-custody/final-verified.6z659L/evidence.tar.zst",
+  "wick_workstation_cmp": true,
+  "workstation_decompression_and_member_readback": true,
+  "dispatch": {
+    "status": "done 0",
+    "sha256": "c44c1b1408676ba444203b87145d15152b7f525f9d545009e4d8c99da5371027",
+    "non_author_fit_sha256": "b5d4af1a5a515adbd48b29b89cd95872b9acb52357aae7affb7e5267373d39b1",
+    "live_go_sha256": "b5d4af1a5a515adbd48b29b89cd95872b9acb52357aae7affb7e5267373d39b1",
+    "prior_rejected_input_verification_log_sha256": "0793e87ddd2380b3a971a12faaec588ca13915f6c185d018ccf028d1262d37e4"
+  },
+  "original_capture_raw_manifests": {
+    "primary-fit-seed1": "289b151ada9dd29fc4043874e8f4a6d638053006a2743f61669fcbb03ba2b40e",
+    "repeat-fit-seed1": "57304c5d7a62198bc2e20652bbcb633c2ad85c5ea7b3b193f5ef089fa99d3130",
+    "primary-held-seed1": "eb906ee5b61bc2f1a4c300afbf030fa034ad2cfaabc63f39970fd5143fc358f5",
+    "repeat-held-seed1": "8f13a6ee4076e532ef4d2a21082e55397971a471bbdee120ca338454b32393e9",
+    "primary-fit-seed2": "443f0296c8f9e577a3bc5c56cea3b359c1af813992c4dc1b5f7c4a0954b37895",
+    "repeat-fit-seed2": "dbd4647961f3f44632694f33cb6f6b28f560f1395fbb170c8f65a90fdb3901f0",
+    "primary-held-seed2": "424a97f13513658a1ca599f84bef1d875bc5285f4dcbb99d3fe4f4067434669d",
+    "repeat-held-seed2": "7c498edb20a232c0bc303f8b0c19cdd2f6a3373630a38bcd58c5204e4052efb9"
+  },
+  "original_study_raw_manifests": {
+    "primary-seed1": "aba86d7ff3034227248c9aeeabbe418b3b1b024a95fd6b3e3bed892f078b26cc",
+    "repeat-seed1": "ca0fc3aedad560dad7f7ca7dedc06035aa958492fc0c7135fce4453f5bb1102c",
+    "primary-seed2": "418c980e59b7e4f0cce0b9e06dfdfb80fde8f44804292369ace997f6a97f62db",
+    "repeat-seed2": "0ef881ad46c22559c617d462138ba9fc39954d1eb237f90010c441a0ca7f661b"
+  },
+  "identical_primary_repeat_cold_manifests": {
+    "seed1": "13a54762ea4f7879682398ca0feefe43e04fe313c1afec0bc8dd86d319a1f402",
+    "seed2": "8c3265d4ab2b58e487f1f92605a9467960da075c77f31767b7c0ee701825aee1"
+  },
+  "input_validity_manifest_sha256": "6bf86e1311c210f6428423fcbdd84f0fe578bbf004bd5661f95305e7d527a1d9",
+  "frozen_chain_manifest_sha256": "324b1e8172a9b9b106b6dc765f1db40323f7daac01665c1afc2bbc9b547b5735",
+  "retained": {
+    "member_manifest_sha256": "ad8c6a083d4a5b5f654f6e594699c045fef37c0cfc7587985f3b5c3687ddabf4",
+    "regular_members": 2507,
+    "pinned_input_references": 69,
+    "study_links": 8,
+    "learned_banks": 12,
+    "ordinary_client_row_files": 840
+  },
+  "excluded_from_compact_transfer": {
+    "manifest_sha256": "9a535453cd3828d3244a5c776417252957345010eec117175fe3e9c30266a788",
+    "reconstructible_learned_wrappers": 12,
+    "retained_executable_paths": 15,
+    "retained_carrier_paths": 6,
+    "exact_originals_remain_on_wick": true
+  },
+  "private_store": {
+    "store": "caseyallard/uor-r4-store",
+    "private": true,
+    "attempted_path": "results/codex/geometric-value-ranking-20261119/wick-live-rank-d4688456ef77.tar.zst",
+    "observed_base_revision": "3c888bf6259b91e68a56d45bb1d7ebc636eeedca",
+    "status": "quota_refused",
+    "http_status": 400,
+    "uploaded": false,
+    "independent_store_download_matches_wick_and_workstation": false,
+    "attempted_archive_sha256": "03a400d0e3772a115f3bcdd3e902e2f2948e600f9510714d2c0baf745d4f04ac",
+    "attempted_bytes": 1121693,
+    "final_archive_uploaded": false,
+    "final_archive_readback": false
+  }
+}

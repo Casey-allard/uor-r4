@@ -99,3 +99,7 @@ required-features = ["serving-wasm"]
 name = "place-asks"
 path = "src/bin/place-asks.rs"
 required-features = ["serving-wasm"]
+
+[[bin]]
+name = "pack-all-starts"
+path = "src/bin/pack-all-starts.rs"

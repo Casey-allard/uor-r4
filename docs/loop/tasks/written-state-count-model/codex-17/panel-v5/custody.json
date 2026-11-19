@@ -1,0 +1,16 @@
+{
+  "full_archive": "value-rank-panel-custody-v5.tar.zst",
+  "sha256": "adc77dd1088c28e985d9f26ba3112e554a6da8566b23991fe4b58bf93e29c886",
+  "bytes": 1181375,
+  "wick_root": "~/uor-codex/20261119-all-starts-finite",
+  "workstation_main_checkout": "local/codex/fresh-boundary-validity-20261119",
+  "full_archive_both_hosts_identical": true,
+  "full_private_store_result": "private account storage limit reached",
+  "data_and_source_archive": {
+    "store": "caseyallard/uor-r4-store",
+    "path": "results/codex/geometric-value-ranking-20261119/value-rank-panel-data-v5.tar.zst",
+    "revision": "5a835b055c885abcf934d17219aec752eeb9af71",
+    "sha256": "d94f439cbc4e08b894a3e4aa090756abb3da8e27cb01f014150672b947f935bd",
+    "pinned_download_identical": true
+  }
+}

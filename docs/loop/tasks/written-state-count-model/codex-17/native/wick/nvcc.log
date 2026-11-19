@@ -1,0 +1,21 @@
+ptxas info    : 0 bytes gmem, 5040 bytes cmem[3]
+ptxas info    : Compiling entry function '_Z5inferPKjjS0_jjPj' for 'sm_89'
+ptxas info    : Function properties for _Z5inferPKjjS0_jjPj
+    112 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 0 barriers, 112 bytes cumulative stack size, 392 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 26.019 ms
+ptxas info    : Compiling entry function '_Z13assign_radiusPjjPKj' for 'sm_89'
+ptxas info    : Function properties for _Z13assign_radiusPjjPKj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 15 registers, used 0 barriers, 376 bytes cmem[0]
+ptxas info    : Compile time = 1.631 ms
+ptxas info    : Compiling entry function '_Z20nearest_other_familyPKjS0_jPj' for 'sm_89'
+ptxas info    : Function properties for _Z20nearest_other_familyPKjS0_jPj
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 384 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 5.142 ms
+ptxas info    : Compiling entry function '_Z10build_bankPKjS0_jjPjS1_S1_' for 'sm_89'
+ptxas info    : Function properties for _Z10build_bankPKjS0_jjPjS1_S1_
+    96 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 96 bytes cumulative stack size, 400 bytes cmem[0], 8 bytes cmem[2]
+ptxas info    : Compile time = 32.989 ms

@@ -1,0 +1,9 @@
+# Independent wording and source-position controls
+
+The fit and held splits each contain 24 single-source positives and six controls. In each split eight positives have the correct start in the first of three positions, eight in the second, and eight in the third. All three candidate starts are writable and emit distinct suffixes through the original delimiter in the static source construction. Exact names, full connector phrases and complete items differ across splits. This is a deliberately crossed study of short facts. It does not measure free prose or spontaneous multi-turn recall.
+
+The workstation custody root is local/codex/fresh-boundary-validity-20261119/value-rank-panel in the main checkout. The SHA256SUMS file binds the entire original authoring packet in that root, including both rejected attempts, original manifest before its repository-relative Cargo dependency was corrected, the separate ordinary-text exports, and both final tokenizer-specific reconstructions. The first attempted fit name started with a standalone blank token and could not be a frozen candidate. The immutable packet preserves that rejection before any score was computed. Independent text-only adjudication is a separate step.
+
+## Deciding study withheld before inference
+
+A blind introductory panel can be semantically clear and still reward a shortcut. On both v3 splits, choosing the only original candidate whose completed suffix has three words selects the correct original address on 24/24 supported questions, given the supporting fact. The copy limit and candidate rank are genuinely crossed, but the labels' constant word count determines the choice. This v3 panel is retained as an instrument fixture only. A separate matched-shape panel is needed before studying language transfer. The row receipts and shortcut.jq bind this decision. No fitted or held model outcomes were collected.

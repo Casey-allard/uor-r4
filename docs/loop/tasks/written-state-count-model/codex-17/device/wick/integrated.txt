@@ -1,0 +1,7 @@
+fb0f201e0c4d02df43af565ce54541be86de2ad302cb588d1790f9d807f53158  integrated-run-01/SHA256SUMS
+672483da102ce4816f843171c96f8c6a6cf70a37b2c5caa12f7444796c433ba0  integrated-run-01/cold-1/packet.bin
+996ebcd068149019dafb2f4441b0592b0390b8a482ab9768feed4f1577a5cf3f  integrated-run-01/cold-1/rust.bin
+996ebcd068149019dafb2f4441b0592b0390b8a482ab9768feed4f1577a5cf3f  integrated-run-01/cold-1/cuda.bin
+672483da102ce4816f843171c96f8c6a6cf70a37b2c5caa12f7444796c433ba0  integrated-run-01/cold-2/packet.bin
+996ebcd068149019dafb2f4441b0592b0390b8a482ab9768feed4f1577a5cf3f  integrated-run-01/cold-2/rust.bin
+996ebcd068149019dafb2f4441b0592b0390b8a482ab9768feed4f1577a5cf3f  integrated-run-01/cold-2/cuda.bin

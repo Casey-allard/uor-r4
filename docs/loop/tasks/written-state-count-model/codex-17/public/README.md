@@ -1,0 +1,7 @@
+# The fitted source choice in the ordinary text client
+
+A versioned D11 wrapper carries the paired reader, span state and the native bank. A request follows the usual role selection, assertion and completion path. The bank supplies an original source address per eligible assertion. The existing writer emits the original tokens, handling release at the delimiter. The disabled reader and old artifact schemas retain their original behavior.
+
+Two synthetic controls passed using the actual protocol-2 uor-chat --say path on Wick. With the same prompt, each of two seed carriers emitted [924,1074,1] (blue green) from original address 8 on the known-right bank. On the planted wrong bank each began at address 9 and emitted [1074,1] (green). Both reached EOS. Disabled replies and cold-reload cursor words matched the frozen client. The normal client's core scorer also agreed on all 836,400 CUDA trace words across six synthetic variants, 1,025 assertions, 68 words per assertion and two processes. Device fitting, serialization, source choice and text writing are exercised. No natural-language transfer result follows from these planted controls.
+
+The two SHA256SUMS digests are 13544a8536b470634d91332dc8116962f0af8fb91389a1d6b8c0737947deb329 for the normal client and 71a1bbbab419dff283f864af3d17687e679beef9088378546983796c0648c2c3 for the product scorer. Wick roots are the final and product-scorer directories under ~/uor-codex/20261119-fresh-boundary-validity/onset-public-integration.

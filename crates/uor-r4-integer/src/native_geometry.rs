@@ -19,6 +19,7 @@ compile_error!(
 include!("serving_root.rs");
 
 pub mod assertion_value;
+pub mod all_starts;
 
 #[cfg(not(feature = "serving-wasm"))]
 pub mod count_mixer;

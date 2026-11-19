@@ -1,0 +1,422 @@
+//! Tokenizes independently authored labels without a D11 model or selector.
+mod author;
+
+use author::{Family, FAMILIES};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, File};
+use std::io::{BufWriter, Write};
+use std::path::Path;
+use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
+use uor_r4_tokenizer::ByteBpeTokenizer;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Span = [usize; 2];
+const HEAD: &str = "<|bos|>User: ";
+const TAIL: &str = "\nAssistant:";
+const PINS: [&str; 2] = [
+    "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "f804ecbee34e3c4e0001a737d003e3d620ba2c40722d416e7f3dd64843e2b30e",
+];
+
+#[derive(Clone, Copy)]
+struct Fact {
+    name: &'static str,
+    connector: &'static str,
+    item: &'static str,
+}
+
+struct Case {
+    id: String,
+    pair: String,
+    family: &'static Family,
+    direction: usize,
+    form: Option<usize>,
+    stratum: &'static str,
+    facts: Vec<Fact>,
+    name: Option<&'static str>,
+    question: String,
+    query_name_byte: usize,
+}
+
+fn make_cases(split: &str) -> Vec<Case> {
+    let mut cases = Vec::new();
+    for (family_index, family) in FAMILIES
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| f.split == split)
+    {
+        for (form, &connector) in family.connectors.iter().enumerate() {
+            for swap in 0..2 {
+                let mut facts = [0, 1].map(|i| Fact {
+                    name: family.people[i],
+                    connector,
+                    item: family.items[i ^ swap],
+                });
+                if (family_index + swap) % 2 == 1 {
+                    facts.reverse();
+                }
+                let pair = format!("{}-{form}-{swap}", family.key);
+                for (direction, &name) in family.people.iter().enumerate() {
+                    cases.push(Case {
+                        id: format!("{pair}-d{direction}"),
+                        pair: pair.clone(),
+                        family,
+                        direction,
+                        form: Some(form),
+                        stratum: "supported",
+                        facts: facts.to_vec(),
+                        name: Some(name),
+                        question: format!("{}{name}{}", family.ask[0], family.ask[1]),
+                        query_name_byte: family.ask[0].len(),
+                    });
+                }
+            }
+        }
+        let facts = vec![
+            Fact {
+                name: family.people[0],
+                connector: family.connectors[0],
+                item: family.items[0],
+            },
+            Fact {
+                name: family.people[1],
+                connector: family.connectors[2],
+                item: family.items[1],
+            },
+        ];
+        for (stratum, name, pre, post) in [
+            (
+                "unmentioned",
+                Some(family.absent),
+                "Do these records provide an item for ",
+                "?",
+            ),
+            (
+                "conflict",
+                Some(family.people[0]),
+                "The repeated entries for ",
+                " are competing versions of one record. Can its exact object be determined?",
+            ),
+            ("unspecified", None, "", ""),
+        ] {
+            let mut history = facts.clone();
+            if stratum == "conflict" {
+                history.push(Fact {
+                    name: family.people[0],
+                    connector: family.connectors[1],
+                    item: family.items[1],
+                });
+            }
+            let pair = format!("{}-{stratum}", family.key);
+            let question =
+                name.map_or_else(|| family.ambiguity.into(), |n| format!("{pre}{n}{post}"));
+            cases.push(Case {
+                id: pair.clone(),
+                pair,
+                family,
+                direction: 0,
+                form: None,
+                stratum,
+                facts: history,
+                name,
+                question,
+                query_name_byte: pre.len(),
+            });
+        }
+    }
+    cases
+}
+
+fn sha(b: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(b))
+}
+fn save(path: &Path, rows: &[Value]) -> Result<()> {
+    let mut handle = BufWriter::new(File::options().create_new(true).write(true).open(path)?);
+    serde_json::to_writer_pretty(&mut handle, rows)?;
+    writeln!(handle)?;
+    handle.flush()?;
+    Ok(())
+}
+
+fn span(
+    t: &ByteBpeTokenizer,
+    ids: &[u32],
+    offsets: &[usize],
+    byte: usize,
+    surface: &str,
+) -> Result<Span> {
+    let start = offsets
+        .binary_search(&byte.checked_sub(1).ok_or("missing separator")?)
+        .map_err(|_| format!("unaligned start for {surface} at {byte}"))?;
+    let end = offsets
+        .binary_search(&(byte + surface.len()))
+        .map_err(|_| format!("unaligned end for {surface} at {byte}"))?;
+    if start >= end || t.decode_bytes(&ids[start..end]) != format!(" {surface}").as_bytes() {
+        return Err(format!("verbatim span mismatch for {surface}").into());
+    }
+    Ok([start, end])
+}
+
+fn class(tokenizer: &ByteBpeTokenizer, id: u32) -> u8 {
+    let bytes = tokenizer.decode_bytes(&[id]);
+    if bytes.is_empty() {
+        return 0;
+    }
+    if bytes[0] == b' ' && bytes.len() > 1 && bytes[1..].iter().all(u8::is_ascii_alphabetic) {
+        1
+    } else if bytes.iter().all(u8::is_ascii_alphabetic) {
+        2
+    } else {
+        0
+    }
+}
+
+fn complete(classes: &[u8], [a, b]: Span) -> bool {
+    a < b
+        && classes[a] == 1
+        && classes[a + 1..b].iter().all(|&x| x == 2)
+        && classes.get(b) != Some(&2)
+}
+
+fn expected_slice(ids: &[u32], a: usize, b: usize) -> Vec<u32> {
+    [&ids[a..b], &[1]].concat()
+}
+
+fn run_split(t: &ByteBpeTokenizer, split: &str, path: &Path) -> Result<()> {
+    let protocol = DialogueProtocol::literal_roles_v2(t)?;
+    let encoder = protocol.bind(t)?;
+    let (mut blind, mut grades, mut bounds, mut candidates, mut public) =
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let mut seen = BTreeSet::new();
+    let mut observed = BTreeMap::new();
+    for c in make_cases(split) {
+        let mut text = String::new();
+        let mut byte_anchors = Vec::new();
+        for fact in &c.facts {
+            if !text.is_empty() {
+                text.push(' ');
+            }
+            let name = HEAD.len() + text.len();
+            text.push_str(fact.name);
+            text.push(' ');
+            let verb = HEAD.len() + text.len();
+            text.push_str(fact.connector);
+            text.push(' ');
+            let item = HEAD.len() + text.len();
+            text.push_str(fact.item);
+            text.push('.');
+            byte_anchors.push([name, verb, item]);
+        }
+        text.push(' ');
+        let question_byte = HEAD.len() + text.len();
+        text.push_str(&c.question);
+        let user = Message {
+            role: "user",
+            content: &text,
+        };
+        let ids = encoder.encode_assistant_prefix(&[user.clone()]).tokens;
+        if !seen.insert(ids.clone())
+            || ids.first() != Some(&0)
+            || ids.len() + 16 > 192
+            || ids.iter().skip(1).any(|&x| !(3..4096).contains(&x))
+            || t.decode(&ids) != format!("{HEAD}{text}{TAIL}")
+        {
+            return Err(format!("ordinary text/framing failed in {}", c.id).into());
+        }
+        let mut offsets = vec![0];
+        for &id in &ids {
+            offsets.push(offsets[offsets.len() - 1] + t.decode_bytes(&[id]).len());
+        }
+        let classes: Vec<_> = ids.iter().map(|&id| class(t, id)).collect();
+        let locate = |byte, s| span(t, &ids, &offsets, byte, s);
+        let question = locate(question_byte, &c.question)?;
+        let requested = c
+            .name
+            .map(|name| locate(question_byte + c.query_name_byte, name))
+            .transpose()?;
+        if requested
+            .is_some_and(|x| !complete(&classes, x) || x[0] < question[0] || x[1] > question[1])
+        {
+            return Err(format!("incomplete requested name in {}", c.id).into());
+        }
+        let mut fact_info = Vec::new();
+        let mut any = Vec::new();
+        for (i, (fact, [name, verb, item])) in c.facts.iter().zip(byte_anchors).enumerate() {
+            let name_span = locate(name, fact.name)?;
+            let connector_span = locate(verb, fact.connector)?;
+            let value_span = locate(item, fact.item)?;
+            let fence = value_span[1];
+            let whole_name = complete(&classes, name_span);
+            let [start, end] = name_span;
+            if !whole_name
+                || ![16, 28].contains(
+                    ids.get(start.wrapping_sub(1))
+                        .ok_or("missing earlier delimiter")?,
+                )
+                || end != connector_span[0]
+                || connector_span[1] != value_span[0]
+                || ids.get(fence) != Some(&16)
+                || classes[value_span[0]] != 1
+                || fence - value_span[0] > 7
+            {
+                return Err(
+                    format!("invalid independently labelled literal in {}: {text}; {name_span:?} {connector_span:?} {value_span:?} class={whole_name} value_class={} preceding={} fence={} ids={ids:?}", c.id, classes[value_span[0]], ids[start - 1], ids[fence]).into(),
+                );
+            }
+            let mut legal = Vec::new();
+            for offset in 1..=3 {
+                let s = end + offset;
+                if s >= fence || classes[s] != 1 || fence - s > 7 {
+                    continue;
+                }
+                let first_word_end = (s + 1..fence).find(|&x| classes[x] != 2).unwrap_or(fence);
+                let words = &ids[s..first_word_end];
+                let emitted = expected_slice(&ids, s, fence);
+                legal.push(
+                    json!({"offset":offset,"start":s,"word_span":[s,first_word_end],
+                    "first_word":t.decode(words),"first_word_ids":words,
+                    "entire_copy":t.decode(&ids[s..fence]),"copy_ids_through_eos":emitted}),
+                );
+            }
+            let width = value_span[0] - end;
+            if let Some(form) = c.form {
+                if width != form + 1
+                    || legal.len() != 3
+                    || legal
+                        .iter()
+                        .map(|r| r["entire_copy"].as_str())
+                        .collect::<BTreeSet<_>>()
+                        .len()
+                        != 3
+                {
+                    return Err(format!("{} / {}: width {width}, legal {:?}, expected all three legal starts with rank {}", c.id,fact.item,
+                    legal.iter().map(|r|r["offset"].clone()).collect::<Vec<_>>(),form+1).into());
+                }
+            }
+            if Some(fact.name) == c.name {
+                let q = requested.ok_or("missing explicit role")?;
+                if ids[start..end] != ids[q[0]..q[1]] {
+                    return Err(format!("name identity fails in {}", c.id).into());
+                }
+                any.push((i, fact, value_span, width));
+            }
+            fact_info.push(
+                json!({"name":fact.name,"name_span":name_span,"verb_phrase":fact.connector,
+                "connector_span":connector_span,"value":fact.item,"value_span":value_span,
+                "delimiter":[fence,ids[fence]],"gold_offset":width,"legal":legal}),
+            );
+        }
+        let (answer, expected, start, assertion_index, gold_offset) =
+            match (c.stratum, any.as_slice()) {
+                ("supported", [(i, fact, [a, b], width)]) => {
+                    let full = encoder
+                        .encode_document(&[
+                            user,
+                            Message {
+                                role: "assistant",
+                                content: fact.item,
+                            },
+                        ])
+                        .tokens;
+                    let produced = full
+                        .strip_prefix(ids.as_slice())
+                        .ok_or("encoding altered the prompt")?;
+                    if produced != expected_slice(&ids, *a, *b) {
+                        return Err(format!("non-verbatim literal for {}", c.id).into());
+                    }
+                    *observed.entry(*width).or_insert(0) += 1;
+                    (
+                        Some(fact.item),
+                        Some(produced.to_vec()),
+                        Some(*a),
+                        Some(*i),
+                        Some(*width),
+                    )
+                }
+                ("conflict", [(_, a, _, _), (_, b, _, _)]) if a.item != b.item => {
+                    (None, None, None, None, None)
+                }
+                ("unmentioned" | "unspecified", []) => (None, None, None, None, None),
+                _ => return Err(format!("authored support relation differs on {}", c.id).into()),
+            };
+        let refusal = match c.stratum {
+            "conflict" => Some(
+                "The two competing descriptions disagree, so one exact item cannot be identified.",
+            ),
+            "unmentioned" => Some(
+                "The records omit the requested person. A relevant no or uncertainty earns credit.",
+            ),
+            "unspecified" => Some(
+                "The requested person is unspecified. Ask which person or state the ambiguity.",
+            ),
+            _ => None,
+        };
+        let prefix_sha = sha(&ids.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<_>>());
+        let visible_roles: Vec<_> = c.name.zip(requested).into_iter().collect();
+        public.push(json!({"index":blind.len(),"text":text}));
+        blind.push(json!({"prefix":ids,"text":text}));
+        bounds.push(json!({"start":question[0],"end":question[1]}));
+        let assigned_candidates = assertion_index.map(|i| &fact_info[i]["legal"]);
+        let alternatives = assigned_candidates.map(|rows| {
+            rows.as_array()
+                .into_iter()
+                .flatten()
+                .filter(|r| r["start"] != json!(start))
+                .collect::<Vec<_>>()
+        });
+        candidates.push(json!({"id":c.id,"stratum":c.stratum,"gold_start":start,"gold_offset":gold_offset,
+            "gold_candidate_present":assigned_candidates.map(|m| m.as_array().into_iter().flatten().any(|r|r["start"]==json!(start))),
+            "all_requested_facts":any.iter().map(|(i,_,_,_)|i).collect::<Vec<_>>(),
+            "facts":fact_info,"pre_inference":true}));
+        grades.push(json!({"id":c.id,"family":c.family.key,"pair":c.pair,"direction":c.direction,
+            "form":c.form,"stratum":c.stratum,"requested":requested,"requested_name":c.name,"excluded":null,
+            "question_mentions":visible_roles,"expected":expected,"answer_text":answer,
+            "gold_start":start,"gold_assertion_index":assertion_index,"gold_offset":gold_offset,
+            "rival_start":alternatives.as_ref().and_then(|v|v.first()).map(|r|r["start"].clone()),
+            "alternative_candidates":alternatives,"facts":fact_info,"prose_acceptable":refusal,
+            "question_bounds":question,"prefix_sha256":prefix_sha}));
+    }
+    if observed != BTreeMap::from([(1, 8), (2, 8), (3, 8)]) || blind.len() != 30 {
+        return Err(format!("unbalanced fixture {split}: {observed:?}").into());
+    }
+    fs::create_dir(path)?;
+    for (part, rows) in [
+        ("blind", &blind),
+        ("grades", &grades),
+        ("bounds", &bounds),
+        ("candidates", &candidates),
+        ("public-text", &public),
+    ] {
+        save(&path.join(format!("{part}.json")), rows)?;
+    }
+    println!(
+        "{split}: {} exact protocol-2 rows, gold ranks {observed:?}",
+        blind.len()
+    );
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    let [seed, input, out] = args.as_slice() else {
+        return Err("value-rank-panel SEED TOKENIZER NEW_ROOT".into());
+    };
+    let index = match seed.as_str() {
+        "1" => 0,
+        "2" => 1,
+        _ => return Err("seed must be 1 or 2".into()),
+    };
+    let data = fs::read(input)?;
+    if sha(&data) != PINS[index] {
+        return Err("pinned tokenizer changed".into());
+    }
+    let t = ByteBpeTokenizer::from_tokenizer_json_bytes(&data).ok_or("bad tokenizer")?;
+    let out = Path::new(out);
+    fs::create_dir(out)?;
+    for split in ["fit", "held"] {
+        run_split(&t, split, &out.join(split))?;
+    }
+    Ok(())
+}

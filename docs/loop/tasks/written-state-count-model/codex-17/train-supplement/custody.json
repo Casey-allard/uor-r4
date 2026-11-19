@@ -1,0 +1,8 @@
+{
+  "store": "caseyallard/uor-r4-store",
+  "path": "results/codex/geometric-value-ranking-20261119/rank-training-and-endpoints-data.tar.zst",
+  "revision": "3c888bf6259b91e68a56d45bb1d7ebc636eeedca",
+  "sha256": "ea852430195cbd1815ef86bbd5525d6e3d72e2e230aacae3bdb0bc21e4daaafc",
+  "pinned_readback": true,
+  "wick_workstation_match": true
+}

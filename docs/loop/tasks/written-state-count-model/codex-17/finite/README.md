@@ -1,0 +1,5 @@
+# Observable source candidates and exact writing
+
+Run cargo test --locked --offline with this manifest. The five finite tests passed on the workstation and Wick host from the merged UOR-R4 integer source at 9db62fe7b0d9695189ea3fbd33156970336eead2. This is host-side operator and cursor verification. Collection of GPU research rows and a learned selector require their registered comparisons.
+
+The fixture calls the existing assertion-value decision and reads the complete original eligibility and word-start masks. With three candidates it exposes positions 4, 5 and 6 where the frozen scalar choice returns 6. A broader scan separately exposes position 8. The cap-rejected case preserves evidence of a mask hit while denying an unreachable write. Earlier, middle and later supplied scores select their own addressed suffix; ties and unseen scores abstain. The deliberately wrong source emits the alternate original IDs through EOS. The test gives the scores by construction. Ranking these sources from text remains open.

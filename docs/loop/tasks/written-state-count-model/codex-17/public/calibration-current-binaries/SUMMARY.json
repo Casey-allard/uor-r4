@@ -1,0 +1,25 @@
+{
+  "schema": "uor-r4.all-starts-public-calibration/1",
+  "scope": "two synthetic seed carriers on Wick CPU ordinary protocol-2 serving",
+  "client_sha256": "d615fdb095ac650174eb59a976d14621cc8ebe1338f7126e970db27c5525d8fe",
+  "packer_sha256": "6a679b37526fbe05ea7026943b8979c6d52e7f67ac7319ea2f427f111c8cff11",
+  "synthetic_seeds": 2,
+  "explicitly_invoked_public_processes": 20,
+  "complete_cold_json_pairs": 8,
+  "legacy_full_json_comparisons": 4,
+  "disabled_fallback_trace_comparisons": 4,
+  "packer_library_byte_comparisons": 2,
+  "planted_correct_address": 8,
+  "planted_correct_emitted_ids": [
+    924,
+    1074,
+    1
+  ],
+  "planted_wrong_address": 9,
+  "planted_wrong_emitted_ids": [
+    1074,
+    1
+  ],
+  "project_fit": false,
+  "protected_inference": false
+}

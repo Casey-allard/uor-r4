@@ -1,0 +1,7 @@
+# Pre-run decision for input integrity only
+
+After the authorized grade-blind collection produces all eight capture trees, verify both common and raw manifests against the captured files, the seven direct runtime dependencies and the complete historical CUDA chain. Examine any cold differences before interpreting a row. Require equal candidate packet bytes in independent runs for each seed and split. Derive a raw-manifest index from these verified files and seal its checksum.
+
+For each seed and each cold phase, bind the actual requested-name candidate file and original blind tape with the three semantic key digests provided by the independently authored packet. Use the latest compiled `verify-input-rows` and the independently pinned source for `check-pinned.sh`. Collect a new input-validity receipt and compare both cold receipts. Inspect all rows if the Boolean fails. The review of source at 20b63f7f4 required external semantic anchoring and explicit split and control identity. The subsequent finite review demonstrated refusal of stale token hashes, a null control ID and a swapped but internally consistent key.
+
+The aggregate eligibility result and input hashes are the only validity information available to the rank runner's decision gate. The selector, bank trainer, and normal client have no interface to the receipt. Ordered, neutral and position-only ranks, learned fits, public prose grading and any performance claim remain in the separate preregistration. A failed join qualifies instrument evidence only.

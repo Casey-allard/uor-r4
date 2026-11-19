@@ -1,0 +1,151 @@
+{
+  "given": "supporting sentence index",
+  "rows": 24,
+  "exact_strings": 24,
+  "details": [
+    {
+      "id": "reserve-0-0-d0",
+      "expected": "woven baskets",
+      "last_two_words": "woven baskets",
+      "same": true
+    },
+    {
+      "id": "reserve-0-0-d1",
+      "expected": "striped napkins",
+      "last_two_words": "striped napkins",
+      "same": true
+    },
+    {
+      "id": "reserve-0-1-d0",
+      "expected": "striped napkins",
+      "last_two_words": "striped napkins",
+      "same": true
+    },
+    {
+      "id": "reserve-0-1-d1",
+      "expected": "woven baskets",
+      "last_two_words": "woven baskets",
+      "same": true
+    },
+    {
+      "id": "reserve-1-0-d0",
+      "expected": "woven baskets",
+      "last_two_words": "woven baskets",
+      "same": true
+    },
+    {
+      "id": "reserve-1-0-d1",
+      "expected": "striped napkins",
+      "last_two_words": "striped napkins",
+      "same": true
+    },
+    {
+      "id": "reserve-1-1-d0",
+      "expected": "striped napkins",
+      "last_two_words": "striped napkins",
+      "same": true
+    },
+    {
+      "id": "reserve-1-1-d1",
+      "expected": "woven baskets",
+      "last_two_words": "woven baskets",
+      "same": true
+    },
+    {
+      "id": "store-0-0-d0",
+      "expected": "padded envelopes",
+      "last_two_words": "padded envelopes",
+      "same": true
+    },
+    {
+      "id": "store-0-0-d1",
+      "expected": "braided cords",
+      "last_two_words": "braided cords",
+      "same": true
+    },
+    {
+      "id": "store-0-1-d0",
+      "expected": "braided cords",
+      "last_two_words": "braided cords",
+      "same": true
+    },
+    {
+      "id": "store-0-1-d1",
+      "expected": "padded envelopes",
+      "last_two_words": "padded envelopes",
+      "same": true
+    },
+    {
+      "id": "store-1-0-d0",
+      "expected": "padded envelopes",
+      "last_two_words": "padded envelopes",
+      "same": true
+    },
+    {
+      "id": "store-1-0-d1",
+      "expected": "braided cords",
+      "last_two_words": "braided cords",
+      "same": true
+    },
+    {
+      "id": "store-1-1-d0",
+      "expected": "braided cords",
+      "last_two_words": "braided cords",
+      "same": true
+    },
+    {
+      "id": "store-1-1-d1",
+      "expected": "padded envelopes",
+      "last_two_words": "padded envelopes",
+      "same": true
+    },
+    {
+      "id": "counter-d0",
+      "expected": "brass coins",
+      "last_two_words": "brass coins",
+      "same": true
+    },
+    {
+      "id": "counter-d1",
+      "expected": "paper cups",
+      "last_two_words": "paper cups",
+      "same": true
+    },
+    {
+      "id": "tray-d0",
+      "expected": "river stones",
+      "last_two_words": "river stones",
+      "same": true
+    },
+    {
+      "id": "tray-d1",
+      "expected": "spare cards",
+      "last_two_words": "spare cards",
+      "same": true
+    },
+    {
+      "id": "shelves-d0",
+      "expected": "clay pots",
+      "last_two_words": "clay pots",
+      "same": true
+    },
+    {
+      "id": "shelves-d1",
+      "expected": "rubber stamps",
+      "last_two_words": "rubber stamps",
+      "same": true
+    },
+    {
+      "id": "tally-d0",
+      "expected": "chalk sticks",
+      "last_two_words": "chalk sticks",
+      "same": true
+    },
+    {
+      "id": "tally-d1",
+      "expected": "glass jars",
+      "last_two_words": "glass jars",
+      "same": true
+    }
+  ]
+}

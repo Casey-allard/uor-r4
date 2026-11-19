@@ -1,0 +1,296 @@
+[
+  {
+    "index": 0,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The entry for Marceline gives “thin wire rods” as the entire object phrase."
+  },
+  {
+    "index": 1,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The entry for Alaric gives “fine glass tiles” as the entire object phrase."
+  },
+  {
+    "index": 2,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The entry for Marceline gives “fine glass tiles” as the entire object phrase."
+  },
+  {
+    "index": 3,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The entry for Alaric gives “thin wire rods” as the entire object phrase."
+  },
+  {
+    "index": 4,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The entry for Marceline gives “wire rods” as the entire object phrase."
+  },
+  {
+    "index": 5,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "The entry for Alaric gives “glass tiles” as the entire object phrase."
+  },
+  {
+    "index": 6,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "The entry for Marceline gives “glass tiles” as the entire object phrase."
+  },
+  {
+    "index": 7,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The entry for Alaric gives “wire rods” as the entire object phrase."
+  },
+  {
+    "index": 8,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The entry for Marceline gives “rods” as the entire object phrase."
+  },
+  {
+    "index": 9,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "The entry for Alaric gives “tiles” as the entire object phrase."
+  },
+  {
+    "index": 10,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "The entry for Marceline gives “tiles” as the entire object phrase."
+  },
+  {
+    "index": 11,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The entry for Alaric gives “rods” as the entire object phrase."
+  },
+  {
+    "index": 12,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The entry for Alaric gives “rods” as the entire object phrase."
+  },
+  {
+    "index": 13,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The entry for Marceline gives “wire rods” as the entire object phrase."
+  },
+  {
+    "index": 14,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The entry for Marceline gives “rods” as the entire object phrase."
+  },
+  {
+    "index": 15,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The entry for Marceline gives “thin wire rods” as the entire object phrase."
+  },
+  {
+    "index": 16,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The entry for Marceline gives “wire rods” as the entire object phrase."
+  },
+  {
+    "index": 17,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The entry for Alaric gives “thin wire rods” as the entire object phrase."
+  },
+  {
+    "index": 18,
+    "person": "Lysandra",
+    "status": "absent",
+    "answer": null,
+    "why": "The records name Marceline and Alaric only."
+  },
+  {
+    "index": 19,
+    "person": "Marceline",
+    "status": "conflict",
+    "answer": null,
+    "why": "The prompt treats thin wire rods and tiles as competing objects for one Marceline record and gives no basis for choosing between them."
+  },
+  {
+    "index": 20,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The question gives no way to identify the intended person. Marceline maps to thin wire rods and Alaric maps to tiles, so the choice changes the answer."
+  },
+  {
+    "index": 21,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The entry for Winifred gives “long white slats” as the entire object phrase."
+  },
+  {
+    "index": 22,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The entry for Silas gives “hard black strips” as the entire object phrase."
+  },
+  {
+    "index": 23,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The entry for Winifred gives “hard black strips” as the entire object phrase."
+  },
+  {
+    "index": 24,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The entry for Silas gives “long white slats” as the entire object phrase."
+  },
+  {
+    "index": 25,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The entry for Winifred gives “white slats” as the entire object phrase."
+  },
+  {
+    "index": 26,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The entry for Silas gives “black strips” as the entire object phrase."
+  },
+  {
+    "index": 27,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The entry for Winifred gives “black strips” as the entire object phrase."
+  },
+  {
+    "index": 28,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The entry for Silas gives “white slats” as the entire object phrase."
+  },
+  {
+    "index": 29,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "slats",
+    "why": "The entry for Winifred gives “slats” as the entire object phrase."
+  },
+  {
+    "index": 30,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The entry for Silas gives “strips” as the entire object phrase."
+  },
+  {
+    "index": 31,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The entry for Winifred gives “strips” as the entire object phrase."
+  },
+  {
+    "index": 32,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "slats",
+    "why": "The entry for Silas gives “slats” as the entire object phrase."
+  },
+  {
+    "index": 33,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The entry for Silas gives “strips” as the entire object phrase."
+  },
+  {
+    "index": 34,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The entry for Winifred gives “black strips” as the entire object phrase."
+  },
+  {
+    "index": 35,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The entry for Winifred gives “strips” as the entire object phrase."
+  },
+  {
+    "index": 36,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The entry for Winifred gives “hard black strips” as the entire object phrase."
+  },
+  {
+    "index": 37,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The entry for Winifred gives “black strips” as the entire object phrase."
+  },
+  {
+    "index": 38,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The entry for Silas gives “hard black strips” as the entire object phrase."
+  },
+  {
+    "index": 39,
+    "person": "Pelagia",
+    "status": "absent",
+    "answer": null,
+    "why": "The records name Winifred and Silas only."
+  },
+  {
+    "index": 40,
+    "person": "Winifred",
+    "status": "conflict",
+    "answer": null,
+    "why": "The prompt treats long white slats and strips as competing objects for one Winifred record and gives no basis for choosing between them."
+  },
+  {
+    "index": 41,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The question gives no way to identify the intended person. Winifred maps to long white slats and Silas maps to strips, so the choice changes the answer."
+  }
+]

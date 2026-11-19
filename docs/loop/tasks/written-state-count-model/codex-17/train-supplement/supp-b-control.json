@@ -1,0 +1,23 @@
+[
+  {
+    "index": 0,
+    "person": "Roderick",
+    "status": "absent",
+    "answer": null,
+    "why": "Only Helena has an item in the notes. There is no recorded item for the explicitly requested Roderick."
+  },
+  {
+    "index": 1,
+    "person": "Helena",
+    "status": "conflict",
+    "answer": null,
+    "why": "Paper seals and leather hinges are both explicit for Helena and are declared competing versions of the same line. The text gives no basis to select one."
+  },
+  {
+    "index": 2,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The question does not identify the intended person. Helena would yield paper seals and Ansel would yield wooden shutters. The item descriptions are determinate for each person."
+  }
+]

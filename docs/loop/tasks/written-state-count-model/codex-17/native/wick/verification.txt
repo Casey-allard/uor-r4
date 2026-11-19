@@ -1,0 +1,13 @@
+fit mode=0 bytes=8416 sha256=8263178f23c47f941e7d0ffe702099528ce6f15dc90e552331068184828cb6f8 labels_sha256=a37e33d93437d14d49c303e79828a2a37f1146b24eb60e047782e786fc2e53ef
+right: mode=0 rows=1025 first_status=0 first_source=5
+fit mode=1 bytes=8416 sha256=8bee77a3ffbe11f24d61d39c4e03d1c444ed0f45bb52c623c72c2a01f92ce262 labels_sha256=a37e33d93437d14d49c303e79828a2a37f1146b24eb60e047782e786fc2e53ef
+right: mode=1 rows=1025 first_status=0 first_source=5
+fit mode=2 bytes=8416 sha256=c5c170cb16b1e78e4db1fa6b6e66b8616f166c0ad04ce9d8da13307e8dc9a7c5 labels_sha256=a37e33d93437d14d49c303e79828a2a37f1146b24eb60e047782e786fc2e53ef
+right: mode=2 rows=1025 first_status=4 first_source=4294967295
+fit mode=0 bytes=8416 sha256=7d90002215d180e34666e0bfa591820ac1b9b6b03bb28c6c082ca9726ba941de labels_sha256=1f2db228cd741a83b6d5729f5de8521bb29c4cdefcc025f54251d4d7a21b384d
+wrong: mode=0 rows=1025 first_status=0 first_source=4
+fit mode=0 bytes=8416 sha256=4bf8ecc8082bb2e87f277caf7d38961c2660f145c704779169492ea45e783d4b labels_sha256=6008655e372d9c21f4822c3939508c16a2a39457b66e5e761699eb03cd019ecb
+unseen: mode=0 rows=1025 first_status=2 first_source=4294967295
+tie: mode=0 rows=1025 first_status=3 first_source=4294967295
+Error: "device declined execution: fit_status=2 used=256 cross_class_identical_pairs=0\n"
+fit_status=2 used=256 cross_class_identical_pairs=0

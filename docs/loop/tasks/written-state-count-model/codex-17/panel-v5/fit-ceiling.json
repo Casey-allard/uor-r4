@@ -1,0 +1,3057 @@
+{
+  "supported": 36,
+  "reachable_oracle_count": 36,
+  "fixed_last_k": [
+    {
+      "k": 1,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "k": 2,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "k": 3,
+      "all": 12,
+      "matched": 8
+    }
+  ],
+  "fixed_offset": [
+    {
+      "offset": 1,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "offset": 2,
+      "all": 12,
+      "matched": 8
+    },
+    {
+      "offset": 3,
+      "all": 12,
+      "matched": 8
+    }
+  ],
+  "any_target_blind_observation_function": {
+    "all": 20,
+    "matched": 8,
+    "groups": 20,
+    "matched_groups": 8
+  },
+  "observations_with_exact_candidate_words_and_ids": {
+    "contradictory_groups": 0
+  },
+  "matched_triples": [
+    {
+      "id": "market-0-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              11,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              20,
+              16
+            ],
+            "name_span": [
+              12,
+              16
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  17,
+                  18
+                ],
+                "start": 17
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              }
+            ]
+          }
+        ],
+        "prefix_len": 49,
+        "question_bounds": [
+          21,
+          43
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          23,
+          26
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "market-0-0-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 8,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "bought",
+            "value": "blue cloth dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  924,
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " blue cloth dolls",
+                "first_word": " blue",
+                "first_word_ids": [
+                  924
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " cloth dolls",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-1-0-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "did buy",
+            "value": "cloth dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " buy cloth dolls",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " cloth dolls",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-2-0-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "did just buy",
+            "value": "dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1437,
+                  2005,
+                  1
+                ],
+                "entire_copy": " just buy dolls",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  2005,
+                  1
+                ],
+                "entire_copy": " buy dolls",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "market-0-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              11,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              20,
+              16
+            ],
+            "name_span": [
+              12,
+              16
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  17,
+                  18
+                ],
+                "start": 17
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              }
+            ]
+          }
+        ],
+        "prefix_len": 50,
+        "question_bounds": [
+          21,
+          44
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          23,
+          27
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "market-0-0-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 17,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "bought",
+            "value": "green paper boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1074,
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " green paper boxes",
+                "first_word": " green",
+                "first_word_ids": [
+                  1074
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " paper boxes",
+                "first_word": " paper",
+                "first_word_ids": [
+                  1323
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-1-0-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 18,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "did buy",
+            "value": "paper boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " buy paper boxes",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " paper boxes",
+                "first_word": " paper",
+                "first_word_ids": [
+                  1323
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-2-0-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "did just buy",
+            "value": "boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1437,
+                  3454,
+                  1
+                ],
+                "entire_copy": " just buy boxes",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  3454,
+                  1
+                ],
+                "entire_copy": " buy boxes",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "market-1-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  11,
+                  12
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              20,
+              16
+            ],
+            "name_span": [
+              13,
+              16
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  17,
+                  18
+                ],
+                "start": 17
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              }
+            ]
+          }
+        ],
+        "prefix_len": 49,
+        "question_bounds": [
+          21,
+          43
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          23,
+          26
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "market-0-1-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 17,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "bought",
+            "value": "green paper boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1074,
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " green paper boxes",
+                "first_word": " green",
+                "first_word_ids": [
+                  1074
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " paper boxes",
+                "first_word": " paper",
+                "first_word_ids": [
+                  1323
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-1-1-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 18,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "did buy",
+            "value": "paper boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " buy paper boxes",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1323,
+                  3454,
+                  1
+                ],
+                "entire_copy": " paper boxes",
+                "first_word": " paper",
+                "first_word_ids": [
+                  1323
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-2-1-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Leonie",
+            "verb_phrase": "did just buy",
+            "value": "boxes",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1437,
+                  3454,
+                  1
+                ],
+                "entire_copy": " just buy boxes",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 17,
+                "word_span": [
+                  17,
+                  18
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  3454,
+                  1
+                ],
+                "entire_copy": " buy boxes",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 2,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  3454,
+                  1
+                ],
+                "entire_copy": " boxes",
+                "first_word": " boxes",
+                "first_word_ids": [
+                  3454
+                ],
+                "offset": 3,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "market-1-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  11,
+                  12
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              20,
+              16
+            ],
+            "name_span": [
+              13,
+              16
+            ],
+            "starts": [
+              {
+                "completion_len": 4,
+                "offset": 1,
+                "span": [
+                  17,
+                  18
+                ],
+                "start": 17
+              },
+              {
+                "completion_len": 3,
+                "offset": 2,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 2,
+                "offset": 3,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              }
+            ]
+          }
+        ],
+        "prefix_len": 50,
+        "question_bounds": [
+          21,
+          44
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          23,
+          27
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "market-0-1-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "bought",
+            "value": "blue cloth dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  924,
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " blue cloth dolls",
+                "first_word": " blue",
+                "first_word_ids": [
+                  924
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " cloth dolls",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-1-1-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "did buy",
+            "value": "cloth dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " buy cloth dolls",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2005,
+                  1
+                ],
+                "entire_copy": " cloth dolls",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "market-2-1-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 11,
+          "supporting": {
+            "name": "Norbert",
+            "verb_phrase": "did just buy",
+            "value": "dolls",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1437,
+                  2005,
+                  1
+                ],
+                "entire_copy": " just buy dolls",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1437,
+                  2005,
+                  1
+                ],
+                "entire_copy": " buy dolls",
+                "first_word": " buy",
+                "first_word_ids": [
+                  1437
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2005,
+                  1
+                ],
+                "entire_copy": " dolls",
+                "first_word": " dolls",
+                "first_word_ids": [
+                  2005
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  12
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "moving-0-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  10,
+                  12
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              22,
+              16
+            ],
+            "name_span": [
+              13,
+              17
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  20,
+                  22
+                ],
+                "start": 20
+              }
+            ]
+          }
+        ],
+        "prefix_len": 49,
+        "question_bounds": [
+          23,
+          43
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          38,
+          42
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "moving-0-0-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 18,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "moved",
+            "value": "small wood frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  563,
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " small wood frames",
+                "first_word": " small",
+                "first_word_ids": [
+                  563
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " wood frames",
+                "first_word": " wood",
+                "first_word_ids": [
+                  1334
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-1-0-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "did move",
+            "value": "wood frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " move wood frames",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " wood frames",
+                "first_word": " wood",
+                "first_word_ids": [
+                  1334
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-2-0-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "did just move",
+            "value": "frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1278,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " just move frames",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " move frames",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "moving-0-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              12,
+              16
+            ],
+            "name_span": [
+              4,
+              7
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  8,
+                  9
+                ],
+                "start": 8
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  10,
+                  12
+                ],
+                "start": 10
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              22,
+              16
+            ],
+            "name_span": [
+              13,
+              17
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  20,
+                  22
+                ],
+                "start": 20
+              }
+            ]
+          }
+        ],
+        "prefix_len": 48,
+        "question_bounds": [
+          23,
+          42
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          38,
+          41
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "moving-0-0-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 8,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "moved",
+            "value": "dark cloth covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1269,
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " dark cloth covers",
+                "first_word": " dark",
+                "first_word_ids": [
+                  1269
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " cloth covers",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-1-0-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "did move",
+            "value": "cloth covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " move cloth covers",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " cloth covers",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-2-0-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "did just move",
+            "value": "covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1278,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " just move covers",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 8,
+                "word_span": [
+                  8,
+                  9
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " move covers",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 2,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 10,
+                "word_span": [
+                  10,
+                  12
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "moving-1-d0",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              13,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  11,
+                  13
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              22,
+              16
+            ],
+            "name_span": [
+              14,
+              17
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  20,
+                  22
+                ],
+                "start": 20
+              }
+            ]
+          }
+        ],
+        "prefix_len": 49,
+        "question_bounds": [
+          23,
+          43
+        ],
+        "same_name_fact_indices": [
+          0
+        ],
+        "supplied_requested_span": [
+          38,
+          42
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "moving-0-1-d0",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 9,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "moved",
+            "value": "dark cloth covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1269,
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " dark cloth covers",
+                "first_word": " dark",
+                "first_word_ids": [
+                  1269
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " cloth covers",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  13
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-1-1-d0",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 10,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "did move",
+            "value": "cloth covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " move cloth covers",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2116,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " cloth covers",
+                "first_word": " cloth",
+                "first_word_ids": [
+                  2116
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  13
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-2-1-d0",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 11,
+          "supporting": {
+            "name": "Rowena",
+            "verb_phrase": "did just move",
+            "value": "covers",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1278,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " just move covers",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 9,
+                "word_span": [
+                  9,
+                  10
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " move covers",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 2,
+                "start": 10,
+                "word_span": [
+                  10,
+                  11
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  2085,
+                  85,
+                  1
+                ],
+                "entire_copy": " covers",
+                "first_word": " covers",
+                "first_word_ids": [
+                  2085,
+                  85
+                ],
+                "offset": 3,
+                "start": 11,
+                "word_span": [
+                  11,
+                  13
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "moving-1-d1",
+      "common_observation": {
+        "facts": [
+          {
+            "delimiter": [
+              13,
+              16
+            ],
+            "name_span": [
+              4,
+              8
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  9,
+                  10
+                ],
+                "start": 9
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  10,
+                  11
+                ],
+                "start": 10
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  11,
+                  13
+                ],
+                "start": 11
+              }
+            ]
+          },
+          {
+            "delimiter": [
+              22,
+              16
+            ],
+            "name_span": [
+              14,
+              17
+            ],
+            "starts": [
+              {
+                "completion_len": 5,
+                "offset": 1,
+                "span": [
+                  18,
+                  19
+                ],
+                "start": 18
+              },
+              {
+                "completion_len": 4,
+                "offset": 2,
+                "span": [
+                  19,
+                  20
+                ],
+                "start": 19
+              },
+              {
+                "completion_len": 3,
+                "offset": 3,
+                "span": [
+                  20,
+                  22
+                ],
+                "start": 20
+              }
+            ]
+          }
+        ],
+        "prefix_len": 48,
+        "question_bounds": [
+          23,
+          42
+        ],
+        "same_name_fact_indices": [
+          1
+        ],
+        "supplied_requested_span": [
+          38,
+          41
+        ],
+        "token_classes": [
+          0,
+          2,
+          2,
+          0,
+          1,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          2,
+          1,
+          2,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          1,
+          1,
+          2,
+          2,
+          0,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0
+        ]
+      },
+      "distinct_labels": [
+        {
+          "id": "moving-0-1-d1",
+          "gold_offset": 1,
+          "written_value_words": 3,
+          "gold_start": 18,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "moved",
+            "value": "small wood frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  563,
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " small wood frames",
+                "first_word": " small",
+                "first_word_ids": [
+                  563
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " wood frames",
+                "first_word": " wood",
+                "first_word_ids": [
+                  1334
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-1-1-d1",
+          "gold_offset": 2,
+          "written_value_words": 2,
+          "gold_start": 19,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "did move",
+            "value": "wood frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " move wood frames",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1334,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " wood frames",
+                "first_word": " wood",
+                "first_word_ids": [
+                  1334
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "moving-2-1-d1",
+          "gold_offset": 3,
+          "written_value_words": 1,
+          "gold_start": 20,
+          "supporting": {
+            "name": "Cedric",
+            "verb_phrase": "did just move",
+            "value": "frames",
+            "legal": [
+              {
+                "copy_ids_through_eos": [
+                  801,
+                  1278,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " just move frames",
+                "first_word": " just",
+                "first_word_ids": [
+                  801
+                ],
+                "offset": 1,
+                "start": 18,
+                "word_span": [
+                  18,
+                  19
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  1278,
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " move frames",
+                "first_word": " move",
+                "first_word_ids": [
+                  1278
+                ],
+                "offset": 2,
+                "start": 19,
+                "word_span": [
+                  19,
+                  20
+                ]
+              },
+              {
+                "copy_ids_through_eos": [
+                  493,
+                  1448,
+                  1
+                ],
+                "entire_copy": " frames",
+                "first_word": " frames",
+                "first_word_ids": [
+                  493,
+                  1448
+                ],
+                "offset": 3,
+                "start": 20,
+                "word_span": [
+                  20,
+                  22
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "legal_candidate_counts": {
+    "all": [
+      {
+        "legal_starts": 1,
+        "rows": 2
+      },
+      {
+        "legal_starts": 2,
+        "rows": 4
+      },
+      {
+        "legal_starts": 3,
+        "rows": 30
+      }
+    ],
+    "matched": [
+      {
+        "legal_starts": 3,
+        "rows": 24
+      }
+    ],
+    "coverage_controls": [
+      {
+        "legal_starts": 1,
+        "rows": 2
+      },
+      {
+        "legal_starts": 2,
+        "rows": 4
+      },
+      {
+        "legal_starts": 3,
+        "rows": 6
+      }
+    ]
+  },
+  "written_words_cross_gold_rank": [
+    {
+      "gold_offset": 1,
+      "words": 1,
+      "rows": 2
+    },
+    {
+      "gold_offset": 1,
+      "words": 2,
+      "rows": 2
+    },
+    {
+      "gold_offset": 1,
+      "words": 3,
+      "rows": 8
+    },
+    {
+      "gold_offset": 2,
+      "words": 1,
+      "rows": 2
+    },
+    {
+      "gold_offset": 2,
+      "words": 2,
+      "rows": 8
+    },
+    {
+      "gold_offset": 2,
+      "words": 3,
+      "rows": 2
+    },
+    {
+      "gold_offset": 3,
+      "words": 1,
+      "rows": 8
+    },
+    {
+      "gold_offset": 3,
+      "words": 2,
+      "rows": 2
+    },
+    {
+      "gold_offset": 3,
+      "words": 3,
+      "rows": 2
+    }
+  ],
+  "negative_rows": [
+    {
+      "id": "market-unmentioned",
+      "stratum": "unmentioned",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "market-conflict",
+      "stratum": "conflict",
+      "all_requested_facts": [
+        0,
+        2
+      ],
+      "per_fact_legal_starts": [
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "market-unspecified",
+      "stratum": "unspecified",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "moving-unmentioned",
+      "stratum": "unmentioned",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "moving-conflict",
+      "stratum": "conflict",
+      "all_requested_facts": [
+        0,
+        2
+      ],
+      "per_fact_legal_starts": [
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "moving-unspecified",
+      "stratum": "unspecified",
+      "all_requested_facts": [],
+      "per_fact_legal_starts": [
+        3,
+        3
+      ]
+    }
+  ],
+  "not_run": [
+    "native writer",
+    "learned scores",
+    "end-to-end public conversation"
+  ]
+}

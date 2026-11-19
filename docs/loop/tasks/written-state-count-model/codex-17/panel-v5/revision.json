@@ -1,0 +1,268 @@
+{
+  "changed": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41
+  ],
+  "unchanged": [
+    0,
+    1,
+    2,
+    3,
+    12,
+    13,
+    21,
+    22,
+    23,
+    24,
+    33,
+    34
+  ],
+  "reader_disagreement": [
+    {
+      "index": 4,
+      "prior_text": "Marceline has painted wire rods. Alaric has painted glass tiles. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 4,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "wire rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 4,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 5,
+      "prior_text": "Marceline has painted wire rods. Alaric has painted glass tiles. Tell me the full item description from the entry for Alaric.",
+      "read_a": {
+        "index": 5,
+        "person": "Alaric",
+        "status": "supported",
+        "answer": "glass tiles",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 5,
+        "person": "Alaric",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “glass tiles,” or a possession verb with painted modifying the object, giving “painted glass tiles.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 6,
+      "prior_text": "Alaric has painted wire rods. Marceline has painted glass tiles. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 6,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "glass tiles",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 6,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “glass tiles,” or a possession verb with painted modifying the object, giving “painted glass tiles.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 7,
+      "prior_text": "Alaric has painted wire rods. Marceline has painted glass tiles. Tell me the full item description from the entry for Alaric.",
+      "read_a": {
+        "index": 7,
+        "person": "Alaric",
+        "status": "supported",
+        "answer": "wire rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 7,
+        "person": "Alaric",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 8,
+      "prior_text": "Marceline has now painted rods. Alaric has now painted tiles. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 8,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 8,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 9,
+      "prior_text": "Marceline has now painted rods. Alaric has now painted tiles. Tell me the full item description from the entry for Alaric.",
+      "read_a": {
+        "index": 9,
+        "person": "Alaric",
+        "status": "supported",
+        "answer": "tiles",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 9,
+        "person": "Alaric",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “tiles,” or a possession verb with painted modifying the object, giving “painted tiles.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 10,
+      "prior_text": "Alaric has now painted rods. Marceline has now painted tiles. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 10,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "tiles",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 10,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “tiles,” or a possession verb with painted modifying the object, giving “painted tiles.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 11,
+      "prior_text": "Alaric has now painted rods. Marceline has now painted tiles. Tell me the full item description from the entry for Alaric.",
+      "read_a": {
+        "index": 11,
+        "person": "Alaric",
+        "status": "supported",
+        "answer": "rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 11,
+        "person": "Alaric",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 14,
+      "prior_text": "Alaric has painted tiles. Marceline has painted rods. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 14,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 14,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “rods,” or a possession verb with painted modifying the object, giving “painted rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 15,
+      "prior_text": "Alaric has painted fine glass tiles. Marceline has painted thin wire rods. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 15,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "thin wire rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 15,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “thin wire rods,” or a possession verb with painted modifying the object, giving “painted thin wire rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 16,
+      "prior_text": "Marceline has now painted wire rods. Alaric has now painted glass tiles. Tell me the full item description from the entry for Marceline.",
+      "read_a": {
+        "index": 16,
+        "person": "Marceline",
+        "status": "supported",
+        "answer": "wire rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 16,
+        "person": "Marceline",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “wire rods,” or a possession verb with painted modifying the object, giving “painted wire rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    },
+    {
+      "index": 17,
+      "prior_text": "Alaric has now painted thin wire rods. Marceline has now painted fine glass tiles. Tell me the full item description from the entry for Alaric.",
+      "read_a": {
+        "index": 17,
+        "person": "Alaric",
+        "status": "supported",
+        "answer": "thin wire rods",
+        "why": "The named entry explicitly gives this complete item phrase."
+      },
+      "read_b": {
+        "index": 17,
+        "person": "Alaric",
+        "status": "ambiguous",
+        "answer": null,
+        "why": "Has can be a perfect auxiliary with painted as the verb, giving “thin wire rods,” or a possession verb with painted modifying the object, giving “painted thin wire rods.” The parallel entries favor the perfect reading but allow both."
+      }
+    }
+  ],
+  "fit_texts_unchanged": true,
+  "model_outcomes_read": false
+}

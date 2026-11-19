@@ -1,0 +1,296 @@
+[
+  {
+    "index": 0,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 1,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 2,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "fine glass tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 3,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 4,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 5,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 6,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "glass tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 7,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 8,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 9,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 10,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "tiles",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 11,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 12,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 13,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 14,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 15,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 16,
+    "person": "Marceline",
+    "status": "supported",
+    "answer": "wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 17,
+    "person": "Alaric",
+    "status": "supported",
+    "answer": "thin wire rods",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 18,
+    "person": "Lysandra",
+    "status": "absent",
+    "answer": null,
+    "why": "No entry names the requested person."
+  },
+  {
+    "index": 19,
+    "person": "Marceline",
+    "status": "conflict",
+    "answer": null,
+    "why": "The explicitly competing versions name different objects."
+  },
+  {
+    "index": 20,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The intended person is not identified."
+  },
+  {
+    "index": 21,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 22,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 23,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 24,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "long white slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 25,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 26,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 27,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 28,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "white slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 29,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 30,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 31,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 32,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "slats",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 33,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 34,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 35,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 36,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 37,
+    "person": "Winifred",
+    "status": "supported",
+    "answer": "black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 38,
+    "person": "Silas",
+    "status": "supported",
+    "answer": "hard black strips",
+    "why": "The named entry explicitly gives this complete item phrase."
+  },
+  {
+    "index": 39,
+    "person": "Pelagia",
+    "status": "absent",
+    "answer": null,
+    "why": "No entry names the requested person."
+  },
+  {
+    "index": 40,
+    "person": "Winifred",
+    "status": "conflict",
+    "answer": null,
+    "why": "The explicitly competing versions name different objects."
+  },
+  {
+    "index": 41,
+    "person": null,
+    "status": "unspecified",
+    "answer": null,
+    "why": "The intended person is not identified."
+  }
+]

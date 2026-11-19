@@ -1,0 +1,199 @@
+{
+  "words": 3,
+  "rows": 24,
+  "unique_correct": 24,
+  "details": [
+    {
+      "id": "market-0-0-d0",
+      "starts": [
+        8
+      ],
+      "expected": 8,
+      "correct": true
+    },
+    {
+      "id": "market-0-0-d1",
+      "starts": [
+        17
+      ],
+      "expected": 17,
+      "correct": true
+    },
+    {
+      "id": "market-0-1-d0",
+      "starts": [
+        17
+      ],
+      "expected": 17,
+      "correct": true
+    },
+    {
+      "id": "market-0-1-d1",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "market-1-0-d0",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "market-1-0-d1",
+      "starts": [
+        19
+      ],
+      "expected": 19,
+      "correct": true
+    },
+    {
+      "id": "market-1-1-d0",
+      "starts": [
+        19
+      ],
+      "expected": 19,
+      "correct": true
+    },
+    {
+      "id": "market-1-1-d1",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "market-2-0-d0",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "market-2-0-d1",
+      "starts": [
+        21
+      ],
+      "expected": 21,
+      "correct": true
+    },
+    {
+      "id": "market-2-1-d0",
+      "starts": [
+        21
+      ],
+      "expected": 21,
+      "correct": true
+    },
+    {
+      "id": "market-2-1-d1",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "moving-0-0-d0",
+      "starts": [
+        18
+      ],
+      "expected": 18,
+      "correct": true
+    },
+    {
+      "id": "moving-0-0-d1",
+      "starts": [
+        8
+      ],
+      "expected": 8,
+      "correct": true
+    },
+    {
+      "id": "moving-0-1-d0",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "moving-0-1-d1",
+      "starts": [
+        18
+      ],
+      "expected": 18,
+      "correct": true
+    },
+    {
+      "id": "moving-1-0-d0",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "moving-1-0-d1",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "moving-1-1-d0",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "moving-1-1-d1",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "moving-2-0-d0",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    },
+    {
+      "id": "moving-2-0-d1",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "moving-2-1-d0",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "moving-2-1-d1",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+[package]
+name = "all-starts-aot-finite"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+[dependencies]
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer" }
+uor-all-starts-finite = { path = "../finite" }

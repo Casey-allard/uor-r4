@@ -1,0 +1,5 @@
+# Synthetic SM89 value-ranking check
+
+Run bash run-wick.sh with a new absolute output directory on Wick. The runner tests 10 hand-authored rows twice. It compiles a native SM89 image and uses the existing frozen D11 CUDA cursor. The generated constant header and unchanged integer kernel are bound in the source receipt. The numerical bank contains synthetic witnesses. This finite packet carries at most 24 input IDs and supplies its own roots and classes. A trained normal client needs a bound codebook, a TRAIN-only fit, full supported context, and a reloadable fitted artifact.
+
+The original finite execution is in the wick directory. The source receipt binds the original, standalone crate layout. Cargo path and source-manifest references in this repository resolve to those same native definitions. The original canonical run-02 SHA-256 manifest was 299f37a354e6bfeb80cb6282838f69e782b8690e6a8845177a977484d68f9a61. The independently authored scalar calibration witnesses live in ../calibration. Use the row and cursor comparisons for claims about planted behavior.

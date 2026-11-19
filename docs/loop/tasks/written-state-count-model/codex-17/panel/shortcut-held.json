@@ -1,0 +1,199 @@
+{
+  "words": 3,
+  "rows": 24,
+  "unique_correct": 24,
+  "details": [
+    {
+      "id": "parcel-0-0-d0",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "parcel-0-0-d1",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "parcel-0-1-d0",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "parcel-0-1-d1",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "parcel-1-0-d0",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "parcel-1-0-d1",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    },
+    {
+      "id": "parcel-1-1-d0",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    },
+    {
+      "id": "parcel-1-1-d1",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "parcel-2-0-d0",
+      "starts": [
+        12
+      ],
+      "expected": 12,
+      "correct": true
+    },
+    {
+      "id": "parcel-2-0-d1",
+      "starts": [
+        24
+      ],
+      "expected": 24,
+      "correct": true
+    },
+    {
+      "id": "parcel-2-1-d0",
+      "starts": [
+        24
+      ],
+      "expected": 24,
+      "correct": true
+    },
+    {
+      "id": "parcel-2-1-d1",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "accident-0-0-d0",
+      "starts": [
+        18
+      ],
+      "expected": 18,
+      "correct": true
+    },
+    {
+      "id": "accident-0-0-d1",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "accident-0-1-d0",
+      "starts": [
+        9
+      ],
+      "expected": 9,
+      "correct": true
+    },
+    {
+      "id": "accident-0-1-d1",
+      "starts": [
+        18
+      ],
+      "expected": 18,
+      "correct": true
+    },
+    {
+      "id": "accident-1-0-d0",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "accident-1-0-d1",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "accident-1-1-d0",
+      "starts": [
+        10
+      ],
+      "expected": 10,
+      "correct": true
+    },
+    {
+      "id": "accident-1-1-d1",
+      "starts": [
+        20
+      ],
+      "expected": 20,
+      "correct": true
+    },
+    {
+      "id": "accident-2-0-d0",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    },
+    {
+      "id": "accident-2-0-d1",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "accident-2-1-d0",
+      "starts": [
+        11
+      ],
+      "expected": 11,
+      "correct": true
+    },
+    {
+      "id": "accident-2-1-d1",
+      "starts": [
+        22
+      ],
+      "expected": 22,
+      "correct": true
+    }
+  ]
+}

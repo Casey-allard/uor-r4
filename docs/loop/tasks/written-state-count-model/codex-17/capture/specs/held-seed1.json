@@ -1,0 +1,35 @@
+{
+  "schema": "uor-r4.requested-capture-stage/1",
+  "seed": 1,
+  "wick_root": "/home/callard/uor-codex",
+  "inputs": {
+    "base": {
+      "path": "/home/callard/uor-codex/20261118-value-connectors/inputs/seed1.d11",
+      "sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d"
+    },
+    "paired": {
+      "path": "/home/callard/uor-codex/20261118-ordered-role-transfer/assets/seed1-paired.d11",
+      "sha256": "b78c4ddc9dfca0b0c0f7f6fcab84ad6c09bdcb3c9c404a817dda7fa2548b3c33"
+    },
+    "span": {
+      "path": "/home/callard/uor-codex/20261118-span-connectors/results/span-01/seed1-state.json",
+      "sha256": "3451b35c018687cd4ae37f80f306ffe2af3724eb4969d2f7271828cf1c67f870"
+    },
+    "writer": {
+      "path": "/home/callard/uor-codex/20261118-ordered-role-transfer/bins/writer-c",
+      "sha256": "e0c074b58fe90904cbe644d23a86be2b38718fe38323adccdeaad98ae76486a5"
+    },
+    "capture": {
+      "path": "/home/callard/uor-codex/20261119-value-ranking/bin/uor-value-rank-capture",
+      "sha256": "46b52e57f7a39157dac8c8b572f08b8f06d9bfa499d8044f10d7bdcb4ec67a61"
+    },
+    "blind": {
+      "path": "/home/callard/uor-codex/20261119-value-ranking/endpoints/held-seed1/blind.json",
+      "sha256": "4b6de97060a23e1ac8375d2b09473ced503562ecb890022ac103348152939e54"
+    },
+    "resolved": {
+      "path": "/home/callard/uor-codex/20261119-value-ranking/endpoints/held-seed1/resolved-requested.json",
+      "sha256": "3205f66e1b9c494205d1dad94f1f16bc46448f9a2a25ee387bd135990a20f993"
+    }
+  }
+}
