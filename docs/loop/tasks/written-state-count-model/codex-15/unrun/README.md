@@ -1,0 +1,5 @@
+# [codex] Prepared work after the oracle prerequisite
+
+The frozen request-only oracle returned 232/256 on both seeds, below the predeclared minimum of 248/256. The proposed positional and identity banks have finite CUDA, packed artifact, resource, source and public path witnesses. Neither bank was trained or evaluated on this research panel.
+
+This directory preserves a draft served-arm command and candidate parity comparison. The four synthetic comparison tests live in the sibling comparison crate. The missing deciding runner pins include both stage manifests and the ordinary client. Raw ordered absolute slot parity, grading-label permutation/removal, both cold selectors' certification against the final image, and independent prose readout of any learned responses would need verification in a separately authorized experiment. Preserve this draft for that work. The actual fixed-reader adjudication uses writer/adjudicate-wick.sh. The primary and repeat oracle receipts belong to the failed adequacy test.

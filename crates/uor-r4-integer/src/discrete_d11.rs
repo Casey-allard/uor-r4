@@ -14,7 +14,14 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{invalid, Result};
+use crate::{
+    invalid,
+    ordered_role::{
+        orbit_action_digest, RoleBank, RoleBindings, RoleFraming, RoleSites, ROLE_RECORD_BYTES,
+    },
+    paired_role::{PairedRoleDecision, RoleSpan, ROLE_VOCAB},
+    Result,
+};
 
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
@@ -32,13 +39,15 @@ const S2_ROW_BYTES: usize = 20;
 pub const DISCRETE_ROLE_SCHEMA: &str = "uor-r4.lut-discrete-role-copy/1";
 /// A learned requested/excluded role bank, assertion-local value read and exact-copy agreement.
 pub const DISCRETE_PAIRED_SCHEMA: &str = "uor-r4.lut-discrete-paired-copy/1";
+/// Positional or identity Cl(0,6) role state with the frozen paired writer.
+pub const DISCRETE_ORDERED_ROLE_SCHEMA: &str = "uor-r4.lut-discrete-paired-copy/2";
 #[path = "paired_copy.rs"]
 mod paired_copy;
-pub use paired_copy::PairedCopyDecision;
+pub use paired_copy::{PairedAssertionWitness, PairedCopyDecision};
 /// Version 1 stops at a period, EOS, BOS or newline. A witnessed delimiter after a nonempty copy emits EOS.
 pub const ROLE_COPY_STOPS: [u32; 4] = [16, 1, 0, 201];
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct RolePolicy {
     #[serde(skip)]
@@ -60,7 +69,7 @@ impl std::fmt::Debug for RolePolicy {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct RoleEnvelope {
     schema: String,
@@ -760,7 +769,7 @@ impl DiscreteSparseCountTable {
     }
 }
 
-fn pack_4block_roots(roots: [u8; 4]) -> u16 {
+pub(crate) fn pack_4block_roots(roots: [u8; 4]) -> u16 {
     u16::from(roots[0] & 0xF)
         | (u16::from(roots[1] & 0xF) << 4)
         | (u16::from(roots[2] & 0xF) << 8)
@@ -1463,6 +1472,92 @@ pub(crate) fn fbs_binder_summary(length: usize) -> Result<(usize, usize, u32)> {
     Ok((plan.nodes.len(), plan.frontier.len(), stages))
 }
 
+fn read_role_digest(text: &str) -> Result<[u8; 32]> {
+    let mut digest = [0; 32];
+    hex::decode_to_slice(text, &mut digest).map_err(|_| invalid("invalid ordered-role SHA-256"))?;
+    if text != hex::encode(digest) {
+        return Err(invalid("noncanonical ordered-role SHA-256"));
+    }
+    Ok(digest)
+}
+
+fn role_bindings(
+    base: &str,
+    tokenizer: &str,
+    classes: [u8; 32],
+    framing: &RoleFraming,
+    train: [u8; 32],
+) -> Result<RoleBindings> {
+    Ok([
+        read_role_digest(base)?,
+        read_role_digest(tokenizer)?,
+        classes,
+        orbit_action_digest(),
+        train,
+        framing.operator_digest(),
+    ])
+}
+
+/// Pack a checked bank into a versioned D11 paired-copy container. Frozen
+/// writer policy, fact delimiters, classes and the embedded trunk are reused.
+#[cfg(feature = "serving-wasm")]
+pub fn pack_ordered_role_artifact(
+    legacy_paired: &[u8],
+    tokenizer: &[u8],
+    bank: &RoleBank,
+    train_digest: [u8; 32],
+) -> Result<Vec<u8>> {
+    let parent = IntegerDiscreteModel::from_bytes(legacy_paired)?;
+    if parent.artifact_schema() != DISCRETE_PAIRED_SCHEMA
+        || parent.tokenizer_sha256() != Some(hex::encode(Sha256::digest(tokenizer)).as_str())
+    {
+        return Err(invalid(
+            "ordered-role pack requires its frozen paired carrier and original tokenizer",
+        ));
+    }
+    let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(tokenizer)
+        .ok_or_else(|| invalid("invalid ordered-role tokenizer JSON"))?;
+    if tokenizer.vocab_size() != ROLE_VOCAB {
+        return Err(invalid("ordered-role tokenizer vocabulary mismatch"));
+    }
+    let framing = RoleFraming::from_tokenizer(&tokenizer)?;
+    bank.verify_bindings(&parent.ordered_role_bindings(&framing, train_digest)?)?;
+    let classes: Vec<_> = parent.ordered_role_sites()?.word_classes().collect();
+    let header_len = u64::from_le_bytes(
+        legacy_paired[8..16]
+            .try_into()
+            .map_err(|_| invalid("legacy paired header length mismatch"))?,
+    ) as usize;
+    let end = 16 + header_len;
+    let mut envelope: RoleEnvelope = serde_json::from_slice(&legacy_paired[16..end])?;
+    let header = envelope
+        .paired
+        .as_mut()
+        .ok_or_else(|| invalid("missing frozen paired header"))?;
+    let base = &legacy_paired[end.next_multiple_of(ALIGN) + header.bank_bytes..];
+    let raw = bank.to_bytes();
+    envelope.schema = DISCRETE_ORDERED_ROLE_SCHEMA.to_owned();
+    header.bank_bytes = ROLE_RECORD_BYTES;
+    header.bank_sha256 = hex::encode(Sha256::digest(raw));
+    header.ordered = Some(paired_copy::OrderedHeader {
+        framing,
+        train_sha256: hex::encode(train_digest),
+    });
+    let encoded = serde_json::to_vec(&envelope)?;
+    let mut file = MAGIC.to_vec();
+    file.extend_from_slice(&(encoded.len() as u64).to_le_bytes());
+    file.extend_from_slice(&encoded);
+    file.resize(file.len().next_multiple_of(ALIGN), 0);
+    file.extend_from_slice(&raw);
+    file.extend_from_slice(&classes);
+    file.extend_from_slice(base);
+    let reload = IntegerDiscreteModel::from_bytes(&file)?;
+    if reload.ordered_role_bank().map(RoleBank::to_bytes) != Some(raw) {
+        return Err(invalid("ordered-role artifact reload mismatch"));
+    }
+    Ok(file)
+}
+
 impl IntegerDiscreteModel {
     /// Load and validate a `UORLUT01` (`uor-r4.lut-discrete/1` or `uor-r4.lut-discrete-trunk/1`) file from disk.
     pub fn load(path: &Path) -> Result<Self> {
@@ -1524,7 +1619,10 @@ impl IntegerDiscreteModel {
             model.artifact_sha256 = hex::encode(Sha256::digest(bytes));
             return Ok(model);
         }
-        if schema == DISCRETE_ROLE_SCHEMA || schema == DISCRETE_PAIRED_SCHEMA {
+        if matches!(
+            schema.as_str(),
+            DISCRETE_ROLE_SCHEMA | DISCRETE_PAIRED_SCHEMA | DISCRETE_ORDERED_ROLE_SCHEMA
+        ) {
             if !allow_role {
                 return Err(invalid("nested role-copy artifact"));
             }
@@ -1533,39 +1631,73 @@ impl IntegerDiscreteModel {
             let payload = bytes
                 .get(start..)
                 .ok_or_else(|| invalid("missing embedded role-copy trunk"))?;
-            if (envelope.schema == DISCRETE_PAIRED_SCHEMA) != envelope.paired.is_some()
+            if (envelope.schema != DISCRETE_ROLE_SCHEMA) != envelope.paired.is_some()
                 || bytes[end_header..start].iter().any(|&v| v != 0)
             {
                 return Err(invalid("invalid role-copy envelope"));
             }
             envelope.policy.validate()?;
+            let mut packed_ordered = None;
             let base = if let Some(header) = envelope.paired {
                 if header.bank_bytes > payload.len()
+                    || (schema == DISCRETE_ORDERED_ROLE_SCHEMA
+                        && header.bank_bytes != ROLE_RECORD_BYTES)
                     || header.delimiters.is_empty()
-                    || header.delimiters.len() > 4096
-                    || header.delimiters.iter().any(|&id| id >= 4096)
+                    || header.delimiters.len() > ROLE_VOCAB
+                    || header
+                        .delimiters
+                        .iter()
+                        .any(|&id| id as usize >= ROLE_VOCAB)
                     || header.delimiters.windows(2).any(|ids| ids[0] >= ids[1])
                 {
                     return Err(invalid("invalid paired bank bounds or delimiter IDs"));
                 }
-                let (raw, base) = payload.split_at(header.bank_bytes);
+                let (raw, attachment) = payload.split_at(header.bank_bytes);
                 if hex::encode(Sha256::digest(raw)) != header.bank_sha256 {
                     return Err(invalid("paired role bank SHA-256 mismatch"));
                 }
-                let roles = crate::paired_role::PairedRoleState::from_bytes(raw)?;
-                let binding = roles.bindings();
-                if hex::encode(binding[0]) != envelope.base_sha256
-                    || hex::encode(binding[1]) != envelope.tokenizer_sha256
-                {
-                    return Err(invalid(
-                        "paired role fit belongs to a different model or tokenizer",
-                    ));
+                match (envelope.schema.as_str(), header.ordered) {
+                    (DISCRETE_PAIRED_SCHEMA, None) => {
+                        let roles = crate::paired_role::PairedRoleState::from_bytes(raw)?;
+                        let binding = roles.bindings();
+                        if binding[0] != read_role_digest(&envelope.base_sha256)?
+                            || binding[1] != read_role_digest(&envelope.tokenizer_sha256)?
+                        {
+                            return Err(invalid(
+                                "paired role fit belongs to a different model or tokenizer",
+                            ));
+                        }
+                        envelope.policy.paired = Some(paired_copy::Policy {
+                            roles: paired_copy::Roles::Frozen(roles),
+                            delimiters: header.delimiters,
+                        });
+                        attachment
+                    }
+                    (DISCRETE_ORDERED_ROLE_SCHEMA, Some(ordered)) => {
+                        let bank = RoleBank::from_bytes(raw)?;
+                        ordered.framing.validate()?;
+                        let (classes, base) = attachment
+                            .split_at_checked(ROLE_VOCAB)
+                            .ok_or_else(|| invalid("missing ordered-role word classes"))?;
+                        if classes
+                            .iter()
+                            .any(|&class| u32::from(class) > crate::span_selector::CONT)
+                        {
+                            return Err(invalid("invalid ordered-role word class"));
+                        }
+                        bank.verify_bindings(&role_bindings(
+                            &envelope.base_sha256,
+                            &envelope.tokenizer_sha256,
+                            Sha256::digest(classes).into(),
+                            &ordered.framing,
+                            read_role_digest(&ordered.train_sha256)?,
+                        )?)?;
+                        packed_ordered =
+                            Some((bank, ordered.framing, classes.to_vec(), header.delimiters));
+                        base
+                    }
+                    _ => return Err(invalid("mismatched paired role schema and header")),
                 }
-                envelope.policy.paired = Some(paired_copy::Policy {
-                    roles,
-                    delimiters: header.delimiters,
-                });
-                base
             } else {
                 payload
             };
@@ -1576,6 +1708,17 @@ impl IntegerDiscreteModel {
                 || model.shape.vocabulary != 4096
             {
                 return Err(invalid("role-copy carrier or tokenizer identity mismatch"));
+            }
+            if let Some((bank, framing, classes, delimiters)) = packed_ordered {
+                envelope.policy.paired = Some(paired_copy::Policy {
+                    roles: paired_copy::Roles::Ordered {
+                        bank,
+                        framing,
+                        classes,
+                        packed_roots: model.packed_codebook_roots(),
+                    },
+                    delimiters,
+                });
             }
             model.tokenizer_sha256 = Some(envelope.tokenizer_sha256);
             model.artifact_sha256 = hex::encode(Sha256::digest(bytes));
@@ -2025,10 +2168,10 @@ impl IntegerDiscreteModel {
         if let Some(mixer) = &self.count_mixer {
             mixer.schema()
         } else if let Some(policy) = &self.role_policy {
-            if policy.paired.is_some() {
-                DISCRETE_PAIRED_SCHEMA
-            } else {
-                DISCRETE_ROLE_SCHEMA
+            match policy.paired.as_ref().map(|paired| &paired.roles) {
+                Some(paired_copy::Roles::Frozen(_)) => DISCRETE_PAIRED_SCHEMA,
+                Some(paired_copy::Roles::Ordered { .. }) => DISCRETE_ORDERED_ROLE_SCHEMA,
+                None => DISCRETE_ROLE_SCHEMA,
             }
         } else if self.frozen_s2().is_some() {
             DISCRETE_S2_SCHEMA
@@ -2037,6 +2180,11 @@ impl IntegerDiscreteModel {
         } else {
             DISCRETE_SCHEMA
         }
+    }
+
+    /// A loaded role-copy schema uses the exact-copy cursor.
+    pub fn is_role_copy_carrier(&self) -> bool {
+        self.role_policy.is_some()
     }
 
     /// Select an occurrence from the immutable prompt. A role carrier returns an empty
@@ -2067,18 +2215,227 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         read: bool,
     ) -> Result<Option<PairedCopyDecision>> {
-        let Some(policy) = &self.role_policy else {
+        let Some((policy, paired)) = self.paired_policy() else {
             return Ok(None);
         };
-        let Some(paired) = &policy.paired else {
-            return Ok(None);
+        if !read {
+            return Ok(Some(PairedCopyDecision::default()));
+        }
+        paired_copy::Policy::validate_ids(prompt)?;
+        let roles = match &paired.roles {
+            paired_copy::Roles::Frozen(roles) => roles.predict(prompt)?,
+            paired_copy::Roles::Ordered { bank, framing, .. } => self
+                .ordered_role_sites()?
+                .prompt(prompt, framing.content(prompt)?)?
+                .predict(bank.mode, &bank.prototypes, 0..prompt.len())?,
         };
-        if read {
-            paired
-                .choose(policy, prompt, &self.packed_codebook_roots())
-                .map(Some)
-        } else {
-            Ok(Some(PairedCopyDecision::default()))
+        self.resolve_paired_roles(policy, paired, prompt, roles, |_| {})
+            .map(Some)
+    }
+
+    fn paired_policy(&self) -> Option<(&RolePolicy, &paired_copy::Policy)> {
+        let policy = self.role_policy.as_ref()?;
+        Some((policy, policy.paired.as_ref()?))
+    }
+
+    pub fn ordered_role_sites(&self) -> Result<RoleSites<'_>> {
+        let (_, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("ordered-role sites require a paired artifact"))?;
+        Ok(match &paired.roles {
+            paired_copy::Roles::Frozen(roles) => {
+                RoleSites::from_frozen(&self.codebook_roots, roles.sites())
+            }
+            paired_copy::Roles::Ordered { classes, .. } => {
+                RoleSites::from_d11(&self.codebook_roots, classes)
+            }
+        })
+    }
+
+    pub fn ordered_role_tables(&self) -> Result<(Vec<u32>, Vec<u32>)> {
+        let sites = self.ordered_role_sites()?;
+        Ok((
+            sites.packed_roots().collect(),
+            sites.word_classes().map(u32::from).collect(),
+        ))
+    }
+
+    pub fn ordered_role_bank(&self) -> Option<&RoleBank> {
+        match &self.paired_policy()?.1.roles {
+            paired_copy::Roles::Ordered { bank, .. } => Some(bank),
+            paired_copy::Roles::Frozen(_) => None,
+        }
+    }
+
+    pub fn ordered_role_framing(&self) -> Option<&RoleFraming> {
+        match &self.paired_policy()?.1.roles {
+            paired_copy::Roles::Ordered { framing, .. } => Some(framing),
+            paired_copy::Roles::Frozen(_) => None,
+        }
+    }
+
+    pub fn ordered_role_bindings(
+        &self,
+        framing: &RoleFraming,
+        train_digest: [u8; 32],
+    ) -> Result<RoleBindings> {
+        framing.validate()?;
+        let tokenizer = self
+            .tokenizer_sha256()
+            .ok_or_else(|| invalid("paired artifact lacks a bound tokenizer"))?;
+        let sites = self.ordered_role_sites()?;
+        let classes: Vec<_> = sites.word_classes().collect();
+        let (_, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("missing paired role policy"))?;
+        let mut bindings = match &paired.roles {
+            paired_copy::Roles::Frozen(legacy) => role_bindings(
+                &hex::encode(legacy.bindings()[0]),
+                tokenizer,
+                Sha256::digest(&classes).into(),
+                framing,
+                train_digest,
+            )?,
+            paired_copy::Roles::Ordered { bank, .. } => *bank.bindings(),
+        };
+        bindings[4] = train_digest;
+        bindings[5] = framing.operator_digest();
+        Ok(bindings)
+    }
+
+    /// Diagnostic legacy ranking keeps full-prefix features even when candidate
+    /// membership is bounded. Ordered roles clip features in the supplied region.
+    pub fn paired_roles_diagnostic(
+        &self,
+        prompt: &[u32],
+        region: core::ops::Range<usize>,
+        lexical_only: bool,
+    ) -> Result<PairedRoleDecision> {
+        let (policy, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("paired role diagnostic requires a paired artifact"))?;
+        paired_copy::Policy::validate_ids(prompt)?;
+        match &paired.roles {
+            paired_copy::Roles::Frozen(roles) => roles.predict_where(prompt, region, |span| {
+                !lexical_only
+                    || paired
+                        .assertion_sites(policy, prompt, span)
+                        .next()
+                        .is_some()
+            }),
+            paired_copy::Roles::Ordered { bank, framing, .. } => {
+                if lexical_only {
+                    return Err(invalid("lexical eligibility is a frozen-role diagnostic"));
+                }
+                self.ordered_role_sites()?
+                    .prompt(prompt, framing.content(prompt)?)?
+                    .predict(bank.mode, &bank.prototypes, region)
+            }
+        }
+    }
+
+    pub fn frozen_role_trace(
+        &self,
+        prompt: &[u32],
+        region: core::ops::Range<usize>,
+        lexical_only: bool,
+    ) -> Result<Vec<crate::paired_role::FrozenRoleCandidateTrace>> {
+        let (policy, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("frozen role trace requires its paired artifact"))?;
+        let paired_copy::Roles::Frozen(roles) = &paired.roles else {
+            return Err(invalid("frozen role trace requires its paired artifact"));
+        };
+        roles.trace_where(prompt, region, |span| {
+            !lexical_only || paired.assertion_sites(policy, prompt, span).next().is_some()
+        })
+    }
+
+    pub fn ordered_role_trace(
+        &self,
+        prompt: &[u32],
+        region: core::ops::Range<usize>,
+    ) -> Result<Vec<crate::ordered_role::RoleCandidateTrace>> {
+        let bank = self
+            .ordered_role_bank()
+            .ok_or_else(|| invalid("missing ordered-role bank"))?;
+        let framing = self
+            .ordered_role_framing()
+            .ok_or_else(|| invalid("missing ordered-role framing"))?;
+        self.ordered_role_sites()?
+            .prompt(prompt, framing.content(prompt)?)?
+            .trace(bank.mode, &bank.prototypes, region)
+    }
+
+    /// Run the actual assertion fence, consensus and read admission from
+    /// separately computed diagnostic roles. An override changes only requested
+    /// endpoints and must denote a complete original candidate word.
+    pub fn paired_copy_diagnostic(
+        &self,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        requested_override: Option<RoleSpan>,
+    ) -> Result<PairedCopyDecision> {
+        self.paired_copy_diagnostic_inner(prompt, roles, requested_override, |_| {})
+    }
+
+    pub fn paired_copy_witness(
+        &self,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        requested_override: Option<RoleSpan>,
+    ) -> Result<(PairedCopyDecision, Vec<PairedAssertionWitness>)> {
+        let mut witnesses = Vec::new();
+        let decision = self.paired_copy_diagnostic_inner(prompt, roles, requested_override, |item| {
+            witnesses.push(item);
+        })?;
+        Ok((decision, witnesses))
+    }
+
+    fn paired_copy_diagnostic_inner(
+        &self,
+        prompt: &[u32],
+        mut roles: PairedRoleDecision,
+        requested_override: Option<RoleSpan>,
+        visit: impl FnMut(PairedAssertionWitness),
+    ) -> Result<PairedCopyDecision> {
+        let (policy, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("paired copy diagnostic requires a paired artifact"))?;
+        if let Some(span) = requested_override {
+            let content = self
+                .ordered_role_framing()
+                .map_or_else(|| Ok(1..prompt.len()), |framing| framing.content(prompt))?;
+            if !self
+                .ordered_role_sites()?
+                .prompt(prompt, content)?
+                .candidates()
+                .any(|candidate| candidate == span)
+            {
+                return Err(invalid(
+                    "requested override must be a complete original candidate",
+                ));
+            }
+            roles.requested = Some(span);
+        }
+        self.resolve_paired_roles(policy, paired, prompt, roles, visit)
+    }
+
+    fn resolve_paired_roles(
+        &self,
+        policy: &RolePolicy,
+        paired: &paired_copy::Policy,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        visit: impl FnMut(PairedAssertionWitness),
+    ) -> Result<PairedCopyDecision> {
+        match &paired.roles {
+            paired_copy::Roles::Frozen(_) => {
+                paired.choose_with_roles(policy, prompt, &self.packed_codebook_roots(), roles, visit)
+            }
+            paired_copy::Roles::Ordered { packed_roots, .. } => {
+                paired.choose_with_roles(policy, prompt, packed_roots, roles, visit)
+            }
         }
     }
 

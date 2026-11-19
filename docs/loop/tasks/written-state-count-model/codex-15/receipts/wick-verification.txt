@@ -1,0 +1,28 @@
+5a0432be581d121ef28054f299374e33d14955f6dbd6a29251e8e530bafa7b41  oracle-primary/cold.sha256
+5a0432be581d121ef28054f299374e33d14955f6dbd6a29251e8e530bafa7b41  oracle-repeat/cold.sha256
+be40eb0db89a30e002ca9aa98359e7e20e933464f195c4218c2006839ca62663  diagnose-primary/seed1/cold.sha256
+503fc2617f4263aee4159537bcd8b841f233212ac0af0c1ea062736f8dbe84a4  diagnose-primary/seed1/results.json
+b23165c2f6e6245c038e6ed8d7f135d004b34555c84520bc06e250515131f53c  diagnose-primary/seed2/cold.sha256
+f6df6f19aab83dbe0c8b72ea819b44846dbfcd41c5e0fda41252fa40e81a72fb  diagnose-primary/seed2/results.json
+be40eb0db89a30e002ca9aa98359e7e20e933464f195c4218c2006839ca62663  diagnose-repeat/seed1/cold.sha256
+503fc2617f4263aee4159537bcd8b841f233212ac0af0c1ea062736f8dbe84a4  diagnose-repeat/seed1/results.json
+b23165c2f6e6245c038e6ed8d7f135d004b34555c84520bc06e250515131f53c  diagnose-repeat/seed2/cold.sha256
+f6df6f19aab83dbe0c8b72ea819b44846dbfcd41c5e0fda41252fa40e81a72fb  diagnose-repeat/seed2/results.json
+oracle-primary.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:15.81
+	Maximum resident set size (kbytes): 1036452
+oracle-repeat.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:15.76
+	Maximum resident set size (kbytes): 1036192
+diagnose-primary-seed1.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:24.00
+	Maximum resident set size (kbytes): 1040844
+diagnose-primary-seed2.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:21.03
+	Maximum resident set size (kbytes): 1023524
+diagnose-repeat-seed1.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:22.60
+	Maximum resident set size (kbytes): 1039888
+diagnose-repeat-seed2.time
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:21.34
+	Maximum resident set size (kbytes): 1023924

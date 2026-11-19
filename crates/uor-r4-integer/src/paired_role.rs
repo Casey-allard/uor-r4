@@ -1,5 +1,6 @@
 //! Sparse integer evidence at offsets from a candidate word in the D11 root lattice.
 use crate::{invalid, Result};
+use serde::Serialize;
 
 pub const ROLE_VOCAB: usize = 4096;
 pub const ROLE_CONTEXT: usize = 192;
@@ -44,6 +45,14 @@ impl PairedRoleDecision {
             self.excluded_runner_up as u32,
         ]
     }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FrozenRoleCandidateTrace {
+    pub span: [usize; 2],
+    pub admitted: bool,
+    pub feature_keys: [u32; ROLE_OFFSETS],
+    pub scores: [i32; 2],
 }
 
 #[derive(Clone, Debug)]
@@ -141,25 +150,24 @@ impl PairedRoleState {
         ids: &[u32],
         region: core::ops::Range<usize>,
     ) -> Result<PairedRoleDecision> {
+        self.predict_where(ids, region, |_| true)
+    }
+
+    pub fn predict_where(
+        &self,
+        ids: &[u32],
+        region: core::ops::Range<usize>,
+        mut admit: impl FnMut(RoleSpan) -> bool,
+    ) -> Result<PairedRoleDecision> {
         if region.start > region.end || region.end > ids.len() {
             return Err(invalid("invalid paired-role candidate region"));
         }
         let mut ranks = [RoleRank::new(); 2];
         for (span, keys) in role_candidates(&self.sites, ids)? {
-            if span.start < region.start || span.end > region.end {
+            if span.start < region.start || span.end > region.end || !admit(span) {
                 continue;
             }
-            let mut scores = [0; 2];
-            for (offset, key) in keys.into_iter().enumerate() {
-                if let Ok(i) = self.cells.binary_search_by_key(&key, |c| c[0]) {
-                    let count = self.cells[i];
-                    let total = (count[1] + count[2] + count[3]) as i32;
-                    for (role, score) in scores.iter_mut().enumerate() {
-                        let signed = 16 * count[role + 2] as i32 - 3 * total;
-                        *score += WEIGHTS[offset] * (signed / (total + 2));
-                    }
-                }
-            }
+            let scores = self.scores(keys);
             for (role, rank) in ranks.iter_mut().enumerate() {
                 if scores[role] > scores[1 - role] {
                     rank.update(span, scores[role]);
@@ -174,6 +182,40 @@ impl PairedRoleState {
             requested_runner_up: ranks[0].runner_up,
             excluded_runner_up: ranks[1].runner_up,
         })
+    }
+
+    pub fn trace_where(
+        &self,
+        ids: &[u32],
+        region: core::ops::Range<usize>,
+        mut admit: impl FnMut(RoleSpan) -> bool,
+    ) -> Result<Vec<FrozenRoleCandidateTrace>> {
+        if region.start > region.end || region.end > ids.len() {
+            return Err(invalid("invalid paired-role candidate region"));
+        }
+        Ok(role_candidates(&self.sites, ids)?
+            .map(|(span, feature_keys)| FrozenRoleCandidateTrace {
+                span: [span.start, span.end],
+                admitted: span.start >= region.start && span.end <= region.end && admit(span),
+                feature_keys,
+                scores: self.scores(feature_keys),
+            })
+            .collect())
+    }
+
+    fn scores(&self, keys: [u32; ROLE_OFFSETS]) -> [i32; 2] {
+        let mut scores = [0; 2];
+        for (offset, key) in keys.into_iter().enumerate() {
+            if let Ok(i) = self.cells.binary_search_by_key(&key, |c| c[0]) {
+                let count = self.cells[i];
+                let total = (count[1] + count[2] + count[3]) as i32;
+                for (role, score) in scores.iter_mut().enumerate() {
+                    let signed = 16 * count[role + 2] as i32 - 3 * total;
+                    *score += WEIGHTS[offset] * (signed / (total + 2));
+                }
+            }
+        }
+        scores
     }
 }
 

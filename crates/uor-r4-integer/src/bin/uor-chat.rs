@@ -51,6 +51,7 @@ struct CliArgs {
     stack_path: Option<PathBuf>,
     /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
     discrete_path: Option<PathBuf>,
+    ordered_role_trace: bool,
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
     content_readout_path: Option<PathBuf>,
@@ -297,6 +298,7 @@ impl Default for CliArgs {
             bundle_path: None,
             stack_path: None,
             discrete_path: None,
+            ordered_role_trace: false,
             tokenizer_path: None,
             content_readout_path: None,
             prompt_reply_path: None,
@@ -350,6 +352,7 @@ fn print_usage() {
     );
     eprintln!("                              directly by the D11 integer stack engine");
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
+    eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
     eprintln!("                              greedy raw-ID or text serving through IntegerDiscreteModel");
     eprintln!(
         "      --tokenizer <PATH>      tokenizer.json for --stack or a token-bound discrete text turn"
@@ -512,6 +515,7 @@ fn parse_cli_args() -> CliArgs {
                     process::exit(1);
                 }
             }
+            "--ordered-role-trace" => args.ordered_role_trace = true,
             "--discrete" => {
                 idx += 1;
                 if idx < raw.len() {
@@ -965,6 +969,10 @@ fn parse_cli_args() -> CliArgs {
         && (args.say.is_none() || args.tokenizer_path.is_none())
     {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--discrete' requires '--prompt-ids' or '--say' with its bound '--tokenizer'");
+        process::exit(1);
+    }
+    if args.ordered_role_trace && args.discrete_path.is_none() {
+        eprintln!("--ordered-role-trace requires --discrete");
         process::exit(1);
     }
     if args.discrete_path.is_some() && args.threads != 1 {
@@ -2008,17 +2016,19 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         )));
     }
 
-    use uor_r4_integer::discrete_d11::{
-        ExactCopyState, DISCRETE_PAIRED_SCHEMA, DISCRETE_ROLE_SCHEMA, ROLE_COPY_STOPS,
-    };
-    let role_carrier = matches!(
-        model.artifact_schema(),
-        DISCRETE_ROLE_SCHEMA | DISCRETE_PAIRED_SCHEMA
-    );
+    use uor_r4_integer::discrete_d11::{ExactCopyState, ROLE_COPY_STOPS};
+    let role_carrier = model.is_role_copy_carrier();
     if role_carrier && text_mode.is_some() && cli.protocol != 2 {
         return Err(IntegerError::Invalid(
             "role-copy text uses literal dialogue protocol 2".into(),
         ));
+    }
+    if let (Some(framing), Some((tokenizer, _, _))) = (model.ordered_role_framing(), &text_mode) {
+        if *framing != uor_r4_integer::ordered_role::RoleFraming::from_tokenizer(tokenizer)? {
+            return Err(IntegerError::Invalid(
+                "ordered-role artifact does not bind the tokenizer protocol 2 framing".into(),
+            ));
+        }
     }
     let read_enabled = cli.read_mode == ReadMode::Enabled;
     let paired = model.paired_copy_decision(prompt, read_enabled)?;
@@ -2081,6 +2091,21 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         record["decoding"] =
             "paired role, assertion-local value agreement and exact-copy EOS".into();
         record["paired"] = serde_json::to_value(decision)?;
+    }
+    if cli.ordered_role_trace {
+        let region = 0..prompt.len();
+        let candidates = model.ordered_role_trace(prompt, region.clone())?;
+        let assertions = if read_enabled {
+            let roles = model.paired_roles_diagnostic(prompt, region, false)?;
+            model.paired_copy_witness(prompt, roles, None)?.1
+        } else {
+            Vec::new()
+        };
+        record["ordered_role_trace"] = serde_json::json!({
+            "eligibility": "full_prefix",
+            "candidates": candidates,
+            "assertions": assertions,
+        });
     }
     if let Some(mixer) = model.count_mixer() {
         record["decoding"] = "greedy full-support count mixer".into();

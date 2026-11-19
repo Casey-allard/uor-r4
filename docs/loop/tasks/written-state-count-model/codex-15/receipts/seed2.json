@@ -1,0 +1,574 @@
+{
+  "seed": 2,
+  "public": {
+    "conflict": {
+      "rows": 32,
+      "endpoint_exact": 32,
+      "requested": 32,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 32,
+      "first_wrong": {}
+    },
+    "incidental-no-request": {
+      "rows": 32,
+      "endpoint_exact": 0,
+      "requested": 32,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 27,
+      "first_wrong": {}
+    },
+    "supported": {
+      "rows": 256,
+      "endpoint_exact": 64,
+      "requested": 128,
+      "source": 64,
+      "through_eos": 64,
+      "terminal_eos": 253,
+      "first_wrong": {
+        "exact": 64,
+        "0": 192
+      }
+    },
+    "surface-reorder": {
+      "rows": 32,
+      "endpoint_exact": 8,
+      "requested": 16,
+      "source": 8,
+      "through_eos": 8,
+      "terminal_eos": 30,
+      "first_wrong": {
+        "exact": 8,
+        "0": 24
+      }
+    },
+    "unbound-prose": {
+      "rows": 32,
+      "endpoint_exact": 13,
+      "requested": 19,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 31,
+      "first_wrong": {}
+    },
+    "unmentioned": {
+      "rows": 32,
+      "endpoint_exact": 0,
+      "requested": 16,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 31,
+      "first_wrong": {}
+    }
+  },
+  "no_read": {
+    "conflict": {
+      "rows": 32,
+      "endpoint_exact": 0,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 32,
+      "first_wrong": {}
+    },
+    "incidental-no-request": {
+      "rows": 32,
+      "endpoint_exact": 32,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 27,
+      "first_wrong": {}
+    },
+    "supported": {
+      "rows": 256,
+      "endpoint_exact": 0,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 250,
+      "first_wrong": {
+        "0": 256
+      }
+    },
+    "surface-reorder": {
+      "rows": 32,
+      "endpoint_exact": 0,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 30,
+      "first_wrong": {
+        "0": 32
+      }
+    },
+    "unbound-prose": {
+      "rows": 32,
+      "endpoint_exact": 32,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 31,
+      "first_wrong": {}
+    },
+    "unmentioned": {
+      "rows": 32,
+      "endpoint_exact": 0,
+      "requested": 0,
+      "source": 0,
+      "through_eos": 0,
+      "terminal_eos": 31,
+      "first_wrong": {}
+    }
+  },
+  "correct_request": {
+    "supported": {
+      "rows": 256,
+      "endpoint_exact": 256,
+      "requested": 256,
+      "source": 256,
+      "through_eos": 232,
+      "terminal_eos": 256,
+      "first_wrong": {
+        "exact": 232,
+        "0": 24
+      }
+    }
+  },
+  "wrong_request": {
+    "supported": {
+      "rows": 256,
+      "endpoint_exact": 0,
+      "requested": 256,
+      "source": 256,
+      "through_eos": 0,
+      "terminal_eos": 256,
+      "first_wrong": {
+        "0": 256
+      }
+    }
+  },
+  "public_pair_wins": 32,
+  "request_oracle_pair_wins": 104,
+  "wrong_oracle_pair_wins": 0,
+  "public_literal_source_correct": 64,
+  "public_to_correct_request": [
+    {
+      "from": "0",
+      "to": "0",
+      "n": 24
+    },
+    {
+      "from": "0",
+      "to": "exact",
+      "n": 168
+    },
+    {
+      "from": "exact",
+      "to": "exact",
+      "n": 64
+    }
+  ],
+  "public_to_wrong_request": [
+    {
+      "from": "0",
+      "to": "0",
+      "n": 192
+    },
+    {
+      "from": "exact",
+      "to": "0",
+      "n": 64
+    }
+  ],
+  "disabled_to_public": [
+    {
+      "from": "0",
+      "to": "0",
+      "n": 192
+    },
+    {
+      "from": "0",
+      "to": "exact",
+      "n": 64
+    }
+  ],
+  "oracle_misses_to_literal": [
+    {
+      "from": "0",
+      "to": "exact",
+      "n": 24
+    }
+  ],
+  "oracle_misses_to_current": [
+    {
+      "from": "0",
+      "to": "exact",
+      "n": 24
+    }
+  ],
+  "oracle_misses_to_word_start": [
+    {
+      "from": "0",
+      "to": "exact",
+      "n": 24
+    }
+  ],
+  "per_family": [
+    {
+      "family": "held-0",
+      "n": 64,
+      "public": 0,
+      "correct_request": 40,
+      "with_miss_only_onset": 64
+    },
+    {
+      "family": "held-1",
+      "n": 64,
+      "public": 64,
+      "correct_request": 64,
+      "with_miss_only_onset": 64
+    },
+    {
+      "family": "held-2",
+      "n": 64,
+      "public": 0,
+      "correct_request": 64,
+      "with_miss_only_onset": 64
+    },
+    {
+      "family": "held-3",
+      "n": 64,
+      "public": 0,
+      "correct_request": 64,
+      "with_miss_only_onset": 64
+    }
+  ],
+  "examples": [
+    {
+      "id": "held-0-04-w0-d0",
+      "text": "mary kept scarlet whistle. john kept violet pencil. Name mary's item. john stayed nearby.",
+      "requested": "mary",
+      "expected": "scarlet whistle",
+      "client": {
+        "generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "source": null,
+        "text": " Got it, I'll remember that.",
+        "first_wrong": 0
+      },
+      "correct_endpoint": {
+        "generated": [
+          2167,
+          1
+        ],
+        "source": 9,
+        "first_wrong": 0
+      },
+      "forced_literal": {
+        "generated": [
+          2346,
+          2211,
+          2167,
+          1
+        ],
+        "source": 7,
+        "first_wrong": null
+      }
+    }
+  ],
+  "unsupported_copy_ids": [],
+  "control_texts": [
+    {
+      "stratum": "conflict",
+      "text": " Got it, I'll remember all� them.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 25
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, I'll remember.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, I'm a small assistant.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 2
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, you telling me, I'll remember that.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, your computer",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "conflict",
+      "text": " Got it, your computer.",
+      "acceptable_prose": "Two different recorded items conflict for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'll remember all",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'll remember all� them.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 2
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 18
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'll remember.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'm a helpful asseeling me, I",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": false,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'm a small asseeling me",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'm a small asseeling me, I",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": false,
+      "n": 2
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'm a small assistant.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, I'm sorry you telling me, I'll remember that",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": false,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, you telling me, I'll remember that.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, you telling me, you telling me, I'll",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": false,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, you?",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "incidental-no-request",
+      "text": " Got it, your friend is 1.",
+      "acceptable_prose": "Friction or insufficient lubrication at the hinge can cause squeaking.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember all� a good, I'll remember that",
+      "acceptable_prose": "The rope runs around a wheel and changes pulling direction.",
+      "terminal_eos": false,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Different minerals or layers accumulated or rearranged.",
+      "terminal_eos": true,
+      "n": 4
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Gravity pulls them toward Earth.",
+      "terminal_eos": true,
+      "n": 4
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Reflected sound reaches the listener after a delay.",
+      "terminal_eos": true,
+      "n": 3
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Surface tension can support it.",
+      "terminal_eos": true,
+      "n": 3
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "The Moon reflects only a small fraction of sunlight back to us.",
+      "terminal_eos": true,
+      "n": 4
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "The rope runs around a wheel and changes pulling direction.",
+      "terminal_eos": true,
+      "n": 3
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Trapped air slows heat loss.",
+      "terminal_eos": true,
+      "n": 2
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "Wind moves grains from the windward side toward the lee side.",
+      "terminal_eos": true,
+      "n": 3
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'll remember.",
+      "acceptable_prose": "Wind moves grains from the windward side toward the lee side.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'm a small asseeling me.",
+      "acceptable_prose": "Reflected sound reaches the listener after a delay.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'm sorry you feel happy.",
+      "acceptable_prose": "Trapped air slows heat loss.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, I'm sorry you telling me.",
+      "acceptable_prose": "Trapped air slows heat loss.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unbound-prose",
+      "text": " Got it, you tell me",
+      "acceptable_prose": "Surface tension can support it.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, I'll remember all� that.",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": true,
+      "n": 2
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, I'll remember that.",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": true,
+      "n": 26
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, I'll remember what you telling me",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, I'll remember what you telling me, I'll remember",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": false,
+      "n": 1
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, I'm a small assistant.",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    },
+    {
+      "stratum": "unmentioned",
+      "text": " Got it, your friend is 1.",
+      "acceptable_prose": "The record does not name an item for the requested person.",
+      "terminal_eos": true,
+      "n": 1
+    }
+  ]
+}

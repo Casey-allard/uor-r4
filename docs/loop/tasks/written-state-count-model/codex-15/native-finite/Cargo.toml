@@ -1,0 +1,21 @@
+[package]
+name = "ordered-role-native-finite"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "ordered-role-native-finite"
+path = "probe.rs"
+
+[dependencies]
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+sha2 = "0.10"
+serde_json = "1"
+
+[[bin]]
+name = "ordered-role-native-memory"
+path = "memory.rs"

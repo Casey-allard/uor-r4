@@ -1,0 +1,142 @@
+[
+  {
+    "family": "held-0",
+    "pairs": 32,
+    "matched": 24,
+    "reasons": [
+      {
+        "reason": "clipped_token_multiset_changed",
+        "count": 8
+      },
+      {
+        "reason": "identity_feature_changed",
+        "count": 8
+      }
+    ],
+    "matched_requested_lengths": [
+      {
+        "length": 1,
+        "rows": 12
+      },
+      {
+        "length": 2,
+        "rows": 16
+      },
+      {
+        "length": 3,
+        "rows": 6
+      },
+      {
+        "length": 4,
+        "rows": 2
+      },
+      {
+        "length": 5,
+        "rows": 12
+      }
+    ]
+  },
+  {
+    "family": "held-1",
+    "pairs": 32,
+    "matched": 16,
+    "reasons": [
+      {
+        "reason": "clipped_token_multiset_changed",
+        "count": 16
+      },
+      {
+        "reason": "identity_feature_changed",
+        "count": 16
+      }
+    ],
+    "matched_requested_lengths": [
+      {
+        "length": 1,
+        "rows": 12
+      },
+      {
+        "length": 2,
+        "rows": 16
+      },
+      {
+        "length": 3,
+        "rows": 4
+      }
+    ]
+  },
+  {
+    "family": "held-2",
+    "pairs": 32,
+    "matched": 22,
+    "reasons": [
+      {
+        "reason": "clipped_token_multiset_changed",
+        "count": 10
+      },
+      {
+        "reason": "identity_feature_changed",
+        "count": 10
+      }
+    ],
+    "matched_requested_lengths": [
+      {
+        "length": 1,
+        "rows": 12
+      },
+      {
+        "length": 2,
+        "rows": 14
+      },
+      {
+        "length": 3,
+        "rows": 4
+      },
+      {
+        "length": 4,
+        "rows": 2
+      },
+      {
+        "length": 5,
+        "rows": 12
+      }
+    ]
+  },
+  {
+    "family": "held-3",
+    "pairs": 32,
+    "matched": 22,
+    "reasons": [
+      {
+        "reason": "clipped_token_multiset_changed",
+        "count": 10
+      },
+      {
+        "reason": "identity_feature_changed",
+        "count": 10
+      }
+    ],
+    "matched_requested_lengths": [
+      {
+        "length": 1,
+        "rows": 12
+      },
+      {
+        "length": 2,
+        "rows": 14
+      },
+      {
+        "length": 3,
+        "rows": 4
+      },
+      {
+        "length": 4,
+        "rows": 2
+      },
+      {
+        "length": 5,
+        "rows": 12
+      }
+    ]
+  }
+]

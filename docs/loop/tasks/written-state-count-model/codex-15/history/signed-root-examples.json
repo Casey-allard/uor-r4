@@ -1,0 +1,86 @@
+{
+  "orbit_count": 16,
+  "unique_signed_roots": 16,
+  "matches": {
+    "chose_scarlet": [
+      {
+        "ids": [
+          641,
+          2346
+        ],
+        "roots": [
+          9012,
+          49969
+        ],
+        "positions_equal": false,
+        "l1": 16
+      },
+      {
+        "ids": [
+          1935,
+          2211
+        ],
+        "roots": [
+          30040,
+          36034
+        ],
+        "positions_equal": false,
+        "l1": 28
+      }
+    ],
+    "chose_silver": [
+      {
+        "ids": [
+          641,
+          3585
+        ],
+        "roots": [
+          9012,
+          36317
+        ],
+        "positions_equal": false,
+        "l1": 24
+      },
+      {
+        "ids": [
+          1935,
+          322
+        ],
+        "roots": [
+          30040,
+          28674
+        ],
+        "positions_equal": false,
+        "l1": 24
+      }
+    ],
+    "old_only": [
+      {
+        "ids": [
+          782,
+          1370
+        ],
+        "roots": [
+          50245,
+          17756
+        ],
+        "positions_equal": false,
+        "l1": 32
+      }
+    ],
+    "old_just": [
+      {
+        "ids": [
+          782,
+          801
+        ],
+        "roots": [
+          50245,
+          34403
+        ],
+        "positions_equal": false,
+        "l1": 32
+      }
+    ]
+  }
+}

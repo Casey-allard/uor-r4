@@ -1,0 +1,23 @@
+{
+  "store": "caseyallard/uor-r4-store",
+  "status": "REMOTE_QUOTA_REFUSAL",
+  "error": "Private storage limit reached for user caseyallard",
+  "wick_root": "~/uor-codex/20261118-ordered-role-transfer",
+  "workstation_scratch": "local/codex/ordered-role-transfer-20261118",
+  "archives": [
+    {
+      "wick": "archive-primary/wick-ordered-role-receipts.tar.zst",
+      "workstation": "verified-archive/wick-ordered-role-receipts.tar.zst",
+      "sha256": "33956b1a9760228b4bcefefadabf6fa9e11e95dbaa39435fd33765bf59f8e6dd",
+      "bytes": 3205964
+    },
+    {
+      "wick": "panel-custody/held-panel-development-and-finite.tgz",
+      "workstation": "custody-deposit/held-panel-development-and-finite.tgz",
+      "sha256": "c1e3deef66bf126c734c8bce38807976501072f9edf3dd61bf40f192cf8911e4",
+      "bytes": 18900346
+    }
+  ],
+  "two_host_digest_equality": true,
+  "store_revision": null
+}

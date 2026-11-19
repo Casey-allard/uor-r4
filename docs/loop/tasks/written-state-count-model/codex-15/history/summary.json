@@ -1,0 +1,376 @@
+{
+  "scope": "Previously observed CUDA results. Reason 2 means advancing on connector-root proximity.",
+  "panels": [
+    {
+      "seed": "seed1",
+      "split": "4104-exposed-24",
+      "correctly_anchored": [
+        {
+          "rows": 24,
+          "w_only": 24,
+          "c_only": 0,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed1",
+      "split": "fresh",
+      "correctly_anchored": [
+        {
+          "rows": 290,
+          "w_only": 83,
+          "c_only": 141,
+          "both": 0,
+          "wrong": 66
+        }
+      ]
+    },
+    {
+      "seed": "seed1",
+      "split": "primary",
+      "correctly_anchored": [
+        {
+          "rows": 20,
+          "w_only": 0,
+          "c_only": 20,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed1",
+      "split": "prior",
+      "correctly_anchored": [
+        {
+          "rows": 42,
+          "w_only": 42,
+          "c_only": 0,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed1",
+      "split": "transfer",
+      "correctly_anchored": [
+        {
+          "rows": 190,
+          "w_only": 0,
+          "c_only": 190,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed2",
+      "split": "4104-exposed-24",
+      "correctly_anchored": [
+        {
+          "rows": 24,
+          "w_only": 24,
+          "c_only": 0,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed2",
+      "split": "fresh",
+      "correctly_anchored": [
+        {
+          "rows": 290,
+          "w_only": 83,
+          "c_only": 141,
+          "both": 0,
+          "wrong": 66
+        }
+      ]
+    },
+    {
+      "seed": "seed2",
+      "split": "primary",
+      "correctly_anchored": [
+        {
+          "rows": 20,
+          "w_only": 0,
+          "c_only": 20,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed2",
+      "split": "prior",
+      "correctly_anchored": [
+        {
+          "rows": 42,
+          "w_only": 42,
+          "c_only": 0,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    },
+    {
+      "seed": "seed2",
+      "split": "transfer",
+      "correctly_anchored": [
+        {
+          "rows": 190,
+          "w_only": 0,
+          "c_only": 190,
+          "both": 0,
+          "wrong": 0
+        }
+      ]
+    }
+  ],
+  "example_geometry_groups": [
+    {
+      "key": [
+        [
+          1,
+          2
+        ],
+        [
+          7,
+          3,
+          1,
+          1,
+          2
+        ],
+        [
+          1
+        ]
+      ],
+      "retain": 83,
+      "advance": 120,
+      "retain_example": {
+        "split": "fresh",
+        "id": "fresh-f0-a0-o1-c11-early-none-none-shared-Jim",
+        "prompt": "Jen has old ring. Jim has old lamp. About Jim, which item did the note list?",
+        "verdict": "w_only",
+        "context": {
+          "offsets": [
+            1,
+            2
+          ],
+          "masks": [
+            7,
+            3,
+            1,
+            1,
+            2
+          ],
+          "skip_ids": [
+            782
+          ],
+          "landed_id": 2527,
+          "native_prefix_ids": [
+            1139,
+            782,
+            2527
+          ],
+          "assertion_ids": [
+            1139,
+            782,
+            2527
+          ]
+        },
+        "parts": [
+          [
+            1139,
+            782
+          ],
+          [
+            782
+          ],
+          [
+            2527
+          ]
+        ]
+      },
+      "advance_example": {
+        "split": "fresh",
+        "id": "fresh-f0-a0-o0-c12-early-none-none-short_prefix-Jen",
+        "prompt": "Jim found white. Jen found only gold. About Jen, which item did the note list?",
+        "verdict": "c_only",
+        "context": {
+          "offsets": [
+            1,
+            2
+          ],
+          "masks": [
+            7,
+            3,
+            1,
+            1,
+            2
+          ],
+          "skip_ids": [
+            1370
+          ],
+          "landed_id": 2551,
+          "native_prefix_ids": [
+            505,
+            1370,
+            2551
+          ],
+          "assertion_ids": [
+            505,
+            1370,
+            2551
+          ]
+        },
+        "parts": [
+          [
+            505,
+            1370
+          ],
+          [
+            1370
+          ],
+          [
+            2551
+          ]
+        ]
+      }
+    },
+    {
+      "key": [
+        [
+          1,
+          3
+        ],
+        [
+          7,
+          5,
+          0,
+          3,
+          4
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "retain": 66,
+      "advance": 20,
+      "retain_example": {
+        "split": "4104-exposed-24",
+        "id": "held-0-04-w0-d0",
+        "prompt": "mary kept scarlet whistle. john kept violet pencil. Name mary's item. john stayed nearby.",
+        "verdict": "w_only",
+        "context": {
+          "offsets": [
+            1,
+            3
+          ],
+          "masks": [
+            7,
+            5,
+            0,
+            3,
+            4
+          ],
+          "skip_ids": [
+            2346,
+            2211
+          ],
+          "landed_id": 2167,
+          "native_prefix_ids": [
+            1095,
+            2346,
+            2211,
+            2167
+          ],
+          "assertion_ids": [
+            1095,
+            2346,
+            2211,
+            2167
+          ]
+        },
+        "parts": [
+          [
+            1095,
+            2346,
+            2211
+          ],
+          [
+            2346,
+            2211
+          ],
+          [
+            2167
+          ]
+        ]
+      },
+      "advance_example": {
+        "split": "primary",
+        "id": "held-f0-a1-o0-c13-early-none-none-Leo",
+        "prompt": "Joe took pink. Leo also chose yellow. About Leo, which item was listed?",
+        "verdict": "c_only",
+        "context": {
+          "offsets": [
+            1,
+            3
+          ],
+          "masks": [
+            7,
+            5,
+            0,
+            3,
+            4
+          ],
+          "skip_ids": [
+            641,
+            1935
+          ],
+          "landed_id": 1344,
+          "native_prefix_ids": [
+            1067,
+            641,
+            1935,
+            1344
+          ],
+          "assertion_ids": [
+            1067,
+            641,
+            1935,
+            1344
+          ]
+        },
+        "parts": [
+          [
+            1067,
+            641,
+            1935
+          ],
+          [
+            641,
+            1935
+          ],
+          [
+            1344
+          ]
+        ]
+      }
+    }
+  ],
+  "opposite_label_collisions": {
+    "offsets_masks_and_skipped_word_shape": 2,
+    "skipped_packed_roots_and_classes": 0,
+    "skipped_plus_landing_packed_roots_and_classes": 0,
+    "paired_witness_original_ids": 0,
+    "paired_witness_ordered_packed_roots_and_classes": 0,
+    "assertion_ordered_packed_roots_and_classes": 0
+  }
+}

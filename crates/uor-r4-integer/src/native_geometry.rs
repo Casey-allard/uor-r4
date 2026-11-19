@@ -35,6 +35,7 @@ pub mod continuation_selector;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod occurrence_selector;
 pub mod paired_role;
+pub mod ordered_role;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod fbs_address;
 #[cfg(not(feature = "serving-wasm"))]

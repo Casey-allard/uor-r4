@@ -4,7 +4,8 @@ use crate::{
     assertion_value,
     content_selector::{Choice, WIDTH},
     invalid,
-    paired_role::PairedRoleState,
+    ordered_role::{RoleBank, RoleFraming},
+    paired_role::{PairedRoleDecision, PairedRoleState, RoleSpan},
     span_selector::{bounds, SpanChoice, START},
     Result,
 };
@@ -12,16 +13,36 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub(super) struct Policy {
-    pub(super) roles: PairedRoleState,
+    pub(super) roles: Roles,
     pub(super) delimiters: Vec<u32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug)]
+pub(super) enum Roles {
+    Frozen(PairedRoleState),
+    Ordered {
+        bank: RoleBank,
+        framing: RoleFraming,
+        classes: Vec<u8>,
+        packed_roots: Vec<u32>,
+    },
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct OrderedHeader {
+    pub(super) train_sha256: String,
+    pub(super) framing: RoleFraming,
+}
+
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Header {
     pub(super) bank_bytes: usize,
     pub(super) bank_sha256: String,
     pub(super) delimiters: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) ordered: Option<OrderedHeader>,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -34,17 +55,47 @@ pub struct PairedCopyDecision {
     pub values_disagree: bool,
 }
 
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct PairedAssertionWitness {
+    pub fact_span: [usize; 2],
+    pub assertion: assertion_value::AssertionValue,
+    pub completed_source_range: Option<[u32; 2]>,
+}
+
 impl Policy {
-    pub(super) fn choose(
+    pub(super) fn validate_ids(ids: &[u32]) -> Result<()> {
+        if ids.is_empty() || ids.len() > WIDTH || ids.iter().any(|&id| id >= 4096) {
+            return Err(invalid("paired reader requires a bounded V4096 prefix"));
+        }
+        Ok(())
+    }
+
+    pub(super) fn assertion_sites<'a>(
+        &'a self,
+        old: &'a RolePolicy,
+        ids: &'a [u32],
+        query: RoleSpan,
+    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+        (1..query.start.saturating_sub(1)).filter_map(move |f| {
+            if old.span.classes[ids[f] as usize] != START || !self.delimiters.contains(&ids[f - 1])
+            {
+                return None;
+            }
+            let (_, last) = bounds(ids, &old.span.classes, f);
+            (last < query.start && ids[f..=last] == ids[query.start..query.end])
+                .then_some((f, last))
+        })
+    }
+
+    pub(super) fn choose_with_roles(
         &self,
         old: &RolePolicy,
         ids: &[u32],
         roots: &[u32],
+        roles: PairedRoleDecision,
+        mut visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
-        if ids.is_empty() || ids.len() > WIDTH || ids.iter().any(|&id| id >= 4096) {
-            return Err(invalid("paired reader requires a bounded V4096 prefix"));
-        }
-        let roles = self.roles.predict(ids)?;
+        Self::validate_ids(ids)?;
         let mut result = PairedCopyDecision {
             role_words: Some(roles.words()),
             ..Default::default()
@@ -61,15 +112,7 @@ impl Policy {
         // Original word IDs determine equality, including every continuation piece.
         let mut first = None;
         let mut agreed = None;
-        for f in 1..q.saturating_sub(1) {
-            if old.span.classes[ids[f] as usize] != START || !self.delimiters.contains(&ids[f - 1])
-            {
-                continue;
-            }
-            let (_, last) = bounds(ids, &old.span.classes, f);
-            if last >= q || ids[f..=last] != ids[q..query.end] {
-                continue;
-            }
+        for (f, last) in self.assertion_sites(old, ids, query) {
             result.supporting_facts += 1;
             let span = SpanChoice {
                 query: Some(q as u32),
@@ -82,8 +125,17 @@ impl Policy {
             };
             let value =
                 assertion_value::decide(ids, roots, &old.span, &old.exact, span, ROLE_COPY_STOPS)?;
-            let Some(source) = value.source else { continue };
-            let Some(sequence) = completed_sequence(ids, source)? else {
+            let completion = match value.source {
+                Some(source) => completed_sequence(ids, source)?.map(|sequence| (source, sequence)),
+                None => None,
+            };
+            visit(PairedAssertionWitness {
+                fact_span: [f, last + 1],
+                assertion: value,
+                completed_source_range: completion
+                    .map(|(source, sequence)| [source, source + sequence.len() as u32]),
+            });
+            let Some((source, sequence)) = completion else {
                 continue;
             };
             result.complete_values += 1;

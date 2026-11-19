@@ -1,0 +1,13 @@
+# [codex] Draft ORDER — clause order and exact requested spans
+
+Lab: codex. Item: [written-state-count-model](../../../../roadmap/items/written-state-count-model.md) (#4063). These delivery metadata identify the existing research order. The original v2 ORDER bytes reviewed before data collection remain at commit 1bcdc1baf.
+
+**Status:** Local v2 draft for independent review. Item written-state-count-model (#4063). Keep v1 as reviewed. Before claiming this work after #4102's receipt, refresh main, claims, bench and open work. Cancel a duplicate already measuring this comparison.
+
+**Question:** When two ordinary requests preserve lexical evidence and facts but reverse the requested person, does position-dependent D11 geometric transport improve exact role nomination and literal replies? Trace each failure from the original tokenizer position to the first wrong emitted ID or stop.
+
+**Prior evidence:** Main at `3ff8f46402a6badf8714a445069e7df194270729` contains #4101. Its true-question bound recovered 8 exact held replies and 0 on then-fresh wording. From that bound, changing just the requested endpoint gained 132 and 224 replies, reaching 448/448 per panel and seed. The Regarding inversions, Cedar nominations, Set aside failures and false nominations on all 96 ordinary questions per panel survived. Reuse these exposed panels only to reproduce frozen roles, sources and writer output. See `docs/loop/tasks/written-state-count-model/codex-{9,12,13}/`.
+
+**Work:** Freeze independent fresh prompts and the actual clipped-feature match before fit. The sheet binds a D11 Cl(0,6) positional action and a matched identity arm with the same lattice-prototype distance and unit-step update contract, byte layout and storage. The public outcome is measured from unmarked protocol-2 text through the read-enabled paired-copy entry, fence, consensus and self-fed cursor. Read gold bounds and endpoint oracles only in separate diagnostics. Seal TRAIN and grading custody, independently review and bind source and runtime before any deciding run. Fall back to finite signature and oracle checks if native fit, serialization, public entry or exact replay cannot be established.
+
+**Scope:** This draft authorizes no active unit, GPU work, resource allocation or qualification. #4102 measures a scoped DEV-tune count reference. The published P1 gates retain 1% canonical count identity, the ≤4 GB/≤1.03× sealed R* DEV-test requirement, its stated count ceiling and the ft/dev 7,002 paired floor. P2 depends on P1(a,b). P3 depends on P1 and P2 or its registered next arm. Reserve those gates and any change to the product default for their own reviewed decisions.
