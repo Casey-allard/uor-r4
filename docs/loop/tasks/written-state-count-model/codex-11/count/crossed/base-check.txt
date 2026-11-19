@@ -1,0 +1,4 @@
+run/full.d11: OK
+run/pruned.d11: OK
+receipt/result.json: OK
+receipt/finite.json: OK

@@ -1,0 +1,1 @@
+PASS zero/single/equal/conflict/missing copy/cap release, all four CUDA and host decision words

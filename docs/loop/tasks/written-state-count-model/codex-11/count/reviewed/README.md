@@ -1,0 +1,5 @@
+# [codex] Repeat from the reviewed scoring source
+
+The revised finite checks bind both integer expert masses by name so that the source scanner can distinguish their use from fractional literals. The rerun includes the ordinary D11 predictor dispatch at the reviewed source. The original build and runs remained in their original directory. A new Wick release binary and ahead-of-time SM89 scorer were built in review-run; the existing registered launcher validates the lease, inputs, finite controls and available memory before counting, fitting and evaluating on the same data.
+
+The comparison jointly covers the finite and real TRAIN fits, both artifacts, both EM trajectories, the fit and query ID streams, every per-arm native read-back, all six GPU greedy/mass/bit streams and the complete JSON after dropping wall timing. The retained SHA pairs for the latter compare normalized source and repeat result files. The unchanged model SHA values identify the stored D11s in COUNT-RESULT. [Direct byte comparisons](identical-tapes.txt) · [Scientific JSON comparison](scientific.sha256) · [Reviewed sources](checkout.sha256) · [Run launcher](replay-wick.sh)

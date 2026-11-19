@@ -1,0 +1,32 @@
+[
+  {
+    "prompt": "Dan kept blue. Ben kept gold. Regarding Dan, which possession was theirs?",
+    "expected": [
+      924,
+      1
+    ]
+  },
+  {
+    "prompt": "Dan kept blue. Ben kept gold. Regarding Ben, which possession was theirs?",
+    "expected": [
+      2551,
+      1
+    ]
+  },
+  {
+    "prompt": "Sue held blue. Ben once held gold. What is two plus two?",
+    "expected": [
+      3049,
+      1
+    ]
+  },
+  {
+    "prompt": "Sue held blue. Ben once held gold. Which planet do we live on?",
+    "expected": [
+      737,
+      291,
+      1010,
+      1
+    ]
+  }
+]

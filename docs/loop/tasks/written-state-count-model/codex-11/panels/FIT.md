@@ -1,0 +1,5 @@
+# [codex] Independent panel and writer review
+
+Reviewed the panel sheet and separate nomination proposal. FIT for sealed names, phrase families and factual manipulations, two seeds, separate gold key, immutable exact writer, controls, real emitted feedback and EOS. Use the per-prefix token digest for row joins and preserve multiplicity. Accepted source on a duplicate agreement may be either affirmative source. A null reference on an unsupported question is evaluated for false copy and agreement with read-disabled output, outside exact-answer denominators. On labeled historical prose separately report exact EOS. GO after manifest, resource check, lock, finite ordinary/copy controls, and exclusion of held labels from non-oracle scoring. Report examples where the first wrong position stays the same but the wrong source or ID changes.
+482b2ef9cbd13f070f41e7484c7e01d19088b091d6f487a58e5766c0bf8868a4  docs/loop/tasks/written-state-count-model/codex-11/panels/SHEET.md
+Reviewed 2026-11-19T01:17:06Z

@@ -1,0 +1,256 @@
+{
+  "learned": {
+    "by_kind": {
+      "conflict": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 16,
+        "false_copy": 16,
+        "movements": {}
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 22,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {
+          "0->0": 18,
+          "0->exact": 22,
+          "1->1": 8
+        }
+      },
+      "excluded": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 16,
+        "false_copy": 16,
+        "movements": {}
+      },
+      "removed": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 16,
+        "false_copy": 16,
+        "movements": {}
+      },
+      "third": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 16,
+        "false_copy": 16,
+        "movements": {}
+      },
+      "unique": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 26,
+        "exact": 26,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {
+          "0->0": 14,
+          "1->1": 8,
+          "exact->exact": 26
+        }
+      }
+    },
+    "examples": [
+      {
+        "id": "held-0-0-0-0-0-duplicate_agree",
+        "kind": "duplicate_agree",
+        "prompt": "May held pink. Joe held brown. May held pink. Regarding May, what object did the record name?",
+        "expected": [
+          1481,
+          1
+        ],
+        "parent_generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "generated": [
+          1481,
+          1
+        ],
+        "parent_first": 0,
+        "first": "exact",
+        "parent_source": null,
+        "source": 7,
+        "prefix_sha256": "7def5328f1c2398dd78a43ae6ee14396587e42dc65b9ace2c89f85de5bfe3a17"
+      },
+      {
+        "id": "held-0-0-0-1-0-duplicate_agree",
+        "kind": "duplicate_agree",
+        "prompt": "May held pink. Joe held brown. Joe held brown. Regarding Joe, what object did the record name?",
+        "expected": [
+          1730,
+          1
+        ],
+        "parent_generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "generated": [
+          1730,
+          1
+        ],
+        "parent_first": 0,
+        "first": "exact",
+        "parent_source": null,
+        "source": 11,
+        "prefix_sha256": "97015aab892ed3fa2fcd6faab5a5035da5a8fe0e027dd6d5a08b4591ca3dd639"
+      }
+    ]
+  },
+  "requested_query_oracle": {
+    "by_kind": {
+      "conflict": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {}
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 36,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {
+          "0->0": 12,
+          "0->exact": 36
+        }
+      },
+      "excluded": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {}
+      },
+      "removed": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {}
+      },
+      "third": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 0,
+        "exact": 0,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {}
+      },
+      "unique": {
+        "rows": 48,
+        "exact_from_unannotated_address": 0,
+        "parent_exact": 41,
+        "exact": 41,
+        "parent_false_copy": 0,
+        "false_copy": 0,
+        "movements": {
+          "0->0": 7,
+          "exact->exact": 41
+        }
+      }
+    },
+    "examples": [
+      {
+        "id": "held-0-0-0-0-0-duplicate_agree",
+        "kind": "duplicate_agree",
+        "prompt": "May held pink. Joe held brown. May held pink. Regarding May, what object did the record name?",
+        "expected": [
+          1481,
+          1
+        ],
+        "parent_generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "generated": [
+          1481,
+          1
+        ],
+        "parent_first": 0,
+        "first": "exact",
+        "parent_source": null,
+        "source": 7,
+        "prefix_sha256": "7def5328f1c2398dd78a43ae6ee14396587e42dc65b9ace2c89f85de5bfe3a17"
+      },
+      {
+        "id": "held-0-0-0-0-1-duplicate_agree",
+        "kind": "duplicate_agree",
+        "prompt": "May held pink. Joe held brown. May held pink. Tell me the thing for May, excluding Joe.",
+        "expected": [
+          1481,
+          1
+        ],
+        "parent_generated": [
+          1155,
+          302,
+          311,
+          14,
+          340,
+          1919,
+          1203,
+          383,
+          16,
+          1
+        ],
+        "generated": [
+          1481,
+          1
+        ],
+        "parent_first": 0,
+        "first": "exact",
+        "parent_source": null,
+        "source": 7,
+        "prefix_sha256": "4fb346738a4c1ff15925c04f52c780b5b6f4267912ba5e1a0e4aabe048ad93ee"
+      }
+    ]
+  }
+}

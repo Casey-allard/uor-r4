@@ -1,0 +1,1 @@
+PASS synthetic two candidate words, missing, singular, repeated support; TRAIN extraction, raw integer serialize/reload, CUDA/host equality (all fields)

@@ -531,11 +531,11 @@ struct DiscreteLutHeader {
 /// Output of evaluating a causal prefix on an [`IntegerDiscreteModel`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscretePrefixEvaluation {
-    /// Read vector `q` of length `blocks * 8` (`[i32; 8]` per block).
+    /// Geometric trunk read vector (empty for the count mixer).
     pub read_vector: Vec<i32>,
-    /// Occupied writer cells admitted in `(address_distance, cell_id)` order (`1..=kept_cells`).
+    /// Occupied geometric writer cells in distance order (empty for the count mixer).
     pub admitted_cells: Vec<u32>,
-    /// Up to 8 globally top-ranked admitted tokens in `(token_distance, token_id)` order.
+    /// Up to eight original IDs, ordered by trunk distance or decreasing count mass, then ID.
     pub top8: Vec<u32>,
     /// Top-1 predicted token (`top8[0]`).
     pub prediction: u32,
@@ -682,8 +682,8 @@ impl ExactCopyStep {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiscreteTracedPrefixEvaluation {
     pub evaluation: DiscretePrefixEvaluation,
-    /// Raw base trace words in `(block, stage)` order. Relation scores remain
-    /// separate in [`Self::relation_trace_words`].
+    /// Raw base trace words in `(block, stage)` order. For a count mixer, the trace
+    /// is the previous original ID, conditional weight, winning ID and Q32 mass (low, high).
     pub trace_words: Vec<u32>,
     /// Relation scores padded to the artifact context's maximum binder-node
     /// count, exactly as CUDA stores its batch tail. `u32::MAX` marks padding.
@@ -1067,6 +1067,7 @@ impl DiscreteTrunkTables {
 /// or 19-table `uor-r4.lut-discrete-trunk/1`) integer container.
 #[derive(Clone, Debug)]
 pub struct IntegerDiscreteModel {
+    count_mixer: Option<crate::count_mixer::CountMixer>,
     role_policy: Option<RolePolicy>,
     tokenizer_sha256: Option<String>,
     shape: DiscreteLutShape,
@@ -1464,7 +1465,37 @@ impl IntegerDiscreteModel {
         struct Schema {
             schema: String,
         }
-        if serde_json::from_slice::<Schema>(encoded_header)?.schema == DISCRETE_ROLE_SCHEMA {
+        let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if schema == crate::count_mixer::SCHEMA {
+            if !allow_role {
+                return Err(invalid("nested count mixer"));
+            }
+            let env: crate::count_mixer::Envelope = serde_json::from_slice(encoded_header)?;
+            let start = end_header.next_multiple_of(ALIGN);
+            let data = bytes
+                .get(start..)
+                .ok_or_else(|| invalid("missing count mixer payload"))?;
+            if bytes[end_header..start].iter().any(|&v| v != 0) || env.state_bytes > data.len() {
+                return Err(invalid("invalid count mixer bounds or padding"));
+            }
+            let (state, base) = data.split_at(env.state_bytes);
+            if hex::encode(Sha256::digest(state)) != env.state_sha256 {
+                return Err(invalid("count mixer digest mismatch"));
+            }
+            let mut model = Self::read_container(base, false)?;
+            if model.artifact_schema() != DISCRETE_TRUNK_SCHEMA
+                || model.artifact_sha256() != env.base_sha256
+                || model.tokenizer_sha256() != Some(env.tokenizer_sha256.as_str())
+                || model.shape.vocabulary != 4096
+            {
+                return Err(invalid("count mixer carrier identity mismatch"));
+            }
+            model.count_mixer = Some(crate::count_mixer::CountMixer::from_words(state)?);
+            model.tokenizer_sha256 = Some(env.tokenizer_sha256);
+            model.artifact_sha256 = hex::encode(Sha256::digest(bytes));
+            return Ok(model);
+        }
+        if schema == DISCRETE_ROLE_SCHEMA {
             if !allow_role {
                 return Err(invalid("nested role-copy artifact"));
             }
@@ -1865,6 +1896,7 @@ impl IntegerDiscreteModel {
 
         let artifact_sha256 = hex::encode(Sha256::digest(bytes));
         Ok(Self {
+            count_mixer: None,
             role_policy: None,
             tokenizer_sha256: header.tokenizer_sha256,
             shape: header.shape,
@@ -1925,9 +1957,15 @@ impl IntegerDiscreteModel {
         &self.shape
     }
 
+    pub fn count_mixer(&self) -> Option<&crate::count_mixer::CountMixer> {
+        self.count_mixer.as_ref()
+    }
+
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
-        if self.role_policy.is_some() {
+        if self.count_mixer.is_some() {
+            crate::count_mixer::SCHEMA
+        } else if self.role_policy.is_some() {
             DISCRETE_ROLE_SCHEMA
         } else if self.frozen_s2().is_some() {
             DISCRETE_S2_SCHEMA
@@ -2470,6 +2508,29 @@ impl IntegerDiscreteModel {
         if prefix.iter().any(|&tok| tok >= vocab) {
             return Err(invalid("prefix token ID outside vocabulary"));
         }
+        if let Some(mixer) = self.count_mixer() {
+            let previous = prefix[prefix.len() - 1] as u16;
+            let ranked = mixer.top8(previous);
+            let winner = ranked[0];
+            let trace_words = if retain_trace {
+                let mass = mixer.mass_q32(previous, winner);
+                vec![u32::from(previous), mixer.conditional_weight(), u32::from(winner),
+                     mass as u32, (mass >> 32) as u32]
+            } else {
+                Vec::new()
+            };
+            return Ok(DiscreteTracedPrefixEvaluation {
+                evaluation: DiscretePrefixEvaluation {
+                    prediction: u32::from(winner),
+                    top8: ranked.into_iter().map(u32::from).collect(),
+                    read_vector: Vec::new(),
+                    admitted_cells: Vec::new(),
+                    relation_scores: None,
+                },
+                trace_words,
+                relation_trace_words: None,
+            });
+        }
         let plan = build_row_plan(prefix.len())?;
         let mut trace_words = Vec::new();
         let (mut q_blocks, relation_scores, relation_trace_words) = match self.read_mode {
@@ -2579,6 +2640,9 @@ impl IntegerDiscreteModel {
     /// Evaluate a causal token prefix and compute the exact writer loss numerators
     /// and rival counts against `target` (`0..vocabulary`).
     pub fn observe_target(&self, prefix: &[u32], target: u32) -> Result<DiscreteTargetObservation> {
+        if self.count_mixer().is_some() {
+            return Err(invalid("the count mixer uses target mass instead of trunk hinge loss"));
+        }
         if target >= self.shape.vocabulary {
             return Err(invalid("target token ID outside vocabulary"));
         }
@@ -3065,6 +3129,40 @@ mod tests {
         bad_shape.stages = 2;
         let bad_stages = build_discrete_uorlut01(bad_shape, &tokens, &[0, 0], &[0, 0]);
         assert!(IntegerDiscreteModel::from_bytes(&bad_stages).is_err());
+    }
+
+    #[test]
+    fn count_prediction_uses_the_last_committed_id_and_preserves_native_mass() {
+        use crate::count_mixer::{CountMixer, VOCAB};
+        let shape = DiscreteLutShape {
+            vocabulary: VOCAB as u32,
+            read_mode: "route".to_owned(),
+            ..pick_shape(0)
+        };
+        let base = build_discrete_uorlut01(shape, &vec![[A, A]; VOCAB], &[0; 4], &[0; 4]);
+        let mut model = IntegerDiscreteModel::from_bytes(&base).unwrap();
+        let mut words = vec![0; 4 * (1 + VOCAB)];
+        words[..4].copy_from_slice(&250u32.to_le_bytes());
+        words[8..12].copy_from_slice(&10u32.to_le_bytes()); // Most frequent unigram is ID 1.
+        for (previous, target) in [(1u16, 18u16), (18, 7)] {
+            words.extend(previous.to_le_bytes());
+            words.extend(target.to_le_bytes());
+            words.extend(3u32.to_le_bytes());
+        }
+        let counts = CountMixer::from_words(&words).unwrap();
+        let mass = counts.mass_q32(1, 18);
+        model.count_mixer = Some(counts);
+        let first = model.evaluate_prefix_traced(&[0, 1]).unwrap();
+        assert_eq!(first.evaluation.prediction, 18);
+        assert_eq!(first.evaluation.top8[0], 18);
+        assert_eq!(first.evaluation.top8.len(), 8);
+        assert!(first.evaluation.admitted_cells.is_empty());
+        assert_eq!(first.trace_words, vec![1, 250, 18, mass as u32, (mass >> 32) as u32]);
+        assert_eq!(model.evaluate_prefix(&[99, 1]).unwrap(), first.evaluation);
+        assert_eq!(model.evaluate_prefix(&[0, 1, 18]).unwrap().prediction, 7);
+        assert_eq!(model.evaluate_prefix(&[999]).unwrap().prediction, 1);
+        assert!(model.observe_target(&[0, 1], 18).is_err());
+        assert!(model.evaluate_prefix(&[VOCAB as u32, 1]).is_err());
     }
 
     #[test]

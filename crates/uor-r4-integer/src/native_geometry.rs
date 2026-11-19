@@ -19,6 +19,8 @@ compile_error!(
 include!("serving_root.rs");
 
 #[cfg(not(feature = "serving-wasm"))]
+pub mod count_mixer;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod discrete_d11;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod content_selector;

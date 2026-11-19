@@ -1,0 +1,17 @@
+wick
+Thu Nov 19 01:24:20 UTC 2026
+name, uuid, driver_version, memory.free [MiB]
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02, 9893 MiB
+               total        used        free      shared  buff/cache   available
+Mem:           60887       31435        1616         997       29441       29452
+Swap:           8191           0        8191
+Filesystem     1024-blocks      Used Available Capacity Mounted on
+/dev/nvme0n1p2   959218776 568210116 342209328      63% /
+3e9b1fe892b68df07340da565b768700d38a436b6301b99027f3b9e8f0694390  target/release/count-score
+8d90cbe774d022efd26faaf097ccda659825340f06a45622c2028266c3d4ae69  count-score-device
+04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d  /home/callard/uor-codex/20261118-diagnostics/inputs/seed1.d11
+d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89  /home/callard/uor-codex/20261118-diagnostics/inputs/c420/tokenizer.json
+c6cba29ead4c745fb47b3f87007d982e72defc9f04102a268709ba0d34d51460  /home/callard/uor-codex/20261118-diagnostics/inputs/c420/train.tokens.u16
+75c6d1ac479bf120bac3aa60ac160536e8146f8052aa49c002209500799b7d0a  /home/callard/uor-codex/20261118-diagnostics/inputs/c420/dev-tune.tokens.u16
+7df42437260bb767e2b1bdfd0cc55a242bd6e0b632a5bcd754852a7ab8aca6af  /home/callard/uor-codex/20261118-diagnostics/inputs/c420/dev-tune.novel.u8
+befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9  /home/callard/uor-codex/20261118-diagnostics/inputs/c420/id-bytes.u8

@@ -1,0 +1,6 @@
+603f9c1ad009a2ad641abb67c50248fb7329733657e5d63d78ad30a74a79c244  crates/uor-r4-integer/src/count_mixer.rs
+2c05bc194153d001e15614af1804303bbe85ad73a5fd0d50c9dd42414cae25ff  crates/uor-r4-integer/src/discrete_d11.rs
+5f9e568757962d827d346f7eadd15d022bd4b589dd761702149e9d04bc608870  crates/uor-r4-integer/src/native_geometry.rs
+2939838a9c3a494565cc8ff359645302803efadda3ee9d2152bdc3c3419acaad  crates/uor-r4-integer/src/serving_root.rs
+faf9dbc0e7422b400b7df1711332eeeee6584d329f8553a6675cd6dba5b49403  docs/labs/kn-reference/instrument/src/bin/count-score.rs
+b65f75be4e62e06d85399e5bb2edff6560777f7af7f610b64c52fc13892e687f  docs/labs/kn-reference/instrument/src/bin/count-score.cu

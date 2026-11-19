@@ -1,0 +1,10 @@
+2026-11-19T01:31:27+00:00
+611bad24b01742d8e6d45cd6ddb74098b76762b842cf3a3c3793119fc46d9040  results/blind.sha256
+bab2a229e66987954a7ed90e4aba6e6603d8a4ee2c5f6a3c8d94880038a51c06  results/oracle.sha256
+611bad24b01742d8e6d45cd6ddb74098b76762b842cf3a3c3793119fc46d9040  results-repeat/blind.sha256
+bab2a229e66987954a7ed90e4aba6e6603d8a4ee2c5f6a3c8d94880038a51c06  results-repeat/oracle.sha256
+611bad24b01742d8e6d45cd6ddb74098b76762b842cf3a3c3793119fc46d9040  instrument-01/blind.sha256
+primary.time:	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:59.60
+primary.time:	Maximum resident set size (kbytes): 868952
+repeat.time:	Elapsed (wall clock) time (h:mm:ss or m:ss): 6:16.98
+repeat.time:	Maximum resident set size (kbytes): 868588

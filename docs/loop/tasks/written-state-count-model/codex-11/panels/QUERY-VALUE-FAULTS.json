@@ -1,0 +1,438 @@
+[
+  {
+    "id": "held-0-0-0-1-2-unique",
+    "prompt": "May held pink. Joe held brown. Set aside May, and describe the possession of Joe.",
+    "expected": [
+      1730,
+      1
+    ],
+    "generated": [
+      301,
+      309,
+      450,
+      428,
+      379,
+      282,
+      14,
+      269,
+      1249,
+      262,
+      1389,
+      67,
+      652,
+      714,
+      16,
+      1
+    ],
+    "first": 0,
+    "gold_query": [
+      32,
+      33
+    ],
+    "gold_fact": [
+      9,
+      10
+    ],
+    "gold_value": [
+      11,
+      12
+    ],
+    "chosen": {
+      "fact": 9,
+      "fact_end": 9,
+      "fact_start": 9,
+      "query": 32,
+      "query_end": 32,
+      "query_start": 32,
+      "source": 13
+    },
+    "value": {
+      "both": null,
+      "current": 13,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 13,
+      "word_start_mask": 5
+    },
+    "word_start": 13,
+    "continuation": {
+      "connector_mask": 1,
+      "onset_mask": 4,
+      "reason": 0,
+      "source": 13
+    },
+    "writer_source": 13,
+    "expected_token": 1730,
+    "emitted_token": 301
+  },
+  {
+    "id": "held-0-0-1-1-2-unique",
+    "prompt": "May held brown. Joe held pink. Set aside May, and describe the possession of Joe.",
+    "expected": [
+      1481,
+      1
+    ],
+    "generated": [
+      301,
+      309,
+      450,
+      428,
+      379,
+      282,
+      14,
+      269,
+      1249,
+      262,
+      1389,
+      67,
+      652,
+      714,
+      16,
+      1
+    ],
+    "first": 0,
+    "gold_query": [
+      32,
+      33
+    ],
+    "gold_fact": [
+      9,
+      10
+    ],
+    "gold_value": [
+      11,
+      12
+    ],
+    "chosen": {
+      "fact": 9,
+      "fact_end": 9,
+      "fact_start": 9,
+      "query": 32,
+      "query_end": 32,
+      "query_start": 32,
+      "source": 13
+    },
+    "value": {
+      "both": null,
+      "current": 13,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 13,
+      "word_start_mask": 5
+    },
+    "word_start": 13,
+    "continuation": {
+      "connector_mask": 1,
+      "onset_mask": 4,
+      "reason": 0,
+      "source": 13
+    },
+    "writer_source": 13,
+    "expected_token": 1481,
+    "emitted_token": 301
+  },
+  {
+    "id": "held-0-1-0-0-2-unique",
+    "prompt": "Joe held brown. May held pink. Set aside Joe, and describe the possession of May.",
+    "expected": [
+      1481,
+      1
+    ],
+    "generated": [
+      301,
+      309,
+      450,
+      428,
+      1886,
+      14,
+      269,
+      2016,
+      69,
+      260,
+      284,
+      77,
+      78,
+      373,
+      340,
+      915
+    ],
+    "first": 0,
+    "gold_query": [
+      31,
+      33
+    ],
+    "gold_fact": [
+      8,
+      10
+    ],
+    "gold_value": [
+      11,
+      12
+    ],
+    "chosen": {
+      "fact": 8,
+      "fact_end": 9,
+      "fact_start": 8,
+      "query": 31,
+      "query_end": 32,
+      "query_start": 31,
+      "source": 13
+    },
+    "value": {
+      "both": null,
+      "current": 13,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 13,
+      "word_start_mask": 5
+    },
+    "word_start": 13,
+    "continuation": {
+      "connector_mask": 1,
+      "onset_mask": 4,
+      "reason": 0,
+      "source": 13
+    },
+    "writer_source": 13,
+    "expected_token": 1481,
+    "emitted_token": 301
+  },
+  {
+    "id": "held-0-1-1-0-2-unique",
+    "prompt": "Joe held pink. May held brown. Set aside Joe, and describe the possession of May.",
+    "expected": [
+      1730,
+      1
+    ],
+    "generated": [
+      301,
+      309,
+      450,
+      428,
+      1886,
+      14,
+      269,
+      2016,
+      69,
+      260,
+      284,
+      77,
+      78,
+      373,
+      340,
+      1919
+    ],
+    "first": 0,
+    "gold_query": [
+      31,
+      33
+    ],
+    "gold_fact": [
+      8,
+      10
+    ],
+    "gold_value": [
+      11,
+      12
+    ],
+    "chosen": {
+      "fact": 8,
+      "fact_end": 9,
+      "fact_start": 8,
+      "query": 31,
+      "query_end": 32,
+      "query_start": 31,
+      "source": 13
+    },
+    "value": {
+      "both": null,
+      "current": 13,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 13,
+      "word_start_mask": 5
+    },
+    "word_start": 13,
+    "continuation": {
+      "connector_mask": 1,
+      "onset_mask": 4,
+      "reason": 0,
+      "source": 13
+    },
+    "writer_source": 13,
+    "expected_token": 1730,
+    "emitted_token": 301
+  },
+  {
+    "id": "held-0-1-1-1-0-unique",
+    "prompt": "Joe held pink. May held brown. Regarding Joe, what object did the record name?",
+    "expected": [
+      1481,
+      1
+    ],
+    "generated": [
+      379,
+      282,
+      1444,
+      1730,
+      1
+    ],
+    "first": 0,
+    "gold_query": [
+      18,
+      19
+    ],
+    "gold_fact": [
+      4,
+      5
+    ],
+    "gold_value": [
+      6,
+      7
+    ],
+    "chosen": {
+      "fact": 4,
+      "fact_end": 4,
+      "fact_start": 4,
+      "query": 18,
+      "query_end": 18,
+      "query_start": 18,
+      "source": 8
+    },
+    "value": {
+      "both": null,
+      "current": 8,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 8,
+      "word_start_mask": 5
+    },
+    "word_start": 8,
+    "continuation": {
+      "connector_mask": 5,
+      "onset_mask": 0,
+      "reason": 0,
+      "source": 8
+    },
+    "writer_source": 8,
+    "expected_token": 1481,
+    "emitted_token": 379
+  },
+  {
+    "id": "held-0-1-1-1-1-unique",
+    "prompt": "Joe held pink. May held brown. Tell me the thing for Joe, excluding May.",
+    "expected": [
+      1481,
+      1
+    ],
+    "generated": [
+      379,
+      282,
+      1444,
+      1730,
+      1
+    ],
+    "first": 0,
+    "gold_query": [
+      19,
+      20
+    ],
+    "gold_fact": [
+      4,
+      5
+    ],
+    "gold_value": [
+      6,
+      7
+    ],
+    "chosen": {
+      "fact": 4,
+      "fact_end": 4,
+      "fact_start": 4,
+      "query": 19,
+      "query_end": 19,
+      "query_start": 19,
+      "source": 8
+    },
+    "value": {
+      "both": null,
+      "current": 8,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 8,
+      "word_start_mask": 5
+    },
+    "word_start": 8,
+    "continuation": {
+      "connector_mask": 5,
+      "onset_mask": 0,
+      "reason": 0,
+      "source": 8
+    },
+    "writer_source": 8,
+    "expected_token": 1481,
+    "emitted_token": 379
+  },
+  {
+    "id": "held-0-1-1-1-2-unique",
+    "prompt": "Joe held pink. May held brown. Set aside May, and describe the possession of Joe.",
+    "expected": [
+      1481,
+      1
+    ],
+    "generated": [
+      379,
+      282,
+      1444,
+      1730,
+      1
+    ],
+    "first": 0,
+    "gold_query": [
+      32,
+      33
+    ],
+    "gold_fact": [
+      4,
+      5
+    ],
+    "gold_value": [
+      6,
+      7
+    ],
+    "chosen": {
+      "fact": 4,
+      "fact_end": 4,
+      "fact_start": 4,
+      "query": 32,
+      "query_end": 32,
+      "query_start": 32,
+      "source": 8
+    },
+    "value": {
+      "both": null,
+      "current": 8,
+      "eligible_mask": 7,
+      "ordered": null,
+      "ordered_mask": 0,
+      "word_start": 8,
+      "word_start_mask": 5
+    },
+    "word_start": 8,
+    "continuation": {
+      "connector_mask": 5,
+      "onset_mask": 0,
+      "reason": 0,
+      "source": 8
+    },
+    "writer_source": 8,
+    "expected_token": 1481,
+    "emitted_token": 379
+  }
+]

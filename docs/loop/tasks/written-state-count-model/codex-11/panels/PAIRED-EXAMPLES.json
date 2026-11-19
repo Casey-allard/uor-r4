@@ -1,0 +1,235 @@
+{
+  "duplicate_harm": [
+    {
+      "id": "held-0-0-0-0-2-duplicate_agree",
+      "kind": "duplicate_agree",
+      "role": "May",
+      "source": null,
+      "expected": [
+        1481,
+        1
+      ],
+      "emitted": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "old_emitted": [
+        1481,
+        1
+      ],
+      "first": 0,
+      "old_first": "exact",
+      "role_first": "exact",
+      "prompt": "May held pink. Joe held brown. May held pink. Set aside Joe, and describe the possession of May.",
+      "old_wrong_id": null,
+      "wrong_id": 1155,
+      "prefix_sha256": "c8ba3bcb1ddcf350292ae4d5bad67f00d1395613723d7eff71ea801d849dc9a8"
+    }
+  ],
+  "gain": [
+    {
+      "id": "held-0-1-0-0-0-unique",
+      "kind": "unique",
+      "role": "May",
+      "source": 11,
+      "expected": [
+        1481,
+        1
+      ],
+      "emitted": [
+        1481,
+        1
+      ],
+      "old_emitted": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "first": "exact",
+      "old_first": 0,
+      "role_first": "exact",
+      "prompt": "Joe held brown. May held pink. Regarding May, what object did the record name?",
+      "old_wrong_id": 1155,
+      "wrong_id": null,
+      "prefix_sha256": "60406d66c789da663764d8d1f5c3103267a61d0c8618ec4ce2fd144b83b95645"
+    },
+    {
+      "id": "held-0-1-0-1-0-unique",
+      "kind": "unique",
+      "role": "Joe",
+      "source": 6,
+      "expected": [
+        1730,
+        1
+      ],
+      "emitted": [
+        1730,
+        1
+      ],
+      "old_emitted": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "first": "exact",
+      "old_first": 0,
+      "role_first": "exact",
+      "prompt": "Joe held brown. May held pink. Regarding Joe, what object did the record name?",
+      "old_wrong_id": 1155,
+      "wrong_id": null,
+      "prefix_sha256": "e98097e13bf41a41254dbca415f0954f3a20914b01776d47362cf2157143ee73"
+    }
+  ],
+  "harm": [],
+  "changed_wrong_id_same_position": [
+    {
+      "id": "held-0-1-1-0-0-unique",
+      "kind": "unique",
+      "role": "May",
+      "source": 11,
+      "expected": [
+        1730,
+        1
+      ],
+      "emitted": [
+        1730,
+        1
+      ],
+      "old_emitted": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        915,
+        779,
+        351,
+        1265,
+        300,
+        519,
+        14,
+        631,
+        1422,
+        418,
+        300
+      ],
+      "first": "exact",
+      "old_first": 0,
+      "role_first": "exact",
+      "prompt": "Joe held pink. May held brown. Regarding May, what object did the record name?",
+      "old_wrong_id": 1155,
+      "wrong_id": null,
+      "prefix_sha256": "86bb6f11d1f3b2611c2f56701d0d1afb607334d5dc714b5a83d5e8fbab8507cd"
+    },
+    {
+      "id": "held-0-1-1-1-0-unique",
+      "kind": "unique",
+      "role": "Joe",
+      "source": 8,
+      "expected": [
+        1481,
+        1
+      ],
+      "emitted": [
+        379,
+        282,
+        1444,
+        1730,
+        1
+      ],
+      "old_emitted": [
+        1155,
+        302,
+        311,
+        14,
+        340,
+        1919,
+        1203,
+        383,
+        16,
+        1
+      ],
+      "first": 0,
+      "old_first": 0,
+      "role_first": 0,
+      "prompt": "Joe held pink. May held brown. Regarding Joe, what object did the record name?",
+      "old_wrong_id": 1155,
+      "wrong_id": 379,
+      "prefix_sha256": "05be3b7b3b3fa5d701808624aee6c24e61b211fa376ee0a8bbba45470c0fcc19"
+    }
+  ],
+  "unchanged_error": [
+    {
+      "id": "held-0-1-0-0-1-unique",
+      "kind": "unique",
+      "role": "May",
+      "source": 6,
+      "expected": [
+        1481,
+        1
+      ],
+      "emitted": [
+        1730,
+        1
+      ],
+      "old_emitted": [
+        1730,
+        1
+      ],
+      "first": 0,
+      "old_first": 0,
+      "role_first": 0,
+      "prompt": "Joe held brown. May held pink. Tell me the thing for May, excluding Joe.",
+      "old_wrong_id": 1730,
+      "wrong_id": 1730,
+      "prefix_sha256": "042b8afe0b5b7e6cf243d7d73125885e3f30c2e60358c52118fa5f01c51303bc"
+    },
+    {
+      "id": "held-0-1-0-1-1-unique",
+      "kind": "unique",
+      "role": "Joe",
+      "source": 11,
+      "expected": [
+        1730,
+        1
+      ],
+      "emitted": [
+        1481,
+        1
+      ],
+      "old_emitted": [
+        1481,
+        1
+      ],
+      "first": 0,
+      "old_first": 0,
+      "role_first": 0,
+      "prompt": "Joe held brown. May held pink. Tell me the thing for Joe, excluding May.",
+      "old_wrong_id": 1481,
+      "wrong_id": 1481,
+      "prefix_sha256": "94961caaed954ffd9283866cddde2b2be84d95027a67ce954cf107398bd64b43"
+    }
+  ]
+}

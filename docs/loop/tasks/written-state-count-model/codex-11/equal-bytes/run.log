@@ -1,0 +1,11 @@
+FIT.md: OK
+SHEET.md: OK
+construction.json: OK
+score-wick.sh: OK
+restored.d11: OK
+../count/count-score-device: OK
+../count/target/release/count-score: OK
+2026-11-19T01:28:09+00:00
+NVIDIA GeForce RTX 4090, 16613 MiB, 100 %
+primary.json repeat.json differ: byte 2768, line 118
+2026-11-19T01:28:12+00:00

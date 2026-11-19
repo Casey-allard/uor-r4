@@ -11,6 +11,7 @@ pub mod bundle;
 pub mod capability_api;
 pub mod codec;
 pub mod config;
+pub mod count_mixer;
 pub mod discrete_d11;
 pub mod content_selector;
 pub mod span_selector;

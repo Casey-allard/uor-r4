@@ -1,0 +1,5 @@
+# [codex] Independent fixed-byte precision review
+
+FIT for the registered paired equality comparison. The full and pruned artifacts must have the same input count slice and base carrier. Reject duplicate, absent, or unrounded-mismatched keys; require identical key sequence, unigram words, fitted weight, base payload and final D11 file length, a nonzero count of changed counts, and loader-bound SHA. If restored counts change a cumulative mass, recompute conditional row denominators from those restored counts. Record both bit totals, identical overall/novel mask bytes, and the sign as old minus restored. Do not compare the raw-full artifact's separately fitted weight to the pruned weight for this arm. GO conditional on the parent's fit controls, finite construction/refusal tests and shared Wick lock for any device score.
+8d783757ac936d79650707e2582578de92fd2df7546bbe95025bbe28e9ed016b  docs/loop/tasks/written-state-count-model/codex-11/equal-bytes/SHEET.md
+Reviewed 2026-11-19T01:20:03Z by count instrument author, independent of arm author.

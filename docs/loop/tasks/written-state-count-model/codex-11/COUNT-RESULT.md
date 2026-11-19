@@ -1,0 +1,44 @@
+# [codex] Deployed full-support count mixture and the cost of four successors
+
+**Four successors per preceding token cost 26.43% overall BPB and 24.48% novel-context BPB**, even after independently fitting the pruned weight. That exceeds the registered 3% component tolerance. At the full model's weight, the pruned model scored 4.346626 BPB, worse than the unigram's 4.301066. The unpruned model with the full-support unigram and a fitted weight scored 2.835339. This paired result locates a prediction loss in the retained order-one evidence. It covers one corpus fraction, orders zero and one, and six predeclared comparisons. The P1(b) production bar uses the full corpus and R* and remains open. [Sheet](COUNT-SHEET.md) · [FIT](COUNT-FIT.md) · [Exact sums and per-token examples](count/result.json)
+
+| Same DEV-tune targets and bytes | Conditional weight / 256 | Overall BPB | Novel BPB | Overall correct top-1 |
+|---|---:|---:|---:|---:|
+| Full-support unigram | 0 | 4.301066 | 4.235957 | 776,809 |
+| Exact bigrams, fixed | 128 | 3.061202 | 3.136421 | 2,266,450 |
+| Exact bigrams, trained | 242 | 2.835339 | 2.949505 | 2,341,146 |
+| Top four, fixed | 128 | 3.601337 | 3.701784 | 2,251,355 |
+| Top four, trained | 102 | 3.584614 | 3.671571 | 2,251,355 |
+| Top four, exact model's weight | 242 | 4.346626 | 4.519743 | 2,251,398 |
+
+All 2,670 DEV-tune records contributed 10,807,417 original next-token targets and 21,928,475 decoded bytes. The frozen D87 novel mask contributed 7,566,174 targets and 15,995,822 bytes. BOS was excluded and EOS was scored with zero decoded bytes. Each BPB is the device Q12 bit sum divided by 4,096 and the byte sum. TRAIN included every hundredth complete document starting at ordinal zero (5,196 records, 20,475,957 framed tokens). The independently held TRAIN fit split was ordinal 1 modulo 1,000 (520 records, 2,138,427 framed tokens). The procedures never opened DEV-test. The historical D11 trunk, pinned tokenizer, whole input files, binary, CUDA program, and exact sampled streams are identified in the receipts. [Inputs and device](count/identity.txt) · [Sampling and device results](count/result.json)
+
+| Frozen state | Bigram rows | Native state bytes | Entire D11 bytes | Conditional weight after each TRAIN EM sweep | Minimum possible eligible-token mass / 2³² |
+|---|---:|---:|---:|---|---:|
+| Exact | 552,298 | 4,434,772 | 90,971,288 | 202, 229, 239, 242 | 14 |
+| Top four, ranked counts | 14,740 | 134,308 | 86,670,824 | 104, 103, 102, 102 | 154 |
+
+The row cutoff and count rounding together saved 4,300,464 bytes. The 86.5 MB trunk is shared overhead in both carriers. This storage comparison measures serialized bytes. The 1,104,612 KiB peak RSS covers input hashing, CPU verification, GPU processes, temporary buffers, full scorer tapes, and open artifacts. The complete timed unit took 14.14 s on the shared Wick RTX 4090, excluding its finite pre-run. These timings do not measure generated tokens/s. [Resource receipt](count/time.txt)
+
+Both the full-support unigram and each conditional row conserve exactly 2²⁴ units. One reserved Q24 unit per eligible original ID gives support after rounding, including a never-seen target in a seen context. A missing context reads the unigram twice. Each TRAIN update writes the same integer conditional weight used by the native runtime. The independent CPU oracle agreed with both GPU counts and GPU rank cutoff, and with all eight fitted weight updates. After each D11 was closed and loaded by the ordinary client reader, re-emitted state words supplied the GPU scorer. Each arm checked every device target mass and Q12 word against the Rust reader and all 4,096 greedy choices against the device. All checks passed, including finite corruption rejection, support, conservation, tie-breaking and fallback. The complete device tape SHA includes greedy IDs, target masses and bit words. [Finite results](count/finite.json) · [Native mixture](../../../../../crates/uor-r4-integer/src/count_mixer.rs) · [Evaluator](../../../../labs/kn-reference/instrument/src/bin/count-score.rs)
+
+The unpruned model got the first DEV-tune target right (201 after BOS). At position 2, its greedy token remained 201 after the preceding 201, with mass 1,096,424,550 / 2³². The true ID was 55 at 65,366,732 / 2³². At positions 3 and 4, given the true prefixes, it correctly predicted 2728 and 28. These are teacher-forced predictions. The component has no claim to free-running prose or improvement on R*. The next count comparison can apply the same exact mass/bit check across longer context orders and a row-budget sweep; preserving full-support fallback alone leaves a large quality cost at this particular cutoff.
+
+Both stored model files were fetched at immutable store revision `14f74e8a2ca66a0996bd02c1fb69d8db23851ff8` and compared byte-for-byte to the Wick output. The source build requires `UOR_NVCC_ARCH=compute_89 cargo build --release --locked --manifest-path docs/labs/kn-reference/instrument/Cargo.toml --features count-replay --bin count-score` and `nvcc -O3 -arch=sm_89 -std=c++17 -o count-score-device docs/labs/kn-reference/instrument/src/bin/count-score.cu`. Follow the checked-in launcher with a fresh output directory. The eval-only command accepts `eval C420_INPUTS DEVICE_PROGRAM MODEL.d11 NEW_OUTPUT_DIR`. [Full D11](https://huggingface.co/datasets/caseyallard/uor-r4-store/blob/14f74e8a2ca66a0996bd02c1fb69d8db23851ff8/results/codex/count-mixer-20261118/full.d11) · [Pruned D11](https://huggingface.co/datasets/caseyallard/uor-r4-store/blob/14f74e8a2ca66a0996bd02c1fb69d8db23851ff8/results/codex/count-mixer-20261118/pruned.d11) · [Store read-back](count/store-readback.sha256) · [Launcher](count/run-wick.sh)
+
+## Holding the weight fixed while deleting rows
+
+The crossed file changed the exact model's sole fitted weight from 242 to 102, the independently fitted value in the pruned model. The other 4,434,768 native bytes were identical and the complete D11 stayed at 90,971,288 bytes. Reloaded on Wick, the crossed model scored **3.152458 BPB overall and 3.217276 on novel contexts**. Its device mass and bit words matched the Rust D11 reader on each of the same 10,807,417 targets. The first finite attempt refused because both independently fitted fixture weights were 153. A finite donor with declared weight 128 exercised an actual changed word, before any held run. [Crossed sheet](count/crossed/SHEET.md) · [FIT](count/crossed/FIT.md) · [Construction](count/crossed/model.json) · [Held result](count/crossed/result.json) · [Finite refusal](count/crossed/initial/OUTCOME.md)
+
+| Intervention, in the order applied | Overall change in BPB | Novel change in BPB |
+|---|---:|---:|
+| On full exact rows, replace weight 242 with 102 | +0.317118 | +0.267771 |
+| At weight 102, keep only the retained rows, each with its original count | +0.428591 | +0.450683 |
+| At weight 102 on those rows, round the retained counts | +0.003566 | +0.003611 |
+| Full trained model to pruned trained model | **+0.749275** | **+0.722065** |
+
+At fixed coefficients, deletion of successors cost far more BPB than count rounding. The 0.317118 component describes applying the pruned model's weight *before* deleting rows. Refitting the already-pruned model improved its score by 0.762013 BPB versus leaving it at weight 242. The weight and row set interact, so the components above are specific to the displayed intervention order. The three terms sum exactly to 67,299,131,163 Q12 bits overall and 47,308,925,206 Q12 bits on novel contexts. [Exact decomposition and denominators](count/crossed/decomposition.json) · [Equal-byte retained-exact comparison](equal-bytes/primary.json)
+
+The D87 evaluator and the new scorer use the identical original token-ID byte table and class-1 novel mask. The four denominators match the historical DEV-tune sweep. TRAIN count and fit ordinals are disjoint by construction. D87 v1 preserves content overlap across corpus splits; a disjoint ordinal does not establish semantic or text uniqueness. The novel statistic uses the historical full-TRAIN 13-token-context test. The previously published 1.418136 BPB order-ten R* is from a distinct split and training volume and is not a paired comparator for this decomposition. [Historical evaluator](../../../../labs/kn-reference/instrument/src/main.rs) · [Historical DEV-tune denominators](../claude-422/run1/sweep-7.json) · [Overlap decision](../claude-417/REPORT.md)
+
+The crossed D11 was downloaded at pinned store revision `b9fe30280cf5cbf353d235d652cc827a7fc18e70` and compared byte-for-byte with Wick. SHA-256 `bf5b505eaa7a34fd693a11ba6b3a230cc49a59570e6e1483f18e26e482c04621`. [Crossed state and receipts](https://huggingface.co/datasets/caseyallard/uor-r4-store/tree/b9fe30280cf5cbf353d235d652cc827a7fc18e70/results/codex/count-mixer-20261118/crossed)

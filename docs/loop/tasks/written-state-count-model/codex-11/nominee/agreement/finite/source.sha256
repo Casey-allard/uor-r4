@@ -1,0 +1,7 @@
+0811e80c808e811ec278af1eaa228323bca74d4b66844cf09991bf84c7eb4c2a  src/docs/loop/tasks/written-state-count-model/codex-11/nominee/agreement/Cargo.lock
+66699d66c533e63cac1150118771c2d62df5eed6c4a240663ff2dcac548a1465  src/docs/loop/tasks/written-state-count-model/codex-11/nominee/agreement/Cargo.toml
+cb47c2472cf2db5478e04ca717fe7069a8b1de8b4fefcef403c4632800511329  src/docs/loop/tasks/written-state-count-model/codex-11/nominee/agreement/device.cu
+0680d651d1ef2df0f876a460d67591b236caa5ece3433c9b0cbf1fa5d273ab7b  src/docs/loop/tasks/written-state-count-model/codex-11/nominee/agreement/driver.rs
+4bbcdb22418fbccb5c5bf22683930bbdca3f6c39ed02f5ebb2112b48f55b7f08  bin/agree
+f6b7b10b9625246863dc5ac61d4e7b01ef1fffa89f8065e59a37cf9450b3265a  bin/agree-device
+34fcf18421fbecb2821086f3017fb506a6c296f20894adc330572f6a7b04afbb  run-wick.sh

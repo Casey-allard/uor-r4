@@ -1,0 +1,33 @@
+{
+  "panels": [
+    {
+      "rows": 288,
+      "by_kind": {
+        "conflict": 48,
+        "duplicate_agree": 48,
+        "excluded": 48,
+        "removed": 48,
+        "third": 48,
+        "unique": 48
+      },
+      "unique_prefixes": 288,
+      "query_families": 3,
+      "answerable": 96
+    },
+    {
+      "rows": 288,
+      "by_kind": {
+        "conflict": 48,
+        "duplicate_agree": 48,
+        "excluded": 48,
+        "removed": 48,
+        "third": 48,
+        "unique": 48
+      },
+      "unique_prefixes": 288,
+      "query_families": 3,
+      "answerable": 96
+    }
+  ],
+  "overlap": 0
+}

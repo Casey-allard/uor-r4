@@ -1,0 +1,121 @@
+{
+  "d11_sha256": "bf5b505eaa7a34fd693a11ba6b3a230cc49a59570e6e1483f18e26e482c04621",
+  "score": {
+    "arm": "loaded",
+    "device_tape_sha256": "cb463593fd19ce3466811d57d44aae14d1cbc9ff40b015274fec9ee2db042539",
+    "examples": [
+      {
+        "device_top1": 201,
+        "position": 1,
+        "previous": 0,
+        "target": 201,
+        "target_q32": 1769839922,
+        "winner_q32": 1769839922
+      },
+      {
+        "device_top1": 201,
+        "position": 2,
+        "previous": 201,
+        "target": 55,
+        "target_q32": 29559492,
+        "winner_q32": 518449250
+      },
+      {
+        "device_top1": 2728,
+        "position": 3,
+        "previous": 55,
+        "target": 2728,
+        "target_q32": 659381190,
+        "winner_q32": 659381190
+      },
+      {
+        "device_top1": 28,
+        "position": 4,
+        "previous": 2728,
+        "target": 28,
+        "target_q32": 961512260,
+        "winner_q32": 961512260
+      },
+      {
+        "device_top1": 223,
+        "position": 5,
+        "previous": 28,
+        "target": 223,
+        "target_q32": 439601532,
+        "winner_q32": 439601532
+      },
+      {
+        "device_top1": 223,
+        "position": 6,
+        "previous": 223,
+        "target": 19,
+        "target_q32": 91832694,
+        "winner_q32": 993970410
+      },
+      {
+        "device_top1": 223,
+        "position": 7,
+        "previous": 19,
+        "target": 23,
+        "target_q32": 62643056,
+        "winner_q32": 240839334
+      },
+      {
+        "device_top1": 16,
+        "position": 8,
+        "previous": 23,
+        "target": 1010,
+        "target_q32": 5945780,
+        "winner_q32": 306839958
+      },
+      {
+        "device_top1": 223,
+        "position": 9,
+        "previous": 1010,
+        "target": 280,
+        "target_q32": 14757028,
+        "winner_q32": 320646786
+      },
+      {
+        "device_top1": 380,
+        "position": 10,
+        "previous": 280,
+        "target": 380,
+        "target_q32": 241190848,
+        "winner_q32": 241190848
+      },
+      {
+        "device_top1": 223,
+        "position": 11,
+        "previous": 380,
+        "target": 87,
+        "target_q32": 13489258,
+        "winner_q32": 222037878
+      },
+      {
+        "device_top1": 223,
+        "position": 12,
+        "previous": 87,
+        "target": 441,
+        "target_q32": 21493934,
+        "winner_q32": 209075412
+      }
+    ],
+    "greedy_contexts_checked": 4096,
+    "min_observed_mass_q32": 154,
+    "novel": {
+      "bits_q12": 210792334116,
+      "bytes": 15995822,
+      "correct": 1191653,
+      "targets": 7566174
+    },
+    "overall": {
+      "bits_q12": 283150687007,
+      "bytes": 21928475,
+      "correct": 2165477,
+      "targets": 10807417
+    },
+    "wall_including_host_parity_ms": 834,
+    "weight": 102
+  }
+}

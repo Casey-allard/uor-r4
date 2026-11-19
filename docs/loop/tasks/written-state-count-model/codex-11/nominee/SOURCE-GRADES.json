@@ -1,0 +1,3418 @@
+{
+  "seed1-held-both": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 192,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 96
+        },
+        {
+          "count": 1,
+          "rows": 128
+        },
+        {
+          "count": 2,
+          "rows": 64
+        }
+      ],
+      "emitted": 128,
+      "source_eligible": 96,
+      "right_source": 26,
+      "wrong_source": 38,
+      "copied_with_no_answer": 64,
+      "right_request_wrong_source": 38,
+      "missed_request": 96
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 16,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 32,
+        "missed_request": 16
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 26,
+        "wrong_source": 22,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 6,
+        "missed_request": 16
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-held-nominee": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 192,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 96
+        },
+        {
+          "count": 1,
+          "rows": 128
+        },
+        {
+          "count": 2,
+          "rows": 64
+        }
+      ],
+      "emitted": 216,
+      "source_eligible": 96,
+      "right_source": 54,
+      "wrong_source": 42,
+      "copied_with_no_answer": 120,
+      "right_request_wrong_source": 10,
+      "missed_request": 96
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 48,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 28,
+        "wrong_source": 20,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 4,
+        "missed_request": 16
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 40,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 40,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 26,
+        "wrong_source": 22,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 6,
+        "missed_request": 16
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-held-old": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 96,
+      "eligible_support": [],
+      "emitted": 152,
+      "source_eligible": 96,
+      "right_source": 25,
+      "wrong_source": 39,
+      "copied_with_no_answer": 88,
+      "right_request_wrong_source": 7,
+      "missed_request": 192
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 32,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 14,
+        "wrong_source": 18,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 2,
+        "missed_request": 32
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 24,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 24,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 11,
+        "wrong_source": 21,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 5,
+        "missed_request": 32
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-held-query": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 288,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 144
+        },
+        {
+          "count": 1,
+          "rows": 48
+        },
+        {
+          "count": 2,
+          "rows": 96
+        }
+      ],
+      "emitted": 48,
+      "source_eligible": 96,
+      "right_source": 41,
+      "wrong_source": 7,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 55,
+      "missed_request": 0
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 2,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 2,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 48,
+        "missed_request": 0
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 41,
+        "wrong_source": 7,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 7,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-held-support": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 144
+        },
+        {
+          "count": 1,
+          "rows": 112
+        },
+        {
+          "count": 2,
+          "rows": 32
+        }
+      ],
+      "emitted": 112,
+      "source_eligible": 96,
+      "right_source": 11,
+      "wrong_source": 37,
+      "copied_with_no_answer": 64,
+      "right_request_wrong_source": 21,
+      "missed_request": 192
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 16,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 16,
+        "missed_request": 32
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 32
+          }
+        ],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 11,
+        "wrong_source": 21,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 5,
+        "missed_request": 32
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-mixed-both": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 98
+        },
+        {
+          "count": 1,
+          "rows": 96
+        }
+      ],
+      "emitted": 96,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 48,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 48,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed1-mixed-nominee": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 98
+        },
+        {
+          "count": 1,
+          "rows": 96
+        }
+      ],
+      "emitted": 72,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 24,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 24,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 24,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed1-mixed-old": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 47,
+      "eligible_support": [],
+      "emitted": 24,
+      "source_eligible": 48,
+      "right_source": 24,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 49
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 23,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 25
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [],
+        "emitted": 24,
+        "source_eligible": 48,
+        "right_source": 24,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 0,
+      "name_as_nominee": 24,
+      "correct_source": 0
+    }
+  },
+  "seed1-mixed-query": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 146
+        },
+        {
+          "count": 1,
+          "rows": 48
+        }
+      ],
+      "emitted": 48,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed1-mixed-support": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 48,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 170
+        },
+        {
+          "count": 1,
+          "rows": 24
+        }
+      ],
+      "emitted": 24,
+      "source_eligible": 48,
+      "right_source": 24,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 48
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 24
+          },
+          {
+            "count": 1,
+            "rows": 24
+          }
+        ],
+        "emitted": 24,
+        "source_eligible": 48,
+        "right_source": 24,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 0,
+      "name_as_nominee": 24,
+      "correct_source": 0
+    }
+  },
+  "seed1-transfer-both": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-transfer-nominee": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1724,
+      "source_eligible": 1728,
+      "right_source": 1610,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 118,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1724,
+        "source_eligible": 1728,
+        "right_source": 1610,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 118,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-transfer-old": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [],
+      "emitted": 1724,
+      "source_eligible": 1728,
+      "right_source": 1610,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 118,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [],
+        "emitted": 1724,
+        "source_eligible": 1728,
+        "right_source": 1610,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 118,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-transfer-query": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-transfer-support": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-unseen-both": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1008,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 432
+        },
+        {
+          "count": 1,
+          "rows": 1296
+        }
+      ],
+      "emitted": 1296,
+      "source_eligible": 1728,
+      "right_source": 1008,
+      "wrong_source": 288,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 720
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1008,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 432
+          },
+          {
+            "count": 1,
+            "rows": 1296
+          }
+        ],
+        "emitted": 1296,
+        "source_eligible": 1728,
+        "right_source": 1008,
+        "wrong_source": 288,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 720
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-unseen-nominee": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1008,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 432
+        },
+        {
+          "count": 1,
+          "rows": 1296
+        }
+      ],
+      "emitted": 1190,
+      "source_eligible": 1728,
+      "right_source": 1026,
+      "wrong_source": 164,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 71,
+      "missed_request": 720
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1008,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 432
+          },
+          {
+            "count": 1,
+            "rows": 1296
+          }
+        ],
+        "emitted": 1190,
+        "source_eligible": 1728,
+        "right_source": 1026,
+        "wrong_source": 164,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 71,
+        "missed_request": 720
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-unseen-old": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 864,
+      "eligible_support": [],
+      "emitted": 904,
+      "source_eligible": 1728,
+      "right_source": 794,
+      "wrong_source": 110,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 70,
+      "missed_request": 864
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 864,
+        "eligible_support": [],
+        "emitted": 904,
+        "source_eligible": 1728,
+        "right_source": 794,
+        "wrong_source": 110,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 70,
+        "missed_request": 864
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-unseen-query": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1728,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1728,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed1-unseen-support": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 864,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 720
+        },
+        {
+          "count": 1,
+          "rows": 1008
+        }
+      ],
+      "emitted": 1008,
+      "source_eligible": 1728,
+      "right_source": 864,
+      "wrong_source": 144,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 864
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 864,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 720
+          },
+          {
+            "count": 1,
+            "rows": 1008
+          }
+        ],
+        "emitted": 1008,
+        "source_eligible": 1728,
+        "right_source": 864,
+        "wrong_source": 144,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 864
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-held-both": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 192,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 96
+        },
+        {
+          "count": 1,
+          "rows": 128
+        },
+        {
+          "count": 2,
+          "rows": 64
+        }
+      ],
+      "emitted": 128,
+      "source_eligible": 96,
+      "right_source": 26,
+      "wrong_source": 38,
+      "copied_with_no_answer": 64,
+      "right_request_wrong_source": 38,
+      "missed_request": 96
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 16,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 32,
+        "missed_request": 16
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 26,
+        "wrong_source": 22,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 6,
+        "missed_request": 16
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-held-nominee": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 192,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 96
+        },
+        {
+          "count": 1,
+          "rows": 128
+        },
+        {
+          "count": 2,
+          "rows": 64
+        }
+      ],
+      "emitted": 216,
+      "source_eligible": 96,
+      "right_source": 54,
+      "wrong_source": 42,
+      "copied_with_no_answer": 120,
+      "right_request_wrong_source": 10,
+      "missed_request": 96
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 48,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 32
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 28,
+        "wrong_source": 20,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 4,
+        "missed_request": 16
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 40,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 40,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 16
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 32,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 26,
+        "wrong_source": 22,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 6,
+        "missed_request": 16
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-held-old": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 96,
+      "eligible_support": [],
+      "emitted": 152,
+      "source_eligible": 96,
+      "right_source": 25,
+      "wrong_source": 39,
+      "copied_with_no_answer": 88,
+      "right_request_wrong_source": 7,
+      "missed_request": 192
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 32,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 14,
+        "wrong_source": 18,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 2,
+        "missed_request": 32
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 24,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 24,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 11,
+        "wrong_source": 21,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 5,
+        "missed_request": 32
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-held-query": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 288,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 144
+        },
+        {
+          "count": 1,
+          "rows": 48
+        },
+        {
+          "count": 2,
+          "rows": 96
+        }
+      ],
+      "emitted": 48,
+      "source_eligible": 96,
+      "right_source": 41,
+      "wrong_source": 7,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 55,
+      "missed_request": 0
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 2,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 2,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 48,
+        "missed_request": 0
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 41,
+        "wrong_source": 7,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 7,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-held-support": {
+    "total": {
+      "rows": 288,
+      "query_defined": 288,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 144
+        },
+        {
+          "count": 1,
+          "rows": 112
+        },
+        {
+          "count": 2,
+          "rows": 32
+        }
+      ],
+      "emitted": 112,
+      "source_eligible": 96,
+      "right_source": 11,
+      "wrong_source": 37,
+      "copied_with_no_answer": 64,
+      "right_request_wrong_source": 21,
+      "missed_request": 192
+    },
+    "classes": {
+      "conflict": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "duplicate_agree": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 16
+          },
+          {
+            "count": 2,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 48,
+        "right_source": 0,
+        "wrong_source": 16,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 16,
+        "missed_request": 32
+      },
+      "excluded": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "removed": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "third": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 32
+          },
+          {
+            "count": 1,
+            "rows": 16
+          }
+        ],
+        "emitted": 16,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 16,
+        "right_request_wrong_source": 0,
+        "missed_request": 32
+      },
+      "unique": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 16,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 16
+          },
+          {
+            "count": 1,
+            "rows": 32
+          }
+        ],
+        "emitted": 32,
+        "source_eligible": 48,
+        "right_source": 11,
+        "wrong_source": 21,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 5,
+        "missed_request": 32
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-mixed-both": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 98
+        },
+        {
+          "count": 1,
+          "rows": 96
+        }
+      ],
+      "emitted": 96,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 48,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 48,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed2-mixed-nominee": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 98
+        },
+        {
+          "count": 1,
+          "rows": 96
+        }
+      ],
+      "emitted": 72,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 24,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 24,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 24,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed2-mixed-old": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 47,
+      "eligible_support": [],
+      "emitted": 24,
+      "source_eligible": 48,
+      "right_source": 24,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 49
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 23,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 25
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [],
+        "emitted": 24,
+        "source_eligible": 48,
+        "right_source": 24,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 0,
+      "name_as_nominee": 24,
+      "correct_source": 0
+    }
+  },
+  "seed2-mixed-query": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 96,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 146
+        },
+        {
+          "count": 1,
+          "rows": 48
+        }
+      ],
+      "emitted": 48,
+      "source_eligible": 48,
+      "right_source": 48,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 48,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 48
+          }
+        ],
+        "emitted": 48,
+        "source_eligible": 48,
+        "right_source": 48,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 24,
+      "name_as_nominee": 0,
+      "correct_source": 24
+    }
+  },
+  "seed2-mixed-support": {
+    "total": {
+      "rows": 194,
+      "query_defined": 96,
+      "query_correct": 48,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 170
+        },
+        {
+          "count": 1,
+          "rows": 24
+        }
+      ],
+      "emitted": 24,
+      "source_eligible": 48,
+      "right_source": 24,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 48
+    },
+    "classes": {
+      "absent": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "ambiguous": {
+        "rows": 48,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 48
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      },
+      "positive": {
+        "rows": 48,
+        "query_defined": 48,
+        "query_correct": 24,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 24
+          },
+          {
+            "count": 1,
+            "rows": 24
+          }
+        ],
+        "emitted": 24,
+        "source_eligible": 48,
+        "right_source": 24,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 24
+      },
+      "prose": {
+        "rows": 50,
+        "query_defined": 0,
+        "query_correct": 0,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 50
+          }
+        ],
+        "emitted": 0,
+        "source_eligible": 0,
+        "right_source": 0,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 24,
+      "correct_request": 0,
+      "name_as_nominee": 24,
+      "correct_source": 0
+    }
+  },
+  "seed2-transfer-both": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-transfer-nominee": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1724,
+      "source_eligible": 1728,
+      "right_source": 1610,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 118,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1724,
+        "source_eligible": 1728,
+        "right_source": 1610,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 118,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-transfer-old": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [],
+      "emitted": 1724,
+      "source_eligible": 1728,
+      "right_source": 1610,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 118,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [],
+        "emitted": 1724,
+        "source_eligible": 1728,
+        "right_source": 1610,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 118,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-transfer-query": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-transfer-support": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1614,
+      "wrong_source": 114,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 114,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1614,
+        "wrong_source": 114,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 114,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-unseen-both": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1008,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 432
+        },
+        {
+          "count": 1,
+          "rows": 1296
+        }
+      ],
+      "emitted": 1296,
+      "source_eligible": 1728,
+      "right_source": 1008,
+      "wrong_source": 288,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 720
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1008,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 432
+          },
+          {
+            "count": 1,
+            "rows": 1296
+          }
+        ],
+        "emitted": 1296,
+        "source_eligible": 1728,
+        "right_source": 1008,
+        "wrong_source": 288,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 720
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-unseen-nominee": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1008,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 432
+        },
+        {
+          "count": 1,
+          "rows": 1296
+        }
+      ],
+      "emitted": 1190,
+      "source_eligible": 1728,
+      "right_source": 1026,
+      "wrong_source": 164,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 71,
+      "missed_request": 720
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1008,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 432
+          },
+          {
+            "count": 1,
+            "rows": 1296
+          }
+        ],
+        "emitted": 1190,
+        "source_eligible": 1728,
+        "right_source": 1026,
+        "wrong_source": 164,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 71,
+        "missed_request": 720
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-unseen-old": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 864,
+      "eligible_support": [],
+      "emitted": 904,
+      "source_eligible": 1728,
+      "right_source": 794,
+      "wrong_source": 110,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 70,
+      "missed_request": 864
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 864,
+        "eligible_support": [],
+        "emitted": 904,
+        "source_eligible": 1728,
+        "right_source": 794,
+        "wrong_source": 110,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 70,
+        "missed_request": 864
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-unseen-query": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 1728,
+      "eligible_support": [
+        {
+          "count": 1,
+          "rows": 1728
+        }
+      ],
+      "emitted": 1728,
+      "source_eligible": 1728,
+      "right_source": 1728,
+      "wrong_source": 0,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 0
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 1728,
+        "eligible_support": [
+          {
+            "count": 1,
+            "rows": 1728
+          }
+        ],
+        "emitted": 1728,
+        "source_eligible": 1728,
+        "right_source": 1728,
+        "wrong_source": 0,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 0
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  },
+  "seed2-unseen-support": {
+    "total": {
+      "rows": 1728,
+      "query_defined": 1728,
+      "query_correct": 864,
+      "eligible_support": [
+        {
+          "count": 0,
+          "rows": 720
+        },
+        {
+          "count": 1,
+          "rows": 1008
+        }
+      ],
+      "emitted": 1008,
+      "source_eligible": 1728,
+      "right_source": 864,
+      "wrong_source": 144,
+      "copied_with_no_answer": 0,
+      "right_request_wrong_source": 0,
+      "missed_request": 864
+    },
+    "classes": {
+      "positive": {
+        "rows": 1728,
+        "query_defined": 1728,
+        "query_correct": 864,
+        "eligible_support": [
+          {
+            "count": 0,
+            "rows": 720
+          },
+          {
+            "count": 1,
+            "rows": 1008
+          }
+        ],
+        "emitted": 1008,
+        "source_eligible": 1728,
+        "right_source": 864,
+        "wrong_source": 144,
+        "copied_with_no_answer": 0,
+        "right_request_wrong_source": 0,
+        "missed_request": 864
+      }
+    },
+    "regarding_name": {
+      "rows": 0,
+      "correct_request": 0,
+      "name_as_nominee": 0,
+      "correct_source": 0
+    }
+  }
+}

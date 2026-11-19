@@ -1,0 +1,8 @@
+6325b8d2075a990ab920db9c8a5b9e1ea22fa3d47581cc9bd915e95ca2780419  bin/occurrence
+3dceae8dd7e5fcd43086286fe0edead03ab341258f5e823b38d0332fafc80f36  bin/occurrence-device
+050cd5be897966355203553ee90989de179394454f81b6441ef9179fcd3c7ca1  run-wick.sh
+58bed31e29341a395f1b4327c23234d367d143ced63cd9902bc39e7ffc52cf71  mixed-oracle.jq
+d77f008421f181391fbd8675535f5e6eb80412992db1211d07f05f99a00e2a74  source/docs/loop/tasks/written-state-count-model/codex-11/nominee/Cargo.lock
+79e935f0d555b0eff867a07afc867a5736f2afd3381d7d0715a95959bbb1bab1  source/docs/loop/tasks/written-state-count-model/codex-11/nominee/Cargo.toml
+e7e6c5262ef0c74eba793186f4f62ff5b322a46a89d9e47db33980a4a3a99b69  source/docs/loop/tasks/written-state-count-model/codex-11/nominee/driver.rs
+a40e02baa433b3218893735f1c0731a02d5c3e949236cc2f1c945a9f00b1f22d  source/docs/loop/tasks/written-state-count-model/codex-11/nominee/operator.cu

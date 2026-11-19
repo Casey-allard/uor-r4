@@ -2013,8 +2013,14 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
     let mut copy_steps = Vec::new();
     let mut context = prompt.to_vec();
     let mut generated_ids = Vec::with_capacity(cli.max_tokens);
+    let mut count_masses = Vec::new();
     for _ in 0..cli.max_tokens {
         let ordinary = model.evaluate_prefix(&context)?.prediction;
+        if let Some(mixer) = model.count_mixer() {
+            // evaluate_prefix validates the full context before selecting the count winner.
+            let previous = context[context.len() - 1] as u16;
+            count_masses.push(mixer.mass_q32(previous, ordinary as u16));
+        }
         let prediction = if role_carrier {
             // Cursor addresses stay relative to the captured prompt even when the decode window slides.
             let step = cursor.write(prompt, ordinary, ROLE_COPY_STOPS)?.finish_with_eos(true, 1);
@@ -2049,6 +2055,11 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         record["read_enabled"] = (cli.read_mode == ReadMode::Enabled).into();
         record["selected"] = serde_json::to_value(choice)?;
         record["copy_step_words"] = serde_json::to_value(copy_steps)?;
+    }
+    if let Some(mixer) = model.count_mixer() {
+        record["decoding"] = "greedy full-support count mixer".into();
+        record["conditional_weight_of_256"] = mixer.conditional_weight().into();
+        record["generated_mass_q32"] = serde_json::to_value(count_masses)?;
     }
     if let Some((tokenizer, protocol, digest)) = text_mode {
         let visible = generated_ids.strip_suffix(&[protocol.eos_id]);

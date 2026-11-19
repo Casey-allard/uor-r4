@@ -1,0 +1,10 @@
+wick
+Thu Nov 19 01:31:46 UTC 2026
+name, uuid, driver_version, memory.free [MiB]
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 595.99.02, 9349 MiB
+5ada7d176914cac83c4e36f6203df3aeca66897ad1ec5090d19c54d1b09b83c8  target/release/count-reweight
+3e9b1fe892b68df07340da565b768700d38a436b6301b99027f3b9e8f0694390  target/release/count-score
+8d90cbe774d022efd26faaf097ccda659825340f06a45622c2028266c3d4ae69  count-score-device
+ee380d837e4e8f8741bc46199ab2517680a288f0c85851788bea0875e150a6ff  src/docs/labs/kn-reference/instrument/src/bin/count-reweight.rs
+1610a351216abae5cebc27d7a7e4faac7c1f39119d6dc4127f663a7c3ceb9d0a  run/full.d11
+67d89c7d3333cacd1e70f186dab623c5b46f8aba76d9474453282061baad6cf8  run/pruned.d11
