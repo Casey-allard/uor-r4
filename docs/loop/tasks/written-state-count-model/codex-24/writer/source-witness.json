@@ -1,0 +1,114 @@
+{
+  "model_sha256": "02b922d37308593de956bf9c7c8ee0dbb259d2152528d6993eb9c89be84f65e3",
+  "mode": "ordered",
+  "cases": [
+    {
+      "prompt_id": "held-0-1-0-0-0-0",
+      "choice": {
+        "fact": null,
+        "query": 56,
+        "source": null
+      },
+      "supporting_facts": 1,
+      "complete_values": 0
+    },
+    {
+      "prompt_id": "held-0-0-0-0-0-0",
+      "choice": {
+        "fact": null,
+        "query": 45,
+        "source": null
+      },
+      "supporting_facts": 1,
+      "complete_values": 0
+    },
+    {
+      "prompt_id": "held-0-3-0-0-0-0",
+      "choice": {
+        "fact": null,
+        "query": 44,
+        "source": null
+      },
+      "supporting_facts": 1,
+      "complete_values": 0
+    },
+    {
+      "prompt_id": "held-0-2-0-0-0-0",
+      "choice": {
+        "fact": null,
+        "query": 49,
+        "source": null
+      },
+      "supporting_facts": 1,
+      "complete_values": 0
+    }
+  ],
+  "gold_onset": 12,
+  "assertion": {
+    "assertion": {
+      "continuation": {
+        "connector_mask": 3,
+        "onset_mask": 4,
+        "reason": 0,
+        "source": 12
+      },
+      "fence": 16,
+      "source": null,
+      "value": {
+        "both": null,
+        "current": 13,
+        "eligible_mask": 7,
+        "ordered": null,
+        "ordered_mask": 0,
+        "word_start": 12,
+        "word_start_mask": 2
+      }
+    },
+    "completed_source_range": null,
+    "fact_span": [
+      9,
+      10
+    ],
+    "onset": {
+      "source": null,
+      "status": 2
+    }
+  },
+  "candidates": [
+    {
+      "class": 2,
+      "eligible": true,
+      "relative": 2,
+      "score": null,
+      "source": 11,
+      "token": 85,
+      "word_start": false
+    },
+    {
+      "class": 1,
+      "eligible": true,
+      "relative": 3,
+      "score": {
+        "class_signature": 153,
+        "margin": null,
+        "negative_distance": null,
+        "positive_distance": 124,
+        "radius": 124,
+        "shape": 514,
+        "status": 2
+      },
+      "source": 12,
+      "token": 975,
+      "word_start": true
+    },
+    {
+      "class": 2,
+      "eligible": true,
+      "relative": 4,
+      "score": null,
+      "source": 13,
+      "token": 560,
+      "word_start": false
+    }
+  ]
+}

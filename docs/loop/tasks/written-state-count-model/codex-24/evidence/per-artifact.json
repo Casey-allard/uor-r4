@@ -1,0 +1,864 @@
+{
+  "ambiguity": {
+    "prompts": 32,
+    "positive_count_histograms": [
+      {
+        "arm": "identity",
+        "counts": [
+          0,
+          20,
+          12
+        ]
+      },
+      {
+        "arm": "positional",
+        "counts": [
+          4,
+          28,
+          0
+        ]
+      }
+    ]
+  },
+  "total": {
+    "prompts": 1024,
+    "mentions": 2048,
+    "identity": {
+      "exact_set": 320,
+      "positive_exact": 96,
+      "full_classes": 256,
+      "false_positive_empty": 160,
+      "all_abstained": 32,
+      "sets_by_size": [
+        {
+          "size": 0,
+          "prompts": 384,
+          "exact": 224
+        },
+        {
+          "size": 1,
+          "prompts": 512,
+          "exact": 64
+        },
+        {
+          "size": 2,
+          "prompts": 128,
+          "exact": 32
+        }
+      ],
+      "confusion": [
+        {
+          "truth": 0,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            576,
+            192,
+            0,
+            0
+          ]
+        },
+        {
+          "truth": 1,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            384,
+            192,
+            0,
+            192
+          ]
+        },
+        {
+          "truth": 2,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            256,
+            128,
+            128,
+            0
+          ]
+        }
+      ]
+    },
+    "positional": {
+      "exact_set": 192,
+      "positive_exact": 96,
+      "full_classes": 96,
+      "false_positive_empty": 288,
+      "all_abstained": 64,
+      "sets_by_size": [
+        {
+          "size": 0,
+          "prompts": 384,
+          "exact": 96
+        },
+        {
+          "size": 1,
+          "prompts": 512,
+          "exact": 64
+        },
+        {
+          "size": 2,
+          "prompts": 128,
+          "exact": 32
+        }
+      ],
+      "confusion": [
+        {
+          "truth": 0,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            0,
+            576,
+            192,
+            0
+          ]
+        },
+        {
+          "truth": 1,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            192,
+            192,
+            0,
+            384
+          ]
+        },
+        {
+          "truth": 2,
+          "actual_order": [
+            "unspecified",
+            "requested",
+            "excluded",
+            "abstain"
+          ],
+          "counts": [
+            128,
+            0,
+            384,
+            0
+          ]
+        }
+      ]
+    },
+    "controls": {
+      "empty": 384,
+      "first": 256,
+      "last": 256
+    },
+    "gained": 160,
+    "lost": 288
+  },
+  "by_family": [
+    {
+      "family": "far",
+      "results": {
+        "prompts": 256,
+        "mentions": 512,
+        "identity": {
+          "exact_set": 96,
+          "positive_exact": 0,
+          "full_classes": 96,
+          "false_positive_empty": 0,
+          "all_abstained": 0,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 96
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                128,
+                0
+              ]
+            }
+          ]
+        },
+        "positional": {
+          "exact_set": 0,
+          "positive_exact": 0,
+          "full_classes": 0,
+          "false_positive_empty": 96,
+          "all_abstained": 0,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 0
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                128,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "controls": {
+          "empty": 96,
+          "first": 64,
+          "last": 64
+        },
+        "gained": 0,
+        "lost": 96
+      }
+    },
+    {
+      "family": "near",
+      "results": {
+        "prompts": 256,
+        "mentions": 512,
+        "identity": {
+          "exact_set": 96,
+          "positive_exact": 0,
+          "full_classes": 32,
+          "false_positive_empty": 0,
+          "all_abstained": 32,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 96
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                0,
+                192
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                128,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "positional": {
+          "exact_set": 0,
+          "positive_exact": 0,
+          "full_classes": 0,
+          "false_positive_empty": 96,
+          "all_abstained": 32,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 0
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                0,
+                192
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                128,
+                0
+              ]
+            }
+          ]
+        },
+        "controls": {
+          "empty": 96,
+          "first": 64,
+          "last": 64
+        },
+        "gained": 0,
+        "lost": 96
+      }
+    },
+    {
+      "family": "right",
+      "results": {
+        "prompts": 256,
+        "mentions": 512,
+        "identity": {
+          "exact_set": 0,
+          "positive_exact": 0,
+          "full_classes": 0,
+          "false_positive_empty": 96,
+          "all_abstained": 0,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 0
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                128,
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "positional": {
+          "exact_set": 96,
+          "positive_exact": 96,
+          "full_classes": 96,
+          "false_positive_empty": 96,
+          "all_abstained": 0,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 0
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 64
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 32
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                128,
+                0
+              ]
+            }
+          ]
+        },
+        "controls": {
+          "empty": 96,
+          "first": 64,
+          "last": 64
+        },
+        "gained": 96,
+        "lost": 0
+      }
+    },
+    {
+      "family": "root_order",
+      "results": {
+        "prompts": 256,
+        "mentions": 512,
+        "identity": {
+          "exact_set": 128,
+          "positive_exact": 96,
+          "full_classes": 128,
+          "false_positive_empty": 64,
+          "all_abstained": 0,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 32
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 64
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 32
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                192,
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                192,
+                0,
+                0
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                128,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "positional": {
+          "exact_set": 96,
+          "positive_exact": 0,
+          "full_classes": 0,
+          "false_positive_empty": 0,
+          "all_abstained": 32,
+          "sets_by_size": [
+            {
+              "size": 0,
+              "prompts": 96,
+              "exact": 96
+            },
+            {
+              "size": 1,
+              "prompts": 128,
+              "exact": 0
+            },
+            {
+              "size": 2,
+              "prompts": 32,
+              "exact": 0
+            }
+          ],
+          "confusion": [
+            {
+              "truth": 0,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                192,
+                0
+              ]
+            },
+            {
+              "truth": 1,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                0,
+                192
+              ]
+            },
+            {
+              "truth": 2,
+              "actual_order": [
+                "unspecified",
+                "requested",
+                "excluded",
+                "abstain"
+              ],
+              "counts": [
+                0,
+                0,
+                128,
+                0
+              ]
+            }
+          ]
+        },
+        "controls": {
+          "empty": 96,
+          "first": 64,
+          "last": 64
+        },
+        "gained": 64,
+        "lost": 96
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "factor": "polarity_pair",
+      "results": {
+        "pairs": 128,
+        "gold_changed": 128,
+        "identity_changed": 0,
+        "positional_changed": 32,
+        "identity_both": 0,
+        "positional_both": 32
+      }
+    },
+    {
+      "factor": "clause_order_pair",
+      "results": {
+        "pairs": 512,
+        "gold_changed": 0,
+        "identity_changed": 0,
+        "positional_changed": 0,
+        "identity_both": 160,
+        "positional_both": 96
+      }
+    },
+    {
+      "factor": "fact_order_pair",
+      "results": {
+        "pairs": 512,
+        "gold_changed": 0,
+        "identity_changed": 0,
+        "positional_changed": 0,
+        "identity_both": 160,
+        "positional_both": 96
+      }
+    },
+    {
+      "factor": "name_variant_pair",
+      "results": {
+        "pairs": 512,
+        "gold_changed": 320,
+        "identity_changed": 192,
+        "positional_changed": 288,
+        "identity_both": 160,
+        "positional_both": 96
+      }
+    }
+  ],
+  "by_source_support": [
+    {
+      "supported": false,
+      "mentions": 512,
+      "requested": 192,
+      "identity_correct_requested": 48,
+      "positional_correct_requested": 48
+    },
+    {
+      "supported": true,
+      "mentions": 1536,
+      "requested": 576,
+      "identity_correct_requested": 144,
+      "positional_correct_requested": 144
+    }
+  ]
+}

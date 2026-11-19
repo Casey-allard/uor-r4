@@ -20,6 +20,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/clause-role-fit": {
+    "branch": "codex/clause-role-fit",
+    "claimed_at": "2026-11-19T17:41:31-05:00",
+    "head": "a799ed5c9",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/fresh-boundary-validity": {
     "branch": "codex/fresh-boundary-validity",
     "claimed_at": "2026-11-19T00:00:33-05:00",

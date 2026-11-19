@@ -1,0 +1,74 @@
+{
+  "d11_sha256": "b78c4ddc9dfca0b0c0f7f6fcab84ad6c09bdcb3c9c404a817dda7fa2548b3c33",
+  "held": {
+    "ambiguous_prompts": 32,
+    "candidates": 2112,
+    "family_counts": {
+      "ambiguous": 32,
+      "far": 256,
+      "near": 256,
+      "right": 256,
+      "root_order": 256
+    },
+    "max_abs_coordinate": 12,
+    "prompts": 1056,
+    "requested_set_sizes": [
+      416,
+      512,
+      128
+    ],
+    "role_counts": [
+      832,
+      768,
+      512
+    ],
+    "support_role_counts": [
+      [
+        208,
+        192,
+        128
+      ],
+      [
+        624,
+        576,
+        384
+      ]
+    ]
+  },
+  "seed": 1,
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "train": {
+    "ambiguous_prompts": 0,
+    "candidates": 2048,
+    "family_counts": {
+      "far": 256,
+      "near": 256,
+      "right": 256,
+      "root_order": 256
+    },
+    "max_abs_coordinate": 12,
+    "prompts": 1024,
+    "requested_set_sizes": [
+      384,
+      512,
+      128
+    ],
+    "role_counts": [
+      768,
+      768,
+      512
+    ],
+    "support_role_counts": [
+      [
+        192,
+        192,
+        128
+      ],
+      [
+        576,
+        576,
+        384
+      ]
+    ]
+  }
+}

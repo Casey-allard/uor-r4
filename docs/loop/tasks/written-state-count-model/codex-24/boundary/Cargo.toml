@@ -1,0 +1,17 @@
+[package]
+name = "d24-boundary-witness"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d24-boundary-witness"
+path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+sha2 = "0.10"

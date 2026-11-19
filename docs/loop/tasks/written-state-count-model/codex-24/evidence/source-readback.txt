@@ -1,0 +1,4 @@
+Hugging Face dataset caseyallard/uor-r4-store, revision d83f67b19db0eba57a2233578dfb13c9d5df9de8, path results/codex/2026-11-19-clause-role-24-b6f7cc7/source-witnesses-final
+Both original source witnesses were restored byte-identically from this private revision and checksum verified on Wick.
+42eac9aabccf38bc051ba04d0d3c12302a814dd74cb82169362025555c77bc0e  boundary-witness.json
+ed9380b1d227166a8183f06e6b1c4199bf457d738c4a1e6bb0f47fcd32eddf43  source-witness.json
