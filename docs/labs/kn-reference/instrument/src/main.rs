@@ -815,7 +815,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
     eprintln!("masses at the one-unit floor: {masses_at_floor}");
     let mass_bytes: Vec<u8> = masses.iter().flat_map(|m| m.to_le_bytes()).collect();
     let mut summary = serde_json::json!({
-        "unit": if args.ceiling { "claude-433" } else { "claude-421" },
+        "unit": if args.ceiling { "claude-438" } else { "claude-421" },
         "highest_order": args.highest,
         "budget": args.budget,
         "per_mille": args.per_mille,
@@ -836,14 +836,23 @@ fn run(args: &[String]) -> Result<(), Failure> {
     Ok(())
 }
 
-/// claude-433: the EM passes of every ceiling mode.
+/// The EM passes of every ceiling mode: 24 in claude-433, 96 from claude-438's KN start.
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
-const EM_ITERATIONS: u32 = 24;
+const EM_ITERATIONS: u32 = 96;
+
+/// claude-438: the lower bound on any bucketed fit's score over the scored targets, in
+/// micro-BPB, floored: (bits_q12 - gap_q12) * 10^6 / (4096 * bytes).
+fn lower_bpb_micro(bits_q12: u128, gap_q12: u128, bytes: u64) -> Option<u128> {
+    let denominator = u128::from(LOG2_SCALE) * u128::from(bytes);
+    (denominator > 0).then(|| bits_q12.saturating_sub(gap_q12) * 1_000_000 / denominator)
+}
 
 /// claude-433: the ceiling modes over the lookups (`RawTables::lookups`'s layout) and the
 /// KN masses, each tallied as the KN run is: `u_count` fit on every target and scored on
 /// every target; `u_split` fit on one record parity and scored on the other; `kn_u` with
 /// only the KN and uniform experts; `kn_only`, the KN masses themselves.
+/// claude-438: every fit starts at KN (`EmStart::Kn`), and each records `gap_bound_q12`
+/// at its final weights; U_count also records its lower bound in micro-BPB.
 #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
 fn ceiling_modes(
     highest: u32,
@@ -854,7 +863,9 @@ fn ceiling_modes(
     id_bytes: &[u8],
     classes: &[u8],
 ) -> Result<serde_json::Value, Failure> {
-    use uor_r4_discrete::kn_ceiling::{bucket_count, expert_count, CeilingFit, CeilingTable};
+    use uor_r4_discrete::kn_ceiling::{
+        bucket_count, expert_count, CeilingFit, CeilingTable, EmStart,
+    };
 
     let table = CeilingTable::from_lookups(highest, kn_masses, counts, totals)?;
     let experts = expert_count(highest);
@@ -867,14 +878,22 @@ fn ceiling_modes(
     };
 
     let everyone = vec![true; targets];
-    let u_count = table.fit_em(&everyone, EM_ITERATIONS, bits_q12)?;
+    let all_experts = vec![true; experts];
+    let fit_from = |fit: &[bool], on: &[bool]| -> Result<(CeilingFit, u128), Failure> {
+        let result = table.fit_em_from(fit, on, EmStart::Kn, EM_ITERATIONS, bits_q12)?;
+        let gap = table.gap_bound_q12(&result.weights, fit, on, bits_q12)?;
+        Ok((result, gap))
+    };
+    let (u_count, u_count_gap) = fit_from(&everyone, &all_experts)?;
     let u_count_masses = table.mixed_masses(&u_count.weights)?;
-    eprintln!("ceiling u_count fitted");
+    let (u_count_all, _) = tally(query, &u_count_masses, id_bytes, classes)?;
+    let u_count_lower = lower_bpb_micro(u_count_all.bits_q12, u_count_gap, u_count_all.bytes);
+    eprintln!("ceiling u_count fitted, gap bound {u_count_gap} q12");
 
     let parity = record_parity(query);
     let even: Vec<bool> = parity.iter().map(|&odd| !odd).collect();
-    let even_fit = table.fit_em(&even, EM_ITERATIONS, bits_q12)?;
-    let odd_fit = table.fit_em(&parity, EM_ITERATIONS, bits_q12)?;
+    let (even_fit, even_gap) = fit_from(&even, &all_experts)?;
+    let (odd_fit, odd_gap) = fit_from(&parity, &all_experts)?;
     let split_masses = combine_by_parity(
         &parity,
         &table.mixed_masses(&even_fit.weights)?,
@@ -885,7 +904,7 @@ fn ceiling_modes(
     let mut kn_and_uniform = vec![false; experts];
     kn_and_uniform[0] = true;
     kn_and_uniform[experts - 1] = true;
-    let kn_u = table.fit_em_with(&everyone, &kn_and_uniform, EM_ITERATIONS, bits_q12)?;
+    let (kn_u, kn_u_gap) = fit_from(&everyone, &kn_and_uniform)?;
     let kn_u_masses = table.mixed_masses(&kn_u.weights)?;
     eprintln!("ceiling kn_u fitted");
 
@@ -908,21 +927,27 @@ fn ceiling_modes(
 
     Ok(serde_json::json!({
         "em_iterations": EM_ITERATIONS,
+        "em_start": "kn",
         "experts": experts,
         "expert_order": "KN, ML_0..ML_N, uniform",
         "u_count": {
             "scored": scored(&u_count_masses)?,
             "fit_bits_q12": fit_bits(&u_count),
+            "gap_bound_q12": u_count_gap.to_string(),
+            "lower_bpb_micro": u_count_lower.map(|v| v.to_string()),
             "buckets": buckets,
         },
         "u_split": {
             "scored": scored(&split_masses)?,
             "fit_bits_q12_even": fit_bits(&even_fit),
             "fit_bits_q12_odd": fit_bits(&odd_fit),
+            "gap_bound_q12_even": even_gap.to_string(),
+            "gap_bound_q12_odd": odd_gap.to_string(),
         },
         "kn_u": {
             "scored": scored(&kn_u_masses)?,
             "fit_bits_q12": fit_bits(&kn_u),
+            "gap_bound_q12": kn_u_gap.to_string(),
         },
         "kn_only": { "scored": scored(kn_masses)? },
     }))
@@ -1014,6 +1039,16 @@ mod tests {
         );
         assert!(combine_by_parity(&parity, &from_even_fit[..4], &from_odd_fit).is_err());
         assert!(combine_by_parity(&parity, &from_even_fit, &from_odd_fit[..4]).is_err());
+    }
+
+    #[test]
+    fn the_lower_bound_subtracts_the_gap_and_floors() {
+        // 20 bits over 10 bytes is 2 bits per byte.
+        assert_eq!(lower_bpb_micro(4096 * 20, 0, 10), Some(2_000_000));
+        assert_eq!(lower_bpb_micro(4096 * 20, 4096 * 5, 10), Some(1_500_000));
+        assert_eq!(lower_bpb_micro(4096 * 20, 4096 * 30, 10), Some(0));
+        assert_eq!(lower_bpb_micro(4096 * 20 - 1, 0, 10), Some(1_999_975));
+        assert_eq!(lower_bpb_micro(1, 0, 0), None);
     }
 
     #[test]

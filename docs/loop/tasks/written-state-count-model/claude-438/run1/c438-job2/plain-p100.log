@@ -1,0 +1,42 @@
+read: train 209155800 of 2091560001 tokens, query 1066994 of 10810087, 10336 ms
+sweep: 14 shared ranges for orders 1..=10
+sweep phases ms: wall 58745 | own count 39637 extension count 0 | histogram 19 select 815 sort 1665 emit 908 download 16262 records 18519 | runs 0 adjust 0 | push 11617 keep 7463 | 154 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 15 keep 17
+order 2 sink ms: push 168 keep 99
+order 3 sink ms: push 515 keep 270
+order 4 sink ms: push 896 keep 529
+order 5 sink ms: push 1186 keep 795
+order 6 sink ms: push 1446 keep 1008
+order 7 sink ms: push 1620 keep 1076
+order 8 sink ms: push 1881 keep 1117
+order 9 sink ms: push 1856 keep 1336
+order 10 sink ms: push 2030 keep 1211
+order 0 push parts ms: triple checks 0 context checks 0 census 0 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 0 context 0
+order 0: 1 partitions, grams 4054 contexts 1, kept triples 3359 contexts 1, 71453 ms
+order 1 push parts ms: triple checks 3 context checks 0 census 11 triple feed 0 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 45 context 0
+order 1: 14 partitions, grams 1528378 contexts 4054, kept triples 103985 contexts 3359, 71454 ms
+order 2 push parts ms: triple checks 45 context checks 5 census 85 triple feed 31 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 325 context 67
+order 2: 14 partitions, grams 13812372 contexts 1527825, kept triples 265613 contexts 103957, 71461 ms
+order 3 push parts ms: triple checks 127 context checks 48 census 244 triple feed 94 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 808 context 545
+order 3: 14 partitions, grams 37829769 contexts 13807906, kept triples 329966 contexts 265496, 71469 ms
+order 4 push parts ms: triple checks 209 context checks 131 census 411 triple feed 144 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1191 context 1275
+order 4: 14 partitions, grams 64106933 contexts 37816932, kept triples 321488 contexts 329860, 71477 ms
+order 5 push parts ms: triple checks 263 context checks 220 census 520 triple feed 181 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1458 context 1975
+order 5: 14 partitions, grams 87142481 contexts 64087370, kept triples 283315 contexts 321390, 71483 ms
+order 6 push parts ms: triple checks 325 context checks 301 census 605 triple feed 214 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1917 context 2535
+order 6: 14 partitions, grams 105048351 contexts 87117959, kept triples 240715 contexts 283222, 71496 ms
+order 7 push parts ms: triple checks 351 context checks 362 census 667 triple feed 238 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 1989 context 3363
+order 7: 14 partitions, grams 118483064 contexts 105018999, kept triples 205170 contexts 240618, 71506 ms
+order 8 push parts ms: triple checks 383 context checks 409 census 784 triple feed 304 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 2026 context 3637
+order 8: 14 partitions, grams 128574380 contexts 118449893, kept triples 177310 contexts 205083, 71517 ms
+order 9 push parts ms: triple checks 403 context checks 442 census 726 triple feed 283 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 2233 context 3688
+order 9: 14 partitions, grams 136352007 contexts 128538870, kept triples 155746 contexts 177238, 71528 ms
+order 10 push parts ms: triple checks 425 context checks 505 census 815 triple feed 283 (send wait 0) context feed 0 (send wait 0) | hasher busy triple 2248 context 3869
+order 10: 14 partitions, grams 142529189 contexts 136315145, kept triples 138625 contexts 155685, 71541 ms
+push parts ms, all orders: triple checks 2538 context checks 2427 census 4872 triple feed 1777 (send wait 3) context feed 0 (send wait 0) | hasher busy triple 14245 context 20959
+order 0: KenLM fallback discounts (1/2, 1, 3/2)
+gpu scored 1066742 targets, 72002 ms
+masses at the one-unit floor: 0
+wrote /workspace/c438/run2/plain-p100.json, 72055 ms
+plain-p100 rc=0 wall s: 72 peak rss KiB: 8207528 peak GPU used MiB (whole device): 8092

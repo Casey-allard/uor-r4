@@ -1,0 +1,33 @@
+read: train 2089971 of 2091560001 tokens, query 8315 of 10810087, 8281 ms
+sweep: 1 shared ranges for orders 1..=10
+raw order 0: grams 3686 contexts 1, kept triples 977 contexts 1, 9849 ms
+raw order 1: grams 169519 contexts 3686, kept triples 3266 contexts 977, 9861 ms
+raw order 2: grams 545871 contexts 169453, kept triples 3108 contexts 3262, 9899 ms
+raw order 3: grams 873953 contexts 545562, kept triples 2301 contexts 3105, 9973 ms
+raw order 4: grams 1107910 contexts 873492, kept triples 1505 contexts 2299, 10083 ms
+raw order 5: grams 1271919 contexts 1107368, kept triples 963 contexts 1504, 10208 ms
+raw order 6: grams 1386281 contexts 1271330, kept triples 626 contexts 962, 10343 ms
+raw order 7: grams 1469415 contexts 1385612, kept triples 443 contexts 625, 10498 ms
+raw order 8: grams 1531258 contexts 1468718, kept triples 332 contexts 442, 10707 ms
+raw order 9: grams 1578748 contexts 1530550, kept triples 256 contexts 331, 10909 ms
+order 0: 1 partitions, grams 3686 contexts 1, kept triples 977 contexts 1, 11012 ms
+order 1: 1 partitions, grams 169519 contexts 3686, kept triples 3266 contexts 977, 11016 ms
+order 2: 1 partitions, grams 545871 contexts 169453, kept triples 3108 contexts 3262, 11024 ms
+order 3: 1 partitions, grams 873953 contexts 545562, kept triples 2301 contexts 3105, 11028 ms
+order 4: 1 partitions, grams 1107910 contexts 873492, kept triples 1505 contexts 2299, 11035 ms
+order 5: 1 partitions, grams 1271919 contexts 1107368, kept triples 963 contexts 1504, 11041 ms
+order 6: 1 partitions, grams 1386281 contexts 1271330, kept triples 626 contexts 962, 11044 ms
+order 7: 1 partitions, grams 1469415 contexts 1385612, kept triples 443 contexts 625, 11049 ms
+order 8: 1 partitions, grams 1531258 contexts 1468718, kept triples 332 contexts 442, 11051 ms
+order 9: 1 partitions, grams 1578748 contexts 1530550, kept triples 256 contexts 331, 11056 ms
+order 10: 1 partitions, grams 1616484 contexts 1578037, kept triples 206 contexts 255, 11060 ms
+gpu scored 8311 targets, 11302 ms
+host = GPU at all 8311 targets, 11312 ms
+masses at the one-unit floor: 0
+gpu looked up 8311 targets, 11540 ms
+host lookups = GPU at all 8311 targets
+ceiling u_count fitted, gap bound 12586480 q12
+ceiling u_split fitted
+ceiling kn_u fitted
+wrote /workspace/c438/run1/ceiling-p1.json, 11956 ms
+ceiling-p1 rc=0 wall s: 12 peak rss KiB: 8207672 peak GPU used MiB (whole device): 796

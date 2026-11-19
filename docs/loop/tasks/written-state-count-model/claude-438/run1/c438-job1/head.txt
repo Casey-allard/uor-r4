@@ -1,0 +1,15 @@
+head 6c66a76d51a2c332c1c065d0fdc665412653e787
+NVIDIA GeForce RTX 5090, 32607 MiB, 595.112.07
+cpus 96 mem 503 GiB
+== step 1: CUDA and host tests at the head
+test result: ok. 39 passed; 0 failed; 4 ignored; 0 measured; 429 filtered out; finished in 60.87s
+== step 2: 1 per mille with the host check
+ceiling-p1 rc=0 wall s: 12 peak rss KiB: 8207672 peak GPU used MiB (whole device): 796
+ceiling-p1: B2 true (start 163999686 last 163153139 kn 163999686 targets 8311) B3 true (L 2116747 U 2293695 gap 12586480)
+ceiling-p1: kn_only 2305596 u_count 2293695 lower 2116747 u_split 2321475 kn_u 2304617 | novel kn_only 2445080 u_count 2433675 u_split 2458528 kn_u 2444479
+== step 3: 1% and 10%
+ceiling-p10 rc=0 wall s: 30 peak rss KiB: 8207456 peak GPU used MiB (whole device): 8084
+plain-p10 rc=0 wall s: 16 peak rss KiB: 8207600 peak GPU used MiB (whole device): 8168
+B1 ceiling-p10: kn_only = plain-p10 (all and novel)
+novel: B2  (start  last  kn  targets ) B3  (L  U  gap )
+novel: kn_only  u_count  lower  u_split  kn_u  | novel kn_only  u_count  u_split  kn_u 

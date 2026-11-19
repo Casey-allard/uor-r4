@@ -197,6 +197,17 @@ pub struct CeilingFit {
     pub fit_bits: Vec<u128>,
 }
 
+/// Where the integer EM starts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EmStart {
+    /// Uniform over each bucket's present experts (claude-433).
+    Uniform,
+    /// claude-438: 2^32 - (L - 1) on KN and 1 on each of the other L - 1
+    /// present experts, so the start's mix is KN's own mass up to floors and
+    /// every present expert can still gain weight.
+    Kn,
+}
+
 /// Every target's bucket and its expert masses.
 pub struct CeilingTable {
     highest: u32,
@@ -282,6 +293,28 @@ impl CeilingTable {
         weights
     }
 
+    /// claude-438: the KN start over each bucket's present experts that `on`
+    /// keeps: each of them at 1 but KN, which holds the rest of 2^32. An
+    /// expert `on` drops holds 0. Refuses a mask that drops KN.
+    fn kn_weights_with(&self, on: &[bool]) -> Result<Vec<u64>> {
+        if !on[0] {
+            return Err(invalid("the KN start needs the KN expert"));
+        }
+        let experts = self.experts();
+        let mut weights = vec![0u64; bucket_count(self.highest) * experts];
+        for b in 0..bucket_count(self.highest) {
+            let row = &mut weights[b * experts..(b + 1) * experts];
+            let others = (1..experts).filter(|&e| on[e] && present(self.highest, b, e));
+            let mut rest = WEIGHT_ONE;
+            for e in others {
+                row[e] = 1;
+                rest -= 1;
+            }
+            row[0] = rest;
+        }
+        Ok(weights)
+    }
+
     /// Target t's unshifted mix sum of w_e * p_e.
     fn mix_sum(&self, weights: &[u64], t: usize) -> u128 {
         let experts = self.experts();
@@ -353,31 +386,25 @@ impl CeilingTable {
         iterations: u32,
         bits: impl Fn(u64) -> std::result::Result<u64, E>,
     ) -> Result<CeilingFit> {
-        let on = experts;
-        if on.len() != self.experts() {
-            return Err(invalid(format!(
-                "the expert mask holds {} entries, not {}",
-                on.len(),
-                self.experts()
-            )));
-        }
-        if let Some(b) = (0..bucket_count(self.highest))
-            .find(|&b| !(0..on.len()).any(|e| on[e] && present(self.highest, b, e)))
-        {
-            return Err(invalid(format!(
-                "the expert mask leaves bucket {b} no expert"
-            )));
-        }
-        if fit.len() != self.targets() {
-            return Err(invalid(format!(
-                "fit selects {} targets of {}",
-                fit.len(),
-                self.targets()
-            )));
-        }
+        self.fit_em_from(fit, experts, EmStart::Uniform, iterations, bits)
+    }
+
+    /// claude-438: `fit_em_with` from the chosen start.
+    pub fn fit_em_from<E: std::fmt::Display>(
+        &self,
+        fit: &[bool],
+        experts: &[bool],
+        start: EmStart,
+        iterations: u32,
+        bits: impl Fn(u64) -> std::result::Result<u64, E>,
+    ) -> Result<CeilingFit> {
+        let on = self.check_fit_inputs(fit, experts)?;
         let experts = self.experts();
         let buckets = bucket_count(self.highest);
-        let mut weights = self.uniform_weights_with(on);
+        let mut weights = match start {
+            EmStart::Uniform => self.uniform_weights_with(on),
+            EmStart::Kn => self.kn_weights_with(on)?,
+        };
         let mut fit_bits = vec![self.fit_bits_sum(&weights, fit, &bits)?];
         for _ in 0..iterations {
             let mut resp = vec![0u128; buckets * experts];
@@ -403,6 +430,109 @@ impl CeilingTable {
             fit_bits.push(self.fit_bits_sum(&weights, fit, &bits)?);
         }
         Ok(CeilingFit { weights, fit_bits })
+    }
+
+    /// claude-438: an upper bound, in Q12 bits, on how far the fit targets'
+    /// scored bits at `weights` (the sum `fit_em` records) can be above the
+    /// bits of the best weights that keep each bucket's present experts
+    /// `experts` keeps, scored with real-valued masses. Any weights' scored
+    /// bits are at least that best, so scored bits minus this bound is a
+    /// lower bound on every such fit's score.
+    ///
+    /// Two parts, both rounded up:
+    /// - the real-valued distance. For a bucket b with N_b fit targets and
+    ///   mixes m_t at `weights` (read as reals), let g_e =
+    ///   (1/N_b) sum_t p_te / m_t. Then sum_e w_e g_e = 1, and for any weights
+    ///   w* of the bucket Jensen's inequality gives sum_t log2(m*_t / m_t) <=
+    ///   N_b log2(sum_e w*_e g_e) <= N_b log2(max_e g_e). G = max_e g_e is
+    ///   taken in Q32 with floors (under 2^-31 relative low), and its log2 is
+    ///   `bits` of the Q48 mass floor(2^80 / G), plus one Q12 unit per target;
+    /// - the scoring floors. A scored mass is floor(m / 2^32), which adds at
+    ///   most log2(1 + 1 / mass) < 2 / mass bits, and `bits` sits at most one
+    ///   Q12 unit (plus 2^-48 bit) above the exact bits: 2 + ceil(8192 / mass)
+    ///   Q12 units per target.
+    pub fn gap_bound_q12<E: std::fmt::Display>(
+        &self,
+        weights: &[u64],
+        fit: &[bool],
+        experts: &[bool],
+        bits: impl Fn(u64) -> std::result::Result<u64, E>,
+    ) -> Result<u128> {
+        let on = self.check_fit_inputs(fit, experts)?;
+        self.check_weights(weights)?;
+        let experts = self.experts();
+        let buckets = bucket_count(self.highest);
+        let mut ratio = vec![0u128; buckets * experts];
+        let mut n = vec![0u128; buckets];
+        let mut floors = 0u128;
+        for t in (0..self.targets()).filter(|&t| fit[t]) {
+            let b = usize::from(self.buckets[t]);
+            let m = self.mix_sum(weights, t);
+            if m == 0 {
+                return Err(invalid(format!("target {t} has a zero mix")));
+            }
+            n[b] += 1;
+            floors += 2 + u128::from(8192u64.div_ceil(self.mixed(weights, t)));
+            let p = &self.masses[t * experts..(t + 1) * experts];
+            for e in (0..experts).filter(|&e| on[e] && present(self.highest, b, e)) {
+                let term = (u128::from(p[e]) << 64) / m;
+                let sum = &mut ratio[b * experts + e];
+                *sum = sum
+                    .checked_add(term)
+                    .ok_or_else(|| invalid("a ratio sum exceeded 2^128"))?;
+            }
+        }
+        let mut gap = 0u128;
+        for b in (0..buckets).filter(|&b| n[b] > 0) {
+            let g = ratio[b * experts..(b + 1) * experts]
+                .iter()
+                .map(|&r| r / n[b])
+                .max()
+                .unwrap_or(0);
+            let one = u128::from(WEIGHT_ONE);
+            let log2 = if g <= one {
+                0
+            } else {
+                let mass = u64::try_from((1u128 << 80) / g)
+                    .map_err(|_| invalid("a bound mass exceeded 2^64"))?;
+                if mass == 0 {
+                    return Err(invalid(format!(
+                        "bucket {b}: the bound's ratio is too large"
+                    )));
+                }
+                bits(mass).map_err(|e| invalid(e.to_string()))?
+            };
+            gap += n[b] * (u128::from(log2) + 1);
+        }
+        Ok(gap + floors)
+    }
+
+    /// The expert mask and fit selection of a fit, checked: the mask's length,
+    /// a bucket the mask leaves no expert, and the fit selection's length.
+    fn check_fit_inputs<'a>(&self, fit: &[bool], experts: &'a [bool]) -> Result<&'a [bool]> {
+        let on = experts;
+        if on.len() != self.experts() {
+            return Err(invalid(format!(
+                "the expert mask holds {} entries, not {}",
+                on.len(),
+                self.experts()
+            )));
+        }
+        if let Some(b) = (0..bucket_count(self.highest))
+            .find(|&b| !(0..on.len()).any(|e| on[e] && present(self.highest, b, e)))
+        {
+            return Err(invalid(format!(
+                "the expert mask leaves bucket {b} no expert"
+            )));
+        }
+        if fit.len() != self.targets() {
+            return Err(invalid(format!(
+                "fit selects {} targets of {}",
+                fit.len(),
+                self.targets()
+            )));
+        }
+        Ok(on)
     }
 
     /// One bucket's M step: w_e = floor(R_e * 2^32 / sum R), the remainder
@@ -763,5 +893,127 @@ mod tests {
         assert!(table.fit_em(&[true], 1, test_bits).is_err());
         assert!(table.mixed_masses(&[0; 3]).is_err());
         assert!(CeilingTable::from_lookups(1, &[1], &[0, 0], &[0, 0]).is_err());
+    }
+
+    /// claude-438: the KN start's weights over `on`, per bucket.
+    fn assert_kn_start(table: &CeilingTable, on: &[bool], weights: &[u64]) {
+        let experts = table.experts();
+        for b in 0..bucket_count(2) {
+            let row = &weights[b * experts..(b + 1) * experts];
+            let live = (0..experts).filter(|&e| on[e] && present(2, b, e)).count() as u64;
+            assert_eq!(row[0], WEIGHT_ONE - (live - 1), "bucket {b}: {row:?}");
+            for (e, &w) in row.iter().enumerate().skip(1) {
+                let want = u64::from(on[e] && present(2, b, e));
+                assert_eq!(w, want, "bucket {b} expert {e}: {row:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_kn_start_puts_the_rest_on_kn() {
+        let table = fixture();
+        let experts = table.experts();
+        let fit = vec![true; table.targets()];
+        let all = vec![true; experts];
+        let start = table
+            .fit_em_from(&fit, &all, EmStart::Kn, 0, test_bits)
+            .unwrap();
+        assert_kn_start(&table, &all, &start.weights);
+        let mut kn_u = vec![false; experts];
+        kn_u[0] = true;
+        kn_u[experts - 1] = true;
+        let start = table
+            .fit_em_from(&fit, &kn_u, EmStart::Kn, 0, test_bits)
+            .unwrap();
+        assert_kn_start(&table, &kn_u, &start.weights);
+        // A mask without KN is refused; the uniform start is fit_em_with's.
+        let mut no_kn = all.clone();
+        no_kn[0] = false;
+        assert!(table
+            .fit_em_from(&fit, &no_kn, EmStart::Kn, 1, test_bits)
+            .is_err());
+        assert_eq!(
+            table
+                .fit_em_from(&fit, &all, EmStart::Uniform, 5, test_bits)
+                .unwrap(),
+            table.fit_em_with(&fit, &all, 5, test_bits).unwrap()
+        );
+    }
+
+    #[test]
+    fn the_kn_start_scores_kn_up_to_floors() {
+        let table = fixture();
+        let experts = table.experts();
+        let fit: Vec<bool> = (0..table.targets()).map(|t| t % 7 != 3).collect();
+        let fitted = fit.iter().filter(|&&f| f).count() as u128;
+        let kn_bits: u128 = (0..table.targets())
+            .filter(|&t| fit[t])
+            .map(|t| u128::from(test_bits(table.masses()[t * experts]).unwrap()))
+            .sum();
+        let result = table
+            .fit_em_from(&fit, &vec![true; experts], EmStart::Kn, 12, test_bits)
+            .unwrap();
+        assert!(
+            result.fit_bits[0] <= kn_bits + fitted,
+            "start {} against KN {kn_bits}",
+            result.fit_bits[0]
+        );
+        for w in result.fit_bits.windows(2) {
+            assert!(w[1] <= w[0], "fit bits rose: {:?}", result.fit_bits);
+        }
+        assert!(result.fit_bits[12] < result.fit_bits[0]);
+        assert_sums(&table, &result.weights);
+    }
+
+    #[test]
+    fn the_gap_bound_covers_what_em_still_saves() {
+        let table = fixture();
+        let experts = table.experts();
+        let fit: Vec<bool> = (0..table.targets()).map(|t| t % 5 != 1).collect();
+        let fitted = fit.iter().filter(|&&f| f).count() as u128;
+        let mut kn_u = vec![false; experts];
+        kn_u[0] = true;
+        kn_u[experts - 1] = true;
+        for on in [vec![true; experts], kn_u] {
+            for start in [EmStart::Uniform, EmStart::Kn] {
+                let long = table.fit_em_from(&fit, &on, start, 400, test_bits).unwrap();
+                let best = *long.fit_bits.last().unwrap();
+                for passes in [0u32, 1, 3, 10, 40] {
+                    let at = table
+                        .fit_em_from(&fit, &on, start, passes, test_bits)
+                        .unwrap();
+                    let gap = table
+                        .gap_bound_q12(&at.weights, &fit, &on, test_bits)
+                        .unwrap();
+                    let scored = *at.fit_bits.last().unwrap();
+                    assert!(
+                        scored - best <= gap,
+                        "{start:?} pass {passes}: saves {} beyond the bound {gap}",
+                        scored - best
+                    );
+                }
+                // Near the optimum the bound shrinks to its floor slack.
+                let gap = table
+                    .gap_bound_q12(&long.weights, &fit, &on, test_bits)
+                    .unwrap();
+                assert!(gap >= 3 * fitted && gap <= 6 * fitted, "{start:?}: {gap}");
+            }
+        }
+        // From the uniform start, EM saves far more than the slack alone.
+        let all = vec![true; experts];
+        let first = table
+            .fit_em_from(&fit, &all, EmStart::Uniform, 0, test_bits)
+            .unwrap();
+        let long = table
+            .fit_em_from(&fit, &all, EmStart::Uniform, 400, test_bits)
+            .unwrap();
+        assert!(first.fit_bits[0] - long.fit_bits[400] > 20 * fitted);
+        // Wrong lengths are refused.
+        assert!(table
+            .gap_bound_q12(&first.weights[1..], &fit, &all, test_bits)
+            .is_err());
+        assert!(table
+            .gap_bound_q12(&first.weights, &fit[1..], &all, test_bits)
+            .is_err());
     }
 }

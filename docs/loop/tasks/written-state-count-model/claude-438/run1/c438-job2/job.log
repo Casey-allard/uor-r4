@@ -1,0 +1,35 @@
+# uor-pod job by=claude/claude-438 pod=vast-61370413 gpu=0 queued 2026-11-19T04:03:30Z
+# cmd: bash /workspace/c438/in/c438p2.sh
+# start 2026-11-19T04:03:30Z (holding /root/gpu0.lock)
+train.tokens.u16: OK
+dev-tune.tokens.u16: OK
+id-bytes.u8: OK
+dev-tune.novel.u8: OK
+head 6c66a76d51a2c332c1c065d0fdc665412653e787
+NVIDIA GeForce RTX 5090, 32607 MiB, 595.112.07
+cpus 96 mem 503 GiB
+== step 1: CUDA and host tests at the head
+test result: ok. 39 passed; 0 failed; 4 ignored; 0 measured; 429 filtered out; finished in 60.01s
+    Finished `release` profile [optimized] target(s) in 0.06s
+== step 2: 1 per mille with the host check
+ceiling-p1 rc=0 wall s: 12 peak rss KiB: 8207688 peak GPU used MiB (whole device): 8052
+ceiling-p1: B2 true (start 163999686 last 163153139 kn 163999686 targets 8311) B3 true (L 2116747 U 2293695 gap 12586480)
+ceiling-p1: kn_only 2305596 u_count 2293695 lower 2116747 u_split 2321475 kn_u 2304617 | novel kn_only 2445080 u_count 2433675 u_split 2458528 kn_u 2444479
+== step 3: 1% and 10%
+ceiling-p10 rc=0 wall s: 29 peak rss KiB: 8207544 peak GPU used MiB (whole device): 7908
+plain-p10 rc=0 wall s: 16 peak rss KiB: 8207604 peak GPU used MiB (whole device): 7968
+B1 ceiling-p10: kn_only = plain-p10 (all and novel)
+ceiling-p10: B2 true (start 1722902532 last 1717249227 kn 1722902561 targets 107257) B3 true (L 1878820 U 2138432 gap 208478924)
+ceiling-p10: kn_only 2145471 u_count 2138432 lower 1878820 u_split 2147941 kn_u 2144110 | novel kn_only 2404087 u_count 2401227 u_split 2406914 kn_u 2403792
+ceiling-p100 rc=0 wall s: 175 peak rss KiB: 8207416 peak GPU used MiB (whole device): 8696
+plain-p100 rc=0 wall s: 72 peak rss KiB: 8207528 peak GPU used MiB (whole device): 8092
+B1 ceiling-p100: kn_only = plain-p100 (all and novel)
+ceiling-p100: B2 true (start 14655846152 last 14649791970 kn 14655846210 targets 1066742) B3 true (L 1488912 U 1691107 gap 1751585610)
+ceiling-p100: kn_only 1691806 u_count 1691107 lower 1488912 u_split 1691566 kn_u 1691589 | novel kn_only 1986542 u_count 1985858 u_split 1986250 kn_u 1986365
+== step 4: 100%
+ceiling-p1000 rc=0 wall s: 1354 peak rss KiB: 10312988 peak GPU used MiB (whole device): 16028
+B1 ceiling-p1000: kn_only = claude-422 (1432318 / 1747150)
+ceiling-p1000: B2 true (start 128649429056 last 128614178256 kn 128649439118 targets 10807417) B3 true (L 1284092 U 1431925 gap 13278202590)
+ceiling-p1000: kn_only 1432318 u_count 1431925 lower 1284092 u_split 1432030 kn_u 1432196 | novel kn_only 1747150 u_count 1746667 u_split 1746774 kn_u 1747012
+done
+# exit=0 end=2026-11-19T04:32:23Z
