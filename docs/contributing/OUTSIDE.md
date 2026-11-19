@@ -49,6 +49,13 @@ A maintainer gives an exact-head review, may rewrite a kernel with you rather th
 you to fix it, and runs the gates that need lab access. If the work is not wanted, that is
 a normal answer, not a rejection. Credit lands in `README.md` and the lab record.
 
+**A PR opened from a fork is adopted rather than merged directly.** GitHub gives a fork's
+`pull_request` run a read-only token, so the job that publishes this repository's five required
+status names cannot create its check runs and every real CI job is skipped behind it. A maintainer
+applies your commits to a branch in this repository, runs the full gate set there, and merges that
+PR with yours linked for attribution; your PR is then closed as adopted. That is a GitHub limit on
+fork runs, not a judgement on the work, and it is how outside contributions land here.
+
 [#2028]: https://github.com/UOR-Foundation/uor-r4/issues/2028
 [#2029]: https://github.com/UOR-Foundation/uor-r4/issues/2029
 [#2032]: https://github.com/UOR-Foundation/uor-r4/issues/2032
