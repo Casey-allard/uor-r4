@@ -182,3 +182,67 @@ fn kn_lookup_cuda_empty_and_bos_only_queries_return_nothing() {
         assert!(counts.is_empty() && totals.is_empty());
     }
 }
+
+/// In this repeated record the raw unigram counts three copies of the target.
+/// Modified KN counts only one distinct predecessor. Reading the adjusted
+/// table for an ML expert must change the exact word even with a perfect GPU lookup.
+#[test]
+fn kn_lookup_cuda_distinguishes_adjusted_from_raw_source() {
+    let train = [NGRAM_BOS, 8, 9, 8, 9, 8, 9, 1];
+    let query = [9];
+    let raw = hand_tables(&train, 1);
+    let raw_device = KnLookup::new(0, &raw).unwrap();
+    let (expected, _) = assert_device_equals_host(&raw_device, &raw, &query);
+    assert_eq!(expected[0], 3);
+
+    let counter = NgramCounter::new(0, &train).unwrap();
+    let mut adjusted = [
+        NgramAssembler::new(0, true).unwrap(),
+        NgramAssembler::new(1, true).unwrap(),
+    ];
+    counter
+        .count_adjusted_sweep(1, 1 << 24, |k, part| adjusted[k as usize].push_owned(part))
+        .unwrap();
+    let wrong_tables = RawTables::new(
+        1,
+        adjusted.into_iter().map(NgramAssembler::finish).collect(),
+    )
+    .unwrap();
+    let (wrong, _) = KnLookup::new(0, &wrong_tables)
+        .unwrap()
+        .lookups(&query)
+        .unwrap();
+    assert_eq!(wrong[0], 1);
+    assert_ne!(
+        wrong, expected,
+        "using adjusted tables must fail the raw oracle"
+    );
+}
+
+/// These contexts have identical high words. Alter only the low 12 bits of the
+/// route and the count changes while the context still exists in the table.
+#[test]
+fn kn_lookup_cuda_order_ten_discriminates_low_word() {
+    let a = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+    let mut b = a;
+    b[0] = 20;
+    let key_a = PrimeRouteKey::from_context(&a).unwrap().word();
+    let key_b = PrimeRouteKey::from_context(&b).unwrap().word();
+    assert_eq!(key_a >> 64, key_b >> 64);
+    assert_eq!(key_a ^ key_b, u128::from(10u16 ^ 20u16));
+    let mut train = Vec::new();
+    for (context, next) in [(&a, 100), (&a, 100), (&b, 101)] {
+        train.push(NGRAM_BOS);
+        train.extend(context);
+        train.extend([next, 1]);
+    }
+    let raw = hand_tables(&train, 10);
+    let device = KnLookup::new(0, &raw).unwrap();
+    for (context, expected_count, expected_total) in [(&a, 2, 2), (&b, 0, 1)] {
+        let mut query = context.to_vec();
+        query.push(100);
+        let (counts, totals) = assert_device_equals_host(&device, &raw, &query);
+        assert_eq!(counts.last(), Some(&expected_count));
+        assert_eq!(totals.last(), Some(&expected_total));
+    }
+}

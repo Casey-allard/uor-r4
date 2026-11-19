@@ -1,0 +1,10 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+75.6,83568536,96,870505.6,878344.0,565221,1164842,286446.0,"void evaluate<(bool)1, (unsigned int)8191>(const unsigned long long *, const unsigned short *, unsigned int, const Chunk *, unsigned int, const unsigned long long *, unsigned long long *, unsigned long long *, unsigned long long *)"
+18.5,20452984,48,426103.8,426004.0,425539,430276,687.9,"void evaluate<(bool)1, (unsigned int)4097>(const unsigned long long *, const unsigned short *, unsigned int, const Chunk *, unsigned int, const unsigned long long *, unsigned long long *, unsigned long long *, unsigned long long *)"
+3.5,3865281,6,644213.5,499892.0,469572,963049,247337.4,"void evaluate<(bool)0, (unsigned int)8191>(const unsigned long long *, const unsigned short *, unsigned int, const Chunk *, unsigned int, const unsigned long long *, unsigned long long *, unsigned long long *, unsigned long long *)"
+1.2,1367246,144,9494.8,8993.0,7648,13888,1478.5,"update(unsigned long long *, const unsigned long long *, unsigned int, unsigned int *, int *)"
+0.5,555209,153,3628.8,3616.0,3520,3776,31.4,"reduce_tally(const unsigned long long *, unsigned long long *)"
+0.4,471876,2,235938.0,235938.0,234306,237570,2308.0,"void evaluate<(bool)0, (unsigned int)4097>(const unsigned long long *, const unsigned short *, unsigned int, const Chunk *, unsigned int, const unsigned long long *, unsigned long long *, unsigned long long *, unsigned long long *)"
+0.2,178562,1,178562.0,178562.0,178562,178562,0.0,"void evaluate<(bool)0, (unsigned int)1>(const unsigned long long *, const unsigned short *, unsigned int, const Chunk *, unsigned int, const unsigned long long *, unsigned long long *, unsigned long long *, unsigned long long *)"
+0.0,19905,6,3317.5,3344.0,2817,3648,340.0,"initialize(unsigned long long *, unsigned int, bool)"
+0.0,1408,1,1408.0,1408.0,1408,1408,0.0,"combine_fold_scores(unsigned long long *, const unsigned long long *)"

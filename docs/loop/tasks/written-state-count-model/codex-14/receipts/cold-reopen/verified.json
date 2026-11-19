@@ -1,0 +1,107 @@
+{
+  "collector_sha256": "5c041d9d33dd55f68ef5297cd3d54a0c18d755fa3d5b25bb118168459444a25e",
+  "frame_sha256": "06cf56fb093d00abaec4cb5c3da277da8657bfdb1963db1d44754b59b62f39d6",
+  "historical_fit_controls_match": true,
+  "historical_frame_match": true,
+  "kn_mass_sha256": "72522794dca8a2c4fcab3bff4474631a26b7bdcc811f0d535494f34ac942b810",
+  "manifest_sha256": "619a7a443f5cf56efca89178c74d4034ed980013420d5333198d640a41fb3163",
+  "novel_target_count": 6627,
+  "parity_targets": [
+    5969,
+    2342
+  ],
+  "per_mille": 1,
+  "raw_lookup_sha256": "8cd10699a7d24f967ccf4ee93a71af858d36b419244d19b009abaac54b31c732",
+  "reading": {
+    "best_checkpoint_bits_q12": 163161118,
+    "best_checkpoint_pass": 40,
+    "best_pass": 40,
+    "best_pass_bits_q12": 163161118,
+    "classification": "same-cut diagnostics",
+    "contains_kn_all_and_novel": true,
+    "converged": true,
+    "endpoint": 40,
+    "feasible_upper_bound_q12": null,
+    "kn_only": {
+      "all": {
+        "bits_q12": 163999686,
+        "bytes": 17366,
+        "targets": 8311
+      },
+      "novel": {
+        "bits_q12": 135423529,
+        "bytes": 13522,
+        "targets": 6627
+      }
+    },
+    "kn_u": {
+      "all": {
+        "bits_q12": 163934965,
+        "kn_minus_model_q12": 64721,
+        "ratio_ppm": 999605
+      },
+      "novel": {
+        "bits_q12": 135393272,
+        "kn_minus_model_q12": 30257,
+        "ratio_ppm": 999776
+      }
+    },
+    "kn_u_uniform": {
+      "all": {
+        "bits_q12": 163907055,
+        "kn_minus_model_q12": 92631,
+        "ratio_ppm": 999435
+      },
+      "novel": {
+        "bits_q12": 135359999,
+        "kn_minus_model_q12": 63530,
+        "ratio_ppm": 999530
+      }
+    },
+    "pass_24_sensitivity": null,
+    "per_mille": 1,
+    "selected_endpoint_sensitivity": null,
+    "split_gap_flag": true,
+    "u_count": {
+      "all": {
+        "bits_q12": 163161118,
+        "kn_minus_model_q12": 838568,
+        "ratio_ppm": 994886
+      },
+      "novel": {
+        "bits_q12": 134799818,
+        "kn_minus_model_q12": 623711,
+        "ratio_ppm": 995394
+      }
+    },
+    "u_count_uniform": {
+      "all": {
+        "bits_q12": 162413985,
+        "kn_minus_model_q12": 1585701,
+        "ratio_ppm": 990331
+      },
+      "novel": {
+        "bits_q12": 134221115,
+        "kn_minus_model_q12": 1202414,
+        "ratio_ppm": 991121
+      }
+    },
+    "u_split": {
+      "all": {
+        "bits_q12": 167316057,
+        "kn_minus_model_q12": -3316371,
+        "ratio_ppm": 1020221
+      },
+      "novel": {
+        "bits_q12": 137370772,
+        "kn_minus_model_q12": -1947243,
+        "ratio_ppm": 1014378
+      }
+    }
+  },
+  "schema": "kn-ceiling-independent-verification/1",
+  "source_sha256": "be7cd427fe16f5465b52725b3727eda41940a66902cc2ebf549503e9e64440e0",
+  "synthetic_fixture": false,
+  "target_count": 8311,
+  "verified_query_rows": true
+}

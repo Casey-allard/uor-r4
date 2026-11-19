@@ -1,0 +1,121 @@
+{
+  "collector_sha256": "5c041d9d33dd55f68ef5297cd3d54a0c18d755fa3d5b25bb118168459444a25e",
+  "frame_sha256": "1559c7f4e0b6b4ead7e3a240b5726b9e3462ef2b1b239e327642ae3984f526be",
+  "historical_fit_controls_match": true,
+  "historical_frame_match": true,
+  "kn_mass_sha256": "ae8518d552bc42d8f1c3602680bd77586d0cd9c237962fbf5e2b36704b6bb2fd",
+  "manifest_sha256": "320bfbdc9850402dbb90e8bb06d2c781ccc69dc98b0f8d030189dbcbc44b095f",
+  "novel_target_count": 7566174,
+  "parity_targets": [
+    5232673,
+    5574744
+  ],
+  "per_mille": 1000,
+  "raw_lookup_sha256": "2e11bea6fb1a22faf719f46009309ef2258d0092c02d1769d6c7fc319d5113a2",
+  "reading": {
+    "best_checkpoint_bits_q12": 128627655182,
+    "best_checkpoint_pass": 24,
+    "best_pass": 24,
+    "best_pass_bits_q12": 128627655182,
+    "classification": "geometry critical",
+    "contains_kn_all_and_novel": true,
+    "converged": true,
+    "endpoint": 24,
+    "feasible_upper_bound_q12": 128627655182,
+    "kn_only": {
+      "all": {
+        "bits_q12": 128649439118,
+        "bytes": 21928475,
+        "targets": 10807417
+      },
+      "novel": {
+        "bits_q12": 114471363642,
+        "bytes": 15995822,
+        "targets": 7566174
+      }
+    },
+    "kn_u": {
+      "all": {
+        "bits_q12": 128638511888,
+        "kn_minus_model_q12": 10927230,
+        "ratio_ppm": 999915
+      },
+      "novel": {
+        "bits_q12": 114462336741,
+        "kn_minus_model_q12": 9026901,
+        "ratio_ppm": 999921
+      }
+    },
+    "kn_u_uniform": {
+      "all": {
+        "bits_q12": 128638070224,
+        "kn_minus_model_q12": 11368894,
+        "ratio_ppm": 999911
+      },
+      "novel": {
+        "bits_q12": 114461909169,
+        "kn_minus_model_q12": 9454473,
+        "ratio_ppm": 999917
+      }
+    },
+    "pass_24_sensitivity": {
+      "bits_q12": 128627655182,
+      "branch": "geometry critical",
+      "crosses_cutoff": false,
+      "pass": 24,
+      "projected_branch": "geometry critical",
+      "projected_q12": 128626506270
+    },
+    "per_mille": 1000,
+    "selected_endpoint_sensitivity": {
+      "bits_q12": 128627655182,
+      "branch": "geometry critical",
+      "crosses_cutoff": false,
+      "pass": 24,
+      "projected_branch": "geometry critical",
+      "projected_q12": 128626506270
+    },
+    "split_gap_flag": true,
+    "u_count": {
+      "all": {
+        "bits_q12": 128627655182,
+        "kn_minus_model_q12": 21783936,
+        "ratio_ppm": 999830
+      },
+      "novel": {
+        "bits_q12": 114454307436,
+        "kn_minus_model_q12": 17056206,
+        "ratio_ppm": 999851
+      }
+    },
+    "u_count_uniform": {
+      "all": {
+        "bits_q12": 128726996235,
+        "kn_minus_model_q12": -77557117,
+        "ratio_ppm": 1000602
+      },
+      "novel": {
+        "bits_q12": 114413535652,
+        "kn_minus_model_q12": 57827990,
+        "ratio_ppm": 999494
+      }
+    },
+    "u_split": {
+      "all": {
+        "bits_q12": 128739857700,
+        "kn_minus_model_q12": -90418582,
+        "ratio_ppm": 1000702
+      },
+      "novel": {
+        "bits_q12": 114424177643,
+        "kn_minus_model_q12": 47185999,
+        "ratio_ppm": 999587
+      }
+    }
+  },
+  "schema": "kn-ceiling-independent-verification/1",
+  "source_sha256": "be7cd427fe16f5465b52725b3727eda41940a66902cc2ebf549503e9e64440e0",
+  "synthetic_fixture": false,
+  "target_count": 10807417,
+  "verified_query_rows": true
+}

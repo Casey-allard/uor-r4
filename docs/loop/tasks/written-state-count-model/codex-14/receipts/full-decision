@@ -1,0 +1,7 @@
+Thu Nov 19 03:39:05 UTC 2026
+Top session authorizes full TRAIN and DEV-tune on Wick. Verified 1 per mille cold replay, ten-percent containment and historical exact controls. Primary sizing endpoint 32. Collector RSS 8206724 KiB and observed per-process GPU 2498 MiB. Prior measured full collector 16028 MiB, RSS 10797072 KiB. Fitter pools use 106 bytes per target on device after collection exits. Keep initial 19234 MiB device and 13 GiB effective host reservations, live checks under lock. Full fit is in-sample empirical only.
+name, memory.free [MiB], utilization.gpu [%]
+NVIDIA GeForce RTX 4090, 24080 MiB, 0 %
+               total        used        free      shared  buff/cache   available
+Mem:        62349044    20875696    12722940     1059900    30160020    41473348
+Swap:        8388604         772     8387832

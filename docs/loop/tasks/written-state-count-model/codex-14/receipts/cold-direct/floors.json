@@ -1,0 +1,18 @@
+{
+  "all_experts": {
+    "always_at_one": 728,
+    "ended_above_floor": 27,
+    "endpoint": 40,
+    "ever_rose": 31,
+    "observed_bucket_lanes": 759,
+    "targets_in_buckets_with_a_rise": 1138
+  },
+  "restricted": {
+    "always_at_one": 100,
+    "ended_above_floor": 10,
+    "endpoint": 24,
+    "ever_rose": 10,
+    "observed_bucket_lanes": 110,
+    "targets_in_buckets_with_a_rise": 321
+  }
+}

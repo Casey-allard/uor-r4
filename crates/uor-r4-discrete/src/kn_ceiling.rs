@@ -8,7 +8,7 @@
 //! same flat (count, total) layout. Bits are taken by a caller-passed
 //! function, as `bits_q12` lives in `uor-r4-integer`.
 
-use crate::kn_score::{KN_BASE_MASS, PROBABILITY_ONE};
+use crate::kn_score::KN_BASE_MASS;
 use crate::ngram_count::{
     NgramContext, NgramOrderDigest, NgramTriple, PrimeRouteKey, NGRAM_BOS, NGRAM_MAX_ORDER,
     NGRAM_VOCABULARY,
@@ -152,6 +152,37 @@ pub fn ceiling_bucket(totals: &[u64]) -> Result<(usize, u16)> {
     Ok((h, bucket))
 }
 
+/// Convert one raw lookup row into its bucket and Q48 expert masses.
+/// The caller supplies KN, one count/total pair per order, and a row with
+/// one slot per expert. Orders beyond the last seen context are zero.
+pub fn ceiling_expert_row(
+    kn: u64,
+    counts: &[u32],
+    totals: &[u64],
+    masses: &mut [u64],
+) -> Result<u16> {
+    if counts.len() != totals.len() || masses.len() != totals.len() + 2 {
+        return Err(invalid("invalid ceiling expert row shape"));
+    }
+    let (_, bucket) = ceiling_bucket(totals)?;
+    masses[0] = kn;
+    for (i, (&count, &total)) in counts.iter().zip(totals).enumerate() {
+        if total != 0 && u64::from(count) > total {
+            return Err(invalid(format!(
+                "order {i} count {count} exceeds its total {total}"
+            )));
+        }
+        masses[i + 1] = if total == 0 {
+            0
+        } else {
+            // count <= total, so this quotient is at most 2^48.
+            ((u128::from(count) << 48) / u128::from(total)) as u64
+        };
+    }
+    masses[totals.len() + 1] = KN_BASE_MASS;
+    Ok(bucket)
+}
+
 /// Whether expert e is present in bucket b: KN and U always, ML_k iff k <= h.
 fn present(highest: u32, bucket: usize, e: usize) -> bool {
     let h = bucket / BUCKETS_PER_ORDER;
@@ -198,26 +229,11 @@ impl CeilingTable {
         for (t, &kn) in kn_masses.iter().enumerate() {
             let row_counts = &counts[t * width..(t + 1) * width];
             let row_totals = &totals[t * width..(t + 1) * width];
-            let (h, bucket) = ceiling_bucket(row_totals)?;
             let row = &mut masses[t * experts..(t + 1) * experts];
-            row[0] = kn;
-            for k in 0..=h {
-                let (a, total) = (row_counts[k], row_totals[k]);
-                if total == 0 {
-                    continue;
-                }
-                if u64::from(a) > total {
-                    return Err(invalid(format!(
-                        "target {t} order {k} count {a} exceeds its total {total}"
-                    )));
-                }
-                let ml = (u128::from(a) << 48) / u128::from(total);
-                row[1 + k] = u64::try_from(ml).map_err(|_| invalid("an ML mass exceeded 2^64"))?;
-            }
-            row[experts - 1] = KN_BASE_MASS;
+            let bucket = ceiling_expert_row(kn, row_counts, row_totals, row)
+                .map_err(|error| invalid(format!("target {t}: {error}")))?;
             buckets.push(bucket);
         }
-        debug_assert!(KN_BASE_MASS < PROBABILITY_ONE);
         Ok(Self {
             highest,
             buckets,

@@ -1,0 +1,107 @@
+{
+  "collector_sha256": "5c041d9d33dd55f68ef5297cd3d54a0c18d755fa3d5b25bb118168459444a25e",
+  "frame_sha256": "a192685f924f255afa0df720e41af8726782f766a5721f636f711a0ed3e5af53",
+  "historical_fit_controls_match": true,
+  "historical_frame_match": true,
+  "kn_mass_sha256": "07287e539834b7c706a1796ccaff82f2bca612431c5dede957d21ca8aabf2b5a",
+  "manifest_sha256": "3097166b5e13f8062e1537b34343fd5a309c82daa39a0302ab84156d10bef552",
+  "novel_target_count": 753880,
+  "parity_targets": [
+    531075,
+    535667
+  ],
+  "per_mille": 100,
+  "raw_lookup_sha256": "fd0c9e1ffc132d2b1ee550471cd1c74e5b882b5f8d866d5475471300d26a3f9c",
+  "reading": {
+    "best_checkpoint_bits_q12": 14650602565,
+    "best_checkpoint_pass": 32,
+    "best_pass": 32,
+    "best_pass_bits_q12": 14650602565,
+    "classification": "same-cut diagnostics",
+    "contains_kn_all_and_novel": true,
+    "converged": true,
+    "endpoint": 32,
+    "feasible_upper_bound_q12": null,
+    "kn_only": {
+      "all": {
+        "bits_q12": 14655846210,
+        "bytes": 2114951,
+        "targets": 1066742
+      },
+      "novel": {
+        "bits_q12": 12646028431,
+        "bytes": 1554162,
+        "targets": 753880
+      }
+    },
+    "kn_u": {
+      "all": {
+        "bits_q12": 14653974139,
+        "kn_minus_model_q12": 1872071,
+        "ratio_ppm": 999872
+      },
+      "novel": {
+        "bits_q12": 12644905083,
+        "kn_minus_model_q12": 1123348,
+        "ratio_ppm": 999911
+      }
+    },
+    "kn_u_uniform": {
+      "all": {
+        "bits_q12": 14653818808,
+        "kn_minus_model_q12": 2027402,
+        "ratio_ppm": 999861
+      },
+      "novel": {
+        "bits_q12": 12644738505,
+        "kn_minus_model_q12": 1289926,
+        "ratio_ppm": 999897
+      }
+    },
+    "pass_24_sensitivity": null,
+    "per_mille": 100,
+    "selected_endpoint_sensitivity": null,
+    "split_gap_flag": true,
+    "u_count": {
+      "all": {
+        "bits_q12": 14650602565,
+        "kn_minus_model_q12": 5243645,
+        "ratio_ppm": 999642
+      },
+      "novel": {
+        "bits_q12": 12642455160,
+        "kn_minus_model_q12": 3573271,
+        "ratio_ppm": 999717
+      }
+    },
+    "u_count_uniform": {
+      "all": {
+        "bits_q12": 14643279758,
+        "kn_minus_model_q12": 12566452,
+        "ratio_ppm": 999142
+      },
+      "novel": {
+        "bits_q12": 12632493310,
+        "kn_minus_model_q12": 13535121,
+        "ratio_ppm": 998929
+      }
+    },
+    "u_split": {
+      "all": {
+        "bits_q12": 14656068128,
+        "kn_minus_model_q12": -221918,
+        "ratio_ppm": 1000015
+      },
+      "novel": {
+        "bits_q12": 12642527884,
+        "kn_minus_model_q12": 3500547,
+        "ratio_ppm": 999723
+      }
+    }
+  },
+  "schema": "kn-ceiling-independent-verification/1",
+  "source_sha256": "be7cd427fe16f5465b52725b3727eda41940a66902cc2ebf549503e9e64440e0",
+  "synthetic_fixture": false,
+  "target_count": 1066742,
+  "verified_query_rows": true
+}

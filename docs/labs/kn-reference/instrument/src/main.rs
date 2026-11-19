@@ -12,6 +12,10 @@
 //! `--ceiling` (claude-433) also counts raw orders 0..N, looks the query up in them and
 //! scores the expert-mixture ceiling modes; it refuses `--count-only`, `--extension-census`
 //! and `--sealed-run`.
+//! `--fit-frame --source-sha256 HASH` exports these CUDA reads and Q48 expert lanes into
+//! a new private OUT directory for the standalone CUDA fitter. It accepts only the frozen
+//! DEV-tune inputs unless `--synthetic-fixture` is specified for a small fixture.
+//! `kn-reference --verify-fit-frame OUT` reopens and checks the sealed packed rows.
 //! claude-425: every order is counted once, by `NgramCounter::count_adjusted_sweep`.
 //! `--count-only` writes each order's records and discounts to OUT.json and stops before the
 //! scorer; it refuses `--check-host` and `--sealed-run`. `--extension-census` implies it.
@@ -24,6 +28,8 @@
 
 // Without `cuda` only the argument parser runs; the tally is still built and tested.
 #![cfg_attr(not(feature = "cuda"), allow(dead_code))]
+
+mod fit_frame;
 
 use sha2::{Digest, Sha256};
 use uor_r4_discrete::kn_score::PROBABILITY_ONE as KN_ONE;
@@ -191,13 +197,24 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn main() -> std::process::ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    match run(&args) {
+    match dispatch(&args) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("kn-reference: {error}");
             std::process::ExitCode::FAILURE
         }
     }
+}
+
+fn dispatch(args: &[String]) -> Result<(), Failure> {
+    if let [flag, path] = args {
+        if flag == "--verify-fit-frame" {
+            let manifest = fit_frame::verify(std::path::Path::new(path))?;
+            println!("{}", serde_json::to_string_pretty(&manifest)?);
+            return Ok(());
+        }
+    }
+    run(args)
 }
 
 struct Args {
@@ -212,10 +229,18 @@ struct Args {
     extension_census: bool,
     count_only: bool,
     ceiling: bool,
+    frame_source: Option<String>,
+    synthetic_fixture: bool,
+}
+
+impl Args {
+    fn needs_raw_counts(&self) -> bool {
+        self.ceiling || self.frame_source.is_some()
+    }
 }
 
 fn parse(args: &[String]) -> Result<Args, Failure> {
-    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases] [--extension-census] [--count-only] [--ceiling]";
+    let usage = "usage: kn-reference TRAIN.u16 QUERY.u16 ID-BYTES.u8 CLASSES.u8 N BUDGET OUT.json [--per-mille P] [--check-host] [--sealed-run] [--profile-phases] [--extension-census] [--count-only] [--ceiling | --fit-frame --source-sha256 HASH [--synthetic-fixture]]";
     let mut positional = Vec::new();
     let mut per_mille = 1000;
     let mut check_host = false;
@@ -224,6 +249,9 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
     let mut extension_census = false;
     let mut count_only = false;
     let mut ceiling = false;
+    let mut frame = false;
+    let mut frame_source: Option<String> = None;
+    let mut synthetic_fixture = false;
     let mut at = 0;
     while at < args.len() {
         match args[at].as_str() {
@@ -237,6 +265,15 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
             "--extension-census" => extension_census = true,
             "--count-only" => count_only = true,
             "--ceiling" => ceiling = true,
+            "--fit-frame" => frame = true,
+            "--synthetic-fixture" => synthetic_fixture = true,
+            "--source-sha256" => {
+                at += 1;
+                let hash = args.get(at).ok_or_else(|| fail(usage))?;
+                if !fit_frame::hash_word(hash) || frame_source.replace(hash.clone()).is_some() {
+                    return Err(fail("--source-sha256 needs one lowercase SHA-256 word"));
+                }
+            }
             other => positional.push(other.to_string()),
         }
         at += 1;
@@ -256,10 +293,33 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
     }
     let [train, query, id_bytes, classes, highest, budget, out]: [String; 7] =
         positional.try_into().map_err(|_| fail(usage))?;
+    let highest = highest.parse()?;
+    let budget = budget.parse()?;
+    if frame != frame_source.is_some() || (synthetic_fixture && !frame) {
+        return Err(fail(
+            "frame export requires --fit-frame and --source-sha256 together",
+        ));
+    }
+    if frame && (ceiling || count_only || sealed_run) {
+        return Err(fail(
+            "--fit-frame refuses --ceiling, --count-only, --extension-census and --sealed-run",
+        ));
+    }
+    if frame && (highest != fit_frame::HIGHEST || budget != fit_frame::BUDGET) {
+        return Err(fail("--fit-frame requires N=10 and budget 16777216"));
+    }
+    if frame && std::path::Path::new(&out).symlink_metadata().is_ok() {
+        return Err(fail("--fit-frame output directory already exists"));
+    }
+    if frame && check_host && !synthetic_fixture && per_mille != 1 {
+        return Err(fail(
+            "frame host oracles are limited to finite fixtures and the 1 per mille cut",
+        ));
+    }
     Ok(Args {
         paths: [train, query, id_bytes, classes],
-        highest: highest.parse()?,
-        budget: budget.parse()?,
+        highest,
+        budget,
         out,
         per_mille,
         check_host,
@@ -268,6 +328,8 @@ fn parse(args: &[String]) -> Result<Args, Failure> {
         extension_census,
         count_only,
         ceiling,
+        frame_source,
+        synthetic_fixture,
     })
 }
 
@@ -292,6 +354,15 @@ fn run(args: &[String]) -> Result<(), Failure> {
 
     let args = parse(args)?;
     let [train_path, query_path, id_bytes_path, classes_path] = &args.paths;
+    if args.synthetic_fixture {
+        for path in &args.paths {
+            if std::fs::metadata(path)?.len() > 128 * 1024 {
+                return Err(fail(
+                    "synthetic fixture input exceeds the finite 128 KiB limit",
+                ));
+            }
+        }
+    }
     let started = std::time::Instant::now();
     let train_bytes = std::fs::read(train_path)?;
     let query_bytes = std::fs::read(query_path)?;
@@ -305,10 +376,18 @@ fn run(args: &[String]) -> Result<(), Failure> {
             id_bytes.len()
         )));
     }
-    let train_all = read_uort_tokens(&train_bytes)?;
-    // claude-422: TRAIN's file bytes are needed only for their hash. Freed
-    // here, they no longer hold 4 GB of host memory through the counting.
     let train_sha256 = sha256_hex(&train_bytes);
+    let mut inputs = serde_json::json!({
+        "train_sha256": train_sha256,
+        "query_sha256": query_sha256,
+        "id_bytes_sha256": sha256_hex(&id_bytes),
+        "classes_sha256": sha256_hex(&classes_bytes),
+    });
+    if args.frame_source.is_some() {
+        fit_frame::check_inputs(&inputs, args.synthetic_fixture)?;
+    }
+    let train_all = read_uort_tokens(&train_bytes)?;
+    // claude-422: free the 4 GB of host bytes before counting.
     drop(train_bytes);
     let query_all = read_uort_tokens(&query_bytes)?;
     let train = &train_all[..record_prefix(&train_all, args.per_mille)?];
@@ -328,6 +407,8 @@ fn run(args: &[String]) -> Result<(), Failure> {
     let mut orders: Vec<(NgramOrderDigest, _, _)> = Vec::new();
     let mut order_json = Vec::new();
     let train_tokens = train.len();
+    inputs["train_tokens"] = serde_json::json!(train_tokens);
+    inputs["query_tokens"] = serde_json::json!(query.len());
     let mut counter = NgramCounter::new(0, train)?;
     if args.profile_phases {
         counter.enable_phase_timing();
@@ -428,8 +509,9 @@ fn run(args: &[String]) -> Result<(), Failure> {
     // Order N's raw table is the KN table's own and is added after the scorer.
     let raw_started = std::time::Instant::now();
     let mut raw_orders: Vec<(NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>)> = Vec::new();
-    if args.ceiling {
+    if args.needs_raw_counts() {
         for k in 0..args.highest {
+            let raw_order_started = std::time::Instant::now();
             let mut assembler = NgramAssembler::new(k, false)?;
             let mut filter = wanted.filter(k)?;
             for range in counter.plan(k, args.budget)? {
@@ -440,12 +522,12 @@ fn run(args: &[String]) -> Result<(), Failure> {
             let (digest, _, _) = assembler.finish();
             let (triples, contexts) = filter.finish();
             eprintln!(
-                "raw order {k}: grams {} contexts {}, kept triples {} contexts {}, {} ms",
+                "raw order {k}: grams {} contexts {}, kept triples {} contexts {}, order {} ms",
                 digest.grams,
                 digest.contexts,
                 triples.len(),
                 contexts.len(),
-                started.elapsed().as_millis()
+                raw_order_started.elapsed().as_millis()
             );
             raw_orders.push((digest, triples, contexts));
         }
@@ -519,7 +601,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
             "kept_triples": triples.len(),
             "kept_contexts": contexts.len(),
         }));
-        if args.ceiling && k as u32 == args.highest {
+        if args.needs_raw_counts() && k as u32 == args.highest {
             top_digest = Some(digest.clone());
         }
         orders.push((digest, triples, contexts));
@@ -608,15 +690,9 @@ fn run(args: &[String]) -> Result<(), Failure> {
             started.elapsed().as_millis()
         );
     }
-    let (all, novel) = tally(query, &masses, &id_bytes, classes)?;
-    // claude-422: a mass of one Q48 unit is the scorer's floor under an
-    // underflowed gamma chain; the record counts the targets that sit on it.
-    let masses_at_floor = masses.iter().filter(|&&m| m == 1).count();
-    eprintln!("masses at the one-unit floor: {masses_at_floor}");
-    let mass_bytes: Vec<u8> = masses.iter().flat_map(|m| m.to_le_bytes()).collect();
     // claude-433: the ceiling modes, from order N's raw table (the KN table's
     // own), the GPU lookups and the host EM over them.
-    let ceiling_json = if args.ceiling {
+    let ceiling_json = if args.needs_raw_counts() {
         use uor_r4_discrete::kn_ceiling::RawTables;
         use uor_r4_discrete::kn_lookup_device::KnLookup;
         let digest = top_digest.ok_or_else(|| fail("no order-N digest for the ceiling"))?;
@@ -624,6 +700,17 @@ fn run(args: &[String]) -> Result<(), Failure> {
             .order_tables(args.highest)
             .ok_or_else(|| fail(format!("no order-{} table", args.highest)))?;
         raw_orders.push((digest, top_triples.to_vec(), top_contexts.to_vec()));
+        let raw_order_json: Vec<_> = raw_orders
+            .iter()
+            .map(|(digest, triples, contexts)| {
+                serde_json::json!({
+                    "order": digest.order, "targets": digest.targets, "grams": digest.grams,
+                    "contexts": digest.contexts, "count_of_counts": digest.count_of_counts,
+                    "triple_sha256": digest.triple_sha256, "context_sha256": digest.context_sha256,
+                    "kept_triples": triples.len(), "kept_contexts": contexts.len(),
+                })
+            })
+            .collect();
         let raw = RawTables::new(args.highest, raw_orders)?;
         let lookup_started = std::time::Instant::now();
         let (counts, totals) = KnLookup::new(0, &raw)?.lookups(query)?;
@@ -653,6 +740,51 @@ fn run(args: &[String]) -> Result<(), Failure> {
             }
             eprintln!("host lookups = GPU at all {} targets", masses.len());
         }
+        drop(raw);
+        if let Some(source_sha256) = args.frame_source {
+            use uor_r4_discrete::{
+                kn_lookup_device::compiled_kn_lookup_image,
+                kn_score_device::compiled_kn_score_image,
+                ngram_count_device::compiled_ngram_count_image,
+            };
+            drop(tables);
+            let path = std::path::Path::new(&args.out);
+            let manifest = fit_frame::write(
+                path,
+                fit_frame::Rows {
+                    query,
+                    id_bytes: &id_bytes,
+                    classes,
+                    kn: &masses,
+                    counts: &counts,
+                    totals: &totals,
+                },
+                serde_json::json!({
+                    "unit": "codex-14", "highest_order": args.highest, "budget": args.budget,
+                    "per_mille": args.per_mille, "synthetic_fixture": args.synthetic_fixture,
+                    "check_host": args.check_host, "inputs": inputs, "orders": order_json,
+                    "raw_orders": raw_order_json, "shared_ranges": shared.len(),
+                    "source_sha256": source_sha256,
+                    "binary_sha256": sha256_hex(&std::fs::read(std::env::current_exe()?)?),
+                    "cuda_images": {
+                        "count": compiled_ngram_count_image(),
+                        "lookup": compiled_kn_lookup_image(),
+                        "kn_score": compiled_kn_score_image(),
+                    },
+                }),
+            )?;
+            let verified = fit_frame::verify(path)?;
+            if verified != manifest {
+                return Err(fail("reopened frame differs from direct collection"));
+            }
+            eprintln!(
+                "sealed and reread {} at {} ms",
+                args.out,
+                started.elapsed().as_millis()
+            );
+            eprintln!("frame phases ms: raw-count {raw_count_ms} lookup {lookup_ms}");
+            return Ok(());
+        }
         let em_started = std::time::Instant::now();
         let mut json = ceiling_modes(
             args.highest,
@@ -676,6 +808,12 @@ fn run(args: &[String]) -> Result<(), Failure> {
     } else {
         None
     };
+    let (all, novel) = tally(query, &masses, &id_bytes, classes)?;
+    // claude-422: a mass of one Q48 unit is the scorer's floor under an
+    // underflowed gamma chain; the record counts the targets that sit on it.
+    let masses_at_floor = masses.iter().filter(|&&m| m == 1).count();
+    eprintln!("masses at the one-unit floor: {masses_at_floor}");
+    let mass_bytes: Vec<u8> = masses.iter().flat_map(|m| m.to_le_bytes()).collect();
     let mut summary = serde_json::json!({
         "unit": if args.ceiling { "claude-433" } else { "claude-421" },
         "highest_order": args.highest,
@@ -683,14 +821,7 @@ fn run(args: &[String]) -> Result<(), Failure> {
         "per_mille": args.per_mille,
         "check_host": args.check_host,
         "sealed_run": args.sealed_run,
-        "inputs": {
-            "train_sha256": train_sha256,
-            "query_sha256": query_sha256,
-            "id_bytes_sha256": sha256_hex(&id_bytes),
-            "classes_sha256": sha256_hex(&classes_bytes),
-            "train_tokens": train_tokens,
-            "query_tokens": query.len(),
-        },
+        "inputs": inputs,
         "orders": order_json,
         "masses_sha256": sha256_hex(&mass_bytes),
         "masses_at_floor": masses_at_floor,

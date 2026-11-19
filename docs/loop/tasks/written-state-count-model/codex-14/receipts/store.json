@@ -1,0 +1,11 @@
+{
+  "repo": "caseyallard/uor-r4-store",
+  "repo_type": "dataset",
+  "revision": "730c259b4bd42d7ed4bc36a3633f7b715e0cef64",
+  "path": "results/codex/full-count-ceiling-20261118/wick-count-ceiling-receipts.tar.zst",
+  "bytes": 455970,
+  "sha256": "571cb26e12f2d7c5ec7f2d1eb753ebe204c3de42ad7fac38bf79948aabd646df",
+  "pinned_download_byte_equal": true,
+  "private_fit_frames": "Wick under ~/uor-codex/20261118-full-count-ceiling/runs/<run>/frame",
+  "contents": "Primary per-mode raw fits, hashes, manifests, device/memory timelines, Nsight trace, finite witnesses, fault/restore logs, raw integer certificate and independent verification"
+}

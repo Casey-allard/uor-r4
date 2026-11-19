@@ -1,0 +1,98 @@
+{
+  "anchors": [
+    {
+      "anchor_q12": 128649439118,
+      "lower_q12": 0,
+      "name": "pure_kn",
+      "pass": 0,
+      "residual_q32": "29629967087421102950",
+      "status": "evaluated"
+    },
+    {
+      "anchor_q12": 128627655182,
+      "lower_q12": 108560872163,
+      "name": "near_kn",
+      "pass": 24,
+      "residual_q32": "13997478318384567",
+      "status": "evaluated"
+    },
+    {
+      "anchor_q12": 128726996235,
+      "lower_q12": 127285173165,
+      "name": "uniform",
+      "pass": 24,
+      "residual_q32": "977687649458234",
+      "status": "evaluated"
+    }
+  ],
+  "best_observed_points": [
+    {
+      "mode": "kn_only",
+      "pass": 0,
+      "score_q12": 128649439118
+    },
+    {
+      "mode": "u_count",
+      "pass": 24,
+      "score_q12": 128627655182
+    },
+    {
+      "mode": "u_count_uniform",
+      "pass": 24,
+      "score_q12": 128726996235
+    },
+    {
+      "mode": "kn_u",
+      "pass": 24,
+      "score_q12": 128638511888
+    }
+  ],
+  "device": {
+    "device_receipt_sha256": "02efd5701eb1854fae6b7acb06407407807a744b60527279786960a13232d390",
+    "orchestrator_sha256": "237697ff3ee03ffad52c29625b398631ebfba6ed9739cf6ff12d6a4c7b5c13dc",
+    "worker_sha256": "d975d2fc0531c5eab5bd7d1bcc29817a0ae3e7fd291ef2f5645284444f8e430c"
+  },
+  "family": "one Q32 simplex vector per bucket, exact Q48 mixed-mass floor and integer Q12 score",
+  "fit_endpoints": [
+    {
+      "mode": "kn_only",
+      "pass": 0,
+      "score_q12": 128649439118
+    },
+    {
+      "mode": "u_count",
+      "pass": 24,
+      "score_q12": 128627655182
+    },
+    {
+      "mode": "u_count_uniform",
+      "pass": 24,
+      "score_q12": 128726996235
+    },
+    {
+      "mode": "kn_u",
+      "pass": 24,
+      "score_q12": 128638511888
+    }
+  ],
+  "fit_result_sha256": "6cee2002b4700b1ed6884e88d6d73b349be32f74855c3cf6c25bbded181312e6",
+  "fitter_sha256": "df08efa357d435432846eec89fcce82eeab7cfc0422a084e9ecfc117da937909",
+  "frame_sha256": "1559c7f4e0b6b4ead7e3a240b5726b9e3462ef2b1b239e327642ae3984f526be",
+  "lower_q12": 127285173165,
+  "manifest_sha256": "320bfbdc9850402dbb90e8bb06d2c781ccc69dc98b0f8d030189dbcbc44b095f",
+  "per_mille": 1000,
+  "primary_verifier_sha256": "0e3e688c746072430925baf50099dd13c480b67274e625f4fd15f508ba29b5ec",
+  "proved_branch": "geometry critical",
+  "reference_q12": 128649439118,
+  "rowmax_q12": 97843711224,
+  "schema": "kn-ceiling-certificate-verification/1",
+  "status": "resolved",
+  "target_count": 10807417,
+  "upper_q12": 128627655182,
+  "upper_witness": {
+    "mode": "u_count",
+    "pass": 24,
+    "score_q12": 128627655182
+  },
+  "verified_fit_sha256": "60cd08a3428cfab7f3c7125f4b0ca8e7858af98f55afdc2be49e989f9103645a"
+}
