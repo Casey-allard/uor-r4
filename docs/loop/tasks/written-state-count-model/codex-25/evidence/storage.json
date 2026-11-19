@@ -1,0 +1,65 @@
+{
+  "schema": "uor-r4.contextual-source-storage/1",
+  "verified_utc": "2026-11-19T23:27:16Z",
+  "full_archive": {
+    "filename": "observations.tar.zst",
+    "format": "PAX tar with relative member paths compressed with Zstandard",
+    "bytes": 290506,
+    "sha256": "0266427f22d80ffc028a72350b309f24ab337b9c2d111d816697862b9459053a",
+    "file_manifest": "files.sha256",
+    "file_manifest_sha256": "fa2cf081e8e0300602db392f1a947b5cfbfc196c3b36380c558ef3f91d8d84fc",
+    "workstation_directory": "~/uor-r4/local/codex/contextual-source-25/custody-01",
+    "wick_directory": "/home/callard/uor-codex/20261119-contextual-source-25/custody-01",
+    "entries_verified_on_each_host": 218,
+    "wick_archive_round_trip_byte_identical": true,
+    "regular_source_files_rehashed_before_and_after_snapshot": 205,
+    "ordinary_original_transcripts": 90,
+    "scope": "Frozen inputs and extracted features, raw templates and token IDs, grading keys, all original ordinary transcripts for six arms, supplied-span writer captures, both Wick GPU runs, finite controls, readback traces and execution identity receipts. The archive omits executable binaries, derived context packets and full model containers."
+  },
+  "hf_results": {
+    "dataset": "caseyallard/uor-r4-store",
+    "private": true,
+    "revision": "79a1e3dcf538a3ad52ad44b4f78e95da43fd91ec",
+    "path": "results/codex/2026-11-19-contextual-source-25-0266427/regular-complete",
+    "delivery_manifest": "regular-complete.sha256",
+    "delivery_manifest_sha256": "3a63e9052b6c0527dd044208e01b3e86014e04891be3bd10c89aa2d574ee31df",
+    "regular_git_files": 222,
+    "git_lfs_files": 0,
+    "original_files_verified_after_revision_pinned_download": 218,
+    "binary_members_encoded_as_base64_text_and_decoded_on_readback": 5,
+    "original_member_checksums_match": true,
+    "discrepancies": [
+      "The Hub refused the compressed archive because the private storage limit was reached. Its complete individual-file representation was committed and downloaded at the recorded revision.",
+      "The first regular-file attempt committed only four sidecars to the sibling regular path at revision 1f29c51c074853109e42c907a6e88aeef74b5544 after a local shell staging error. Only regular-complete is the verified deposit."
+    ]
+  },
+  "reconstruction": {
+    "packer": "pack-contextual-source D21_PARENT D25_BANK TRAIN_SHA256 ARM OUT",
+    "workstation_parent": "~/uor-r4/local/codex/clause-role-24/writer-input/seed1.d11",
+    "wick_parent": "/home/callard/uor-codex/20261119-clause-veto/artifacts/seed1/rebuilt-assertion-agreement.d11",
+    "parent_rehashed_on_both_hosts": true,
+    "parent_sha256": "02b922d37308593de956bf9c7c8ee0dbb259d2152528d6993eb9c89be84f65e3",
+    "original_seed1_d11_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "train_packet": "stage/train.rows",
+    "train_sha256": "85bef0f40a14d5f6ce56391fb773b1d101d7595f9cfda998a020d85f3c75ff2a",
+    "bank": "outcome-01/primary/bank.bin",
+    "bank_bytes": 4644,
+    "bank_sha256": "ff8a57b943c1043fb33d077d43f9e20172ab82440d9cd6a086bf09992814fe99",
+    "cold_bank_byte_identical": true,
+    "rebuilt_artifacts_byte_identical": {
+      "narrow_local": "896499830092849c2191483d7b84e7bc53c5daa98e8fa43748da7145f1845cde",
+      "wide_local": "6eeafde21d29497bbdbe2581df1ec9751f7c577533f1068f2cd4cfd3ec092a9a",
+      "narrow_contextual": "cd770b2d98e3df712026649caf23bd91ee223a391d1aeb64b38a952e0bb3810c",
+      "wide_contextual": "9f780f9da946f6bc077de08c67a40e86b13081e7150e6dff1ec8874230052e96"
+    },
+    "workstation_reconstruction_log": "reconstruct.txt",
+    "workstation_reconstruction_log_sha256": "c0f7617644b10fe81d160e899a45f7383cda920ca996cf9f2ff816e5826305a9"
+  },
+  "independent_source_checks": {
+    "staged_input_manifests_verified_on_mac_and_wick": true,
+    "original_gpu_observation_manifests_verified_on_mac_and_wick": true,
+    "finite_control_manifests_verified_on_mac_and_wick": true,
+    "forensic_trace_manifests_verified_on_mac_and_wick": true,
+    "forensic_manifest_sha256": "411426cddfbde7544ab20f73c93a5be81ba84d86cad69d13fd2a2a765972e6d8"
+  }
+}

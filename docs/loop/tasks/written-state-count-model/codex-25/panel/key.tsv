@@ -1,0 +1,23 @@
+101	rescue divers	divers	early
+102	rescue divers	divers	late
+103	foster children	children	early
+104	foster children	children	late
+105	guard dogs	dogs	early
+106	guard dogs	dogs	late
+107	rescue dogs	dogs	late
+108	rescue dogs	dogs	early
+201	foster children	children	late
+202	foster children	children	early
+203	shelter dogs	dogs	early
+204	shelter dogs	dogs	late
+205	guard dogs	dogs	early
+206	guard dogs	dogs	late
+207	show horses	horses	late
+208	show horses	horses	early
+209	foster children	children	ambiguous
+210			missing
+211	shelter cats	cats	irrelevant
+301	train drivers	drivers	early
+302	train drivers	drivers	late
+303	guide dogs	dogs	early
+304	guide dogs	dogs	late

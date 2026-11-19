@@ -25,6 +25,8 @@ use crate::{
 
 mod s2_expert;
 pub use s2_expert::{s2_route_key, S2ExpertPrediction, S2ExpertRead, S2RankedToken, S2_MASS_TOTAL};
+#[path = "contextual_source.rs"]
+pub mod contextual_source;
 
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
@@ -1187,6 +1189,7 @@ impl DiscreteTrunkTables {
 pub struct IntegerDiscreteModel {
     count_mixer: Option<crate::count_mixer::CountMixer>,
     role_policy: Option<RolePolicy>,
+    contextual_source: Option<contextual_source::SourcePolicy>,
     tokenizer_sha256: Option<String>,
     shape: DiscreteLutShape,
     source: DiscreteLutSource,
@@ -1902,6 +1905,9 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if schema == contextual_source::SCHEMA {
+            return contextual_source::read_carrier(bytes, encoded_header, end_header, allow_role);
+        }
         if matches!(
             schema.as_str(),
             DISCRETE_ALL_STARTS_SCHEMA
@@ -2476,6 +2482,7 @@ impl IntegerDiscreteModel {
         Ok(Self {
             count_mixer: None,
             role_policy: None,
+            contextual_source: None,
             tokenizer_sha256: header.tokenizer_sha256,
             shape: header.shape,
             source: header.source,
@@ -2550,7 +2557,9 @@ impl IntegerDiscreteModel {
 
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
-        if let Some(mixer) = &self.count_mixer {
+        if self.contextual_source.is_some() {
+            contextual_source::SCHEMA
+        } else if let Some(mixer) = &self.count_mixer {
             mixer.schema()
         } else if let Some(policy) = &self.role_policy {
             if let Some(onset) = &policy.onset {
@@ -2865,7 +2874,14 @@ impl IntegerDiscreteModel {
         visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
         if let Some(onset) = &policy.onset {
-            return paired.choose_with_roles(policy, prompt, &onset.packed_roots, roles, visit);
+            return paired.choose_with_roles(
+                policy,
+                prompt,
+                &onset.packed_roots,
+                roles,
+                visit,
+                |fact, query| self.contextual_selection(prompt, fact, query),
+            );
         }
         match &paired.roles {
             paired_copy::Roles::Frozen(_) => paired.choose_with_roles(
@@ -2874,9 +2890,11 @@ impl IntegerDiscreteModel {
                 &self.packed_codebook_roots(),
                 roles,
                 visit,
+                |_, _| Ok(None),
             ),
             paired_copy::Roles::Ordered { packed_roots, .. } => {
-                paired.choose_with_roles(policy, prompt, packed_roots, roles, visit)
+                paired
+                    .choose_with_roles(policy, prompt, packed_roots, roles, visit, |_, _| Ok(None))
             }
         }
     }
@@ -3444,6 +3462,32 @@ impl IntegerDiscreteModel {
         self.evaluate_prefix_internal(prefix, true)
     }
 
+    /// The causal geometric read shared by prediction and the contextual
+    /// source projector. It does not invoke any role or source selector.
+    fn causal_geometric_read(
+        &self,
+        prefix: &[u32],
+        trace: Option<&mut Vec<u32>>,
+    ) -> Result<FlockReadParts> {
+        let plan = build_row_plan(prefix.len())?;
+        let (mut blocks, relation_scores, relation_trace) = match self.read_mode {
+            DiscreteReadMode::Route => (self.route_read(prefix, &plan, trace)?, None, None),
+            DiscreteReadMode::Flock { kept } => {
+                self.flock_or_relation_read(prefix, &plan, kept as usize, 0, false, trace)?
+            }
+            DiscreteReadMode::Relation { kept, sweeps } => {
+                self.flock_or_relation_read(prefix, &plan, kept as usize, sweeps, true, trace)?
+            }
+            DiscreteReadMode::Pick => (self.pick_row(prefix)?.blocks, None, None),
+        };
+        if !self.state_transport_knockout {
+            if let Some(ref trunk) = self.trunk {
+                trunk.apply_joint_pointer_gate(prefix, &mut blocks, &self.codebook_roots)?;
+            }
+        }
+        Ok((blocks, relation_scores, relation_trace))
+    }
+
     fn evaluate_prefix_internal(
         &self,
         prefix: &[u32],
@@ -3526,37 +3570,9 @@ impl IntegerDiscreteModel {
                 relation_trace_words: None,
             });
         }
-        let plan = build_row_plan(prefix.len())?;
         let mut trace_words = Vec::new();
-        let (mut q_blocks, relation_scores, relation_trace_words) = match self.read_mode {
-            DiscreteReadMode::Route => (
-                self.route_read(prefix, &plan, retain_trace.then_some(&mut trace_words))?,
-                None,
-                None,
-            ),
-            DiscreteReadMode::Flock { kept } => self.flock_or_relation_read(
-                prefix,
-                &plan,
-                kept as usize,
-                0,
-                false,
-                retain_trace.then_some(&mut trace_words),
-            )?,
-            DiscreteReadMode::Relation { kept, sweeps } => self.flock_or_relation_read(
-                prefix,
-                &plan,
-                kept as usize,
-                sweeps,
-                true,
-                retain_trace.then_some(&mut trace_words),
-            )?,
-            DiscreteReadMode::Pick => (self.pick_row(prefix)?.blocks, None, None),
-        };
-        if !self.state_transport_knockout {
-            if let Some(ref trunk) = self.trunk {
-                trunk.apply_joint_pointer_gate(prefix, &mut q_blocks, &self.codebook_roots)?;
-            }
-        }
+        let (q_blocks, relation_scores, relation_trace_words) =
+            self.causal_geometric_read(prefix, retain_trace.then_some(&mut trace_words))?;
 
         let mut occupied = [false; 256];
         for &cell in &self.cells {

@@ -27,6 +27,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/contextual-source-read": {
+    "branch": "codex/contextual-source-read",
+    "claimed_at": "2026-11-19T18:05:00-05:00",
+    "head": "c8eb47ef4",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/fresh-boundary-validity": {
     "branch": "codex/fresh-boundary-validity",
     "claimed_at": "2026-11-19T00:00:33-05:00",

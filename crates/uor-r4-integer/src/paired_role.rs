@@ -13,7 +13,7 @@ const MAX_CELL_COUNT: u32 = 8192 * ROLE_CONTEXT as u32;
 const WEIGHTS: [i32; ROLE_OFFSETS] = [1, 2, 4, 4, 2, 1];
 const MIN_EVIDENCE: i32 = 12;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct RoleSpan {
     pub start: usize,
     pub end: usize,

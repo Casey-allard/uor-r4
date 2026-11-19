@@ -107,3 +107,7 @@ required-features = ["serving-wasm"]
 [[bin]]
 name = "pack-all-starts"
 path = "src/bin/pack-all-starts.rs"
+
+[[bin]]
+name = "pack-contextual-source"
+path = "src/bin/pack-contextual-source.rs"

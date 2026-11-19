@@ -1,0 +1,1190 @@
+{
+  "groups": {
+    "exposed": {
+      "ref": {
+        "ordinary": {
+          "rows": 4,
+          "exact": 1,
+          "error0": 3,
+          "selected": 3,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_query": {
+          "rows": 4,
+          "exact": 1,
+          "error0": 3,
+          "selected": 3,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_fact_and_query": {
+          "rows": 4,
+          "exact": 2,
+          "error0": 2,
+          "selected": 4,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        }
+      },
+      "nl": {
+        "ordinary": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_fact_and_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        }
+      },
+      "wl": {
+        "ordinary": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_fact_and_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        }
+      },
+      "nc": {
+        "ordinary": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_fact_and_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        }
+      },
+      "wc": {
+        "ordinary": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        },
+        "supplied_fact_and_query": {
+          "rows": 4,
+          "exact": 0,
+          "error0": 4,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 4
+        }
+      }
+    },
+    "primary": {
+      "ref": {
+        "ordinary": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 1,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_fact_and_query": {
+          "rows": 6,
+          "exact": 3,
+          "error0": 3,
+          "selected": 6,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        }
+      },
+      "nl": {
+        "ordinary": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_fact_and_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        }
+      },
+      "wl": {
+        "ordinary": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_fact_and_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        }
+      },
+      "nc": {
+        "ordinary": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_fact_and_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        }
+      },
+      "wc": {
+        "ordinary": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        },
+        "supplied_fact_and_query": {
+          "rows": 6,
+          "exact": 0,
+          "error0": 6,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 6
+        }
+      }
+    },
+    "secondary": {
+      "ref": {
+        "ordinary": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_fact_and_query": {
+          "rows": 2,
+          "exact": 1,
+          "error0": 1,
+          "selected": 2,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        }
+      },
+      "nl": {
+        "ordinary": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_fact_and_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        }
+      },
+      "wl": {
+        "ordinary": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_fact_and_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        }
+      },
+      "nc": {
+        "ordinary": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_fact_and_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        }
+      },
+      "wc": {
+        "ordinary": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        },
+        "supplied_fact_and_query": {
+          "rows": 2,
+          "exact": 0,
+          "error0": 2,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 2
+        }
+      }
+    },
+    "unsupported": {
+      "ref": {
+        "ordinary": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        },
+        "supplied_query": {
+          "rows": 1,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 1
+        },
+        "supplied_fact_and_query": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 1,
+          "false_writes": 1,
+          "literal_refusals": 0,
+          "eos": 3
+        }
+      },
+      "nl": {
+        "ordinary": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        },
+        "supplied_query": {
+          "rows": 1,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 1
+        },
+        "supplied_fact_and_query": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        }
+      },
+      "wl": {
+        "ordinary": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        },
+        "supplied_query": {
+          "rows": 1,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 1
+        },
+        "supplied_fact_and_query": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        }
+      },
+      "nc": {
+        "ordinary": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        },
+        "supplied_query": {
+          "rows": 1,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 1
+        },
+        "supplied_fact_and_query": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        }
+      },
+      "wc": {
+        "ordinary": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        },
+        "supplied_query": {
+          "rows": 1,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 1
+        },
+        "supplied_fact_and_query": {
+          "rows": 3,
+          "exact": 0,
+          "error0": 0,
+          "selected": 0,
+          "false_writes": 0,
+          "literal_refusals": 0,
+          "eos": 3
+        }
+      }
+    }
+  },
+  "rows": [
+    {
+      "row": 201,
+      "group": "primary",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 1712,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 56,
+      "reference_supplied_first_error": {
+        "expected_id": 1712,
+        "generated_id": 861,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 1712,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 56,
+          "exact_through_eos": false,
+          "ids": [
+            861,
+            1247,
+            1712,
+            1
+          ]
+        },
+        {
+          "source": 58,
+          "exact_through_eos": true,
+          "ids": [
+            1712,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 202,
+      "group": "primary",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 861,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 54,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 861,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 54,
+          "exact_through_eos": true,
+          "ids": [
+            861,
+            1247,
+            1712,
+            1
+          ]
+        },
+        {
+          "source": 56,
+          "exact_through_eos": false,
+          "ids": [
+            1712,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 203,
+      "group": "secondary",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 394,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 64,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 394,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 64,
+          "exact_through_eos": true,
+          "ids": [
+            394,
+            78,
+            442,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 67,
+          "exact_through_eos": false,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 204,
+      "group": "secondary",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 65,
+      "reference_supplied_first_error": {
+        "expected_id": 2381,
+        "generated_id": 394,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 65,
+          "exact_through_eos": false,
+          "ids": [
+            394,
+            78,
+            442,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 68,
+          "exact_through_eos": true,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 205,
+      "group": "primary",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 3494,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 52,
+      "reference_supplied_first_error": {
+        "expected_id": 3494,
+        "generated_id": 2381,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 3494,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 51,
+          "exact_through_eos": true,
+          "ids": [
+            3494,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 52,
+          "exact_through_eos": false,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 206,
+      "group": "primary",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 63,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 62,
+          "exact_through_eos": false,
+          "ids": [
+            3494,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 63,
+          "exact_through_eos": true,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 207,
+      "group": "primary",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 1854,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 54,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 1854,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 53,
+          "exact_through_eos": false,
+          "ids": [
+            707,
+            1854,
+            1726,
+            1
+          ]
+        },
+        {
+          "source": 54,
+          "exact_through_eos": true,
+          "ids": [
+            1854,
+            1726,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 208,
+      "group": "primary",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 707,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 63,
+      "reference_supplied_first_error": {
+        "expected_id": 707,
+        "generated_id": 1854,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 707,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 62,
+          "exact_through_eos": true,
+          "ids": [
+            707,
+            1854,
+            1726,
+            1
+          ]
+        },
+        {
+          "source": 63,
+          "exact_through_eos": false,
+          "ids": [
+            1854,
+            1726,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 209,
+      "group": "unsupported",
+      "reading": "ambiguous",
+      "first_ordinary_error": null,
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": 47,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": null,
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 47,
+          "exact_through_eos": null,
+          "ids": [
+            861,
+            1247,
+            1712,
+            1
+          ]
+        },
+        {
+          "source": 49,
+          "exact_through_eos": null,
+          "ids": [
+            1712,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 210,
+      "group": "unsupported",
+      "reading": "missing",
+      "first_ordinary_error": null,
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": null,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": null,
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": []
+    },
+    {
+      "row": 211,
+      "group": "unsupported",
+      "reading": "irrelevant",
+      "first_ordinary_error": null,
+      "ref_requested_role_words": [
+        4294967295,
+        4294967295
+      ],
+      "reference_supplied_source": null,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": null,
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": []
+    },
+    {
+      "row": 301,
+      "group": "exposed",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 1504,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        85,
+        88
+      ],
+      "reference_supplied_source": 55,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 1504,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 55,
+          "exact_through_eos": true,
+          "ids": [
+            1504,
+            2141,
+            85,
+            1
+          ]
+        },
+        {
+          "source": 56,
+          "exact_through_eos": false,
+          "ids": [
+            2141,
+            85,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 302,
+      "group": "exposed",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 2141,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        80,
+        83
+      ],
+      "reference_supplied_source": 50,
+      "reference_supplied_first_error": {
+        "expected_id": 2141,
+        "generated_id": 1504,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 2141,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 50,
+          "exact_through_eos": false,
+          "ids": [
+            1504,
+            2141,
+            85,
+            1
+          ]
+        },
+        {
+          "source": 51,
+          "exact_through_eos": true,
+          "ids": [
+            2141,
+            85,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 303,
+      "group": "exposed",
+      "reading": "early",
+      "first_ordinary_error": {
+        "expected_id": 1694,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        75,
+        76
+      ],
+      "reference_supplied_source": 50,
+      "reference_supplied_first_error": null,
+      "wc_supplied_first_error": {
+        "expected_id": 1694,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 50,
+          "exact_through_eos": true,
+          "ids": [
+            1694,
+            428,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 52,
+          "exact_through_eos": false,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "row": 304,
+      "group": "exposed",
+      "reading": "late",
+      "first_ordinary_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ref_requested_role_words": [
+        68,
+        69
+      ],
+      "reference_supplied_source": 43,
+      "reference_supplied_first_error": {
+        "expected_id": 2381,
+        "generated_id": 1694,
+        "offset": 0
+      },
+      "wc_supplied_first_error": {
+        "expected_id": 2381,
+        "generated_id": 1155,
+        "offset": 0
+      },
+      "ordinary_text": " Got it, I'll remember that.",
+      "forced": [
+        {
+          "source": 43,
+          "exact_through_eos": false,
+          "ids": [
+            1694,
+            428,
+            2381,
+            1
+          ]
+        },
+        {
+          "source": 45,
+          "exact_through_eos": true,
+          "ids": [
+            2381,
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

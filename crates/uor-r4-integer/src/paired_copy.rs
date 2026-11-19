@@ -61,6 +61,8 @@ pub struct PairedAssertionWitness {
     pub assertion: assertion_value::AssertionValue,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub onset: Option<crate::all_starts::OnsetDecision>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contextual_source: Option<super::contextual_source::SourceSelection>,
     pub completed_source_range: Option<[u32; 2]>,
 }
 
@@ -96,6 +98,12 @@ impl Policy {
         roots: &[u32],
         roles: PairedRoleDecision,
         mut visit: impl FnMut(PairedAssertionWitness),
+        mut contextual_read: impl FnMut(
+            RoleSpan,
+            RoleSpan,
+        ) -> Result<
+            Option<(Option<u32>, super::contextual_source::SourceSelection)>,
+        >,
     ) -> Result<PairedCopyDecision> {
         Self::validate_ids(ids)?;
         let mut result = PairedCopyDecision {
@@ -116,6 +124,10 @@ impl Policy {
         let mut agreed = None;
         for (f, last) in self.assertion_sites(old, ids, query) {
             result.supporting_facts += 1;
+            let fact = RoleSpan {
+                start: f,
+                end: last + 1,
+            };
             let span = SpanChoice {
                 query: Some(q as u32),
                 fact: Some(f as u32),
@@ -125,20 +137,40 @@ impl Policy {
                 fact_end: Some(last as u32),
                 source: None,
             };
-            let mut value =
-                assertion_value::decide(ids, roots, &old.span, &old.exact, span, ROLE_COPY_STOPS)?;
-            let onset = old
-                .onset
-                .as_ref()
-                .map(|policy| {
-                    policy
-                        .bank
-                        .choose(ids, roots, &old.span.classes, last, q, value)
-                })
-                .transpose()?;
-            if let Some(decision) = onset {
-                value.source = decision.source;
-            }
+            let (value, onset, contextual_source) =
+                if let Some((fence, decision)) = contextual_read(fact, query)? {
+                    (
+                        assertion_value::AssertionValue {
+                            fence,
+                            source: decision.source,
+                            ..Default::default()
+                        },
+                        None,
+                        Some(decision),
+                    )
+                } else {
+                    let mut value = assertion_value::decide(
+                        ids,
+                        roots,
+                        &old.span,
+                        &old.exact,
+                        span,
+                        ROLE_COPY_STOPS,
+                    )?;
+                    let onset = old
+                        .onset
+                        .as_ref()
+                        .map(|policy| {
+                            policy
+                                .bank
+                                .choose(ids, roots, &old.span.classes, last, q, value)
+                        })
+                        .transpose()?;
+                    if let Some(decision) = onset {
+                        value.source = decision.source;
+                    }
+                    (value, onset, None)
+                };
             let completion = match value.source {
                 Some(source) => completed_sequence(ids, source)?.map(|sequence| (source, sequence)),
                 None => None,
@@ -147,6 +179,7 @@ impl Policy {
                 fact_span: [f, last + 1],
                 assertion: value,
                 onset,
+                contextual_source,
                 completed_source_range: completion
                     .map(|(source, sequence)| [source, source + sequence.len() as u32]),
             });
@@ -175,7 +208,7 @@ impl Policy {
 
 /// The exact cursor supplies all accepted IDs. A transition to ordinary prediction
 /// before completion invalidates that candidate, independent of the fallback token.
-fn completed_sequence(ids: &[u32], source: u32) -> Result<Option<&[u32]>> {
+pub(super) fn completed_sequence(ids: &[u32], source: u32) -> Result<Option<&[u32]>> {
     let mut cursor = ExactCopyState::new(Some(source), ids.len() as u32);
     loop {
         let step = cursor

@@ -52,6 +52,7 @@ struct CliArgs {
     /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
     discrete_path: Option<PathBuf>,
     ordered_role_trace: bool,
+    contextual_source_trace: bool,
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
     content_readout_path: Option<PathBuf>,
@@ -299,6 +300,7 @@ impl Default for CliArgs {
             stack_path: None,
             discrete_path: None,
             ordered_role_trace: false,
+            contextual_source_trace: false,
             tokenizer_path: None,
             content_readout_path: None,
             prompt_reply_path: None,
@@ -368,6 +370,7 @@ fn print_usage() {
         "      --prompt-ids <CSV>      step comma-separated token IDs on --stack or --discrete,"
     );
     eprintln!("                              print a JSON record and exit");
+    eprintln!("      --contextual-source-trace  include native candidate geometry and source decisions");
     eprintln!(
         "      --script <PATH>         run a JSON dialogue script on --stack and print a record"
     );
@@ -516,6 +519,7 @@ fn parse_cli_args() -> CliArgs {
                 }
             }
             "--ordered-role-trace" => args.ordered_role_trace = true,
+            "--contextual-source-trace" => args.contextual_source_trace = true,
             "--discrete" => {
                 idx += 1;
                 if idx < raw.len() {
@@ -973,6 +977,10 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.ordered_role_trace && args.discrete_path.is_none() {
         eprintln!("--ordered-role-trace requires --discrete");
+        process::exit(1);
+    }
+    if args.contextual_source_trace && args.discrete_path.is_none() {
+        eprintln!("--contextual-source-trace requires --discrete");
         process::exit(1);
     }
     if args.discrete_path.is_some() && args.threads != 1 {
@@ -2108,6 +2116,37 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         record["decoding"] =
             "paired role, assertion-local value agreement and exact-copy EOS".into();
         record["paired"] = serde_json::to_value(decision)?;
+    }
+    if let Some(arm) = model.contextual_source_arm() {
+        record["decoding"] =
+            "frozen D21 role binding, contextual source agreement and exact-copy EOS".into();
+        record["contextual_source_arm"] = serde_json::to_value(arm)?;
+    } else if cli.contextual_source_trace {
+        return Err(IntegerError::Invalid(
+            "--contextual-source-trace requires a contextual source artifact".into(),
+        ));
+    }
+    if cli.contextual_source_trace {
+        let mut traces = Vec::new();
+        if read_enabled {
+            use uor_r4_integer::paired_role::RoleSpan;
+            let roles = model.paired_roles_diagnostic(prompt, 0..prompt.len(), false)?;
+            if let Some(query) = roles.requested {
+                let (_, witnesses) = model.paired_copy_witness(prompt, roles, None)?;
+                for witness in witnesses {
+                    let [start, end] = witness.fact_span;
+                    let (selection, candidates) =
+                        model.contextual_source_trace(prompt, RoleSpan { start, end }, query)?;
+                    traces.push(serde_json::json!({
+                        "witness": witness,
+                        "query": query,
+                        "selection": selection,
+                        "candidates": candidates,
+                    }));
+                }
+            }
+        }
+        record["contextual_source_trace"] = serde_json::Value::Array(traces);
     }
     if cli.ordered_role_trace {
         let region = 0..prompt.len();

@@ -45,6 +45,7 @@ const CLASSES: [RoleClass; 3] = [
 enum Sites<'a> {
     Packed(&'a [u32], &'a [u32]),
     D11(&'a [[u8; 4]], &'a [u8]),
+    D11Span(&'a [[u8; 4]], &'a [u32]),
     Frozen(&'a [[u8; 4]], &'a [[u32; 2]]),
 }
 
@@ -67,13 +68,17 @@ impl<'a> RoleSites<'a> {
         Self(Sites::D11(roots, classes))
     }
 
+    pub(crate) fn from_span_classes(roots: &'a [[u8; 4]], classes: &'a [u32]) -> Self {
+        Self(Sites::D11Span(roots, classes))
+    }
+
     pub(crate) fn from_frozen(roots: &'a [[u8; 4]], sites: &'a [[u32; 2]]) -> Self {
         Self(Sites::Frozen(roots, sites))
     }
 
     fn class(self, id: u32) -> u32 {
         match self.0 {
-            Sites::Packed(_, classes) => classes[id as usize],
+            Sites::Packed(_, classes) | Sites::D11Span(_, classes) => classes[id as usize],
             Sites::D11(_, classes) => u32::from(classes[id as usize]),
             Sites::Frozen(_, sites) => sites[id as usize][1],
         }
@@ -82,7 +87,9 @@ impl<'a> RoleSites<'a> {
     fn root(self, id: u32) -> u16 {
         match self.0 {
             Sites::Packed(roots, _) => roots[id as usize] as u16,
-            Sites::D11(roots, _) | Sites::Frozen(roots, _) => pack_4block_roots(roots[id as usize]),
+            Sites::D11(roots, _) | Sites::D11Span(roots, _) | Sites::Frozen(roots, _) => {
+                pack_4block_roots(roots[id as usize])
+            }
         }
     }
 

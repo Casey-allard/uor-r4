@@ -1,0 +1,16 @@
+[package]
+name = "d25-context-pack"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d25-context-pack"
+path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+uor-r4-discrete = { path = "../../../../../../crates/uor-r4-discrete" }
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }

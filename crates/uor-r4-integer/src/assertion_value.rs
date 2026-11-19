@@ -71,12 +71,7 @@ pub fn decide(
     let Some([fact_end, query_start]) = endpoints(ids, frozen)? else {
         return Ok(AssertionValue::default());
     };
-    let start = fact_end as usize + 1;
-    let query = query_start as usize;
-    let Some(fence) = ids[start..query]
-        .iter()
-        .position(|id| stops.contains(id))
-        .map(|offset| (start + offset) as u32)
+    let Some(fence) = assertion_fence(ids, fact_end as usize + 1, query_start as usize, stops)
     else {
         return Ok(AssertionValue::default());
     };
@@ -94,6 +89,18 @@ pub fn decide(
         continuation,
         source,
     })
+}
+
+pub(crate) fn assertion_fence(
+    ids: &[u32],
+    start: usize,
+    query: usize,
+    stops: [u32; 4],
+) -> Option<u32> {
+    ids.get(start..query)?
+        .iter()
+        .position(|id| stops.contains(id))
+        .map(|offset| (start + offset) as u32)
 }
 
 #[cfg(test)]
