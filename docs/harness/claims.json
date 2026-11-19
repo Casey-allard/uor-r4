@@ -1,4 +1,11 @@
 {
+  "codex/active-s2-onset-contrast": {
+    "branch": "codex/active-s2-onset-contrast",
+    "claimed_at": "2026-11-19T17:17:22-05:00",
+    "head": "4795bdeb8",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/clause-coordinate-discrimination": {
     "branch": "codex/clause-coordinate-discrimination",
     "claimed_at": "2026-11-19T17:03:08-05:00",

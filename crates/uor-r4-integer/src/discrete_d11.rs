@@ -23,6 +23,9 @@ use crate::{
     Result,
 };
 
+mod s2_expert;
+pub use s2_expert::{s2_route_key, S2ExpertPrediction, S2ExpertRead, S2RankedToken, S2_MASS_TOTAL};
+
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
 /// Header schema of a discrete SpiralCore/FBS `UORLUT01` artifact.
@@ -31,6 +34,8 @@ pub const DISCRETE_SCHEMA: &str = "uor-r4.lut-discrete/1";
 pub const DISCRETE_TRUNK_SCHEMA: &str = "uor-r4.lut-discrete-trunk/1";
 /// Trunk with a frozen positional-prime successor-count section for P1 read-back.
 pub const DISCRETE_S2_SCHEMA: &str = "uor-r4.lut-discrete-trunk-s2/1";
+/// Opt-in longest-suffix retained-count prediction on the identical D11 section layout.
+pub const DISCRETE_S2_EXPERT_SCHEMA: &str = "uor-r4.lut-discrete-trunk-s2/2";
 /// The S2 format binds the base artifact, TRAIN and selected token stream (three SHA-256s).
 pub const S2_SECTION: &str = "discrete.trunk.s2.top4.log2.v1";
 const S2_HEADER_BYTES: usize = 96;
@@ -992,6 +997,7 @@ impl FrozenS2Table {
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DiscreteTrunkTables {
     s2: Option<FrozenS2Table>,
+    active_s2: bool,
     step_candidates: [u8; 64],
     norm_candidates: [u8; 4],
     unigram_best_global: u16,
@@ -2091,7 +2097,7 @@ impl IntegerDiscreteModel {
         let header: DiscreteLutHeader = serde_json::from_slice(encoded_header)?;
         let is_trunk = match header.schema.as_str() {
             DISCRETE_SCHEMA => false,
-            DISCRETE_TRUNK_SCHEMA | DISCRETE_S2_SCHEMA => true,
+            DISCRETE_TRUNK_SCHEMA | DISCRETE_S2_SCHEMA | DISCRETE_S2_EXPERT_SCHEMA => true,
             _ => {
                 return Err(invalid(
                     "discrete UORLUT01 artifact requires schema uor-r4.lut-discrete/1 or uor-r4.lut-discrete-trunk/1",
@@ -2175,7 +2181,13 @@ impl IntegerDiscreteModel {
         } else {
             4
         };
-        let has_s2 = header.schema == DISCRETE_S2_SCHEMA;
+        let active_s2 = header.schema == DISCRETE_S2_EXPERT_SCHEMA;
+        let has_s2 = active_s2 || header.schema == DISCRETE_S2_SCHEMA;
+        if active_s2 && (!allow_role || s.vocabulary != 4096) {
+            return Err(invalid(
+                "active S2 expert requires a standalone 4096-token trunk",
+            ));
+        }
         let trunk_tables = if has_s2 { 20 } else { 19 };
         if (!is_trunk && header.tables.len() != plain_tables)
             || (is_trunk && (header.tables.len() != trunk_tables || s.blocks != 4))
@@ -2438,6 +2450,7 @@ impl IntegerDiscreteModel {
             };
             Some(DiscreteTrunkTables {
                 s2,
+                active_s2,
                 step_candidates,
                 norm_candidates,
                 unigram_best_global,
@@ -2484,6 +2497,15 @@ impl IntegerDiscreteModel {
     /// Count-state read-back for a model carrying the optional frozen S2 family.
     pub fn frozen_s2(&self) -> Option<&FrozenS2Table> {
         self.trunk.as_ref()?.s2.as_ref()
+    }
+
+    /// Returns the retained counts only when their artifact selects active prediction.
+    pub fn active_s2(&self) -> Option<&FrozenS2Table> {
+        self.trunk
+            .as_ref()
+            .filter(|trunk| trunk.active_s2)?
+            .s2
+            .as_ref()
     }
 
     /// Returns `true` when this model was loaded from a 19-table `uor-r4.lut-discrete-trunk/1` container.
@@ -2539,6 +2561,8 @@ impl IntegerDiscreteModel {
                 Some(paired_copy::Roles::Ordered { .. }) => DISCRETE_ORDERED_ROLE_SCHEMA,
                 None => DISCRETE_ROLE_SCHEMA,
             }
+        } else if self.active_s2().is_some() {
+            DISCRETE_S2_EXPERT_SCHEMA
         } else if self.frozen_s2().is_some() {
             DISCRETE_S2_SCHEMA
         } else if self.is_trunk_d11() {
@@ -3433,6 +3457,40 @@ impl IntegerDiscreteModel {
         if prefix.iter().any(|&tok| tok >= vocab) {
             return Err(invalid("prefix token ID outside vocabulary"));
         }
+        if let Some(table) = self.active_s2() {
+            let read = table.predict_expert(prefix)?;
+            let best = read.top8[0];
+            let mut trace_words = Vec::new();
+            if retain_trace {
+                let key = read.matched_key.unwrap_or(0);
+                trace_words.extend([u32::from(read.matched_key.is_some()), u32::from(read.order)]);
+                trace_words.extend((0..4).map(|i| (key >> (i * 32)) as u32));
+                trace_words.push(read.reads().len() as u32);
+                for entry in read.reads() {
+                    trace_words.extend([u32::from(entry.token), entry.count]);
+                }
+                trace_words.extend([
+                    u32::from(best.token),
+                    best.mass as u32,
+                    (best.mass >> 32) as u32,
+                ]);
+            }
+            return Ok(DiscreteTracedPrefixEvaluation {
+                evaluation: DiscretePrefixEvaluation {
+                    prediction: u32::from(best.token),
+                    top8: read
+                        .top8
+                        .iter()
+                        .map(|entry| u32::from(entry.token))
+                        .collect(),
+                    read_vector: Vec::new(),
+                    admitted_cells: Vec::new(),
+                    relation_scores: None,
+                },
+                trace_words,
+                relation_trace_words: None,
+            });
+        }
         if let Some(mixer) = self.count_mixer() {
             let previous = prefix[prefix.len() - 1] as u16;
             let ranked = mixer.top8_for_prefix(prefix);
@@ -3577,9 +3635,9 @@ impl IntegerDiscreteModel {
     /// Evaluate a causal token prefix and compute the exact writer loss numerators
     /// and rival counts against `target` (`0..vocabulary`).
     pub fn observe_target(&self, prefix: &[u32], target: u32) -> Result<DiscreteTargetObservation> {
-        if self.count_mixer().is_some() {
+        if self.count_mixer().is_some() || self.active_s2().is_some() {
             return Err(invalid(
-                "the count mixer uses target mass instead of trunk hinge loss",
+                "count experts use target mass instead of trunk hinge loss",
             ));
         }
         if target >= self.shape.vocabulary {

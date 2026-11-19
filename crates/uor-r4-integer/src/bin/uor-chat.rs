@@ -2044,8 +2044,22 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
     let mut context = prompt.to_vec();
     let mut generated_ids = Vec::with_capacity(cli.max_tokens);
     let mut count_masses = Vec::new();
+    let mut s2_steps = Vec::new();
     for _ in 0..cli.max_tokens {
-        let ordinary = model.evaluate_prefix(&context)?.prediction;
+        let ordinary = if let Some(table) = model.active_s2() {
+            let read = table.predict_expert(&context)?;
+            let best = read.top8[0];
+            count_masses.push(best.mass);
+            s2_steps.push(serde_json::json!({
+                "order":read.order,
+                "key_hex":read.matched_key.map(|key| format!("{key:032x}")),
+                "reads":read.reads().iter().map(|r| [u32::from(r.token),r.count]).collect::<Vec<_>>(),
+                "top8":read.top8.iter().map(|r| [u64::from(r.token),r.mass]).collect::<Vec<_>>(),
+            }));
+            u32::from(best.token)
+        } else {
+            model.evaluate_prefix(&context)?.prediction
+        };
         if let Some(mixer) = model.count_mixer() {
             // evaluate_prefix validates the full context before selecting the count winner.
             count_masses.push(mixer.mass_q32_for_prefix(&context, ordinary as u16));
@@ -2109,6 +2123,11 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
             "candidates": candidates,
             "assertions": assertions,
         });
+    }
+    if model.active_s2().is_some() {
+        record["decoding"] = "greedy retained S2 suffix expert".into();
+        record["s2_steps"] = serde_json::to_value(s2_steps)?;
+        record["generated_mass_q32"] = serde_json::to_value(&count_masses)?;
     }
     if let Some(mixer) = model.count_mixer() {
         record["decoding"] = "greedy full-support count mixer".into();

@@ -1,0 +1,347 @@
+[
+  {
+    "question": "What is a map?",
+    "model_schema": "uor-r4.lut-discrete-trunk-s2/1",
+    "artifact_sha256": "640fa6884d258343e38804282405820999f40f23554848b0d2561b9833d478d9",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      1601,
+      435,
+      261,
+      2390,
+      33,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "generated_ids": [
+      1155,
+      302,
+      311,
+      14,
+      631,
+      1422,
+      284,
+      77
+    ],
+    "text": " Got it, your steerk",
+    "stop": "max_tokens",
+    "route_orders": [],
+    "first_match": null
+  },
+  {
+    "question": "What is a map?",
+    "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+    "artifact_sha256": "6da3ac9fcfd8456f803284042f2eece9eca9d471e57affbe2cb3e1b726745be7",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      1601,
+      435,
+      261,
+      2390,
+      33,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "generated_ids": [
+      799,
+      767,
+      2505,
+      16,
+      2237,
+      71,
+      266,
+      962
+    ],
+    "text": " We need answer. Need par",
+    "stop": "max_tokens",
+    "route_orders": [
+      7,
+      8,
+      9,
+      10,
+      10,
+      10,
+      10,
+      10
+    ],
+    "first_match": {
+      "key_hex": "0701c2ca28c2300230c9021000000000",
+      "order": 7,
+      "reads": [
+        [
+          201,
+          16
+        ],
+        [
+          287,
+          64
+        ],
+        [
+          799,
+          512
+        ],
+        [
+          3184,
+          4
+        ]
+      ],
+      "top8": [
+        [
+          799,
+          3574367976
+        ],
+        [
+          287,
+          446824676
+        ],
+        [
+          201,
+          111730750
+        ],
+        [
+          3184,
+          27957270
+        ],
+        [
+          1,
+          32777
+        ],
+        [
+          2,
+          32777
+        ],
+        [
+          3,
+          32777
+        ],
+        [
+          4,
+          32777
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Where is the nearest library?",
+    "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+    "artifact_sha256": "6da3ac9fcfd8456f803284042f2eece9eca9d471e57affbe2cb3e1b726745be7",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      534,
+      797,
+      435,
+      265,
+      396,
+      518,
+      353,
+      3663,
+      33,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "generated_ids": [
+      799,
+      767,
+      2505,
+      16,
+      2237,
+      71,
+      266,
+      962
+    ],
+    "text": " We need answer. Need par",
+    "stop": "max_tokens",
+    "route_orders": [
+      7,
+      8,
+      9,
+      10,
+      10,
+      10,
+      10,
+      10
+    ],
+    "first_match": {
+      "key_hex": "0701c2ca28c2300230c9021000000000",
+      "order": 7,
+      "reads": [
+        [
+          201,
+          16
+        ],
+        [
+          287,
+          64
+        ],
+        [
+          799,
+          512
+        ],
+        [
+          3184,
+          4
+        ]
+      ],
+      "top8": [
+        [
+          799,
+          3574367976
+        ],
+        [
+          287,
+          446824676
+        ],
+        [
+          201,
+          111730750
+        ],
+        [
+          3184,
+          27957270
+        ],
+        [
+          1,
+          32777
+        ],
+        [
+          2,
+          32777
+        ],
+        [
+          3,
+          32777
+        ],
+        [
+          4,
+          32777
+        ]
+      ]
+    }
+  },
+  {
+    "question": "Why does ice float?",
+    "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+    "artifact_sha256": "6da3ac9fcfd8456f803284042f2eece9eca9d471e57affbe2cb3e1b726745be7",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      2489,
+      1303,
+      1264,
+      1175,
+      299,
+      33,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "generated_ids": [
+      799,
+      767,
+      2505,
+      16,
+      2237,
+      71,
+      266,
+      962
+    ],
+    "text": " We need answer. Need par",
+    "stop": "max_tokens",
+    "route_orders": [
+      7,
+      8,
+      9,
+      10,
+      10,
+      10,
+      10,
+      10
+    ],
+    "first_match": {
+      "key_hex": "0701c2ca28c2300230c9021000000000",
+      "order": 7,
+      "reads": [
+        [
+          201,
+          16
+        ],
+        [
+          287,
+          64
+        ],
+        [
+          799,
+          512
+        ],
+        [
+          3184,
+          4
+        ]
+      ],
+      "top8": [
+        [
+          799,
+          3574367976
+        ],
+        [
+          287,
+          446824676
+        ],
+        [
+          201,
+          111730750
+        ],
+        [
+          3184,
+          27957270
+        ],
+        [
+          1,
+          32777
+        ],
+        [
+          2,
+          32777
+        ],
+        [
+          3,
+          32777
+        ],
+        [
+          4,
+          32777
+        ]
+      ]
+    }
+  }
+]

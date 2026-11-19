@@ -1,0 +1,52 @@
+{
+  "schema": "uor-r4.active-s2-differential-storage/1",
+  "verified_utc": "2026-11-19T22:34:07Z",
+  "sha256": "9e293ce5ef5f38ab3caa866a92501253ac36cf4dc7ac4eb246258cbc16534b6c",
+  "full_archive": {
+    "filename": "observations.tar.zst",
+    "bytes": 75059,
+    "workstation_directory": "~/uor-r4/local/codex/active-s2-23/deposit",
+    "wick_directory": "/home/callard/uor-codex/20261119-active-s2-23/observations-custody",
+    "file_manifest": "files.sha256",
+    "file_manifest_sha256": "02f500f5702260c117dd88af2e26c6f2ccb90c0265c7016155b0b874ef182abc",
+    "manifest_entries_verified_on_both_hosts": 119,
+    "wick_archive_roundtrip_byte_identical": true,
+    "scope": "Portable observations including original client JSON, planted host validation logs, original primary, cold and oracle device outputs, build and dispatch records, and custody pins. Large carriers and device binaries are kept separately."
+  },
+  "hf_results": {
+    "dataset": "caseyallard/uor-r4-store",
+    "revision": "8f437144103750d5eb18b0a5933d1bcc517c1899",
+    "path": "results/codex/2026-11-19-active-s2-23-9e293ce/compact",
+    "file_manifest_sha256": "24614aca2a1c33eda78883928a3d69f26b27f1ae70ed7361df379de0c0cc51dc",
+    "original_files": 12,
+    "verified_files_including_sidecars": 14,
+    "pinned_originals_byte_identical": true,
+    "scope": "Direct regular Git files containing real active and passive primary and repeat client JSON, planted validation result, original primary device JSON for both packets, device identity, exit and checksum receipts, and executable hash and build receipt. The full archive hash and compact file manifest are included.",
+    "quota": "The private store rejected the full archive and both binary and ASCII-armored uploads of the 5435-byte compact archive. The same compact members were accepted as individual files."
+  },
+  "carriers": {
+    "workstation_directory": "~/uor-r4/local/codex/active-s2-23",
+    "wick_directory": "/home/callard/uor-codex/20261119-active-s2-23/carriers",
+    "real_active_sha256": "6da3ac9fcfd8456f803284042f2eece9eca9d471e57affbe2cb3e1b726745be7",
+    "real_passive_sha256": "640fa6884d258343e38804282405820999f40f23554848b0d2561b9833d478d9",
+    "real_passive_wick_pin_record": "custody/prior-wick-pins.txt",
+    "planted_active_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+    "planted_passive_sha256": "cdc5ad35e9e55d89e782cad75e1f0694e8e9d7485775d437c235d78686cda583",
+    "three_new_wick_carriers_rehashed": true
+  },
+  "execution_pins": {
+    "source_revision": "dd04245b4a58ed6e74ed0e71c4baa675b182a8d6",
+    "uor_chat_sha256": "482fdbd790e3bba4d3b08cf6dd35563e6b02d03feacdc6dd22f5a31821319b1d",
+    "measured_activator_sha256": "0d2c5c18ec05456ca4a048edd35d96ea3ecd1a2f0c33bdd62246b552bd787929",
+    "activator_readback": "The measured hash is bound by run-1/source-and-binary.sha256. The executable at the recorded build path has since changed.",
+    "real_tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+    "device_executable_sha256": "4fde13cb7e9edafd284a6ac120d6260e92241a3421050419117b99b07897e4ee",
+    "device_disassembly_sha256": "0ae4f4c8d7a8259752be7278abf47ebc0dded82f46c02e577302e5eb64368c69",
+    "real_device_rows_sha256": "ea8eb85ccd241c95cf92b5767e0818f3cbfa5d0ef72a713ac955cbe563a0e36b",
+    "device_instance": "vast-61526890",
+    "device_uuid": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25",
+    "device_name": "NVIDIA GeForce RTX 4090",
+    "driver": "580.95.05",
+    "compute_capability": "8.9"
+  }
+}

@@ -1,0 +1,4 @@
+Production-loader validation added in f2efa0e2c. Regenerated from each original pinned passive carrier with the rebuilt activator. Both outputs compared byte-identical to the active files from the client and GPU experiment.
+3037e45ebd0dec1e80f3ac30d750451fc5ba4b410cbc8b6969647db182eec82e  /Users/casey.allard/uor-r4/target/codex/content-selector-verify/debug/activate-s2-expert
+eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7  /Users/casey.allard/uor-r4/local/codex/active-s2-23/final-activator/planted.d11
+6da3ac9fcfd8456f803284042f2eece9eca9d471e57affbe2cb3e1b726745be7  /Users/casey.allard/uor-r4/local/codex/active-s2-23/final-activator/real.d11

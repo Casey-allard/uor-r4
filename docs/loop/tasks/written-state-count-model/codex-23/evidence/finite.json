@@ -1,0 +1,350 @@
+{
+  "schema": "uor-r4.s2-ordinary-client-finite/1",
+  "active_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+  "passive_sha256": "cdc5ad35e9e55d89e782cad75e1f0694e8e9d7485775d437c235d78686cda583",
+  "equal_deployed_bytes": 86536760,
+  "compared_q32_masses": 40960,
+  "prime_route_key_orders": [
+    0,
+    10
+  ],
+  "refusals": [
+    "stale passive SHA-256",
+    "stale original tokenizer",
+    "invalid serialized count rank"
+  ],
+  "client_comparison": [
+    {
+      "active": {
+        "artifact": "/Users/casey.allard/uor-r4/local/codex/active-s2-23/run-1/validation/fixture-active.d11",
+        "artifact_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+        "context": 192,
+        "decoding": "greedy retained S2 suffix expert",
+        "generated_ids": [
+          677,
+          1
+        ],
+        "generated_mass_q32": [
+          3916032369,
+          4160782345
+        ],
+        "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+        "prompt_ids": [
+          0,
+          55,
+          2728,
+          28,
+          677,
+          384,
+          265,
+          4027,
+          201,
+          35,
+          560,
+          652,
+          714,
+          28
+        ],
+        "protocol": "uor-r4.literal-role-dialogue/2",
+        "s2_steps": [
+          {
+            "key_hex": "0a01c2ca28c2300230c9fbb1091802a5",
+            "order": 10,
+            "reads": [
+              [
+                677,
+                128
+              ],
+              [
+                924,
+                8
+              ]
+            ],
+            "top8": [
+              [
+                677,
+                3916032369
+              ],
+              [
+                924,
+                244782751
+              ],
+              [
+                1,
+                32777
+              ],
+              [
+                2,
+                32777
+              ],
+              [
+                3,
+                32777
+              ],
+              [
+                4,
+                32777
+              ],
+              [
+                5,
+                32777
+              ],
+              [
+                6,
+                32777
+              ]
+            ]
+          },
+          {
+            "key_hex": "022a501c000000000000000000000000",
+            "order": 2,
+            "reads": [
+              [
+                1,
+                32
+              ]
+            ],
+            "top8": [
+              [
+                1,
+                4160782345
+              ],
+              [
+                2,
+                32777
+              ],
+              [
+                3,
+                32777
+              ],
+              [
+                4,
+                32777
+              ],
+              [
+                5,
+                32777
+              ],
+              [
+                6,
+                32777
+              ],
+              [
+                7,
+                32777
+              ],
+              [
+                8,
+                32777
+              ]
+            ]
+          }
+        ],
+        "schema": "uor-r4.uor-chat-discrete-text/1",
+        "stop": "eos",
+        "text": " red",
+        "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+      },
+      "passive": {
+        "artifact": "/Users/casey.allard/uor-r4/local/codex/active-s2-23/run-1/fixture-passive.d11",
+        "artifact_sha256": "cdc5ad35e9e55d89e782cad75e1f0694e8e9d7485775d437c235d78686cda583",
+        "context": 192,
+        "decoding": "greedy IntegerDiscreteModel::evaluate_prefix",
+        "generated_ids": [
+          1155,
+          302
+        ],
+        "model_schema": "uor-r4.lut-discrete-trunk-s2/1",
+        "prompt_ids": [
+          0,
+          55,
+          2728,
+          28,
+          677,
+          384,
+          265,
+          4027,
+          201,
+          35,
+          560,
+          652,
+          714,
+          28
+        ],
+        "protocol": "uor-r4.literal-role-dialogue/2",
+        "schema": "uor-r4.uor-chat-discrete-text/1",
+        "stop": "max_tokens",
+        "text": " Got",
+        "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+      },
+      "text": "red saw the oak"
+    },
+    {
+      "active": {
+        "artifact": "/Users/casey.allard/uor-r4/local/codex/active-s2-23/run-1/validation/fixture-active.d11",
+        "artifact_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+        "context": 192,
+        "decoding": "greedy retained S2 suffix expert",
+        "generated_ids": [
+          924,
+          1
+        ],
+        "generated_mass_q32": [
+          3916032370,
+          4160782345
+        ],
+        "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+        "prompt_ids": [
+          0,
+          55,
+          2728,
+          28,
+          924,
+          384,
+          265,
+          4027,
+          201,
+          35,
+          560,
+          652,
+          714,
+          28
+        ],
+        "protocol": "uor-r4.literal-role-dialogue/2",
+        "s2_steps": [
+          {
+            "key_hex": "0a01c2ca28c2300230c9fbb10918039c",
+            "order": 10,
+            "reads": [
+              [
+                677,
+                8
+              ],
+              [
+                924,
+                128
+              ]
+            ],
+            "top8": [
+              [
+                924,
+                3916032370
+              ],
+              [
+                677,
+                244782750
+              ],
+              [
+                1,
+                32777
+              ],
+              [
+                2,
+                32777
+              ],
+              [
+                3,
+                32777
+              ],
+              [
+                4,
+                32777
+              ],
+              [
+                5,
+                32777
+              ],
+              [
+                6,
+                32777
+              ]
+            ]
+          },
+          {
+            "key_hex": "0239c01c000000000000000000000000",
+            "order": 2,
+            "reads": [
+              [
+                1,
+                32
+              ]
+            ],
+            "top8": [
+              [
+                1,
+                4160782345
+              ],
+              [
+                2,
+                32777
+              ],
+              [
+                3,
+                32777
+              ],
+              [
+                4,
+                32777
+              ],
+              [
+                5,
+                32777
+              ],
+              [
+                6,
+                32777
+              ],
+              [
+                7,
+                32777
+              ],
+              [
+                8,
+                32777
+              ]
+            ]
+          }
+        ],
+        "schema": "uor-r4.uor-chat-discrete-text/1",
+        "stop": "eos",
+        "text": " blue",
+        "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+      },
+      "passive": {
+        "artifact": "/Users/casey.allard/uor-r4/local/codex/active-s2-23/run-1/fixture-passive.d11",
+        "artifact_sha256": "cdc5ad35e9e55d89e782cad75e1f0694e8e9d7485775d437c235d78686cda583",
+        "context": 192,
+        "decoding": "greedy IntegerDiscreteModel::evaluate_prefix",
+        "generated_ids": [
+          1155,
+          302
+        ],
+        "model_schema": "uor-r4.lut-discrete-trunk-s2/1",
+        "prompt_ids": [
+          0,
+          55,
+          2728,
+          28,
+          924,
+          384,
+          265,
+          4027,
+          201,
+          35,
+          560,
+          652,
+          714,
+          28
+        ],
+        "protocol": "uor-r4.literal-role-dialogue/2",
+        "schema": "uor-r4.uor-chat-discrete-text/1",
+        "stop": "max_tokens",
+        "text": " Got",
+        "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+      },
+      "text": "blue saw the oak"
+    }
+  ],
+  "uor_chat_sha256": "482fdbd790e3bba4d3b08cf6dd35563e6b02d03feacdc6dd22f5a31821319b1d",
+  "activator_sha256": "0d2c5c18ec05456ca4a048edd35d96ea3ecd1a2f0c33bdd62246b552bd787929"
+}
