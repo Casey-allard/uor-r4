@@ -1,0 +1,4 @@
+legacy-tests.log:test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+feature-tests.log:test result: ok. 728 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.14s
+feature-tests.log:test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 411 filtered out; finished in 0.44s

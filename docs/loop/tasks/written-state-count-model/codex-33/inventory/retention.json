@@ -1,0 +1,1232 @@
+{
+  "always_keep_through_order": 3,
+  "compact_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+  "fixed_count_header_bytes": 836,
+  "physical_count_bytes": 2229740835,
+  "rows": [
+    {
+      "compact_count_bytes": 2229740835,
+      "minimum_raw_context_support": 1,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 10995530,
+          "contexts": 6183887,
+          "followers": 8925993,
+          "order": 4,
+          "raw_support": 20732693,
+          "section_data_bytes": 151098800
+        },
+        {
+          "adjusted_support": 12470759,
+          "contexts": 8923070,
+          "followers": 10990128,
+          "order": 5,
+          "raw_support": 20727291,
+          "section_data_bytes": 216978120
+        },
+        {
+          "adjusted_support": 13539627,
+          "contexts": 10986797,
+          "followers": 12465357,
+          "order": 6,
+          "raw_support": 20721889,
+          "section_data_bytes": 267481931
+        },
+        {
+          "adjusted_support": 14332322,
+          "contexts": 12461504,
+          "followers": 13534225,
+          "order": 7,
+          "raw_support": 20716487,
+          "section_data_bytes": 322264810
+        },
+        {
+          "adjusted_support": 14938615,
+          "contexts": 13530074,
+          "followers": 14326920,
+          "order": 8,
+          "raw_support": 20711085,
+          "section_data_bytes": 359750384
+        },
+        {
+          "adjusted_support": 15421904,
+          "contexts": 14322622,
+          "followers": 14933213,
+          "order": 9,
+          "raw_support": 20705683,
+          "section_data_bytes": 407139326
+        },
+        {
+          "adjusted_support": 20700281,
+          "contexts": 14928834,
+          "followers": 15416502,
+          "order": 10,
+          "raw_support": 20700281,
+          "section_data_bytes": 376146858
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 544346506,
+      "minimum_raw_context_support": 2,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 6753541,
+          "contexts": 1941898,
+          "followers": 4684004,
+          "order": 4,
+          "raw_support": 16490704,
+          "section_data_bytes": 66259020
+        },
+        {
+          "adjusted_support": 5695262,
+          "contexts": 2147573,
+          "followers": 4214631,
+          "order": 5,
+          "raw_support": 13951794,
+          "section_data_bytes": 67917186
+        },
+        {
+          "adjusted_support": 4664963,
+          "contexts": 2112133,
+          "followers": 3590693,
+          "order": 6,
+          "raw_support": 11847225,
+          "section_data_bytes": 63364659
+        },
+        {
+          "adjusted_support": 3867246,
+          "contexts": 1996428,
+          "followers": 3069149,
+          "order": 7,
+          "raw_support": 10251411,
+          "section_data_bytes": 60637910
+        },
+        {
+          "adjusted_support": 3286430,
+          "contexts": 1877889,
+          "followers": 2674735,
+          "order": 8,
+          "raw_support": 9058900,
+          "section_data_bytes": 56793574
+        },
+        {
+          "adjusted_support": 2868643,
+          "contexts": 1769361,
+          "followers": 2379952,
+          "order": 9,
+          "raw_support": 8152422,
+          "section_data_bytes": 55648018
+        },
+        {
+          "adjusted_support": 7448228,
+          "contexts": 1676781,
+          "followers": 2164449,
+          "order": 10,
+          "raw_support": 7448228,
+          "section_data_bytes": 44845533
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 276123394,
+      "minimum_raw_context_support": 4,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 4707380,
+          "contexts": 705972,
+          "followers": 2877259,
+          "order": 4,
+          "raw_support": 13689131,
+          "section_data_bytes": 35832310
+        },
+        {
+          "adjusted_support": 3338294,
+          "contexts": 655072,
+          "followers": 2132803,
+          "order": 5,
+          "raw_support": 10602540,
+          "section_data_bytes": 29188894
+        },
+        {
+          "adjusted_support": 2345232,
+          "contexts": 568197,
+          "followers": 1535506,
+          "order": 6,
+          "raw_support": 8410669,
+          "section_data_bytes": 22741621
+        },
+        {
+          "adjusted_support": 1712615,
+          "contexts": 492753,
+          "followers": 1150377,
+          "order": 7,
+          "raw_support": 6924452,
+          "section_data_bytes": 18895065
+        },
+        {
+          "adjusted_support": 1305508,
+          "contexts": 434193,
+          "followers": 897545,
+          "order": 8,
+          "raw_support": 5878298,
+          "section_data_bytes": 15922538
+        },
+        {
+          "adjusted_support": 1043347,
+          "contexts": 388290,
+          "followers": 729372,
+          "order": 9,
+          "raw_support": 5119122,
+          "section_data_bytes": 14282940
+        },
+        {
+          "adjusted_support": 4544349,
+          "contexts": 351176,
+          "followers": 617846,
+          "order": 10,
+          "raw_support": 4544349,
+          "section_data_bytes": 10379420
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 200944233,
+      "minimum_raw_context_support": 8,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 3444333,
+          "contexts": 293950,
+          "followers": 1891731,
+          "order": 4,
+          "raw_support": 11632536,
+          "section_data_bytes": 21856810
+        },
+        {
+          "adjusted_support": 2183305,
+          "contexts": 245890,
+          "followers": 1237876,
+          "order": 5,
+          "raw_support": 8580434,
+          "section_data_bytes": 15329440
+        },
+        {
+          "adjusted_support": 1408616,
+          "contexts": 203893,
+          "followers": 809374,
+          "order": 6,
+          "raw_support": 6621363,
+          "section_data_bytes": 10744349
+        },
+        {
+          "adjusted_support": 962312,
+          "contexts": 173287,
+          "followers": 567588,
+          "order": 7,
+          "raw_support": 5359985,
+          "section_data_bytes": 8275185
+        },
+        {
+          "adjusted_support": 693191,
+          "contexts": 148886,
+          "followers": 417025,
+          "order": 8,
+          "raw_support": 4484473,
+          "section_data_bytes": 6552426
+        },
+        {
+          "adjusted_support": 528057,
+          "contexts": 129686,
+          "followers": 321559,
+          "order": 9,
+          "raw_support": 3858876,
+          "section_data_bytes": 5549938
+        },
+        {
+          "adjusted_support": 3393847,
+          "contexts": 114499,
+          "followers": 263333,
+          "order": 10,
+          "raw_support": 3393847,
+          "section_data_bytes": 3755479
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 167482412,
+      "minimum_raw_context_support": 16,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 2521817,
+          "contexts": 126237,
+          "followers": 1242835,
+          "order": 4,
+          "raw_support": 9872237,
+          "section_data_bytes": 13690720
+        },
+        {
+          "adjusted_support": 1467794,
+          "contexts": 98769,
+          "followers": 741045,
+          "order": 5,
+          "raw_support": 7046984,
+          "section_data_bytes": 8595678
+        },
+        {
+          "adjusted_support": 887475,
+          "contexts": 79915,
+          "followers": 448320,
+          "order": 6,
+          "raw_support": 5334320,
+          "section_data_bytes": 5522095
+        },
+        {
+          "adjusted_support": 572063,
+          "contexts": 66436,
+          "followers": 297297,
+          "order": 7,
+          "raw_support": 4253891,
+          "section_data_bytes": 3969510
+        },
+        {
+          "adjusted_support": 392133,
+          "contexts": 55308,
+          "followers": 206579,
+          "order": 8,
+          "raw_support": 3517957,
+          "section_data_bytes": 2950718
+        },
+        {
+          "adjusted_support": 289071,
+          "contexts": 46944,
+          "followers": 153256,
+          "order": 9,
+          "raw_support": 3006706,
+          "section_data_bytes": 2377552
+        },
+        {
+          "adjusted_support": 2632838,
+          "contexts": 40371,
+          "followers": 121414,
+          "order": 10,
+          "raw_support": 2632838,
+          "section_data_bytes": 1495533
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 150493951,
+      "minimum_raw_context_support": 32,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 1818075,
+          "contexts": 55384,
+          "followers": 798061,
+          "order": 4,
+          "raw_support": 8347960,
+          "section_data_bytes": 8534450
+        },
+        {
+          "adjusted_support": 994863,
+          "contexts": 42361,
+          "followers": 445509,
+          "order": 5,
+          "raw_support": 5835988,
+          "section_data_bytes": 4963422
+        },
+        {
+          "adjusted_support": 572756,
+          "contexts": 33864,
+          "followers": 253346,
+          "order": 6,
+          "raw_support": 4344923,
+          "section_data_bytes": 2973692
+        },
+        {
+          "adjusted_support": 348074,
+          "contexts": 27146,
+          "followers": 159637,
+          "order": 7,
+          "raw_support": 3409704,
+          "section_data_bytes": 2003560
+        },
+        {
+          "adjusted_support": 229564,
+          "contexts": 21780,
+          "followers": 106022,
+          "order": 8,
+          "raw_support": 2797827,
+          "section_data_bytes": 1408700
+        },
+        {
+          "adjusted_support": 165060,
+          "contexts": 18045,
+          "followers": 76227,
+          "order": 9,
+          "raw_support": 2384987,
+          "section_data_bytes": 1087080
+        },
+        {
+          "adjusted_support": 2092756,
+          "contexts": 15231,
+          "followers": 58842,
+          "order": 10,
+          "raw_support": 2092756,
+          "section_data_bytes": 642441
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 141069300,
+      "minimum_raw_context_support": 64,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 1281494,
+          "contexts": 25051,
+          "followers": 494268,
+          "order": 4,
+          "raw_support": 7024883,
+          "section_data_bytes": 5193190
+        },
+        {
+          "adjusted_support": 666057,
+          "contexts": 19210,
+          "followers": 262746,
+          "order": 5,
+          "raw_support": 4826917,
+          "section_data_bytes": 2857980
+        },
+        {
+          "adjusted_support": 366743,
+          "contexts": 14840,
+          "followers": 142133,
+          "order": 6,
+          "raw_support": 3515413,
+          "section_data_bytes": 1614250
+        },
+        {
+          "adjusted_support": 207856,
+          "contexts": 11299,
+          "followers": 84139,
+          "order": 7,
+          "raw_support": 2721257,
+          "section_data_bytes": 1010875
+        },
+        {
+          "adjusted_support": 134354,
+          "contexts": 8980,
+          "followers": 54076,
+          "order": 8,
+          "raw_support": 2243836,
+          "section_data_bytes": 684440
+        },
+        {
+          "adjusted_support": 96601,
+          "contexts": 7549,
+          "followers": 38648,
+          "order": 9,
+          "raw_support": 1931498,
+          "section_data_bytes": 522362
+        },
+        {
+          "adjusted_support": 1718609,
+          "contexts": 6581,
+          "followers": 30093,
+          "order": 10,
+          "raw_support": 1718609,
+          "section_data_bytes": 305597
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 135612446,
+      "minimum_raw_context_support": 128,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 884841,
+          "contexts": 11300,
+          "followers": 295250,
+          "order": 4,
+          "raw_support": 5820101,
+          "section_data_bytes": 3065500
+        },
+        {
+          "adjusted_support": 435689,
+          "contexts": 8348,
+          "followers": 149520,
+          "order": 5,
+          "raw_support": 3874065,
+          "section_data_bytes": 1595376
+        },
+        {
+          "adjusted_support": 225515,
+          "contexts": 6010,
+          "followers": 76160,
+          "order": 6,
+          "raw_support": 2744078,
+          "section_data_bytes": 839730
+        },
+        {
+          "adjusted_support": 120145,
+          "contexts": 4396,
+          "followers": 42960,
+          "order": 7,
+          "raw_support": 2119195,
+          "section_data_bytes": 495540
+        },
+        {
+          "adjusted_support": 79227,
+          "contexts": 3530,
+          "followers": 28025,
+          "order": 8,
+          "raw_support": 1770172,
+          "section_data_bytes": 336730
+        },
+        {
+          "adjusted_support": 59014,
+          "contexts": 2989,
+          "followers": 20354,
+          "order": 9,
+          "raw_support": 1535731,
+          "section_data_bytes": 257342
+        },
+        {
+          "adjusted_support": 1378818,
+          "contexts": 2656,
+          "followers": 15193,
+          "order": 10,
+          "raw_support": 1378818,
+          "section_data_bytes": 141622
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 132749057,
+      "minimum_raw_context_support": 256,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 614324,
+          "contexts": 5580,
+          "followers": 178411,
+          "order": 4,
+          "raw_support": 4816532,
+          "section_data_bytes": 1839910
+        },
+        {
+          "adjusted_support": 279123,
+          "contexts": 3908,
+          "followers": 83801,
+          "order": 5,
+          "raw_support": 3096742,
+          "section_data_bytes": 884906
+        },
+        {
+          "adjusted_support": 134896,
+          "contexts": 2763,
+          "followers": 40737,
+          "order": 6,
+          "raw_support": 2180112,
+          "section_data_bytes": 443289
+        },
+        {
+          "adjusted_support": 72020,
+          "contexts": 2217,
+          "followers": 23524,
+          "order": 7,
+          "raw_support": 1741030,
+          "section_data_bytes": 268495
+        },
+        {
+          "adjusted_support": 48246,
+          "contexts": 1923,
+          "followers": 15858,
+          "order": 8,
+          "raw_support": 1491109,
+          "section_data_bytes": 189348
+        },
+        {
+          "adjusted_support": 38535,
+          "contexts": 1753,
+          "followers": 12322,
+          "order": 9,
+          "raw_support": 1322738,
+          "section_data_bytes": 154774
+        },
+        {
+          "adjusted_support": 1210565,
+          "contexts": 1677,
+          "followers": 9311,
+          "order": 10,
+          "raw_support": 1210565,
+          "section_data_bytes": 87729
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 130916869,
+      "minimum_raw_context_support": 512,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 402820,
+          "contexts": 2323,
+          "followers": 99981,
+          "order": 4,
+          "raw_support": 3620255,
+          "section_data_bytes": 1023040
+        },
+        {
+          "adjusted_support": 170059,
+          "contexts": 1342,
+          "followers": 44494,
+          "order": 5,
+          "raw_support": 2139231,
+          "section_data_bytes": 461044
+        },
+        {
+          "adjusted_support": 77329,
+          "contexts": 839,
+          "followers": 20724,
+          "order": 6,
+          "raw_support": 1450218,
+          "section_data_bytes": 218147
+        },
+        {
+          "adjusted_support": 40664,
+          "contexts": 627,
+          "followers": 11917,
+          "order": 7,
+          "raw_support": 1124671,
+          "section_data_bytes": 128575
+        },
+        {
+          "adjusted_support": 27611,
+          "contexts": 504,
+          "followers": 8535,
+          "order": 8,
+          "raw_support": 932028,
+          "section_data_bytes": 93414
+        },
+        {
+          "adjusted_support": 27054,
+          "contexts": 421,
+          "followers": 7352,
+          "order": 9,
+          "raw_support": 789328,
+          "section_data_bytes": 81098
+        },
+        {
+          "adjusted_support": 679740,
+          "contexts": 357,
+          "followers": 4027,
+          "order": 10,
+          "raw_support": 679740,
+          "section_data_bytes": 30945
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 129915989,
+      "minimum_raw_context_support": 1024,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 247575,
+          "contexts": 889,
+          "followers": 52146,
+          "order": 4,
+          "raw_support": 2624608,
+          "section_data_bytes": 530350
+        },
+        {
+          "adjusted_support": 100362,
+          "contexts": 472,
+          "followers": 22429,
+          "order": 5,
+          "raw_support": 1530999,
+          "section_data_bytes": 229954
+        },
+        {
+          "adjusted_support": 44567,
+          "contexts": 299,
+          "followers": 10057,
+          "order": 6,
+          "raw_support": 1068332,
+          "section_data_bytes": 104457
+        },
+        {
+          "adjusted_support": 22168,
+          "contexts": 229,
+          "followers": 6294,
+          "order": 7,
+          "raw_support": 844802,
+          "section_data_bytes": 66375
+        },
+        {
+          "adjusted_support": 17045,
+          "contexts": 181,
+          "followers": 4695,
+          "order": 8,
+          "raw_support": 702953,
+          "section_data_bytes": 49846
+        },
+        {
+          "adjusted_support": 16334,
+          "contexts": 143,
+          "followers": 3875,
+          "order": 9,
+          "raw_support": 590428,
+          "section_data_bytes": 41324
+        },
+        {
+          "adjusted_support": 503669,
+          "contexts": 111,
+          "followers": 1828,
+          "order": 10,
+          "raw_support": 503669,
+          "section_data_bytes": 13077
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 129349140,
+      "minimum_raw_context_support": 2048,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 140271,
+          "contexts": 279,
+          "followers": 24215,
+          "order": 4,
+          "raw_support": 1765621,
+          "section_data_bytes": 244940
+        },
+        {
+          "adjusted_support": 52057,
+          "contexts": 135,
+          "followers": 9949,
+          "order": 5,
+          "raw_support": 1057252,
+          "section_data_bytes": 101110
+        },
+        {
+          "adjusted_support": 24659,
+          "contexts": 83,
+          "followers": 4359,
+          "order": 6,
+          "raw_support": 766422,
+          "section_data_bytes": 44669
+        },
+        {
+          "adjusted_support": 9033,
+          "contexts": 61,
+          "followers": 2694,
+          "order": 7,
+          "raw_support": 614503,
+          "section_data_bytes": 27855
+        },
+        {
+          "adjusted_support": 8851,
+          "contexts": 47,
+          "followers": 2275,
+          "order": 8,
+          "raw_support": 520571,
+          "section_data_bytes": 23502
+        },
+        {
+          "adjusted_support": 8223,
+          "contexts": 37,
+          "followers": 1871,
+          "order": 9,
+          "raw_support": 447004,
+          "section_data_bytes": 19376
+        },
+        {
+          "adjusted_support": 397770,
+          "contexts": 32,
+          "followers": 1079,
+          "order": 10,
+          "raw_support": 397770,
+          "section_data_bytes": 7082
+        }
+      ]
+    },
+    {
+      "compact_count_bytes": 129108805,
+      "minimum_raw_context_support": 4096,
+      "orders": [
+        {
+          "adjusted_support": 568678,
+          "contexts": 1,
+          "followers": 3986,
+          "order": 0,
+          "raw_support": 20748899,
+          "section_data_bytes": 39864
+        },
+        {
+          "adjusted_support": 3021149,
+          "contexts": 3986,
+          "followers": 568678,
+          "order": 1,
+          "raw_support": 20748899,
+          "section_data_bytes": 5710696
+        },
+        {
+          "adjusted_support": 6191516,
+          "contexts": 568506,
+          "followers": 3015747,
+          "order": 2,
+          "raw_support": 20743497,
+          "section_data_bytes": 34137012
+        },
+        {
+          "adjusted_support": 8931395,
+          "contexts": 3014562,
+          "followers": 6186114,
+          "order": 3,
+          "raw_support": 20738095,
+          "section_data_bytes": 88992198
+        },
+        {
+          "adjusted_support": 74392,
+          "contexts": 88,
+          "followers": 10781,
+          "order": 4,
+          "raw_support": 1225950,
+          "section_data_bytes": 108690
+        },
+        {
+          "adjusted_support": 26076,
+          "contexts": 44,
+          "followers": 4816,
+          "order": 5,
+          "raw_support": 802526,
+          "section_data_bytes": 48688
+        },
+        {
+          "adjusted_support": 14683,
+          "contexts": 24,
+          "followers": 2308,
+          "order": 6,
+          "raw_support": 599627,
+          "section_data_bytes": 23392
+        },
+        {
+          "adjusted_support": 4706,
+          "contexts": 15,
+          "followers": 1622,
+          "order": 7,
+          "raw_support": 482075,
+          "section_data_bytes": 16445
+        },
+        {
+          "adjusted_support": 5516,
+          "contexts": 11,
+          "followers": 1541,
+          "order": 8,
+          "raw_support": 418229,
+          "section_data_bytes": 15586
+        },
+        {
+          "adjusted_support": 6114,
+          "contexts": 8,
+          "followers": 1177,
+          "order": 9,
+          "raw_support": 364742,
+          "section_data_bytes": 11914
+        },
+        {
+          "adjusted_support": 318495,
+          "contexts": 4,
+          "followers": 568,
+          "order": 10,
+          "raw_support": 318495,
+          "section_data_bytes": 3484
+        }
+      ]
+    }
+  ],
+  "schema": "uor-r4.d33.retention-inventory/1",
+  "train_sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030"
+}

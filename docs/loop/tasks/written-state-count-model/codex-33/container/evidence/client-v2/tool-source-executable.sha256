@@ -1,0 +1,14 @@
+6503187050354b7f21f60316d7750cc2c42c94d38ee00aa196804a6e4bd39874  Cargo.lock
+a6538b59626919164deeb1b5413cb74f1845be8e3ff69b7716bff2bbde60e188  docs/loop/tasks/written-state-count-model/codex-33/container/Cargo.toml
+d5d10bf5bb6e07c2d665ae28ccf021b2640f85cbabbb3f77f97ebc4bcb3739a9  docs/loop/tasks/written-state-count-model/codex-33/container/Cargo.lock
+c8f9726c7346f309a2f70ee6edefbff0abdb92cc55307efbd9d4f993d263765b  docs/loop/tasks/written-state-count-model/codex-33/container/src/main.rs
+fe566096345aa714a77193a53776fc8985a9726dddb174f01ed7374597a81edb  crates/uor-r4-integer/src/discrete_count.rs
+febf64ab21b742f0e3f80b3f5fc33dd514f124c0f8b90ddbb6f266ab40222da9  crates/uor-r4-integer/src/discrete_d11.rs
+2939838a9c3a494565cc8ff359645302803efadda3ee9d2152bdc3c3419acaad  crates/uor-r4-integer/src/serving_root.rs
+727ebb82fcf4e6f49e5a5c9f485ad03335f22b2f6b38a7a8f6f8941027f52726  crates/uor-r4-integer/src/bin/uor-chat.rs
+b9382e49e3634cb78a7af8d3b2db39649fc7d5f27fed297bcd98fa0c9c0fb8ba  crates/uor-r4-discrete/src/count_runtime.rs
+b888abeb9ab90b52ed664f386e6badb22298a577bbc67218e60200fa4a2545ea  crates/uor-r4-discrete/src/ngram_count.rs
+8d028c72f37c23eb7389f50f6c234a9e67358ea7e6c86b459451a3f4c51ce921  crates/uor-r4-discrete/src/kn_ceiling/runtime/compact.rs
+840c8552b8a029965ddea21edd2d31c885ee576abfe1d3180f950bd6c8bdd8db  crates/uor-r4-discrete/src/kn_ceiling/runtime/count_words.rs
+adf2aae2a57c48128d94a2382874da6c1ab93fa472028b34680856ce07ed233a  /mnt/plexpool/uor-r4-corpus/runs/20261120-count-identity-33/container/client-v2/source-executable.sha256
+ffecc99339926882418c2a33781554fdb66f7d81c8a5ed108005e31f34c7bdc2  /mnt/plexpool/uor-r4-corpus/runs/20261120-count-identity-33/container-tool-v2-target/release/d33-count-container

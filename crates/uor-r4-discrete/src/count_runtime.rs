@@ -7,6 +7,8 @@ include!("kn_ceiling/runtime/code_pick.rs");
 pub mod ngram_count {
     use crate::{invalid, Result};
     include!("kn_ceiling/runtime/key.rs");
+    include!("kn_ceiling/runtime/count_words.rs");
+
 }
 pub mod kn_score {
     use crate::{

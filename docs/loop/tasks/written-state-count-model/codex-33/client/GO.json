@@ -1,0 +1,12 @@
+{
+  "decision":"GO", "host":"wick", "utc":"2026-11-20T04:56:24Z",
+  "release":"codex top session finite controls passed on exact binaries; one D11, no sidecar, eight exposed prompts, enabled and no_read. Three fresh processes per condition.",
+  "deployed_d11_sha256":"ffd0a9c5be63c8e3eb7605b455cae3d042cfc58920fd52c71bf98de6ecaa3103",
+  "executable_sha256":"1a0169ea3178a544890ebe260e27c72c7b4a80085f94807b413668aaf96ac580",
+  "fit_sha256":"45f3805ce470ad7e0683296636ff2216e64e7139bf48216457858345f5fd9c11",
+  "runner_sha256":"f36f07f964bd3be66b7b361fed400976e1beffa4c513a1c9729ed3430d7f219d",
+  "check_sha256":"9d583e9a472d0f8a67b1d08dc4ef82a1dbf28b12c30ebf85e6aad6f2c86d2b11",
+  "prompts_sha256":"e50d7812f4a4dcc3016793e07cf2efb55fa7524d880bf1253324ec255b4b8b11",
+  "tokenizer_sha256":"a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "stop":"first mismatched output, provenance, cold replay or device word"
+}

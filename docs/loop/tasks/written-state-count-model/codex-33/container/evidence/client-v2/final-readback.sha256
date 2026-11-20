@@ -1,0 +1,5 @@
+d0b80afd2dbb30c0f66aa834e4fe0bcc47dbca1a6e0f9acec21da25965637d52  GO-final-readback.json
+509e000289d897569cd475238f60f23a6b232d6902a7b1622aa7a537043768dc  readback-c1.json
+11d964e42474516598cfdd61a023503efbd3a8a08a72c4013363379d3aa5c6fb  readback-c1.resources.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  readback-c1-cuda-equal.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  readback-c1-independent-equal.txt

@@ -1,0 +1,480 @@
+{
+  "schema": "uor-r4.d31.client-grade/1",
+  "components": {
+    "count_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+    "weights_sha256": "40af50ff9b01bc857c9f86aefcd3e1f0a1f82d7ac62573167d26e4bba5062f29",
+    "fit_manifest_sha256": "98999a62b090218062ef61fb7faf0e7a04ef6662c71adb5bcdacbe1aa90d8ca4"
+  },
+  "rows": [
+    {
+      "id": 31001,
+      "read_enabled": true,
+      "prompt": "Ada packed copper wire. Bram packed wool socks. Copy only the item Ada packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        581,
+        2195,
+        3392,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31001,
+      "read_enabled": false,
+      "prompt": "Ada packed copper wire. Bram packed wool socks. Copy only the item Ada packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        581,
+        2195,
+        3392,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31002,
+      "read_enabled": true,
+      "prompt": "Ada packed copper wire. Bram packed wool socks. Copy only the item Bram packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        3646,
+        391,
+        1876,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31002,
+      "read_enabled": false,
+      "prompt": "Ada packed copper wire. Bram packed wool socks. Copy only the item Bram packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        3646,
+        391,
+        1876,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31003,
+      "read_enabled": true,
+      "prompt": "Bram packed wool socks. Ada packed copper wire. Copy only the item Ada packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        581,
+        2195,
+        3392,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31003,
+      "read_enabled": false,
+      "prompt": "Bram packed wool socks. Ada packed copper wire. Copy only the item Ada packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        581,
+        2195,
+        3392,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31004,
+      "read_enabled": true,
+      "prompt": "Bram packed wool socks. Ada packed copper wire. Copy only the item Bram packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        3646,
+        391,
+        1876,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31004,
+      "read_enabled": false,
+      "prompt": "Bram packed wool socks. Ada packed copper wire. Copy only the item Bram packed.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        3646,
+        391,
+        1876,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31005,
+      "read_enabled": true,
+      "prompt": "Reply with the single word leaf.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        1667,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31005,
+      "read_enabled": false,
+      "prompt": "Reply with the single word leaf.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        1667,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31006,
+      "read_enabled": true,
+      "prompt": "Reply with the single word slate.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        756,
+        834,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31006,
+      "read_enabled": false,
+      "prompt": "Reply with the single word slate.",
+      "text": " We need answer. Need parse. User",
+      "expected": [
+        756,
+        834,
+        1
+      ],
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": 0,
+      "exact": false
+    },
+    {
+      "id": 31007,
+      "read_enabled": true,
+      "prompt": "Hello. What can you help me do today?",
+      "text": " We need answer. Need parse. User",
+      "expected": null,
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": null,
+      "exact": null
+    },
+    {
+      "id": 31007,
+      "read_enabled": false,
+      "prompt": "Hello. What can you help me do today?",
+      "text": " We need answer. Need parse. User",
+      "expected": null,
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": null,
+      "exact": null
+    },
+    {
+      "id": 31008,
+      "read_enabled": true,
+      "prompt": "I have flour and eggs. What could I cook with them?",
+      "text": " We need answer. Need parse. User",
+      "expected": null,
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": null,
+      "exact": null
+    },
+    {
+      "id": 31008,
+      "read_enabled": false,
+      "prompt": "I have flour and eggs. What could I cook with them?",
+      "text": " We need answer. Need parse. User",
+      "expected": null,
+      "generated": [
+        799,
+        767,
+        2505,
+        16,
+        2237,
+        71,
+        266,
+        962,
+        375,
+        16,
+        3184,
+        2728
+      ],
+      "steps": 12,
+      "eos": false,
+      "first_wrong": null,
+      "exact": null
+    }
+  ],
+  "summary": [
+    {
+      "read_enabled": false,
+      "scored": 6,
+      "exact_eos": 0,
+      "steps": 96,
+      "ended_eos": 0
+    },
+    {
+      "read_enabled": true,
+      "scored": 6,
+      "exact_eos": 0,
+      "steps": 96,
+      "ended_eos": 0
+    }
+  ]
+}

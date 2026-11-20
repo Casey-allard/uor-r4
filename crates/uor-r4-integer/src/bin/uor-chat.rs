@@ -4,10 +4,6 @@
 //! Executes with strictly zero transformers and zero hardware matrix multiplication in the served runtime.
 //! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
-#[cfg(feature = "p1-count-serving")]
-#[path = "uor_chat/p1.rs"]
-mod p1;
-
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::io::{self, BufRead, Read as IoRead, Write};
@@ -15,6 +11,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 use uor_r4_integer::bundle::{create_test_bundle_with_byte_vocab, Bundle};
 use uor_r4_integer::config::ReadMode;
+#[cfg(feature = "p1-count-serving")]
+use uor_r4_integer::discrete_d11::count_deployment::{self, DiscreteCountModel, SCHEMA as COUNT_SCHEMA};
 use uor_r4_integer::generation::conversation::{
     ConversationError, ConversationRequest, DialogueConversation, DialogueConversationStream,
     TurnClosure,
@@ -374,7 +372,9 @@ fn print_usage() {
     );
     #[cfg(feature = "p1-count-serving")]
     eprintln!("      --p1-trace              Record per-token Pick and count decisions and full mass hashes");
-    eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
+    eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete artifact; one-shot");
+    #[cfg(feature = "p1-count-serving")]
+    eprintln!("                              Counts may be embedded in the artifact");
     eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
     eprintln!("      --role-replay ARM      trace historical/full crossed with inherited/repeated candidates");
     eprintln!(
@@ -1023,8 +1023,8 @@ fn parse_cli_args() -> CliArgs {
         process::exit(1);
     }
     #[cfg(feature = "p1-count-serving")]
-    if args.p1_trace && args.p1_path.is_none() {
-        eprintln!("--p1-trace requires --p1-state");
+    if args.p1_trace && args.discrete_path.is_none() {
+        eprintln!("--p1-trace requires --discrete with count state");
         process::exit(1);
     }
     #[cfg(feature = "p1-count-serving")]
@@ -2039,16 +2039,35 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         ));
     }
     #[cfg(feature = "p1-count-serving")]
-    let profile_start = (cli.p1_path.is_some() && std::env::var_os("UOR_P1_TIMING").is_some())
-        .then(std::time::Instant::now);
+    let profile_start = std::env::var_os("UOR_P1_TIMING").is_some().then(std::time::Instant::now);
+    #[cfg(not(feature = "p1-count-serving"))]
     let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::load(artifact)?;
     #[cfg(feature = "p1-count-serving")]
-    let p1_bytes = cli.p1_path.as_deref().map(std::fs::read).transpose()?;
+    let artifact_bytes;
     #[cfg(feature = "p1-count-serving")]
-    let p1 = p1_bytes
-        .as_deref()
-        .map(|bytes| p1::P1::load(bytes, &model))
-        .transpose()?;
+    let p1_bytes;
+    #[cfg(feature = "p1-count-serving")]
+    let deployment = {
+        let has_sidecar = cli.p1_path.is_some();
+        let bytes = count_deployment::read_client_artifact(artifact, has_sidecar)?;
+        if count_deployment::is_embedded(&bytes, has_sidecar)? {
+            artifact_bytes = bytes;
+            DiscreteCountModel::load(&artifact_bytes, None)?
+        } else {
+            let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::from_bytes(&bytes)?;
+            drop(bytes);
+            p1_bytes = cli.p1_path.as_deref().map(std::fs::read).transpose()?;
+            DiscreteCountModel::bind_legacy(model, p1_bytes.as_deref())?
+        }
+    };
+    #[cfg(feature = "p1-count-serving")]
+    let (model, p1) = (deployment.model, deployment.state);
+    #[cfg(feature = "p1-count-serving")]
+    if cli.p1_trace && p1.is_none() {
+        return Err(IntegerError::Invalid("--p1-trace requires count state".into()));
+    }
+    #[cfg(feature = "p1-count-serving")]
+    let profile_start = profile_start.filter(|_| p1.is_some());
     let mut text_mode = None;
     let encoded;
     let prompt = if let (Some(text), Some(path)) = (&cli.say, &cli.tokenizer_path) {
@@ -2221,6 +2240,12 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
     if let Some(engine) = &p1 {
         record["decoding"] = "greedy complete count and fitted native A1 mixture".into();
         record["p1_sha256"] = engine.artifact_sha256.as_str().into();
+        if let Some(identity) = &deployment.identity {
+            record["artifact_sha256"] = identity.artifact_sha256.as_str().into();
+            record["model_schema"] = COUNT_SCHEMA.into();
+            record["p1_state_sha256"] = engine.artifact_sha256.as_str().into();
+            record["p1_trunk_sha256"] = model.artifact_sha256().into();
+        }
         if cli.p1_trace {
             record["p1_steps"] = p1_steps.into();
             record["p1_components"] = engine.component_digests();

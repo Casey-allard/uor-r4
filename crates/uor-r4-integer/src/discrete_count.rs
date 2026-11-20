@@ -1,8 +1,8 @@
+use crate::{discrete_d11::IntegerDiscreteModel, IntegerError, Result};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use uor_r4_count_runtime::{CompactCountLookup, FrozenPickMixture};
-use uor_r4_integer::{discrete_d11::IntegerDiscreteModel, IntegerError, Result};
 
 const A1_TRUNK: &str = "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d";
 
@@ -108,6 +108,10 @@ impl<'a> P1<'a> {
         })
     }
 
+    pub fn counts(&self) -> &CompactCountLookup<'a> {
+        &self.counts
+    }
+
     pub fn next(
         &self,
         context: &[u32],
@@ -160,4 +164,171 @@ impl<'a> P1<'a> {
                 hex::encode(hash.finalize())
             }),"context_tokens":ids.len(),"pick_successor":choice.map(|(s,_)|s),"pick_words":pick.map(|(position,distance,ties)| [position as u32,distance,ties])}))))
     }
+}
+
+pub const SCHEMA: &str = "uor-r4.lut-discrete-count/1";
+const MAX_DEPLOYMENT_HEADER: usize = 4096;
+
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct DeploymentHeader {
+    schema: String,
+    trunk_bytes: usize,
+    state_bytes: usize,
+    trunk_sha256: String,
+    state_sha256: String,
+}
+
+pub struct DeploymentIdentity {
+    pub artifact_sha256: String,
+    pub header_bytes: usize,
+    pub trunk_bytes: usize,
+    pub state_bytes: usize,
+}
+
+/// Ordinary discrete client state. Embedded compact tables borrow the artifact
+/// buffer directly. For retained D31 callers they instead borrow the sidecar.
+pub struct DiscreteCountModel<'a> {
+    pub model: IntegerDiscreteModel,
+    pub state: Option<P1<'a>>,
+    pub identity: Option<DeploymentIdentity>,
+}
+
+type DeploymentParts<'a> = (DeploymentHeader, usize, &'a [u8], &'a [u8]);
+
+fn deployment_header(bytes: &[u8]) -> Result<Option<(DeploymentHeader, usize)>> {
+    if bytes.get(..8) != Some(crate::discrete_d11::MAGIC.as_slice()) {
+        return Ok(None);
+    }
+    let Some(length) = bytes.get(8..16) else {
+        return Ok(None);
+    };
+    let length = u64::from_le_bytes(length.try_into().map_err(invalid)?);
+    if length > MAX_DEPLOYMENT_HEADER as u64 {
+        return Ok(None);
+    }
+    let header_end = 16 + length as usize;
+    let Some(header_bytes) = bytes.get(16..header_end) else {
+        return Ok(None);
+    };
+    #[derive(Deserialize)]
+    struct Schema<'a> {
+        schema: &'a str,
+    }
+    if serde_json::from_slice::<Schema<'_>>(header_bytes)
+        .map(|header| header.schema)
+        .ok()
+        != Some(SCHEMA)
+    {
+        return Ok(None);
+    }
+    let header: DeploymentHeader = serde_json::from_slice(header_bytes)?;
+    Ok(Some((header, header_end)))
+}
+
+fn deployment_parts(bytes: &[u8]) -> Result<Option<DeploymentParts<'_>>> {
+    let Some((header, header_end)) = deployment_header(bytes)? else {
+        return Ok(None);
+    };
+    let (trunk, state) = bytes[header_end..]
+        .split_at_checked(header.trunk_bytes)
+        .ok_or_else(|| invalid("truncated embedded D11 trunk"))?;
+    if state.len() != header.state_bytes || trunk.is_empty() || state.is_empty() {
+        return Err(invalid("embedded count state length mismatch"));
+    }
+    Ok(Some((header, header_end, trunk, state)))
+}
+
+fn reject_sidecar() -> IntegerError {
+    invalid("embedded count state conflicts with --p1-state")
+}
+
+/// Probe an open artifact before loading the body if a sidecar was supplied.
+/// Preserve the file descriptor and recheck the complete bytes in the caller.
+pub fn read_client_artifact(path: &std::path::Path, has_sidecar: bool) -> Result<Vec<u8>> {
+    use std::io::Read;
+
+    if !has_sidecar {
+        return Ok(std::fs::read(path)?);
+    }
+    let mut file = std::fs::File::open(path)?;
+    let mut bytes = Vec::new();
+    (&mut file)
+        .take((16 + MAX_DEPLOYMENT_HEADER) as u64)
+        .read_to_end(&mut bytes)?;
+    if deployment_header(&bytes)?.is_some() {
+        return Err(reject_sidecar());
+    }
+    file.read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
+pub fn is_embedded(bytes: &[u8], has_sidecar: bool) -> Result<bool> {
+    let embedded = deployment_header(bytes)?.is_some();
+    if embedded && has_sidecar {
+        return Err(reject_sidecar());
+    }
+    Ok(embedded)
+}
+
+impl<'a> DiscreteCountModel<'a> {
+    pub fn bind_legacy(model: IntegerDiscreteModel, sidecar: Option<&'a [u8]>) -> Result<Self> {
+        let state = sidecar.map(|sidecar| P1::load(sidecar, &model)).transpose()?;
+        Ok(Self {
+            model,
+            state,
+            identity: None,
+        })
+    }
+
+    pub fn load(bytes: &'a [u8], sidecar: Option<&'a [u8]>) -> Result<Self> {
+        let Some((header, header_end, trunk, state)) = deployment_parts(bytes)? else {
+            return Self::bind_legacy(IntegerDiscreteModel::from_bytes(bytes)?, sidecar);
+        };
+        if sidecar.is_some() {
+            return Err(reject_sidecar());
+        }
+        let model = IntegerDiscreteModel::from_bytes(trunk)?;
+        if model.artifact_sha256() != header.trunk_sha256 {
+            return Err(invalid("embedded D11 trunk digest mismatch"));
+        }
+        let state = P1::load(state, &model)?;
+        if state.artifact_sha256 != header.state_sha256 {
+            return Err(invalid("embedded P1 state digest mismatch"));
+        }
+        Ok(Self {
+            model,
+            state: Some(state),
+            identity: Some(DeploymentIdentity {
+                artifact_sha256: hex::encode(Sha256::digest(bytes)),
+                header_bytes: header_end,
+                trunk_bytes: header.trunk_bytes,
+                state_bytes: header.state_bytes,
+            }),
+        })
+    }
+}
+
+/// Write a lossless deployment using the same component validation as serving.
+/// The writer receives the header and two original byte slices separately.
+pub fn write_deployment(trunk: &[u8], state: &[u8], path: &std::path::Path) -> Result<()> {
+    use std::io::Write;
+
+    let model = IntegerDiscreteModel::from_bytes(trunk)?;
+    let state_digest = P1::load(state, &model)?.artifact_sha256;
+    let header = serde_json::to_vec(&DeploymentHeader {
+        schema: SCHEMA.into(),
+        trunk_bytes: trunk.len(),
+        state_bytes: state.len(),
+        trunk_sha256: model.artifact_sha256().into(),
+        state_sha256: state_digest,
+    })?;
+    let mut output = std::fs::File::create_new(path)?;
+    output.write_all(crate::discrete_d11::MAGIC)?;
+    output.write_all(&(header.len() as u64).to_le_bytes())?;
+    output.write_all(&header)?;
+    output.write_all(trunk)?;
+    output.write_all(state)?;
+    output.sync_all()?;
+    Ok(())
 }

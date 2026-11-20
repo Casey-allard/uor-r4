@@ -1,0 +1,12 @@
+[package]
+name = "d33-retention-inventory"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+hex = "0.4"
+serde_json = "1"
+uor-r4-count-runtime = { path = "../../../../../../crates/uor-r4-discrete/count-runtime" }

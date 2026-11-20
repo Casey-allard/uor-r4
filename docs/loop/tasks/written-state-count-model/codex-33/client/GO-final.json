@@ -1,0 +1,17 @@
+{
+  "decision": "GO",
+  "host": "wick",
+  "utc": "2026-11-20T04:59:45Z",
+  "release": "codex top session finite controls passed on exact binaries; one D11, no sidecar, eight exposed prompts, enabled and no_read. Three fresh processes per condition.",
+  "deployed_d11_sha256": "ffd0a9c5be63c8e3eb7605b455cae3d042cfc58920fd52c71bf98de6ecaa3103",
+  "executable_sha256": "67d33ec2a36fdc8b13f14ef26a5750ed668618bbe8c37280c1e84d31f9ae4f6d",
+  "fit_sha256": "45f3805ce470ad7e0683296636ff2216e64e7139bf48216457858345f5fd9c11",
+  "runner_sha256": "f36f07f964bd3be66b7b361fed400976e1beffa4c513a1c9729ed3430d7f219d",
+  "check_sha256": "9d583e9a472d0f8a67b1d08dc4ef82a1dbf28b12c30ebf85e6aad6f2c86d2b11",
+  "prompts_sha256": "e50d7812f4a4dcc3016793e07cf2efb55fa7524d880bf1253324ec255b4b8b11",
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "stop": "first mismatched output, provenance, cold replay or device word",
+  "additional_fit": "Independent exact revised executable finite six raw-ID arms and two text arms, plain D11 wire parity, sparse sidecar conflict under 192MiB. Reviewer released before new dispatch.",
+  "revised_source_manifest_sha256": "adf2aae2a57c48128d94a2382874da6c1ab93fa472028b34680856ce07ed233a",
+  "original_go": "GO.json"
+}

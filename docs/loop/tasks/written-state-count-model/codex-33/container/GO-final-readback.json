@@ -1,0 +1,16 @@
+{
+  "unit": "D33 final-source all-order readback of existing C1 D11",
+  "decision": "GO",
+  "utc": "2026-11-20T05:01:54Z",
+  "authority": "codex top session after non-author FIT on final Wick executable and all 22 C128 domains, four ordinary arms and corruption controls",
+  "host": "wick",
+  "tool_sha256": "ffecc99339926882418c2a33781554fdb66f7d81c8a5ed108005e31f34c7bdc2",
+  "client_sha256": "67d33ec2a36fdc8b13f14ef26a5750ed668618bbe8c37280c1e84d31f9ae4f6d",
+  "source_executable_manifest_sha256": "e3f8bc68bae67220c8544362d496472821f2cd6cfccb3c81295da2eebe3510f0",
+  "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "state_sha256": "075f0432ddca78ed48292104167f5056b88143ca3211954da98f04bf0dce64a9",
+  "finite_reference": "fit33 independent final C128 JSON ba80aa244d7ceedb7e503376321f62b340a85c3894ebcced9c6dce1e53df6219",
+  "pass": "Both components preserved exactly, common loader reads the same seven canonical fields as the independent CPU and GPU for every order/domain.",
+  "fail": "Preserve artifact and stop identity conclusion at first discrepancy.",
+  "d11_sha256": "ffd0a9c5be63c8e3eb7605b455cae3d042cfc58920fd52c71bf98de6ecaa3103"
+}

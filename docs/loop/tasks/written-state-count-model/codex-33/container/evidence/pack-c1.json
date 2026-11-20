@@ -1,0 +1,11 @@
+{
+  "sha256": "ffd0a9c5be63c8e3eb7605b455cae3d042cfc58920fd52c71bf98de6ecaa3103",
+  "path": "/mnt/plexpool/uor-r4-corpus/runs/20261120-count-identity-33/container/c1-a1.d11",
+  "bytes": {
+    "total": 2316338762,
+    "trunk": 86536132,
+    "p1_state": 2229802362,
+    "header": 268
+  },
+  "original_components_byte_equal": true
+}

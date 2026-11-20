@@ -6,6 +6,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/c1-count-identity": {
+    "branch": "codex/c1-count-identity",
+    "claimed_at": "2026-11-19T23:46:09-05:00",
+    "head": "a988be2a2",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/clause-coordinate-discrimination": {
     "branch": "codex/clause-coordinate-discrimination",
     "claimed_at": "2026-11-19T17:03:08-05:00",

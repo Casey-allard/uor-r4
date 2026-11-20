@@ -1,0 +1,352 @@
+{
+  "schema": "uor-r4.d33-count-identity/1",
+  "source_sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030",
+  "records": 5402,
+  "tokens": 20754301,
+  "outer_sha256": "ffd0a9c5be63c8e3eb7605b455cae3d042cfc58920fd52c71bf98de6ecaa3103",
+  "components": {
+    "count_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+    "fit_manifest_sha256": "98999a62b090218062ef61fb7faf0e7a04ef6662c71adb5bcdacbe1aa90d8ca4",
+    "weights_sha256": "40af50ff9b01bc857c9f86aefcd3e1f0a1f82d7ac62573167d26e4bba5062f29"
+  },
+  "bytes": {
+    "header": 268,
+    "p1_state": 2229802362,
+    "total": 2316338762,
+    "trunk": 86536132
+  },
+  "matching_domains": 22,
+  "first_divergence": null,
+  "rows": [
+    {
+      "order": 0,
+      "domain": "raw",
+      "targets": 20748899,
+      "grams": 3986,
+      "contexts": 1,
+      "count_of_counts": [
+        24,
+        25,
+        15,
+        32
+      ],
+      "triple_sha256": "676af06b3eedc09d12c8d3da8cd55e898ae6a98865b886c1e043df30ddf9e2fa",
+      "context_sha256": "8a87a8cb2d118a350250bf192ee628dc9d9b09fd03811e52e9e82c0f2ff41bd3"
+    },
+    {
+      "order": 0,
+      "domain": "adjusted",
+      "targets": 568678,
+      "grams": 3986,
+      "contexts": 1,
+      "count_of_counts": [
+        59,
+        63,
+        59,
+        59
+      ],
+      "triple_sha256": "bbdf3720d23063692fd4892ac9f177588a96e109230bf60f3b89ef642fff7719",
+      "context_sha256": "1a136e8752ce36cd362c728d95c0108fd299b377f7ac572a505a24b2bf6a085d"
+    },
+    {
+      "order": 1,
+      "domain": "raw",
+      "targets": 20748899,
+      "grams": 568678,
+      "contexts": 3986,
+      "count_of_counts": [
+        206923,
+        90577,
+        47570,
+        31769
+      ],
+      "triple_sha256": "c93fd35fdb2ebcabe37ac5a22c2b6a77ccca5efe2041b6df261274b1a5009282",
+      "context_sha256": "9c14cd12a43c442b476d16afe8722ec5f0dfde9ee2bc462976b0e30966463a83"
+    },
+    {
+      "order": 1,
+      "domain": "adjusted",
+      "targets": 3021149,
+      "grams": 568678,
+      "contexts": 3986,
+      "count_of_counts": [
+        294922,
+        95125,
+        45753,
+        26686
+      ],
+      "triple_sha256": "67d0c2168336a85f739afb87894cac350e5e5c5c18d7aaad8f730fc32eb92864",
+      "context_sha256": "2388035de39a9422df145584183d3fb19736990bdc9e34ff8dd963ae7eaef4fd"
+    },
+    {
+      "order": 2,
+      "domain": "raw",
+      "targets": 20743497,
+      "grams": 3015747,
+      "contexts": 568506,
+      "count_of_counts": [
+        1711083,
+        499097,
+        211395,
+        126439
+      ],
+      "triple_sha256": "0e8fa3a240aaedf6e20c26f4181fc63b96ab71745e540d8cb0dd3ba32ebed5cf",
+      "context_sha256": "624f08b6f122f8532a02ab97ad26d7b9bf963b09ddc6caa40ffea938008d3090"
+    },
+    {
+      "order": 2,
+      "domain": "adjusted",
+      "targets": 6191516,
+      "grams": 3015747,
+      "contexts": 568506,
+      "count_of_counts": [
+        2241579,
+        383495,
+        138604,
+        69452
+      ],
+      "triple_sha256": "5dc9969edae5f34d953c6c00942ba1d2d05f127a922c6f2eefe1c3d3b0b60ad0",
+      "context_sha256": "a5e7312491af64bd8ef8567d37cc8cfe00a53215481c349fc324bcfebd8d9c59"
+    },
+    {
+      "order": 3,
+      "domain": "raw",
+      "targets": 20738095,
+      "grams": 6186114,
+      "contexts": 3014562,
+      "count_of_counts": [
+        4243807,
+        906399,
+        329788,
+        180676
+      ],
+      "triple_sha256": "4e9a410e153cf9dfc32b84861531b6e65397fd4ad74ba78df81724a495f8f6d4",
+      "context_sha256": "838ad0e325b942cdaa1645520286efb7b999179b1ec80a4b6ce3f9ca01cc5fb4"
+    },
+    {
+      "order": 3,
+      "domain": "adjusted",
+      "targets": 8931395,
+      "grams": 6186114,
+      "contexts": 3014562,
+      "count_of_counts": [
+        5248406,
+        540333,
+        162957,
+        74846
+      ],
+      "triple_sha256": "ca9b2f03e3ad41a0d18abbf8587e946f93c507608666a56a36f1d7f6209bc215",
+      "context_sha256": "3612d220fc705d3f8b662ed8cbd05687069ccd65401671e8973136e37609bcca"
+    },
+    {
+      "order": 4,
+      "domain": "raw",
+      "targets": 20732693,
+      "grams": 8925993,
+      "contexts": 6183887,
+      "count_of_counts": [
+        6778040,
+        1128444,
+        364318,
+        188139
+      ],
+      "triple_sha256": "379330b9b2ff16d31167ae45d96c6d4deb8b421f8c5515e2f8d9104af5a80d43",
+      "context_sha256": "f904ce76f478fbc356af57e7e96b02165fbc21cc8287422d2c1a8c16b18e18e6"
+    },
+    {
+      "order": 4,
+      "domain": "adjusted",
+      "targets": 10995530,
+      "grams": 8925993,
+      "contexts": 6183887,
+      "count_of_counts": [
+        8059664,
+        550998,
+        142547,
+        61012
+      ],
+      "triple_sha256": "7f767db0741ead5ab5c1705fcae57316e70ba6c75750393adcafe2cb7bb2f1fe",
+      "context_sha256": "f34e4023d94c626e86f3487cb73e56b72997efa9c88ee655d45ab6fb24f6b96c"
+    },
+    {
+      "order": 5,
+      "domain": "raw",
+      "targets": 20727291,
+      "grams": 10990128,
+      "contexts": 8923070,
+      "count_of_counts": [
+        8877660,
+        1195423,
+        348742,
+        172528
+      ],
+      "triple_sha256": "7f4ed718371cb708df525b2f64d98892abe85ad3eaef6424287d6957223cb9ee",
+      "context_sha256": "6dd14896c7ec39e93a1ae7900bafa6e99f3f6a1131b1014b525e00dde48ee199"
+    },
+    {
+      "order": 5,
+      "domain": "adjusted",
+      "targets": 12470759,
+      "grams": 10990128,
+      "contexts": 8923070,
+      "count_of_counts": [
+        10278295,
+        482131,
+        110554,
+        44885
+      ],
+      "triple_sha256": "84751e91437e77c8133f710feb187a1d91242c74436d2a1eb5550834c4b3aaa6",
+      "context_sha256": "f9d99af20a582ed7aae2c92c5267cbf4915d9320abfe9c1dbaf1b50c3bd64e4b"
+    },
+    {
+      "order": 6,
+      "domain": "raw",
+      "targets": 20721889,
+      "grams": 12465357,
+      "contexts": 10986797,
+      "count_of_counts": [
+        10468587,
+        1184245,
+        319669,
+        153616
+      ],
+      "triple_sha256": "2d6d3eb344ff836e7099c45f5b6e1198642aa581d309d86cb7561791a7c1eac8",
+      "context_sha256": "aa0fd73a5394fe7e5d77b82ad289ff63f160f8b129641e6e98fc1b1493ed4e81"
+    },
+    {
+      "order": 6,
+      "domain": "adjusted",
+      "targets": 13539627,
+      "grams": 12465357,
+      "contexts": 10986797,
+      "count_of_counts": [
+        11898968,
+        400662,
+        83278,
+        32624
+      ],
+      "triple_sha256": "07f4b65fe4f36fd3580f318da6e78055a7146db39db13c7209096637fd09b233",
+      "context_sha256": "cbcbfdad2635ea79b7783b7434502ceecbd8bc4c0f8c36829edc83592bce32c3"
+    },
+    {
+      "order": 7,
+      "domain": "raw",
+      "targets": 20716487,
+      "grams": 13534225,
+      "contexts": 12461504,
+      "count_of_counts": [
+        11656071,
+        1150615,
+        293264,
+        139009
+      ],
+      "triple_sha256": "a1ee7cfb78e15e123bfa51cd076726dafcc7924b08848438241346349f21815d",
+      "context_sha256": "8ab642441916f3d6573ce026a1277cc25b4514c2d571f8c535c5ab19a9d399fc"
+    },
+    {
+      "order": 7,
+      "domain": "adjusted",
+      "targets": 14332322,
+      "grams": 13534225,
+      "contexts": 12461504,
+      "count_of_counts": [
+        13084204,
+        328942,
+        63366,
+        23654
+      ],
+      "triple_sha256": "ec573e928816b15104ab309b94b29ec3e589646d1eb8adc2c42220d0a2372409",
+      "context_sha256": "78dee047a2e65d23495aedca3391e0740b737e3200b5f02f2acfbcb1cd3c2ab6"
+    },
+    {
+      "order": 8,
+      "domain": "raw",
+      "targets": 20711085,
+      "grams": 14326920,
+      "contexts": 13530074,
+      "count_of_counts": [
+        12557330,
+        1110026,
+        271195,
+        127799
+      ],
+      "triple_sha256": "8cbf3df47234c61bff1e7d52da01f7e79138907eb9cbd10fc894a5f04071d02e",
+      "context_sha256": "8704791c90aa040f22d79511576fec493178772ce7a398a67f1a6ca50b605ab2"
+    },
+    {
+      "order": 8,
+      "domain": "adjusted",
+      "targets": 14938615,
+      "grams": 14326920,
+      "contexts": 13530074,
+      "count_of_counts": [
+        13963786,
+        272710,
+        48763,
+        17460
+      ],
+      "triple_sha256": "340ea2f52c43fe4614ba97b35bf2c89178114cc0f1c7349cb0054a607b30d3d4",
+      "context_sha256": "25085c0b18d69ab70da1f72e23f930a13f0a5f4d3b877fdefe1a7fcc031fd7ee"
+    },
+    {
+      "order": 9,
+      "domain": "raw",
+      "targets": 20705683,
+      "grams": 14933213,
+      "contexts": 14322622,
+      "count_of_counts": [
+        13256235,
+        1073030,
+        252704,
+        118451
+      ],
+      "triple_sha256": "63adc2f8f4c906533a901f8155ecc3fcf3d77a251e534b89887e4546e348dada",
+      "context_sha256": "8d2ac76cc887d61ff68ebdf03b209dfefd4f5a1be0e4f14a62ea9561bc1b4ca1"
+    },
+    {
+      "order": 9,
+      "domain": "adjusted",
+      "targets": 15421904,
+      "grams": 14933213,
+      "contexts": 14322622,
+      "count_of_counts": [
+        14634656,
+        228096,
+        38664,
+        13447
+      ],
+      "triple_sha256": "6f67181a205bda66d4ca29368fb47f800d19310f66104c29d8cef55d37c08b6f",
+      "context_sha256": "f529bfc1b9ec4ff81bd89846945ad4601edbac7bf062f73fe1a087297bf510a1"
+    },
+    {
+      "order": 10,
+      "domain": "raw",
+      "targets": 20700281,
+      "grams": 15416502,
+      "contexts": 14928834,
+      "count_of_counts": [
+        13817315,
+        1040563,
+        238185,
+        111289
+      ],
+      "triple_sha256": "8969dd7eb8040dd06b1d9a236316083a63d6ebdea896d3f430da4cb52f56f7ff",
+      "context_sha256": "c1c1ed9cf96eedaa0a012516832369db041dbaebcc9337f2db470b87fdbe4e2a"
+    },
+    {
+      "order": 10,
+      "domain": "adjusted",
+      "targets": 20700281,
+      "grams": 15416502,
+      "contexts": 14928834,
+      "count_of_counts": [
+        13817315,
+        1040563,
+        238185,
+        111289
+      ],
+      "triple_sha256": "8aac67818c8760734f6bef653d60c48c6aa25eae7348cab3db143289a4b3ced1",
+      "context_sha256": "e57a6c53b78397f480eafdb43b49ac6f541b98d7dc06864a353647bbabd0b3f2"
+    }
+  ]
+}

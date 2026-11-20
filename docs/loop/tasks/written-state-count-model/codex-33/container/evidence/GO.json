@@ -1,0 +1,15 @@
+{
+  "unit": "D33 lossless C1 D11 packaging and all-order readback",
+  "decision": "GO",
+  "utc": "2026-11-20T04:55:10Z",
+  "authority": "codex top session after non-author FIT on final Wick executable and all 22 C128 domains, four ordinary arms and corruption controls",
+  "host": "wick",
+  "tool_sha256": "19e168944a74f6b0af0198c4151d794ee3d6a17f63e78b359590e658b14eef57",
+  "client_sha256": "1a0169ea3178a544890ebe260e27c72c7b4a80085f94807b413668aaf96ac580",
+  "source_executable_manifest_sha256": "28a2aa6e63bb812af34bc92165474a189590f3a08bc5e183a790bfc425a50ff5",
+  "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "state_sha256": "075f0432ddca78ed48292104167f5056b88143ca3211954da98f04bf0dce64a9",
+  "finite_reference": "container/independent-fit.SFVzBuFo",
+  "pass": "Both components preserved exactly, common loader reads the same seven canonical fields as the independent CPU and GPU for every order/domain.",
+  "fail": "Preserve artifact and stop identity conclusion at first discrepancy."
+}

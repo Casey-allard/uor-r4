@@ -1,0 +1,10 @@
+6503187050354b7f21f60316d7750cc2c42c94d38ee00aa196804a6e4bd39874  Cargo.lock
+fe566096345aa714a77193a53776fc8985a9726dddb174f01ed7374597a81edb  crates/uor-r4-integer/src/discrete_count.rs
+febf64ab21b742f0e3f80b3f5fc33dd514f124c0f8b90ddbb6f266ab40222da9  crates/uor-r4-integer/src/discrete_d11.rs
+2939838a9c3a494565cc8ff359645302803efadda3ee9d2152bdc3c3419acaad  crates/uor-r4-integer/src/serving_root.rs
+727ebb82fcf4e6f49e5a5c9f485ad03335f22b2f6b38a7a8f6f8941027f52726  crates/uor-r4-integer/src/bin/uor-chat.rs
+b9382e49e3634cb78a7af8d3b2db39649fc7d5f27fed297bcd98fa0c9c0fb8ba  crates/uor-r4-discrete/src/count_runtime.rs
+b888abeb9ab90b52ed664f386e6badb22298a577bbc67218e60200fa4a2545ea  crates/uor-r4-discrete/src/ngram_count.rs
+8d028c72f37c23eb7389f50f6c234a9e67358ea7e6c86b459451a3f4c51ce921  crates/uor-r4-discrete/src/kn_ceiling/runtime/compact.rs
+840c8552b8a029965ddea21edd2d31c885ee576abfe1d3180f950bd6c8bdd8db  crates/uor-r4-discrete/src/kn_ceiling/runtime/count_words.rs
+67d33ec2a36fdc8b13f14ef26a5750ed668618bbe8c37280c1e84d31f9ae4f6d  /mnt/plexpool/uor-r4-corpus/runs/20261120-count-identity-33/container-client-v2-target/release/uor-chat

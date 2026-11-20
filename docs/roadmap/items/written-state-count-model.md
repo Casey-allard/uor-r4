@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [m2-donor-corpus-generation]
 notebook: docs/research/notebook/m4-serving.md
-scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/discrete_d11/rival_admission.rs, crates/uor-r4-integer/src/all_starts.rs, crates/uor-r4-integer/src/all_starts/original.rs, crates/uor-r4-integer/src/all_starts/rival.rs, crates/uor-r4-integer/src/paired_role.rs, crates/uor-r4-integer/src/contextual_source.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/src/bin/uor_chat/**, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
+scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/discrete_count.rs, crates/uor-r4-integer/src/discrete_d11/rival_admission.rs, crates/uor-r4-integer/src/all_starts.rs, crates/uor-r4-integer/src/all_starts/original.rs, crates/uor-r4-integer/src/all_starts/rival.rs, crates/uor-r4-integer/src/paired_role.rs, crates/uor-r4-integer/src/contextual_source.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/src/bin/uor_chat/**, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
 done_class: gpu
 ---
 
@@ -45,3 +45,5 @@ The [first implementation and Wick decision](../../loop/tasks/written-state-coun
 The [fresh instrument and transfer retest](../../loop/tasks/written-state-count-model/codex-16/REPORT.md) independently verifies correct and rival source behavior and finds distinct requested-role ties and value-start errors on unmarked questions. The role-discrimination and boundary tests proceed under the existing milestone and P1–P5 criteria.
 
 The [D32 whole-user and candidate comparison](../../loop/tasks/written-state-count-model/codex-32/REPORT.md) recovered eight additional requested spans and one additional exact crossed reply. All excluded endpoints still failed. The wider scope also released two unsupported copies. The count identity, equal-byte and broader language gates remain open.
+
+D33 met the original-token count identity gate P1(a) on C1. All eleven raw and eleven adjusted order summaries matched between the archived GPU writer, independently reconstructed TRAIN counts and the count-enabled normal D11 loader. The single model is 2,316,338,762 bytes, plus a 265,393-byte tokenizer. The full-dose pruned model, R-only refit and paired P1(b) score remain the next count dependency. [D33 three-way readback and byte evidence](../../loop/tasks/written-state-count-model/codex-33/REPORT.md)

@@ -34,6 +34,9 @@ pub use rival_admission::pack_rival_admission;
 
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
+#[cfg(feature = "p1-count-serving")]
+#[path = "discrete_count.rs"]
+pub mod count_deployment;
 /// Header schema of a discrete SpiralCore/FBS `UORLUT01` artifact.
 pub const DISCRETE_SCHEMA: &str = "uor-r4.lut-discrete/1";
 /// Header schema of a 19-table discrete SpiralCore/FBS + post-rotation trunk `UORLUT01` artifact.

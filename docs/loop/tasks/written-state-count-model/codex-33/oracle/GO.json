@@ -1,0 +1,15 @@
+{
+  "unit": "D33 independent C1 reference count",
+  "decision": "GO",
+  "utc": "2026-11-20T04:51:33Z",
+  "review": "codex top session",
+  "host": "wick",
+  "fit_sha256": "e945796e3f2160a270db0d01561fe2c454ae11c2d92b702e413635d43630fa92",
+  "source_sha256": "e625a667e3cc9aaaae27ca9494852fcaea5ddfdc6810f7b92f3fd9b12a4218a0",
+  "executable_sha256": "e7690f58e0a7ddbe29edd4303d584940d6c2ef7ec60822dec0bb5040e94e2373",
+  "input_sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030",
+  "gpu_receipt_sha256": "34e3cd6e9d4ae35a78284a36911547f4ca4109b52e0e85e09fb3af54630f3df7",
+  "pass": "all raw and adjusted canonical fields match at each order 0..10",
+  "fail": "preserve first differing row, stop count-identity conclusion",
+  "purpose": "TRAIN reference parity only"
+}

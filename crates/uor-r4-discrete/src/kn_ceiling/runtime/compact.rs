@@ -227,6 +227,36 @@ impl<'a> CompactCountLookup<'a> {
         Ok(Self { orders })
     }
 
+    /// Visit the raw and adjusted count words in canonical (order, key, next)
+    /// order, using the same validated tables and row decoder as prediction.
+    pub fn visit_counts(
+        &self,
+        mut visit: impl FnMut(u32, u128, u16, u32, u32),
+    ) -> Result<()> {
+        for (k, order) in self.orders.iter().enumerate() {
+            let k = k as u32;
+            let width = follower_width(order.shared);
+            for context in 0..order.contexts.len() / order.stride() {
+                let mut body = [0u8; 16];
+                body[16 - order.key_width..].copy_from_slice(order.context_key(context));
+                let key = (u128::from(k) << 120) | (u128::from_be_bytes(body) << (120 - 12 * k));
+                let followers = order
+                    .follower_rows(context)
+                    .ok_or_else(|| invalid("invalid compact follower span during readback"))?;
+                for row in followers.chunks_exact(width) {
+                    let (next, raw, adjusted) = order.read_follower(row);
+                    visit(k, key, next, raw, adjusted);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Number of stored order sections, including order zero.
+    pub fn order_count(&self) -> usize {
+        self.orders.len()
+    }
+
     /// Fill per-order raw count and total words and return the original KN Q48
     /// mass, using the caller's causal history and target ID at `at`.
     pub fn lookup(

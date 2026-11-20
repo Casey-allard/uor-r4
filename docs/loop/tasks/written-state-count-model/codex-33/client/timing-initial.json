@@ -1,0 +1,171 @@
+{
+  "scope": "Wick one-shot processes, OS page cache uncontrolled, decoding starts after load and prefill",
+  "raw": [
+    {
+      "id": 31001,
+      "mode": "enabled",
+      "process_seconds": 5.85,
+      "peak_rss_kib": 2950960,
+      "tokens": 12,
+      "open_and_prefill_ns": 5634220955,
+      "decode_ns": 4264880
+    },
+    {
+      "id": 31001,
+      "mode": "no_read",
+      "process_seconds": 5.80,
+      "peak_rss_kib": 2950756,
+      "tokens": 12,
+      "open_and_prefill_ns": 5606657203,
+      "decode_ns": 4283386
+    },
+    {
+      "id": 31002,
+      "mode": "enabled",
+      "process_seconds": 5.88,
+      "peak_rss_kib": 2950392,
+      "tokens": 12,
+      "open_and_prefill_ns": 5661113759,
+      "decode_ns": 4235013
+    },
+    {
+      "id": 31002,
+      "mode": "no_read",
+      "process_seconds": 5.87,
+      "peak_rss_kib": 2950832,
+      "tokens": 12,
+      "open_and_prefill_ns": 5676176131,
+      "decode_ns": 4193764
+    },
+    {
+      "id": 31003,
+      "mode": "enabled",
+      "process_seconds": 5.82,
+      "peak_rss_kib": 2950524,
+      "tokens": 12,
+      "open_and_prefill_ns": 5608697121,
+      "decode_ns": 4191379
+    },
+    {
+      "id": 31003,
+      "mode": "no_read",
+      "process_seconds": 5.88,
+      "peak_rss_kib": 2950768,
+      "tokens": 12,
+      "open_and_prefill_ns": 5657252788,
+      "decode_ns": 4250853
+    },
+    {
+      "id": 31004,
+      "mode": "enabled",
+      "process_seconds": 5.89,
+      "peak_rss_kib": 2950156,
+      "tokens": 12,
+      "open_and_prefill_ns": 5666397349,
+      "decode_ns": 4285009
+    },
+    {
+      "id": 31004,
+      "mode": "no_read",
+      "process_seconds": 5.88,
+      "peak_rss_kib": 2950812,
+      "tokens": 12,
+      "open_and_prefill_ns": 5661168482,
+      "decode_ns": 4257496
+    },
+    {
+      "id": 31005,
+      "mode": "enabled",
+      "process_seconds": 5.74,
+      "peak_rss_kib": 2950452,
+      "tokens": 12,
+      "open_and_prefill_ns": 5529624201,
+      "decode_ns": 4168797
+    },
+    {
+      "id": 31005,
+      "mode": "no_read",
+      "process_seconds": 4.89,
+      "peak_rss_kib": 2950464,
+      "tokens": 12,
+      "open_and_prefill_ns": 4679314994,
+      "decode_ns": 4173966
+    },
+    {
+      "id": 31006,
+      "mode": "enabled",
+      "process_seconds": 4.94,
+      "peak_rss_kib": 2950512,
+      "tokens": 12,
+      "open_and_prefill_ns": 4714748367,
+      "decode_ns": 4322579
+    },
+    {
+      "id": 31006,
+      "mode": "no_read",
+      "process_seconds": 5.04,
+      "peak_rss_kib": 2950284,
+      "tokens": 12,
+      "open_and_prefill_ns": 4828072045,
+      "decode_ns": 4339192
+    },
+    {
+      "id": 31007,
+      "mode": "enabled",
+      "process_seconds": 4.96,
+      "peak_rss_kib": 2950704,
+      "tokens": 12,
+      "open_and_prefill_ns": 4751431894,
+      "decode_ns": 4278896
+    },
+    {
+      "id": 31007,
+      "mode": "no_read",
+      "process_seconds": 5.06,
+      "peak_rss_kib": 2950724,
+      "tokens": 12,
+      "open_and_prefill_ns": 4819244308,
+      "decode_ns": 4378927
+    },
+    {
+      "id": 31008,
+      "mode": "enabled",
+      "process_seconds": 5.00,
+      "peak_rss_kib": 2950920,
+      "tokens": 12,
+      "open_and_prefill_ns": 4800735436,
+      "decode_ns": 4372705
+    },
+    {
+      "id": 31008,
+      "mode": "no_read",
+      "process_seconds": 4.92,
+      "peak_rss_kib": 2951172,
+      "tokens": 12,
+      "open_and_prefill_ns": 4723449864,
+      "decode_ns": 4287112
+    }
+  ],
+  "summary": [
+    {
+      "mode": "enabled",
+      "processes": 8,
+      "tokens": 96,
+      "median_open_prefill_seconds": 5.569160661,
+      "median_process_seconds": 5.78,
+      "max_rss_kib": 2950960,
+      "decode_tokens_per_second": 2813.660250173084,
+      "end_to_end_tokens_per_second": 2.177858439201452
+    },
+    {
+      "mode": "no_read",
+      "processes": 8,
+      "tokens": 96,
+      "median_open_prefill_seconds": 5.217364624,
+      "median_process_seconds": 5.43,
+      "max_rss_kib": 2951172,
+      "decode_tokens_per_second": 2809.9181681581476,
+      "end_to_end_tokens_per_second": 2.2150438394093213
+    }
+  ]
+}
