@@ -1,0 +1,24 @@
+{
+  "decision": "GO",
+  "phase": "offline-grade",
+  "cohort": "original",
+  "utc": "2026-11-20T05:57:46Z",
+  "captures": "a3b2807a1de0044c8caa4b2870aabb52804c33c15724133ad8e8c55ec2f167b9",
+  "serve_go": "89376d120af2da748fa60bba6f2423280ff7c215cd78d5d978e348d2e8d0f853",
+  "device_results": "6696e25486c2d256e9d9af08f33a950675a10161b76bac260fa22b6d2513cb66",
+  "fact_packets": "2288492d094321c3c1b91cf7290735af9a629a46d13041e23c2d672c07c2bc02",
+  "candidate_packets": "fd1d4e00677c095d2efc62ba9f78253337dc75cb0c381d947ff3e1c2905ad857",
+  "indexes": "fc31c6810babdc99881c0fefbf31ad40da0798ffcb48b968d7eeb07a963893a3",
+  "offline_manifest": "c13c9bd8818d1fd9d76354d52fd05c2d33565ef9f598a950801d688bcf23b3d7",
+  "blind_manifest": "01ad16eca30eb36f2d05adb026645a816dab3c6586326d1f82a80f70bd782cd7",
+  "tools_sha256": "30269fba0a4fc30bbd9e9d3b673030d48e0374b79f12795122fbf3c05428dc99",
+  "grade_script": "6c6c72ec67f86707707fe58bcfcd6b0798b08ef15d3f1240aabecf3bbf3d0614",
+  "arms": {
+    "baseline": "b17352679c64a96bf657fad7640d4bb05ea3de0ecd08dadd13e9d2756e979bc4",
+    "fact_true": "850316ceaaf4c21919cbe3f13c48159c0d4b6c94f7a0fddd1e6a3dd063f60889",
+    "fact_reversed": "850316ceaaf4c21919cbe3f13c48159c0d4b6c94f7a0fddd1e6a3dd063f60889",
+    "candidate_true": "aa06ba9f86908e435e3967f43c60a4a96071abc3f7291e9f0a8a156f26cf37b5",
+    "candidate_reversed": "aa06ba9f86908e435e3967f43c60a4a96071abc3f7291e9f0a8a156f26cf37b5"
+  },
+  "release": "Only after both normal capture manifests equal the sealed primary, all eight parity joins succeed, and all receipt pins match. No changes to ranking or scoring arms."
+}

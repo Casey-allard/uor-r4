@@ -1,0 +1,11 @@
+{
+  "decision": "GO",
+  "phase": "planted finite only",
+  "host": "wick",
+  "utc": "2026-11-20T05:40:46Z",
+  "fit_sha256": "4b2166420bada60da22be024e7515b73ae6e4996976ff7de80e5515529091090",
+  "stage_sha256": "c312e15c344b6b9a19e359515b388829d13ef9019f1ea6986d7d73440594c043",
+  "packet_manifest_sha256": "5f91984325e566d06adba2e625cdaa8069f3595758b8c770a004db6884d0ca06",
+  "gpu_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "stop": "first identity, lock, hardware, positive or adverse control mismatch"
+}

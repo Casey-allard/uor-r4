@@ -1,0 +1,7 @@
+356d02b5c7c73a08b9a6ad3d5bc01ba5c158ac6ba4ff37b37c8291bed5f5e698  crates/uor-r4-integer/src/bin/pack-contextual-source.rs
+f6954c36184780b1754d725a245ffa03b4c3c98e93d484bafb7a3fae9e970919  crates/uor-r4-integer/src/bin/uor-chat.rs
+90ff8232772521ff82c43f75e3fffbebb8f18d5c51cf31bca12702fd5d2a169d  crates/uor-r4-integer/src/contextual_source.rs
+da1cac095f1155c7e13b49c468c28c1dffb3e293346de5ed6501b6876ff66377  crates/uor-r4-integer/src/discrete_d11.rs
+c1d914241e2a11614918be5ce093363a340880ad5e50a8df5271bd8c61774f63  crates/uor-r4-integer/src/discrete_d11/pair_rank.rs
+4dbbf3a404d4523098d96cd8a70efe6550cf6bcdaf0cc8dfec73fc9465aefe43  ../pinned-target/release/uor-chat
+a2d5c1d9742913cac42b9a956e27956b6a42c711dcb92311dcf539684296b5eb  ../pinned-target/release/pack-contextual-source

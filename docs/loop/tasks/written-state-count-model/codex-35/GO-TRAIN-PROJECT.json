@@ -1,0 +1,15 @@
+{
+  "decision": "GO",
+  "phase": "train-project",
+  "host": "wick",
+  "utc": "2026-11-20T05:42:00Z",
+  "fit_sha256": "bda6f5a1361f9ceebca3cfd7caaf114d09d98308e88367a7ef2826d3924a3b71",
+  "panel_source_manifest_sha256": "8c42b1b3ba0721ac1f074516d17c59e124c4eecfcb84d26e3bfcc115e83e4a5d",
+  "panel_sha256": "aa1214d064b984d1dd1f7fd17669e8ee4f47bff0cb054ced3e2f26aa98c97f42",
+  "native_sha256": "4dbbf3a404d4523098d96cd8a70efe6550cf6bcdaf0cc8dfec73fc9465aefe43",
+  "native_source_manifest_sha256": "e2af67276842812b3dff10517a4393759f9e3971b2e237e4a56cfdf85eba9601",
+  "train_manifest_sha256": "35b26571ae5dd73226f2a3828377af4919b1c8ba904c3f414a5b039bdeefe4c9",
+  "parent_sha256": "b17352679c64a96bf657fad7640d4bb05ea3de0ecd08dadd13e9d2756e979bc4",
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "finite_result_manifest_sha256": "635b1333c31a62a2f2d53917a065545cf45fd43affb40d83daf43c2802b47585"
+}

@@ -1,0 +1,14 @@
+{
+  "decision": "GO",
+  "phase": "paired CUDA fit TRAIN only",
+  "host": "wick",
+  "utc": "2026-11-20T05:44:48Z",
+  "fit_sha256": "cf218414621b29c094e826930894b3cdce0241a3d348e5a312184f22362f4b2b",
+  "fact_train_sha256": "fd166857468928486701ccabc790b30a7e39f7d1a4fc0eafff56817952dfdf59",
+  "candidate_train_sha256": "371b740ef30d80c2a725dad9d9f876fd9b9456eec7fa984f851fa9c6b797d673",
+  "train_prompts": 144,
+  "admitted": 36,
+  "prototypes": 72,
+  "expected_bank_bytes": 27660,
+  "stop": "any membership, checksum, size, cold repeat, fixture, or lock mismatch"
+}

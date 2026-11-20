@@ -1,0 +1,20 @@
+{
+  "decision": "GO",
+  "phase": "project-held",
+  "host": "wick",
+  "utc": "2026-11-20T05:50:01Z",
+  "fit_sha256": "e145351787e5999cd0b199236911e06b21f18126ebc354997be0a687be90e12c",
+  "panel_source_manifest_sha256": "3e59026b3bb255dd243eeb079b1c66f16e9df544287ff98da637bcf38d917dfb",
+  "panel_sha256": "6cc05dc0e5b3b2a4d18a47534b0cfa4ce95f3141bc4666608e19bb7e743557de",
+  "native_sha256": "4dbbf3a404d4523098d96cd8a70efe6550cf6bcdaf0cc8dfec73fc9465aefe43",
+  "native_source_manifest_sha256": "e2af67276842812b3dff10517a4393759f9e3971b2e237e4a56cfdf85eba9601",
+  "train_manifest_sha256": "35b26571ae5dd73226f2a3828377af4919b1c8ba904c3f414a5b039bdeefe4c9",
+  "parent_sha256": "b17352679c64a96bf657fad7640d4bb05ea3de0ecd08dadd13e9d2756e979bc4",
+  "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "finite_result_manifest_sha256": "635b1333c31a62a2f2d53917a065545cf45fd43affb40d83daf43c2802b47585",
+  "held_manifest_sha256": "237755443fa044c55ef6e546031645157b93e455d4355373feaddc15dcd080b8",
+  "fact_train_packet_manifest": "480758c76f4e0e4123d087027e66060fd45ce459c3db3d6e1b2e23ce667b8137",
+  "candidate_train_packet_manifest": "79269e6dea1ede00d3cb4b825df08e3f422d963568678958cb1bbac1c37a8c05",
+  "train_index_manifest": "17ccfd41b6fa9785fd3c2858882810099bc54f8b7fd2e62313b3c395fc0f7694",
+  "scope": "Separate matched short-object projection only. Fixed TRAIN, frozen shared banks, same native writer. Keep primary denominator intact."
+}

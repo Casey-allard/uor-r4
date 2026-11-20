@@ -13,6 +13,7 @@ use uor_r4_integer::bundle::{create_test_bundle_with_byte_vocab, Bundle};
 use uor_r4_integer::config::ReadMode;
 #[cfg(feature = "p1-count-serving")]
 use uor_r4_integer::discrete_d11::count_deployment::{self, DiscreteCountModel, SCHEMA as COUNT_SCHEMA};
+use uor_r4_integer::discrete_d11::pair_rank;
 use uor_r4_integer::generation::conversation::{
     ConversationError, ConversationRequest, DialogueConversation, DialogueConversationStream,
     TurnClosure,
@@ -22,7 +23,7 @@ use uor_r4_integer::loopback::{serve_loopback, LoopbackConfig};
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict};
-use uor_r4_integer::paired_role::{DetachedWordSites, RequestedReplayArm};
+use uor_r4_integer::paired_role::{DetachedWordSites, RequestedReplayArm, RoleSpan};
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
     is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
@@ -66,6 +67,7 @@ struct CliArgs {
     p1_trace: bool,
     ordered_role_trace: bool,
     role_replay: Option<RoleReplay>,
+    pair_replay: pair_rank::Replay,
     contextual_source_trace: bool,
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
@@ -319,6 +321,7 @@ impl Default for CliArgs {
             p1_trace: false,
             ordered_role_trace: false,
             role_replay: None,
+            pair_replay: pair_rank::Replay::default(),
             contextual_source_trace: false,
             tokenizer_path: None,
             content_readout_path: None,
@@ -383,6 +386,16 @@ fn print_usage() {
     eprintln!("                              Counts may be embedded in the artifact");
     eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
     eprintln!("      --role-replay ARM      trace historical/full with inherited/repeated candidates, or full-detached");
+    eprintln!(
+        "      --pair-rank-reversed   reverse signed pair comparisons on the same fitted carrier"
+    );
+    eprintln!("      --pair-rank-oracle QUERY_START:QUERY_END:FACT_START:FACT_END");
+    eprintln!("                             replay only a supplied original query and assertion, using half-open token spans");
+    eprintln!("      --pair-rank-project    project fact-prefix TRAIN candidate coordinates on the D26 parent without decoding");
+    eprintln!("      --pair-rank-project-candidate");
+    eprintln!(
+        "                             project candidate-prefix TRAIN coordinates without decoding"
+    );
     eprintln!(
         "                              greedy raw-ID or text serving through IntegerDiscreteModel"
     );
@@ -559,6 +572,50 @@ fn parse_cli_args() -> CliArgs {
             #[cfg(feature = "p1-count-serving")]
             "--p1-trace" => args.p1_trace = true,
             "--ordered-role-trace" => args.ordered_role_trace = true,
+            "--pair-rank-reversed" => {
+                args.pair_replay.orientation = pair_rank::Orientation::Reversed
+            }
+            "--pair-rank-project" => {
+                args.pair_replay.project = Some(pair_rank::Geometry::FactPrefix)
+            }
+            "--pair-rank-project-candidate" => {
+                args.pair_replay.project = Some(pair_rank::Geometry::CandidatePrefix);
+            }
+            "--pair-rank-oracle" => {
+                idx += 1;
+                let spans = raw
+                    .get(idx)
+                    .and_then(|value| {
+                        value
+                            .split(':')
+                            .map(str::parse::<usize>)
+                            .collect::<std::result::Result<Vec<_>, _>>()
+                            .ok()
+                    })
+                    .and_then(|words| {
+                        let [query_start, query_end, fact_start, fact_end] = words.as_slice()
+                        else {
+                            return None;
+                        };
+                        Some(pair_rank::AssertionOracle {
+                            query: RoleSpan {
+                                start: *query_start,
+                                end: *query_end,
+                            },
+                            fact: RoleSpan {
+                                start: *fact_start,
+                                end: *fact_end,
+                            },
+                        })
+                    });
+                if spans.is_none() {
+                    eprintln!(
+                        "--pair-rank-oracle requires QUERY_START:QUERY_END:FACT_START:FACT_END"
+                    );
+                    process::exit(1);
+                }
+                args.pair_replay.oracle = spans;
+            }
             "--role-replay" => {
                 idx += 1;
                 args.role_replay = match raw.get(idx).map(String::as_str) {
@@ -1061,6 +1118,17 @@ fn parse_cli_args() -> CliArgs {
         && (args.tokenizer_path.is_none() || args.say.is_none())
     {
         eprintln!("--role-replay full-detached requires --say with the artifact-bound --tokenizer");
+        process::exit(1);
+    }
+    if (args.pair_replay.oracle.is_some()
+        || args.pair_replay.project.is_some()
+        || matches!(
+            args.pair_replay.orientation,
+            pair_rank::Orientation::Reversed
+        ))
+        && !matches!(args.role_replay, Some(RoleReplay::Detached))
+    {
+        eprintln!("pair rank controls require --role-replay full-detached");
         process::exit(1);
     }
     if args.contextual_source_trace && args.discrete_path.is_none() {
@@ -2155,6 +2223,13 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         }
     }
     let read_enabled = cli.read_mode == ReadMode::Enabled;
+    if read_enabled && model.pair_rank_bindings().is_some()
+        && !matches!(cli.role_replay, Some(RoleReplay::Detached))
+    {
+        return Err(IntegerError::Invalid(
+            "pair-rank carrier requires --role-replay full-detached".into(),
+        ));
+    }
     let (paired, role_trace) = match cli.role_replay {
         Some(RoleReplay::Frozen(arm)) => {
             let (decision, trace) = model.requested_role_replay(prompt, arm)?;
@@ -2165,7 +2240,8 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
                 IntegerError::Invalid("detached role replay requires a bound tokenizer".into())
             })?;
             let sites = DetachedWordSites::from_tokenizer(tokenizer)?;
-            let (decision, trace) = model.requested_detached_role_replay(prompt, &sites)?;
+            let (decision, trace) =
+                model.requested_detached_pair_replay(prompt, &sites, cli.pair_replay)?;
             (Some(decision), Some(trace))
         }
         None => (model.paired_copy_decision(prompt, read_enabled)?, None),
@@ -2177,14 +2253,15 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
     let mut cursor = ExactCopyState::new(choice.and_then(|c| c.source), prompt.len() as u32);
     let mut copy_steps = Vec::new();
     let mut context = prompt.to_vec();
-    let mut generated_ids = Vec::with_capacity(cli.max_tokens);
+    let decode_tokens = cli.pair_replay.project.map_or(cli.max_tokens, |_| 0);
+    let mut generated_ids = Vec::with_capacity(decode_tokens);
     let mut count_masses = Vec::new();
     #[cfg(feature = "p1-count-serving")]
     let mut p1_steps = Vec::new();
     let mut s2_steps = Vec::new();
     #[cfg(feature = "p1-count-serving")]
     let decode_start = profile_start.map(|_| std::time::Instant::now());
-    for _ in 0..cli.max_tokens {
+    for _ in 0..decode_tokens {
         #[cfg(feature = "p1-count-serving")]
         let p1_winner = if let Some(engine) = &p1 {
             let (id, observation) = engine.next(&context, read_enabled, cli.p1_trace)?;
@@ -2305,6 +2382,15 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         return Err(IntegerError::Invalid(
             "--contextual-source-trace requires a contextual source artifact".into(),
         ));
+    }
+    if let Some(bindings) = model.pair_rank_bindings() {
+        record["decoding"] =
+            "full-detached roles, signed pair rank, assertion agreement and exact-copy EOS".into();
+        record["pair_rank_bindings"] = serde_json::to_value(bindings)?;
+        record["pair_rank_orientation"] = serde_json::to_value(cli.pair_replay.orientation)?;
+    }
+    if let Some(geometry) = cli.pair_replay.project {
+        record["pair_rank_project"] = serde_json::to_value(geometry)?;
     }
     if cli.contextual_source_trace {
         let mut traces = Vec::new();

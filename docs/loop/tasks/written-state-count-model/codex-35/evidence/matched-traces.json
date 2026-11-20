@@ -1,0 +1,588 @@
+[
+  {
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      287,
+      3414,
+      2943,
+      710,
+      3315,
+      764,
+      828,
+      537,
+      68,
+      3903,
+      388,
+      265,
+      4052,
+      457,
+      88,
+      3963,
+      16,
+      3821,
+      421,
+      380,
+      2410,
+      2978,
+      540,
+      266,
+      1106,
+      272,
+      283,
+      744,
+      974,
+      3387,
+      85,
+      16,
+      671,
+      970,
+      309,
+      321,
+      304,
+      67,
+      2978,
+      540,
+      266,
+      2108,
+      266,
+      1525,
+      78,
+      3732,
+      788,
+      878,
+      85,
+      16,
+      772,
+      718,
+      265,
+      2307,
+      1817,
+      2978,
+      418,
+      2307,
+      441,
+      1952,
+      300,
+      268,
+      3821,
+      421,
+      380,
+      2410,
+      16,
+      971,
+      1790,
+      883,
+      265,
+      1570,
+      512,
+      2422,
+      388,
+      671,
+      970,
+      309,
+      321,
+      304,
+      67,
+      16,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "role_words": [
+      66,
+      70,
+      65,
+      66,
+      70,
+      20,
+      58,
+      2147483648
+    ],
+    "selected": {
+      "fact": 21,
+      "query": 66,
+      "source": 30
+    },
+    "generated_ids": [
+      283,
+      744,
+      974,
+      3387,
+      85,
+      1
+    ],
+    "stop": "eos",
+    "copy_step_words": [
+      [
+        1,
+        30,
+        31,
+        92,
+        283,
+        283,
+        1,
+        0
+      ],
+      [
+        1,
+        30,
+        32,
+        92,
+        744,
+        744,
+        1,
+        0
+      ],
+      [
+        1,
+        30,
+        33,
+        92,
+        974,
+        974,
+        1,
+        0
+      ],
+      [
+        1,
+        30,
+        34,
+        92,
+        3387,
+        3387,
+        1,
+        0
+      ],
+      [
+        1,
+        30,
+        35,
+        92,
+        85,
+        85,
+        1,
+        0
+      ],
+      [
+        0,
+        30,
+        35,
+        92,
+        1,
+        4294967295,
+        0,
+        1
+      ]
+    ],
+    "original_fact": [
+      {
+        "assertion": {
+          "continuation": {
+            "connector_mask": 0,
+            "onset_mask": 0,
+            "reason": 0,
+            "source": null
+          },
+          "fence": 35,
+          "source": 30,
+          "value": {
+            "both": null,
+            "current": null,
+            "eligible_mask": 0,
+            "ordered": null,
+            "ordered_mask": 0,
+            "word_start": null,
+            "word_start_mask": 0
+          }
+        },
+        "completed_source_range": [
+          30,
+          35
+        ],
+        "contextual_source": {
+          "arm": "wide_recurrence",
+          "outcome": "pick",
+          "source": 30
+        },
+        "fact_span": [
+          21,
+          25
+        ]
+      }
+    ],
+    "rank": [
+      {
+        "eligible_sources": [
+          28,
+          30,
+          33
+        ],
+        "fact_span": [
+          21,
+          25
+        ],
+        "orientation": "forward",
+        "pairs": [
+          {
+            "candidate": 28,
+            "margin": -40,
+            "nearest_forward": 176,
+            "nearest_reverse": 136,
+            "rival": 30
+          },
+          {
+            "candidate": 28,
+            "margin": -32,
+            "nearest_forward": 184,
+            "nearest_reverse": 152,
+            "rival": 33
+          },
+          {
+            "candidate": 30,
+            "margin": 40,
+            "nearest_forward": 136,
+            "nearest_reverse": 176,
+            "rival": 28
+          },
+          {
+            "candidate": 30,
+            "margin": 20,
+            "nearest_forward": 128,
+            "nearest_reverse": 148,
+            "rival": 33
+          },
+          {
+            "candidate": 33,
+            "margin": 32,
+            "nearest_forward": 152,
+            "nearest_reverse": 184,
+            "rival": 28
+          },
+          {
+            "candidate": 33,
+            "margin": -20,
+            "nearest_forward": 148,
+            "nearest_reverse": 128,
+            "rival": 30
+          }
+        ],
+        "selection": {
+          "arm": "wide_recurrence",
+          "outcome": "pick",
+          "source": 30
+        }
+      }
+    ]
+  },
+  {
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      287,
+      3414,
+      2943,
+      710,
+      3315,
+      764,
+      828,
+      537,
+      68,
+      3903,
+      388,
+      265,
+      4052,
+      457,
+      88,
+      3963,
+      16,
+      3821,
+      421,
+      380,
+      2410,
+      2978,
+      540,
+      266,
+      1370,
+      1106,
+      272,
+      283,
+      744,
+      974,
+      3387,
+      85,
+      16,
+      671,
+      970,
+      309,
+      321,
+      304,
+      67,
+      2978,
+      540,
+      266,
+      1370,
+      2108,
+      266,
+      1525,
+      78,
+      3732,
+      788,
+      878,
+      85,
+      16,
+      772,
+      718,
+      265,
+      2307,
+      1817,
+      2978,
+      418,
+      2307,
+      441,
+      1952,
+      300,
+      268,
+      3821,
+      421,
+      380,
+      2410,
+      16,
+      971,
+      1790,
+      883,
+      265,
+      1570,
+      512,
+      2422,
+      388,
+      671,
+      970,
+      309,
+      321,
+      304,
+      67,
+      16,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "role_words": [
+      68,
+      72,
+      67,
+      68,
+      70,
+      20,
+      58,
+      2147483648
+    ],
+    "selected": {
+      "fact": 21,
+      "query": 68,
+      "source": 29
+    },
+    "generated_ids": [
+      1106,
+      272,
+      283,
+      744,
+      974,
+      3387,
+      85,
+      1
+    ],
+    "stop": "eos",
+    "copy_step_words": [
+      [
+        1,
+        29,
+        30,
+        94,
+        1106,
+        1106,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        31,
+        94,
+        272,
+        272,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        32,
+        94,
+        283,
+        283,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        33,
+        94,
+        744,
+        744,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        34,
+        94,
+        974,
+        974,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        35,
+        94,
+        3387,
+        3387,
+        1,
+        0
+      ],
+      [
+        1,
+        29,
+        36,
+        94,
+        85,
+        85,
+        1,
+        0
+      ],
+      [
+        0,
+        29,
+        36,
+        94,
+        1,
+        4294967295,
+        0,
+        1
+      ]
+    ],
+    "original_fact": [
+      {
+        "assertion": {
+          "continuation": {
+            "connector_mask": 0,
+            "onset_mask": 0,
+            "reason": 0,
+            "source": null
+          },
+          "fence": 36,
+          "source": 29,
+          "value": {
+            "both": null,
+            "current": null,
+            "eligible_mask": 0,
+            "ordered": null,
+            "ordered_mask": 0,
+            "word_start": null,
+            "word_start_mask": 0
+          }
+        },
+        "completed_source_range": [
+          29,
+          36
+        ],
+        "contextual_source": {
+          "arm": "wide_recurrence",
+          "outcome": "pick",
+          "source": 29
+        },
+        "fact_span": [
+          21,
+          25
+        ]
+      }
+    ],
+    "rank": [
+      {
+        "eligible_sources": [
+          29,
+          31,
+          34
+        ],
+        "fact_span": [
+          21,
+          25
+        ],
+        "orientation": "forward",
+        "pairs": [
+          {
+            "candidate": 29,
+            "margin": 4,
+            "nearest_forward": 152,
+            "nearest_reverse": 156,
+            "rival": 31
+          },
+          {
+            "candidate": 29,
+            "margin": 12,
+            "nearest_forward": 168,
+            "nearest_reverse": 180,
+            "rival": 34
+          },
+          {
+            "candidate": 31,
+            "margin": -4,
+            "nearest_forward": 156,
+            "nearest_reverse": 152,
+            "rival": 29
+          },
+          {
+            "candidate": 31,
+            "margin": 12,
+            "nearest_forward": 160,
+            "nearest_reverse": 172,
+            "rival": 34
+          },
+          {
+            "candidate": 34,
+            "margin": -12,
+            "nearest_forward": 180,
+            "nearest_reverse": 168,
+            "rival": 29
+          },
+          {
+            "candidate": 34,
+            "margin": -12,
+            "nearest_forward": 172,
+            "nearest_reverse": 160,
+            "rival": 31
+          }
+        ],
+        "selection": {
+          "arm": "wide_recurrence",
+          "outcome": "pick",
+          "source": 29
+        }
+      }
+    ]
+  }
+]

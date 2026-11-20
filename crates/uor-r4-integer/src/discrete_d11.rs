@@ -32,6 +32,7 @@ mod assertion_retrieval;
 mod rival_admission;
 #[path = "contextual_source.rs"]
 pub mod contextual_source;
+pub mod pair_rank;
 pub use assertion_retrieval::pack_assertion_retrieval;
 pub use rival_admission::pack_rival_admission;
 
@@ -82,6 +83,12 @@ pub struct RequestedRoleReplayTrace {
     pub roles: crate::paired_role::RequestedOccurrenceTrace,
     pub assertions: Vec<PairedAssertionWitness>,
     pub contextual_sources: Vec<ReplayContextualSource>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub pair_rank_sources: Vec<pair_rank::AssertionRank>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub pair_rank_candidates: Vec<pair_rank::AssertionCandidates>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pair_rank_oracle: Option<pair_rank::AssertionOracle>,
 }
 
 #[derive(Serialize)]
@@ -1216,6 +1223,7 @@ pub struct IntegerDiscreteModel {
     count_mixer: Option<crate::count_mixer::CountMixer>,
     role_policy: Option<RolePolicy>,
     contextual_source: Option<contextual_source::SourcePolicy>,
+    pair_rank: Option<pair_rank::Policy>,
     assertion_arm: Option<crate::relation_retrieval::Arm>,
     tokenizer_sha256: Option<String>,
     shape: DiscreteLutShape,
@@ -1935,6 +1943,12 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if matches!(
+            schema.as_str(),
+            pair_rank::SCHEMA | pair_rank::CANDIDATE_SCHEMA
+        ) {
+            return pair_rank::read(bytes, encoded_header, end_header, allow_role);
+        }
         if schema == rival_admission::SCHEMA {
             return rival_admission::read(bytes, encoded_header, end_header, allow_role);
         }
@@ -2522,6 +2536,7 @@ impl IntegerDiscreteModel {
             count_mixer: None,
             role_policy: None,
             contextual_source: None,
+            pair_rank: None,
             assertion_arm: None,
             tokenizer_sha256: header.tokenizer_sha256,
             shape: header.shape,
@@ -2597,6 +2612,9 @@ impl IntegerDiscreteModel {
 
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
+        if let Some(bindings) = self.pair_rank_bindings() {
+            return bindings.geometry.schema();
+        }
         if self.assertion_arm.is_some() {
             return assertion_retrieval::SCHEMA;
         }
@@ -2670,6 +2688,7 @@ impl IntegerDiscreteModel {
         if !read {
             return Ok(Some(PairedCopyDecision::default()));
         }
+        self.require_parent_copy_reader()?;
         paired_copy::Policy::validate_ids(prompt)?;
         let roles = match &paired.roles {
             paired_copy::Roles::Frozen(_) => {
@@ -2826,7 +2845,8 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         arm: RequestedReplayArm,
     ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
-        self.requested_role_replay_inner(prompt, arm, None)
+        self.require_parent_copy_reader()?;
+        self.requested_role_replay_inner(prompt, arm, None, pair_rank::Replay::default())
     }
 
     /// Widen only the endpoint grammar using facts from the artifact-bound tokenizer.
@@ -2835,7 +2855,37 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         sites: &DetachedWordSites,
     ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
-        self.requested_role_replay_inner(prompt, RequestedReplayArm::FullRepeated, Some(sites))
+        self.requested_detached_pair_replay(prompt, sites, pair_rank::Replay::default())
+    }
+
+    fn require_parent_copy_reader(&self) -> Result<()> {
+        if self.pair_rank.is_some() {
+            return Err(invalid(
+                "pair-rank reader requires tokenizer-bound full-detached role selection",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn pair_rank_bindings(&self) -> Option<&pair_rank::Bindings> {
+        Some(&self.pair_rank.as_ref()?.bindings)
+    }
+
+    /// The caller must verify the original tokenizer bytes against this artifact's
+    /// tokenizer digest before deriving `sites`. The full-detached text client
+    /// checks that binding before it constructs the site table.
+    pub fn requested_detached_pair_replay(
+        &self,
+        prompt: &[u32],
+        sites: &DetachedWordSites,
+        options: pair_rank::Replay,
+    ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
+        self.requested_role_replay_inner(
+            prompt,
+            RequestedReplayArm::FullRepeated,
+            Some(sites),
+            options,
+        )
     }
 
     fn requested_role_replay_inner(
@@ -2843,6 +2893,7 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         arm: RequestedReplayArm,
         detached: Option<&DetachedWordSites>,
+        options: pair_rank::Replay,
     ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
         let replay = self.frozen_role_replay()?;
         let framing = replay
@@ -2873,6 +2924,139 @@ impl IntegerDiscreteModel {
                 arm,
             )?
         };
+        let rank = self.pair_rank.as_ref().filter(|_| detached.is_some());
+        if rank.is_none()
+            && options.project.is_none()
+            && options.oracle.is_none()
+            && matches!(options.orientation, pair_rank::Orientation::Forward)
+        {
+            return self.finish_frozen_role_replay(prompt, decision, roles);
+        }
+        let mut decision = decision;
+        let mut contextual_sources = Vec::new();
+        let mut pair_rank_sources = Vec::new();
+        let mut pair_rank_candidates = Vec::new();
+        let mut assertions = Vec::new();
+        let detached_trace = roles.detached.as_ref();
+        let geometry = rank
+            .map(|policy| policy.bindings.geometry)
+            .or(options.project);
+        if (geometry.is_some() || options.oracle.is_some())
+            && self.contextual_source_arm() != Some(contextual_source::SourceArm::WideRecurrence)
+        {
+            return Err(invalid("pair replay requires a D26 recurrence reader"));
+        }
+        if options.project.is_some() && rank.is_some() {
+            return Err(invalid("pair projection requires the frozen D26 parent"));
+        }
+        if matches!(options.orientation, pair_rank::Orientation::Reversed) && rank.is_none() {
+            return Err(invalid(
+                "reversed pair rank requires a fitted pair-rank carrier",
+            ));
+        }
+        let oracle_heads;
+        let heads = if let Some(oracle) = options.oracle {
+            let trace =
+                detached_trace.ok_or_else(|| invalid("pair oracle requires detached replay"))?;
+            let [start, end] = roles.content;
+            let (fact, query) = (oracle.fact, oracle.query);
+            if !(start <= fact.start
+                && fact.start < fact.end
+                && fact.end <= query.start
+                && query.start < query.end
+                && query.end <= end
+                && trace.raw_assertion_heads.contains(&[fact.start, fact.end])
+                && prompt[fact.start..fact.end] == prompt[query.start..query.end])
+            {
+                return Err(invalid("pair oracle requires a complete original assertion head and its exact query occurrence"));
+            }
+            decision = PairedRoleDecision {
+                requested: Some(query),
+                excluded: None,
+                requested_score: 0,
+                excluded_score: 0,
+                requested_runner_up: 0,
+                excluded_runner_up: 0,
+            };
+            oracle_heads = [[fact.start, fact.end]];
+            Some(oracle_heads.as_slice())
+        } else {
+            detached_trace
+                .filter(|trace| trace.requested_is_detached)
+                .map(|trace| trace.matching_assertion_heads.as_slice())
+        };
+        let (policy, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("missing paired reader"))?;
+        let copy = self.resolve_assertion_subset_with_reader(
+            policy,
+            paired,
+            prompt,
+            decision,
+            None,
+            heads,
+            |w| assertions.push(w),
+            |fact, query| {
+                let Some((fence, baseline, candidates)) =
+                    self.contextual_source_observed(prompt, fact, query)?
+                else {
+                    return Ok(None);
+                };
+                let mut selection = baseline;
+                if let Some(geometry) = geometry {
+                    let mut rank_candidates: Vec<_> = candidates
+                        .iter()
+                        .map(|(candidate, _)| candidate.clone())
+                        .collect();
+                    if geometry == pair_rank::Geometry::CandidatePrefix {
+                        for candidate in &mut rank_candidates {
+                            candidate.contextual = self.contextual_source_coordinates(
+                                prompt,
+                                candidate.span.start,
+                                Some(baseline.arm),
+                            )?;
+                        }
+                    }
+                    if let Some(rank) = rank {
+                        let trace =
+                            rank.bank
+                                .rank(fact, baseline, &rank_candidates, options.orientation);
+                        selection = trace.selection;
+                        pair_rank_sources.push(trace);
+                    }
+                    pair_rank_candidates.push(pair_rank::AssertionCandidates {
+                        fact_span: [fact.start, fact.end],
+                        geometry,
+                        candidates: rank_candidates,
+                    });
+                }
+                contextual_sources.push(ReplayContextualSource {
+                    fact_span: [fact.start, fact.end],
+                    selection: baseline,
+                    candidates,
+                });
+                Ok(Some((fence, selection)))
+            },
+        )?;
+        Ok((
+            copy,
+            RequestedRoleReplayTrace {
+                roles,
+                assertions,
+                contextual_sources,
+                pair_rank_sources,
+                pair_rank_candidates,
+                pair_rank_oracle: options.oracle,
+            },
+        ))
+    }
+
+    fn finish_frozen_role_replay(
+        &self,
+        prompt: &[u32],
+        decision: PairedRoleDecision,
+        roles: crate::paired_role::RequestedOccurrenceTrace,
+    ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
         let (copy, assertions) =
             if let Some(trace) = roles.detached.as_ref().filter(|t| t.requested_is_detached) {
                 let (policy, paired) = self
@@ -2918,6 +3102,9 @@ impl IntegerDiscreteModel {
                 roles,
                 assertions,
                 contextual_sources,
+                pair_rank_sources: Vec::new(),
+                pair_rank_candidates: Vec::new(),
+                pair_rank_oracle: None,
             },
         ))
     }
@@ -3051,6 +3238,35 @@ impl IntegerDiscreteModel {
         detached_heads: Option<&[[usize; 2]]>,
         visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
+        self.require_parent_copy_reader()?;
+        self.resolve_assertion_subset_with_reader(
+            policy,
+            paired,
+            prompt,
+            roles,
+            selected,
+            detached_heads,
+            visit,
+            |fact, query| self.contextual_selection(prompt, fact, query),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_assertion_subset_with_reader(
+        &self,
+        policy: &RolePolicy,
+        paired: &paired_copy::Policy,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        selected: Option<&[RoleSpan]>,
+        detached_heads: Option<&[[usize; 2]]>,
+        visit: impl FnMut(PairedAssertionWitness),
+        contextual_read: impl FnMut(
+            RoleSpan,
+            RoleSpan,
+        )
+            -> Result<Option<(Option<u32>, contextual_source::SourceSelection)>>,
+    ) -> Result<PairedCopyDecision> {
         let roots;
         let packed = if let Some(onset) = &policy.onset {
             onset.packed_roots.as_slice()
@@ -3068,7 +3284,7 @@ impl IntegerDiscreteModel {
             selected,
             detached_heads,
             visit,
-            |fact, query| self.contextual_selection(prompt, fact, query),
+            contextual_read,
         )
     }
 

@@ -441,18 +441,35 @@ impl IntegerDiscreteModel {
         fact: RoleSpan,
         query: RoleSpan,
     ) -> Result<(SourceSelection, Vec<(SourceCandidate, SourceScore)>)> {
-        let policy = self
-            .contextual_source
-            .as_ref()
+        let (_, selection, candidates) = self
+            .contextual_source_observed(ids, fact, query)?
             .ok_or_else(|| invalid("missing contextual source policy"))?;
-        self.with_contextual_candidates(ids, fact, query, |_, candidates| {
+        Ok((selection, candidates))
+    }
+
+    pub(super) fn contextual_source_observed(
+        &self,
+        ids: &[u32],
+        fact: RoleSpan,
+        query: RoleSpan,
+    ) -> Result<
+        Option<(
+            Option<u32>,
+            SourceSelection,
+            Vec<(SourceCandidate, SourceScore)>,
+        )>,
+    > {
+        let Some(policy) = &self.contextual_source else {
+            return Ok(None);
+        };
+        self.with_contextual_candidates(ids, fact, query, |fence, candidates| {
             let mut trace = Vec::new();
             let selected = policy
                 .bank
                 .select(policy.arm, candidates, |candidate, score| {
                     trace.push((candidate, score));
                 })?;
-            Ok((selected, trace))
+            Ok(Some((fence, selected, trace)))
         })
     }
 

@@ -1,0 +1,162 @@
+[
+  {
+    "mode": "ordinary",
+    "arm": "fact_true",
+    "stage": {
+      "exact through EOS": 13,
+      "gold onset outside candidate pool": 120,
+      "requested role": 72,
+      "rival source selected": 17,
+      "unsupported copy": 9,
+      "unsupported, no copy": 13,
+      "value selection abstained": 2
+    },
+    "first_error_movement_vs_baseline": {
+      "different token, same offset": 136,
+      "error to exact": 13,
+      "exact to error": 6,
+      "same first error": 69,
+      "unkeyed": 22
+    }
+  },
+  {
+    "mode": "ordinary",
+    "arm": "fact_reversed",
+    "stage": {
+      "exact through EOS": 6,
+      "gold onset outside candidate pool": 120,
+      "requested role": 72,
+      "rival source selected": 24,
+      "unsupported copy": 9,
+      "unsupported, no copy": 13,
+      "value selection abstained": 2
+    },
+    "first_error_movement_vs_baseline": {
+      "both exact": 5,
+      "different token, same offset": 140,
+      "error to exact": 1,
+      "exact to error": 1,
+      "same first error": 77,
+      "unkeyed": 22
+    }
+  },
+  {
+    "mode": "ordinary",
+    "arm": "candidate_true",
+    "stage": {
+      "exact through EOS": 14,
+      "gold onset outside candidate pool": 120,
+      "requested role": 72,
+      "rival source selected": 17,
+      "unsupported copy": 8,
+      "unsupported, no copy": 14,
+      "value selection abstained": 1
+    },
+    "first_error_movement_vs_baseline": {
+      "different token, same offset": 124,
+      "error to exact": 14,
+      "exact to error": 6,
+      "same first error": 80,
+      "unkeyed": 22
+    }
+  },
+  {
+    "mode": "ordinary",
+    "arm": "candidate_reversed",
+    "stage": {
+      "exact through EOS": 6,
+      "gold onset outside candidate pool": 120,
+      "requested role": 72,
+      "rival source selected": 23,
+      "unsupported copy": 8,
+      "unsupported, no copy": 14,
+      "value selection abstained": 3
+    },
+    "first_error_movement_vs_baseline": {
+      "both exact": 5,
+      "different token, same offset": 133,
+      "error to exact": 1,
+      "exact to error": 1,
+      "same first error": 84,
+      "unkeyed": 22
+    }
+  },
+  {
+    "mode": "supplied",
+    "arm": "fact_true",
+    "stage": {
+      "exact through EOS": 13,
+      "gold onset outside candidate pool": 192,
+      "rival source selected": 17,
+      "unsupported copy": 3,
+      "unsupported, no copy": 1,
+      "value selection abstained": 2
+    },
+    "first_error_movement_vs_baseline": {
+      "different token, same offset": 136,
+      "error to exact": 13,
+      "exact to error": 6,
+      "same first error": 69,
+      "unkeyed": 4
+    }
+  },
+  {
+    "mode": "supplied",
+    "arm": "fact_reversed",
+    "stage": {
+      "exact through EOS": 6,
+      "gold onset outside candidate pool": 192,
+      "rival source selected": 24,
+      "unsupported copy": 3,
+      "unsupported, no copy": 1,
+      "value selection abstained": 2
+    },
+    "first_error_movement_vs_baseline": {
+      "both exact": 5,
+      "different token, same offset": 140,
+      "error to exact": 1,
+      "exact to error": 1,
+      "same first error": 77,
+      "unkeyed": 4
+    }
+  },
+  {
+    "mode": "supplied",
+    "arm": "candidate_true",
+    "stage": {
+      "exact through EOS": 14,
+      "gold onset outside candidate pool": 192,
+      "rival source selected": 17,
+      "unsupported copy": 3,
+      "unsupported, no copy": 1,
+      "value selection abstained": 1
+    },
+    "first_error_movement_vs_baseline": {
+      "different token, same offset": 124,
+      "error to exact": 14,
+      "exact to error": 6,
+      "same first error": 80,
+      "unkeyed": 4
+    }
+  },
+  {
+    "mode": "supplied",
+    "arm": "candidate_reversed",
+    "stage": {
+      "exact through EOS": 6,
+      "gold onset outside candidate pool": 192,
+      "rival source selected": 23,
+      "unsupported copy": 3,
+      "unsupported, no copy": 1,
+      "value selection abstained": 3
+    },
+    "first_error_movement_vs_baseline": {
+      "both exact": 5,
+      "different token, same offset": 133,
+      "error to exact": 1,
+      "exact to error": 1,
+      "same first error": 84,
+      "unkeyed": 4
+    }
+  }
+]

@@ -207,3 +207,5 @@ A row needs a number measured through the exported integer artifact, a bar fixed
 - [Serving and export](../../model/serving-and-export.md) and the [lookup-serving mechanism](../../mechanisms/lut-serving.md).
 - [Format and verdict words](./README.md).
 - [`CHARTER.md`](../../../CHARTER.md), sections 3.6, 3.7 and 4.8.
+
+| 2026-11-20 | [codex] D35 paired value-onset displacement on the fixed D26 writer, fresh original and short-object cohorts. | Ordinary candidate vs baseline 14/224 vs 6/224 original, 20/216 vs 32/216 short. Supplied short 42/216 vs 42/216. Both forward arms trail their reversed controls on short objects. | Gain over parent and reflected direction with zero new unsupported or wrong-source copies. | negative for promotion | [D35 paired evidence](../../loop/tasks/written-state-count-model/codex-35/REPORT.md) |

@@ -1,0 +1,5 @@
+6c6c72ec67f86707707fe58bcfcd6b0798b08ef15d3f1240aabecf3bbf3d0614  grade/verify-captures.sh
+90e7462129d30a08203e94fbf7c684f9a49bbefeb5ce195505e8205036a359b8  grade-v5/target/release/d35-value-grade
+36a88c96f0822474df749bdb88aecaa38e50b32f2ad534226b831d9f4744740f  grade-v5/target/release/d35-summary
+01d50e374e652c3cb3c1813bcb3895ba9db2b6cb2d04123e0c9f66fdd9e07e95  grade/target/release/d35-parity
+7e24deae866444d54f93bd9e16411a6268ccd1ae3d1bca32910882ed77deab23  device/paired-value-decode
