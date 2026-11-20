@@ -1,0 +1,7 @@
+Fri Nov 20 06:33:00 UTC 2026
+NVIDIA GeForce RTX 4090, GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41, 20186 MiB, 24564 MiB, 595.99.02
+2271127
+MemAvailable:   37803972 kB
+SwapFree:             48 kB
+plexpool/uor-r4-corpus 43633486331904 19941163008 43613545168896       1% /mnt/plexpool/uor-r4-corpus
+{"artifact_sha256":"eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e","artifact_bytes":16459406,"gpu_free_bytes_before":24838406144,"gpu_required_bytes":806495758,"host_available_bytes_including_train_buffer":47835846766,"planned_and_nonempty_partitions_by_order":[[29,29],[29,29],[29,29],[29,29],[29,29],[29,29],[29,29],[29,29],[29,29],[29,29],[29,29]],"gpu_count_image":["e693ef6a51d14ac4c04559aa564ec648ffb3f9b1ae8aad25c400cfd06eae8f0b","6bc5fa5841764d531e0efcad5310a19915c80fdbd1ab47c15066d80112ea4666","88da8f1ebcb2f665b5bd6e32ffc29545e858f8db1ab19c88a612debccf010305"]}

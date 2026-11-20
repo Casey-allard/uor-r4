@@ -1,0 +1,10 @@
+aa8bf30e8f01b63c88640465778a11205436822d417e43c50cb30dfe0c9a29dd  docs/loop/tasks/written-state-count-model/codex-36/batch/Cargo.lock
+d6ee49abb30c18c58dc4931db4c80a037ddeb5e1a66522aa9914c78b4e913ea6  docs/loop/tasks/written-state-count-model/codex-36/batch/Cargo.toml
+f4cb76af4a9683ca2827c618d500d08d1e7d4a0cab349609cd1f1f3e47d41c0b  docs/loop/tasks/written-state-count-model/codex-36/batch/SHEET.md
+fc7dff9b32f577dd221b3da9b966734cd146e4d48cebbeecfac882c58906c021  docs/loop/tasks/written-state-count-model/codex-36/batch/README.md
+770030124e1646766d7c5a02021a8c5cd998a3ae134c51b89903217da29161a2  docs/loop/tasks/written-state-count-model/codex-36/batch/src/main.rs
+ba59d64a32824273c94b614e26061caf95718a73af7c1225498a738b7577b795  docs/loop/tasks/written-state-count-model/codex-36/batch/src/cuda.rs
+053b78594b1775e1626ae6ac09bb2c12eff3546331f1eeb49b246834bead4fbf  docs/loop/tasks/written-state-count-model/codex-36/device/lookup.cuh
+5b2eaa7f1e3844f2412674d15327174f064bb60b86883cd13a5b4133667a2d95  crates/uor-r4-discrete/src/kn_score_division.cuh
+9d21b5e40e997305f22640559c390c8006b33ed5ddfd82d7fb4c1cc5cc205b61  third_party/cudarc-0.19.10/src/driver/safe/core.rs
+aa38903994228459fb81e2b9c95811b16fa8734b9b14be4f9aadeba39bd0f10c  third_party/cudarc-0.19.10/src/ptx.rs

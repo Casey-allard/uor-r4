@@ -1,0 +1,30 @@
+running 27 tests
+test ngram_count::tests::ngram_count_device_bounds_refuse_past_the_u32_index_range ... ok
+test ngram_count::tests::ngram_count_key_round_trip_and_back_off ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_planted_count_of_counts ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_corrupted_context_n1 ... ok
+test ngram_count::tests::ngram_count_oracle_respects_document_boundaries ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_next_token_outside_the_vocabulary ... ok
+test ngram_count::tests::ngram_count_key_preserves_order ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_an_order_one_context_across_a_seam ... ok
+test ngram_count::tests::ngram_count_plan_refuses_a_partition_past_the_target_limit ... ok
+test ngram_count::tests::ngram_count_adjusted_refuses_a_zero_adjusted_count_and_inconsistent_inputs ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_followers_unequal_to_their_parts ... ok
+test ngram_count::tests::ngram_count_uort_header_overflow_is_an_error ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_an_extra_or_missing_context ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_a_context_of_another_order ... ok
+test ngram_count::tests::ngram_count_assembler_refuses_disorder_and_the_sha_covers_a_planted_count ... ok
+test ngram_count::tests::ngram_count_oracle_hand_fixture ... ok
+test ngram_count::tests::ngram_count_assembler_admits_unmodified_oracle_partitions ... ok
+test ngram_count::tests::ngram_count_refused_partition_hands_nothing_on ... ok
+test ngram_count::tests::ngram_count_adjusted_hand_fixture_two_documents ... ok
+test ngram_count::tests::ngram_count_push_timing_is_recorded_only_when_enabled ... ok
+test ngram_count::tests::ngram_count_threaded_hash_equals_inline_sha ... ok
+test ngram_count::tests::ngram_count_bucket_starts_bound_each_slot_one_bucket ... ok
+test ngram_count::tests::ngram_count_owned_push_equals_inline_sha ... ok
+test ngram_count::tests::ngram_count_build_indexed_equals_the_sequential_map ... ok
+test ngram_count::tests::ngram_count_adjusted_sha_is_independent_of_the_budget ... ok
+test ngram_count::tests::ngram_count_partitions_assemble_to_the_whole ... ok
+test ngram_count::tests::ngram_count_adjusted_assembler_matches_the_oracle_on_seeded_streams ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 413 filtered out; finished in 0.45s

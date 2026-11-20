@@ -1,0 +1,37 @@
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.5
+   Compiling cudarc v0.19.10 (/mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/main-ac9fc3a/.worktrees/codex-whole-context-36/third_party/cudarc-0.19.10)
+   Compiling cpufeatures v0.2.17
+   Compiling hex v0.4.3
+   Compiling libloading v0.9.1
+   Compiling generic-array v0.14.7
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling uor-r4-count-runtime v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/main-ac9fc3a/.worktrees/codex-whole-context-36/crates/uor-r4-discrete/count-runtime)
+   Compiling d36-count-batch v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/batch/negative/no-reset)
+    Finished `release` profile [optimized] target(s) in 2.25s
+     Running unittests src/main.rs (negative-target/release/deps/d36_count_batch-666438a1acac1aee)
+
+running 1 test
+test tests::exact_probes_survive_batch_and_eos_boundaries ... FAILED
+
+failures:
+
+---- tests::exact_probes_survive_batch_and_eos_boundaries stdout ----
+
+thread 'tests::exact_probes_survive_batch_and_eos_boundaries' (2320442) panicked at src/main.rs:391:21:
+assertion `left == right` failed
+  left: [0, 10, 11, 1, 0, 13]
+ right: [0, 13]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::exact_probes_survive_batch_and_eos_boundaries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin d36-count-batch`

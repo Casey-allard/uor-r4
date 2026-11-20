@@ -1,0 +1,118 @@
+{
+  "rows": [
+    {
+      "order": 4,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 4,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 5,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 5,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 6,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 6,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 7,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 7,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 8,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 8,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 9,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 9,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    },
+    {
+      "order": 10,
+      "retained": false,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 223,
+      "pruned_first": 223
+    },
+    {
+      "order": 10,
+      "retained": true,
+      "same_context": true,
+      "same_mass_vector": false,
+      "original_first": 261,
+      "pruned_first": 261
+    }
+  ],
+  "first_id_changes": 0,
+  "mass_vector_changes": 14
+}

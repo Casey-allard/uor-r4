@@ -1,0 +1,121 @@
+Wick staged build
+cd source
+CARGO_TARGET_DIR=../target cargo build --release --offline --locked --manifest-path docs/loop/tasks/written-state-count-model/codex-36/verify/Cargo.toml
+
+Original and staged identities
+652edfad4b394adea348e1250d1a04396dce11726738eda465b2cc25f45966f1  /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/retain-full.sh
+6d1b8ca7ebbad80129067b629502a12ed2a21f4b407e49521b4e726e0f7f0766  /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify
+dc0d84c4d781533ca40310aa67f4f6f67cf99dba2862b2af62f7d642bd01d6bd  target/release/d36-retention-verify
+cda2dd4d5b7f6eaf448b9affdf126963274109de350fa38bfffed9b78a584c1a  source/docs/loop/tasks/written-state-count-model/codex-36/retain-full.sh
+71301ce3ef45cfad9817392ee03bc726340e09e019ac08e3519f4ed0469f271a  source/docs/loop/tasks/written-state-count-model/codex-36/verify/src/main.rs
+
+Fixture and publication identities
+a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243  header-only.counts
+70cee2f2966e61680d88f36e169ee577fd0d3f742c6052a1a2c7d2db84e1b2ec  publish-tail.sh
+74e49ce28da97d530315e235ff15e3a05dc0ef8b325b701daf08128414e711d1  failing/verify.json
+
+RED
+{
+  "native_cold_load": "PASS",
+  "paired_native_lookups": []
+}
+
+GREEN exit and stderr
+1
+Error: "compact audit has no context for paired native lookup"
+
+C128 and C1 native lookup pair counts
+{
+  "source_sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e",
+  "candidate_sha256": "b50e64c74be682f04ef1661b5599c6729ede643b005e062ffa71c0799b640f71",
+  "lookup_pairs": 18
+}
+{
+  "source_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+  "candidate_sha256": "1ba0ae5473ad8154e2144891f999c049b17eb335e0f6f106754d1cf7dbdeab81",
+  "lookup_pairs": 18
+}
+
+Failed publication exit code
+1
+
+Regression command trace
++ src=source/docs/loop/tasks/written-state-count-model/codex-36
++ old=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify
++ new=target/release/d36-retention-verify
++ sha256sum /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify target/release/d36-retention-verify source/docs/loop/tasks/written-state-count-model/codex-36/retain-full.sh source/docs/loop/tasks/written-state-count-model/codex-36/verify/src/main.rs
+++ sha256sum /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify
+++ cut '-d ' -f1
++ test 6d1b8ca7ebbad80129067b629502a12ed2a21f4b407e49521b4e726e0f7f0766 = 6d1b8ca7ebbad80129067b629502a12ed2a21f4b407e49521b4e726e0f7f0766
+++ printf %064d 0
++ train=0000000000000000000000000000000000000000000000000000000000000000
++ printf 'UORKNC02\012\000\000\000'
++ head -c 824 /dev/zero
+++ stat -c %s header-only.counts
++ test 836 = 836
+++ sha256sum header-only.counts
+++ cut '-d ' -f1
++ identity=a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243
++ /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify header-only.counts header-only.counts 1 836 0000000000000000000000000000000000000000000000000000000000000000 a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243 a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243
++ jq -e '{native_cold_load,paired_native_lookups} | select(.native_cold_load == "PASS" and .paired_native_lookups == [])' red.json
++ target/release/d36-retention-verify header-only.counts header-only.counts 1 836 0000000000000000000000000000000000000000000000000000000000000000 a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243 a5b9d25a0d1bff0f1f00536d35690737b6c7f4322df106559ee86c5c96c53243
++ printf '%s\n' 1
++ test '!' -s green.stdout
++ grep -F 'compact audit has no context for paired native lookup' green.stderr
+Error: "compact audit has no context for paired native lookup"
++ check_case c128-8m /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.counts
++ local label=c128-8m original=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness/compact.counts candidate=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.counts pinned=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c128-8m.json
++ args=('/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness/compact.counts' '/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.counts')
++ local args
++ mapfile -t pins
+++ jq -er .threshold,.compact_cap,.train_sha256,.source_sha256,.candidate_sha256 /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c128-8m.json
++ args+=("${pins[@]}")
++ /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.counts 2 8388608 1466d3790e1c53bc4ac3982712f669967cce7b3ad1d7e0e34259568154d19cb6 eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e b50e64c74be682f04ef1661b5599c6729ede643b005e062ffa71c0799b640f71
++ target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.counts 2 8388608 1466d3790e1c53bc4ac3982712f669967cce7b3ad1d7e0e34259568154d19cb6 eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e b50e64c74be682f04ef1661b5599c6729ede643b005e062ffa71c0799b640f71
++ cmp c128-8m.old.json c128-8m.new.json
++ cmp c128-8m.new.json /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c128-8m.json
++ jq -e 'select((.paired_native_lookups|length)==18) | {source_sha256,candidate_sha256,lookup_pairs:(.paired_native_lookups|length)}' c128-8m.new.json
++ sha256sum c128-8m.old.json c128-8m.new.json /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c128-8m.json
+27bfcbc4c516822ba440069e7f18656743436e7a96763cc846c76b7f617670f9  c128-8m.old.json
+27bfcbc4c516822ba440069e7f18656743436e7a96763cc846c76b7f617670f9  c128-8m.new.json
+27bfcbc4c516822ba440069e7f18656743436e7a96763cc846c76b7f617670f9  /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c128-8m.json
++ check_case c1-256m /mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c1-256m.counts
++ local label=c1-256m original=/mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts candidate=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c1-256m.counts pinned=/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c1-256m.json
++ args=('/mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts' '/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c1-256m.counts')
++ local args
++ mapfile -t pins
+++ jq -er .threshold,.compact_cap,.train_sha256,.source_sha256,.candidate_sha256 /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c1-256m.json
++ args+=("${pins[@]}")
++ /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c1-256m.counts 5 268435456 8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030 10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955 1ba0ae5473ad8154e2144891f999c049b17eb335e0f6f106754d1cf7dbdeab81
++ target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c1-256m.counts 5 268435456 8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030 10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955 1ba0ae5473ad8154e2144891f999c049b17eb335e0f6f106754d1cf7dbdeab81
++ cmp c1-256m.old.json c1-256m.new.json
++ cmp c1-256m.new.json /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c1-256m.json
++ jq -e 'select((.paired_native_lookups|length)==18) | {source_sha256,candidate_sha256,lookup_pairs:(.paired_native_lookups|length)}' c1-256m.new.json
++ sha256sum c1-256m.old.json c1-256m.new.json /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c1-256m.json
+549ec16e4248f0b9699ca0035b4c0eadd5552718ca6d7f4cf990be0f261a393d  c1-256m.old.json
+549ec16e4248f0b9699ca0035b4c0eadd5552718ca6d7f4cf990be0f261a393d  c1-256m.new.json
+549ec16e4248f0b9699ca0035b4c0eadd5552718ca6d7f4cf990be0f261a393d  /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/prod-c1-256m.json
++ sed -n '/^crosscheck=\$(jq /,$p' source/docs/loop/tasks/written-state-count-model/codex-36/retain-full.sh
++ for verdict in matching failing
++ mkdir matching
++ cp /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.json matching/prune.json
++ for verdict in matching failing
++ mkdir failing
++ cp /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/final/c128-8m.json failing/prune.json
++ cp c128-8m.new.json matching/verify.json
++ jq '.candidate_bytes += 1' c128-8m.new.json
++ bash -euc 'out=$1; source publish-tail.sh' bash matching
+++ cat matching/crosscheck
++ test true = true
++ cd matching
++ sha256sum --strict -c receipts.sha256
+prune.json: OK
+verify.json: OK
+crosscheck: OK
++ bash -euc 'out=$1; source publish-tail.sh' bash failing
++ printf '%s\n' 1
++ test '!' -e failing/crosscheck
++ test '!' -e failing/crosscheck.partial
++ test '!' -e failing/receipts.sha256
++ echo 'Failed comparison left no canonical crosscheck, partial, or receipts'
+Failed comparison left no canonical crosscheck, partial, or receipts

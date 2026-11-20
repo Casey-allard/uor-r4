@@ -1,0 +1,23 @@
+	Command being timed: "target/release/d36-count-batch cuda ../pruner/final/c128-8m.counts 1466d3790e1c53bc4ac3982712f669967cce7b3ad1d7e0e34259568154d19cb6 b50e64c74be682f04ef1661b5599c6729ede643b005e062ffa71c0799b640f71 finite/seams.uort 01340c7ccafc474d0651f20c5158e72d239db890d1124fe7b76eea0dd8f5f333 /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/batch/gpu-finite/batch-1-cold.features 1"
+	User time (seconds): 0.02
+	System time (seconds): 0.12
+	Percent of CPU this job got: 80%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.18
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 179884
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 10596
+	Voluntary context switches: 90
+	Involuntary context switches: 27
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 7
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

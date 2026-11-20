@@ -665,7 +665,7 @@ impl NgramCounter {
         if adjust {
             self.scan32(&mut left_flag, n)?;
         }
-        let flags = gram_flag.clone();
+        let flags = gram_flag.try_clone().map_err(cuda)?;
         let grams = self.scan32(&mut gram_flag, n)?;
         let mut gram_start = self.zeros::<u32>(grams as usize + 1)?;
         let mut launch = self.stream.launch_builder(self.function("ngram_run_starts"));
@@ -720,7 +720,7 @@ impl NgramCounter {
             }
             false => None,
         };
-        let context_flags = gram_context.clone();
+        let context_flags = gram_context.try_clone().map_err(cuda)?;
         let contexts = self.scan32(&mut gram_context, grams)?;
         let mut context_start = self.zeros::<u32>(contexts as usize + 1)?;
         let mut launch = self.stream.launch_builder(self.function("ngram_run_starts"));

@@ -1,0 +1,11 @@
+{
+  "decision": "GO",
+  "phase": "C1 threshold-five candidate readback",
+  "host": "wick",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "build_and_input_sha256": "841fa2b4e0d23ae57f0abca7e97b1422798b72973c6d63455c2231a3544a70c9",
+  "source_sha256": "f441692151f4bc2a48e2553ebe886e6c4eb683331078cfe6a06587e405869da1",
+  "fit_sha256": "f905e54d23360994c2df449ad52f6d217fb0b227d7caa2effebfd0514b83adc3",
+  "witness_sha256": "549ec16e4248f0b9699ca0035b4c0eadd5552718ca6d7f4cf990be0f261a393d",
+  "candidate_sha256": "1ba0ae5473ad8154e2144891f999c049b17eb335e0f6f106754d1cf7dbdeab81"
+}

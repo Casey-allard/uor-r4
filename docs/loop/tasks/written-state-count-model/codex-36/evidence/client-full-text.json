@@ -1,0 +1,112 @@
+{
+  "distant": {
+    "different_prompts": true,
+    "suffixes": [
+      [
+        85,
+        642,
+        2156,
+        16,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ],
+      [
+        85,
+        642,
+        2156,
+        16,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ]
+    ],
+    "same_suffix": true,
+    "same_mass_vector": true,
+    "mass_sha256": [
+      "5719058e56954860ca5e9830dd16045d8426672572d40844cc5e909785308b74",
+      "5719058e56954860ca5e9830dd16045d8426672572d40844cc5e909785308b74"
+    ],
+    "deepest_present_order": [
+      7,
+      7
+    ],
+    "winners": [
+      799,
+      799
+    ],
+    "text": [
+      " We",
+      " We"
+    ],
+    "maxima": [
+      123291130132161,
+      123291130132161
+    ],
+    "ties": [
+      1,
+      1
+    ]
+  },
+  "near": {
+    "different_prompts": true,
+    "suffixes": [
+      [
+        453,
+        375,
+        331,
+        265,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ],
+      [
+        453,
+        375,
+        331,
+        666,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ]
+    ],
+    "same_suffix": false,
+    "same_mass_vector": true,
+    "mass_sha256": [
+      "b62fe35fd2d4fa7f0a772bac0454e0982dfcec80b2dc416d28ffae31ee85b804",
+      "b62fe35fd2d4fa7f0a772bac0454e0982dfcec80b2dc416d28ffae31ee85b804"
+    ],
+    "deepest_present_order": [
+      6,
+      6
+    ],
+    "winners": [
+      799,
+      799
+    ],
+    "text": [
+      " We",
+      " We"
+    ],
+    "maxima": [
+      66247714098160,
+      66247714098160
+    ],
+    "ties": [
+      1,
+      1
+    ]
+  }
+}

@@ -209,8 +209,13 @@ impl StreamWork for ContextWork {
 /// [`WORKER_QUEUE_DEPTH`] partitions behind the one in progress, which bounds
 /// the partitions an order holds. A worker can only stop by panicking;
 /// `finish` then re-raises that panic on the caller's thread.
+enum WorkerInput {
+    Partition(Arc<NgramPartition>),
+    Drain(SyncSender<()>),
+}
+
 struct Worker<W: StreamWork> {
-    sender: Option<SyncSender<Arc<NgramPartition>>>,
+    sender: Option<SyncSender<WorkerInput>>,
     thread: Option<JoinHandle<(W::Output, u64)>>,
     /// claude-427: shared with the thread, which then times its work.
     timed: Arc<AtomicBool>,
@@ -225,18 +230,25 @@ fn nanos_since(start: Instant) -> u64 {
 
 impl<W: StreamWork> Worker<W> {
     fn new(name: String, mut work: W) -> Result<Self> {
-        let (sender, receiver) = sync_channel::<Arc<NgramPartition>>(WORKER_QUEUE_DEPTH);
+        let (sender, receiver) = sync_channel::<WorkerInput>(WORKER_QUEUE_DEPTH);
         let timed = Arc::new(AtomicBool::new(false));
         let thread_timed = Arc::clone(&timed);
         let thread = std::thread::Builder::new()
             .name(name)
             .spawn(move || {
                 let mut busy_ns = 0u64;
-                for partition in receiver {
-                    let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
-                    work.feed(&partition);
-                    if let Some(start) = start {
-                        busy_ns = busy_ns.saturating_add(nanos_since(start));
+                for input in receiver {
+                    match input {
+                        WorkerInput::Partition(partition) => {
+                            let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
+                            work.feed(&partition);
+                            if let Some(start) = start {
+                                busy_ns = busy_ns.saturating_add(nanos_since(start));
+                            }
+                        }
+                        WorkerInput::Drain(done) => {
+                            let _ = done.send(());
+                        }
                     }
                 }
                 let start = thread_timed.load(Ordering::Relaxed).then(Instant::now);
@@ -259,7 +271,7 @@ impl<W: StreamWork> Worker<W> {
     fn send(&mut self, partition: Arc<NgramPartition>) {
         if let Some(sender) = &self.sender {
             let start = self.timed.load(Ordering::Relaxed).then(Instant::now);
-            let sent = sender.send(partition);
+            let sent = sender.send(WorkerInput::Partition(partition));
             if let Some(start) = start {
                 self.wait_ns = self.wait_ns.saturating_add(nanos_since(start));
             }
@@ -267,6 +279,20 @@ impl<W: StreamWork> Worker<W> {
                 self.sender = None;
             }
         }
+    }
+
+    fn drain(&self) -> Result<()> {
+        let sender = self
+            .sender
+            .as_ref()
+            .ok_or_else(|| invalid("n-gram hash worker is unavailable"))?;
+        let (done, received) = sync_channel(0);
+        sender
+            .send(WorkerInput::Drain(done))
+            .map_err(|_| invalid("n-gram hash worker stopped before drain"))?;
+        received
+            .recv()
+            .map_err(|_| invalid("n-gram hash worker stopped during drain"))
     }
 
     /// The worker's output, and its busy nanoseconds while timed.
@@ -512,6 +538,13 @@ impl NgramAssembler {
     pub fn finish(self) -> (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>) {
         let (digest, triples, contexts, _) = self.finish_with_timing();
         (digest, triples, contexts)
+    }
+
+    /// Wait for both hash workers to release all previously submitted
+    /// partition allocations without ending the canonical digest stream.
+    pub fn drain_partitions(&self) -> Result<()> {
+        self.triple_worker.drain()?;
+        self.context_worker.drain()
     }
 
     /// `finish`, with the timing totals; all zero unless timing was enabled.

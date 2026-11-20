@@ -2,20 +2,25 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
-use std::io::{BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 use uor_r4_discrete::{
     kn_ceiling::CompactCountLookup,
-    ngram_count::{read_uort_tokens, NgramOrderDigest, NGRAM_MAX_ORDER},
+    ngram_count::{
+        plan_partitions, NgramOrderDigest, PartitionRange, NGRAM_MAX_ORDER, NGRAM_VOCABULARY,
+    },
 };
 
 #[cfg(any(feature = "cuda", test))]
 #[path = "full-compact-count/materialize.rs"]
 mod materialize;
+#[path = "full-compact-count/production.rs"]
+mod production;
 
 pub type Fail = Box<dyn std::error::Error>;
 pub const N: u32 = NGRAM_MAX_ORDER;
 pub const WIDTH: usize = N as usize + 1;
+#[cfg(feature = "cuda")]
 const BASE: &str = "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d";
 
 #[derive(Clone, Copy)]
@@ -65,7 +70,20 @@ impl Dose {
                 known_tape: None,
                 archive_aliases_raw_top_hashes: true,
             }),
-            _ => Err("dose must be c128 or c1".into()),
+            "c" => Ok(Self {
+                name: "c",
+                training: "cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a",
+                census: "28d06be01c22439fb715d6ba516845c8ee5a0530c0b0c09ec9d062461d4a4a53",
+                original_training:
+                    "cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a",
+                tokens: 2_075_608_357,
+                records: 515_520,
+                bytes: 148_096_362_864,
+                known_artifact: None,
+                known_tape: None,
+                archive_aliases_raw_top_hashes: true,
+            }),
+            _ => Err("dose must be c128, c1 or c".into()),
         }
     }
 }
@@ -84,7 +102,7 @@ fn read_census(dose: Dose, path: &Path) -> Result<Census, Fail> {
         return Err("unregistered independent census digest".into());
     }
     let source: Value = serde_json::from_slice(&bytes)?;
-    let (raw, adjusted, train_sha, tokens) = if dose.name == "c1" {
+    let (raw, adjusted, train_sha, tokens) = if dose.archive_aliases_raw_top_hashes {
         (
             &source["raw_orders"],
             &source["orders"],
@@ -187,25 +205,7 @@ fn verify_digests(
 }
 
 fn read_training(dose: Dose, path: &Path) -> Result<(Vec<u16>, [u8; 32]), Fail> {
-    let bytes = fs::read(path)?;
-    let digest = Sha256::digest(&bytes);
-    if format!("{digest:x}") != dose.training {
-        return Err("unregistered TRAIN input digest".into());
-    }
-    let tokens = read_uort_tokens(&bytes)?;
-    let mut previous = 1;
-    let mut records = 0;
-    for &token in &tokens {
-        if token >= 4096 || (token == 0) != (previous == 1) {
-            return Err("invalid TRAIN record boundaries or token domain".into());
-        }
-        records += usize::from(token == 0);
-        previous = token;
-    }
-    if tokens.len() != dose.tokens || records != dose.records || previous != 1 {
-        return Err("wrong TRAIN token or record count or missing final EOS".into());
-    }
-    Ok((tokens, digest.into()))
+    production::read_training(dose, path, true).map(|training| (training.tokens, training.sha))
 }
 
 pub struct Probe {
@@ -326,8 +326,26 @@ fn open_artifact(dose: Dose, path: &Path, pinned: &str) -> Result<(Vec<u8>, [u8;
 fn main() -> Result<(), Fail> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     match args.as_slice() {
+        [cmd, dose, train, census] if cmd == "plan" => {
+            let dose = Dose::parse(dose)?;
+            let census = read_census(dose, Path::new(census))?;
+            let training = production::read_training(dose, Path::new(train), false)?;
+            println!("{}", production::plan(dose, &training, &census)?.receipt);
+        }
+        #[cfg(feature = "cuda")]
+        [cmd, dose, train, census, output] if cmd == "spool" => {
+            let dose = Dose::parse(dose)?;
+            let census = read_census(dose, Path::new(census))?;
+            let training = production::read_training(dose, Path::new(train), true)?;
+            let plan = production::plan(dose, &training, &census)?;
+            let receipt = materialize::spool(dose, training, &census, plan, Path::new(output))?;
+            println!("{receipt}");
+        }
         [cmd, dose, train, census, artifact, sha, evidence] if cmd == "verify" => {
             let dose = Dose::parse(dose)?;
+            if dose.name == "c" {
+                return Err("use the streaming pruner to verify the full-C spool".into());
+            }
             let (tokens, training) = read_training(dose, Path::new(train))?;
             let expected = read_census(dose, Path::new(census))?;
             let (bytes, pinned) = open_artifact(dose, Path::new(artifact), sha)?;
@@ -344,6 +362,9 @@ fn main() -> Result<(), Fail> {
         [cmd, dose, train, census, trunk, output] if cmd == "count" => {
             let started = std::time::Instant::now();
             let dose = Dose::parse(dose)?;
+            if dose.name == "c" {
+                return Err("use spool for full-C count production".into());
+            }
             let (tokens, training) = read_training(dose, Path::new(train))?;
             let expected = read_census(dose, Path::new(census))?;
             let trunk = fs::read(trunk)?;
@@ -365,7 +386,7 @@ fn main() -> Result<(), Fail> {
             seal(receipt_file)?;
             println!("{receipt}");
         }
-        _ => return Err("usage: full-compact-count count DOSE TRAIN CENSUS TRUNK NEW-DIR (CUDA build) | verify DOSE TRAIN CENSUS ARTIFACT SHA NEW-EVIDENCE".into()),
+        _ => return Err("usage: full-compact-count plan DOSE TRAIN CENSUS | spool DOSE TRAIN CENSUS NEW-DIR (CUDA build) | count DOSE TRAIN CENSUS TRUNK NEW-DIR (CUDA build; c128/c1) | verify DOSE TRAIN CENSUS ARTIFACT SHA NEW-EVIDENCE (c128/c1)".into()),
     }
     Ok(())
 }

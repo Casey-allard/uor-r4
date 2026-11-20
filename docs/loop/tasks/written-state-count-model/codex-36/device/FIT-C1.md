@@ -1,0 +1,9 @@
+# [codex] C1 compact device readback review
+
+TEST FITNESS: FIT
+
+I reviewed the candidate witness and CUDA reader independently of their author. C1's independently audited threshold-five artifact occupies 242,774,057 bytes. The input manifest binds the audit, original IDs, section metadata, compact bytes and executables. Both manifests verified on Wick. The executable that searches the compact bytes is the same sm_89 image that passed the finite reader test. The revised Rust witness opens a read-only mapping, validates the native artifact digest, compares all original raw counts/totals against the independent audit, and separately traverses adjusted words. Its advisory sequential access changes paging only.
+
+The 18 probes cover 11 retained and seven dropped contexts. The checks require original target count and final Q48 agreement, zero higher-order presence on a dropped key, exact preceding suffix mass on backoff, and zero-filled padding. At the successful C128 preflight, v0.2 reproduced three packet pairs and six hardware receipts. It rejected a stale compact digest and a changed raw count of zero at the first C128 probe. Require two fresh device executions and byte-identical outputs, followed by native comparison. A mismatch stops qualification of this artifact.
+
+Only the candidate in the separate GO is eligible on Wick's named idle RTX 4090. The launcher checks the shared GPU lock, available bytes after CUDA initialization, source and build/input manifests, refused output reuse and the exact UUID. Peak device demand is 242,774,057 bytes plus 528 descriptor bytes, 432 probe bytes, 6,336 result bytes, 72 status bytes and 64 MiB reserve. The Rust verifier may fault the full mapped candidate into memory. Capture device and host time separately. This release covers the finite C1 probes. R fitting and full C have separate gates.

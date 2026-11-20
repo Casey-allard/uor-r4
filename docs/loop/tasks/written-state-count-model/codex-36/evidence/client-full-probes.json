@@ -1,0 +1,240 @@
+[
+  {
+    "context": [
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 98515273665232,
+    "mass_sha256": "48677ba12b643a7a0ef08e4e3be8efd713e98b120898d652b4d20932bf3dde50",
+    "order": 4,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 45295718134063,
+    "mass_sha256": "6cdec7dc6f85feafac4a7d5eabf270d7b6df73d88b0f40fb9c04f4e89cbd5d2f",
+    "order": 4,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 108444086515408,
+    "mass_sha256": "29211926acf0fa3d83e004b920521d6c8dc7ed6875f53014ba3d5c5bd15623f1",
+    "order": 5,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 58112636933490,
+    "mass_sha256": "30fff228a74085613e3907afcd7d9ec8b0b702a0344ba64dd2d60ccd59d964e8",
+    "order": 5,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      86,
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 115193405507384,
+    "mass_sha256": "3b193a47600528fe9ba54d887ac6194ea4dbbc5ff6f45ab74a4c6570f46d64e7",
+    "order": 6,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      617,
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 66825206580732,
+    "mass_sha256": "0c857d9d292806744dcf037fca84bb681e79db55d690c552b305095933e11321",
+    "order": 6,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      268,
+      86,
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 120075359227169,
+    "mass_sha256": "e9e1d203a0e597310fe678e799c0e2a38d88574ea0d41d3a38c8d0d51e2f9ba1",
+    "order": 7,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      28,
+      617,
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 73127229325368,
+    "mass_sha256": "5a7a062222a47afde4ef59b63482ca4034602c631fc5dc1790073c1c54c7e0df",
+    "order": 7,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      22,
+      268,
+      86,
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 123767074819339,
+    "mass_sha256": "eb14efea796e5d8c1157ac04ae062ee609ec23d72db433bf8a715f536ee7425a",
+    "order": 8,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      2728,
+      28,
+      617,
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 77892795933321,
+    "mass_sha256": "92cd51f9a8713dec5880a9323ecf5feee30d66ac58f258e2d4cc9afdaa9904a2",
+    "order": 8,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      301,
+      22,
+      268,
+      86,
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 126640759840394,
+    "mass_sha256": "038d75427938172ed24f2f209e875b2186fdcd7775a187718e9766553f011c4b",
+    "order": 9,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3184,
+      2728,
+      28,
+      617,
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 81602382177495,
+    "mass_sha256": "9be6ef0434db1e205ac4ba15d138707051b715b27e323eaded86cbd294e1b139",
+    "order": 9,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      301,
+      22,
+      268,
+      86,
+      421,
+      19,
+      20,
+      23,
+      3
+    ],
+    "mass_q48": 147855293327554,
+    "mass_sha256": "5fd95df478ba8635d015b7b38027b52a877ed7560ebe734bedb35f0a580bff5c",
+    "order": 10,
+    "retained": false,
+    "token": 223,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      28,
+      3184,
+      2728,
+      28,
+      617,
+      484,
+      971,
+      2460,
+      81,
+      3
+    ],
+    "mass_q48": 149988159098925,
+    "mass_sha256": "e4a5761a401262cb5ce3c95385250f06f9787403415c143aaf9ca7be6703ead0",
+    "order": 10,
+    "retained": true,
+    "token": 261,
+    "top_ties": 1
+  }
+]

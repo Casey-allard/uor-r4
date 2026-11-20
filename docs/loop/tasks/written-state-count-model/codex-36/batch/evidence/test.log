@@ -1,0 +1,12 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running unittests src/main.rs (/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/batch/target/release/deps/d36_count_batch-666438a1acac1aee)
+
+running 5 tests
+test tests::exact_probes_survive_batch_and_eos_boundaries ... ok
+test tests::feature_wire_preserves_every_integer_word ... ok
+test tests::rejects_planted_invalid_frames_lengths_and_digest ... ok
+test tests::exact_ten_history_at_interior_batch_seam ... ok
+test tests::rejects_a_changed_header_fragment_before_launch ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

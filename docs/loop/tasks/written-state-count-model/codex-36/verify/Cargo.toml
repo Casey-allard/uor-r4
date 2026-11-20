@@ -1,0 +1,14 @@
+[package]
+name = "d36-retention-verify"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+hex = "0.4"
+memmap2 = "=0.9.12"
+serde_json = "1"
+sha2 = "0.10"
+uor-r4-count-runtime = { path = "../../../../../../crates/uor-r4-discrete/count-runtime" }

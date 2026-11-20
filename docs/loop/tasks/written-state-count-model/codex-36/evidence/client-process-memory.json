@@ -1,0 +1,68 @@
+[
+  {
+    "arm": "c1-cold",
+    "elapsed": "0:01.25",
+    "peak_rss_kib": 1008144,
+    "peak_rss_bytes": 1032339456,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "a1e1387a3400e7f3240f02078d5996a2a1c9ac2ae2e0c5e6cf443a22f1b5cdbf"
+  },
+  {
+    "arm": "c1-primary",
+    "elapsed": "0:01.34",
+    "peak_rss_kib": 1009192,
+    "peak_rss_bytes": 1033412608,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "a1e1387a3400e7f3240f02078d5996a2a1c9ac2ae2e0c5e6cf443a22f1b5cdbf"
+  },
+  {
+    "arm": "c1-untraced",
+    "elapsed": "0:01.33",
+    "peak_rss_kib": 1009352,
+    "peak_rss_bytes": 1033576448,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "a1e1387a3400e7f3240f02078d5996a2a1c9ac2ae2e0c5e6cf443a22f1b5cdbf"
+  },
+  {
+    "arm": "full-cold",
+    "elapsed": "0:10.47",
+    "peak_rss_kib": 4592628,
+    "peak_rss_bytes": 4702851072,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "8614d65a2f0e86a215b44d5d766cd36f2d4b160d86e650dcb0b63fc82c7e4ce6"
+  },
+  {
+    "arm": "full-primary",
+    "elapsed": "0:10.24",
+    "peak_rss_kib": 4592388,
+    "peak_rss_bytes": 4702605312,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "8614d65a2f0e86a215b44d5d766cd36f2d4b160d86e650dcb0b63fc82c7e4ce6"
+  },
+  {
+    "arm": "full-untraced",
+    "elapsed": "0:10.15",
+    "peak_rss_kib": 4592664,
+    "peak_rss_bytes": 4702887936,
+    "token": [
+      799
+    ],
+    "text": " We",
+    "artifact": "8614d65a2f0e86a215b44d5d766cd36f2d4b160d86e650dcb0b63fc82c7e4ce6"
+  }
+]

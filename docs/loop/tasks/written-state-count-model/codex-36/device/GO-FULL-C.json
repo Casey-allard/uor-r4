@@ -1,0 +1,13 @@
+{
+  "decision": "GO",
+  "phase": "Full C threshold-318 candidate readback only",
+  "authority": "Top-level D36 session explicit GO",
+  "host": "wick",
+  "recorded_at": "2026-11-20T07:25:18Z",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "fit_sha256": "e3d37858163b5fe862f40c8cec68f98eb5f2d2781a8cca027960ffe7c55f01cc",
+  "build_and_input_sha256": "d39f5ea8b3fb721911151193795898e2e522001c5d73e3e226958e704503007c",
+  "source_sha256": "f441692151f4bc2a48e2553ebe886e6c4eb683331078cfe6a06587e405869da1",
+  "witness_sha256": "16b7925328f392d085bb5297f2e93131068669b70787b8c5afc1d1a87739c0dd",
+  "candidate_sha256": "064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8"
+}

@@ -1,0 +1,23 @@
+	Command being timed: "./target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4/runs/c1/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruner/c1-256m.counts 5 268435456 8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030 10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955 1ba0ae5473ad8154e2144891f999c049b17eb335e0f6f106754d1cf7dbdeab81"
+	User time (seconds): 3.83
+	System time (seconds): 0.32
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:04.16
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2415780
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 59272
+	Minor (reclaiming a frame) page faults: 34180
+	Voluntary context switches: 1
+	Involuntary context switches: 25
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 57
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,23 @@
+	Command being timed: "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/verify/target/release/d36-retention-verify /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-full-c/compact.counts /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruned-full-v1/compact.counts 318 3912936331 cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a 1afd1c27bac4e963f4885ed275fa45c3e0a4014d3a6242f5deba82f04110ce26 064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8"
+	User time (seconds): 236.46
+	System time (seconds): 769.97
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 16:53.18
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 42609068
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 146574741
+	Minor (reclaiming a frame) page faults: 151
+	Voluntary context switches: 10496
+	Involuntary context switches: 12568
+	Swaps: 0
+	File system inputs: 639515328
+	File system outputs: 60
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

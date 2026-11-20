@@ -1,0 +1,6 @@
+08dfa9a50a6b578b91363a5f3bb03c1c82e90257c71a080d10e71ae224cbbd22  docs/loop/tasks/written-state-count-model/codex-36/device/Cargo.lock
+6054a9cbb9bf0e0b3569cf2d0aea22493b9fcf5041eee0cd14efec9ea1ca15da  docs/loop/tasks/written-state-count-model/codex-36/device/Cargo.toml
+053b78594b1775e1626ae6ac09bb2c12eff3546331f1eeb49b246834bead4fbf  docs/loop/tasks/written-state-count-model/codex-36/device/lookup.cuh
+233842c0eabc266a93c614afdf9e05cf147acc39516e651093bc3a6fa2d51d2a  docs/loop/tasks/written-state-count-model/codex-36/device/device.cu
+b323dec6c958990aa9e08cd8bb8a15ef304d3de26a4e9ccf5ce0ba010926734c  docs/loop/tasks/written-state-count-model/codex-36/device/src/main.rs
+5b2eaa7f1e3844f2412674d15327174f064bb60b86883cd13a5b4133667a2d95  crates/uor-r4-discrete/src/kn_score_division.cuh

@@ -1,0 +1,1859 @@
+{
+  "candidate_bytes": 4517125,
+  "candidate_sha256": "b50e64c74be682f04ef1661b5599c6729ede643b005e062ffa71c0799b640f71",
+  "compact_cap": 8388608,
+  "corruption_control": null,
+  "floor_bytes": 2074826,
+  "native_cold_load": "PASS",
+  "paired_native_lookups": [
+    {
+      "candidate_counts": [
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 330572395726,
+      "candidate_totals": [
+        111543,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 0,
+      "retained": true,
+      "source_counts": [
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 330572395726,
+      "source_totals": [
+        111543,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        1
+      ]
+    },
+    {
+      "candidate_counts": [
+        2949,
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 277971770225326,
+      "candidate_totals": [
+        111543,
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 1,
+      "retained": true,
+      "source_counts": [
+        2949,
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 277971770225326,
+      "source_totals": [
+        111543,
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        0,
+        201
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 59839460003661,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 2,
+      "retained": true,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 59839460003661,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 3,
+      "retained": true,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 83486991401602,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 4,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 98515273665232,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 58701472620801,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 4,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 45295718134063,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 5,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 108444086515408,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 101453688517018,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 5,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 58112636933490,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 6,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 115193405507384,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        86,
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 132932820878747,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 6,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 66825206580732,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        617,
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 7,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 120075359227169,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        268,
+        86,
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 156411748088190,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "order": 7,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "source_q48": 73127229325368,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        0,
+        0,
+        0
+      ],
+      "tokens": [
+        28,
+        617,
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 8,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "source_q48": 123767074819339,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0
+      ],
+      "tokens": [
+        22,
+        268,
+        86,
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0
+      ],
+      "candidate_q48": 174312149995565,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0
+      ],
+      "order": 8,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0
+      ],
+      "source_q48": 77892795933321,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        0,
+        0
+      ],
+      "tokens": [
+        2728,
+        28,
+        617,
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 9,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "source_q48": 126640759840394,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0
+      ],
+      "tokens": [
+        301,
+        22,
+        268,
+        86,
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0
+      ],
+      "candidate_q48": 188135394853530,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0
+      ],
+      "order": 9,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0
+      ],
+      "source_q48": 81602382177495,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        2,
+        0
+      ],
+      "tokens": [
+        3184,
+        2728,
+        28,
+        617,
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    },
+    {
+      "candidate_counts": [
+        6492,
+        5,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "candidate_q48": 83486991401602,
+      "candidate_totals": [
+        111543,
+        57,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "order": 10,
+      "retained": false,
+      "source_counts": [
+        6492,
+        5,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "source_q48": 147855293327554,
+      "source_totals": [
+        111543,
+        57,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "tokens": [
+        19,
+        301,
+        22,
+        268,
+        86,
+        421,
+        19,
+        20,
+        23,
+        3,
+        223
+      ]
+    },
+    {
+      "candidate_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "candidate_q48": 192745353222533,
+      "candidate_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "order": 10,
+      "retained": true,
+      "source_counts": [
+        601,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "source_q48": 149988159098925,
+      "source_totals": [
+        111543,
+        57,
+        4,
+        4,
+        4,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "tokens": [
+        28,
+        3184,
+        2728,
+        28,
+        617,
+        484,
+        971,
+        2460,
+        81,
+        3,
+        261
+      ]
+    }
+  ],
+  "prior_threshold_added_contexts": 487342,
+  "prior_threshold_bytes": 16459406,
+  "prior_threshold_smallest_added_context_bytes": 20,
+  "sections": [
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 0,
+        "followers": 0,
+        "groups": 0,
+        "raw_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 0
+      },
+      "order": 0,
+      "original": {
+        "adjusted_spectrum": [
+          525,
+          311,
+          224,
+          172
+        ],
+        "adjusted_support": 25620,
+        "followers": 2243,
+        "groups": 1,
+        "raw_spectrum": [
+          321,
+          255,
+          142,
+          124
+        ],
+        "raw_support": 111543
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          525,
+          311,
+          224,
+          172
+        ],
+        "adjusted_support": 25620,
+        "followers": 2243,
+        "groups": 1,
+        "raw_spectrum": [
+          321,
+          255,
+          142,
+          124
+        ],
+        "raw_support": 111543
+      },
+      "section_data_bytes": 22434
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 0,
+        "followers": 0,
+        "groups": 0,
+        "raw_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 0
+      },
+      "order": 1,
+      "original": {
+        "adjusted_spectrum": [
+          18303,
+          3649,
+          1379,
+          673
+        ],
+        "adjusted_support": 50111,
+        "followers": 25620,
+        "groups": 2243,
+        "raw_spectrum": [
+          12949,
+          4648,
+          2066,
+          1352
+        ],
+        "raw_support": 111543
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          18303,
+          3649,
+          1379,
+          673
+        ],
+        "adjusted_support": 50111,
+        "followers": 25620,
+        "groups": 2243,
+        "raw_spectrum": [
+          12949,
+          4648,
+          2066,
+          1352
+        ],
+        "raw_support": 111543
+      },
+      "section_data_bytes": 269658
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 0,
+        "followers": 0,
+        "groups": 0,
+        "raw_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 0
+      },
+      "order": 2,
+      "original": {
+        "adjusted_spectrum": [
+          43161,
+          4234,
+          1180,
+          504
+        ],
+        "adjusted_support": 65508,
+        "followers": 49983,
+        "groups": 25589,
+        "raw_spectrum": [
+          33126,
+          8229,
+          3040,
+          1739
+        ],
+        "raw_support": 111415
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          43161,
+          4234,
+          1180,
+          504
+        ],
+        "adjusted_support": 65508,
+        "followers": 49983,
+        "groups": 25589,
+        "raw_spectrum": [
+          33126,
+          8229,
+          3040,
+          1739
+        ],
+        "raw_support": 111415
+      },
+      "section_data_bytes": 678953
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 0,
+        "followers": 0,
+        "groups": 0,
+        "raw_spectrum": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 0
+      },
+      "order": 3,
+      "original": {
+        "adjusted_spectrum": [
+          60131,
+          3591,
+          859,
+          318
+        ],
+        "adjusted_support": 75294,
+        "followers": 65380,
+        "groups": 49905,
+        "raw_spectrum": [
+          48713,
+          9276,
+          3070,
+          1577
+        ],
+        "raw_support": 111287
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          60131,
+          3591,
+          859,
+          318
+        ],
+        "adjusted_support": 75294,
+        "followers": 65380,
+        "groups": 49905,
+        "raw_spectrum": [
+          48713,
+          9276,
+          3070,
+          1577
+        ],
+        "raw_support": 111287
+      },
+      "section_data_bytes": 1102945
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          48631,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 48631,
+        "followers": 48631,
+        "groups": 48631,
+        "raw_spectrum": [
+          48631,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 48631
+      },
+      "order": 4,
+      "original": {
+        "adjusted_spectrum": [
+          71220,
+          2925,
+          576,
+          208
+        ],
+        "adjusted_support": 81676,
+        "followers": 75166,
+        "groups": 65287,
+        "raw_spectrum": [
+          59781,
+          9288,
+          2824,
+          1326
+        ],
+        "raw_support": 111159
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          22589,
+          2925,
+          576,
+          208
+        ],
+        "adjusted_support": 33045,
+        "followers": 26535,
+        "groups": 16656,
+        "raw_spectrum": [
+          11150,
+          9288,
+          2824,
+          1326
+        ],
+        "raw_support": 62528
+      },
+      "section_data_bytes": 431910
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          59685,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 59685,
+        "followers": 59685,
+        "groups": 59685,
+        "raw_spectrum": [
+          59685,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 59685
+      },
+      "order": 5,
+      "original": {
+        "adjusted_spectrum": [
+          78701,
+          2258,
+          345,
+          111
+        ],
+        "adjusted_support": 85797,
+        "followers": 81548,
+        "groups": 75062,
+        "raw_spectrum": [
+          67669,
+          8789,
+          2550,
+          1087
+        ],
+        "raw_support": 111031
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          19016,
+          2258,
+          345,
+          111
+        ],
+        "adjusted_support": 26112,
+        "followers": 21863,
+        "groups": 15377,
+        "raw_spectrum": [
+          7984,
+          8789,
+          2550,
+          1087
+        ],
+        "raw_support": 51346
+      },
+      "section_data_bytes": 403154
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          67562,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 67562,
+        "followers": 67562,
+        "groups": 67562,
+        "raw_spectrum": [
+          67562,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 67562
+      },
+      "order": 6,
+      "original": {
+        "adjusted_spectrum": [
+          83568,
+          1696,
+          254,
+          69
+        ],
+        "adjusted_support": 88659,
+        "followers": 85669,
+        "groups": 81434,
+        "raw_spectrum": [
+          73062,
+          8242,
+          2319,
+          899
+        ],
+        "raw_support": 110903
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          16006,
+          1696,
+          254,
+          69
+        ],
+        "adjusted_support": 21097,
+        "followers": 18107,
+        "groups": 13872,
+        "raw_spectrum": [
+          5500,
+          8242,
+          2319,
+          899
+        ],
+        "raw_support": 43341
+      },
+      "section_data_bytes": 361406
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          72940,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 72940,
+        "followers": 72940,
+        "groups": 72940,
+        "raw_spectrum": [
+          72940,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 72940
+      },
+      "order": 7,
+      "original": {
+        "adjusted_spectrum": [
+          86949,
+          1315,
+          159,
+          53
+        ],
+        "adjusted_support": 90731,
+        "followers": 88531,
+        "groups": 85545,
+        "raw_spectrum": [
+          76968,
+          7717,
+          2146,
+          760
+        ],
+        "raw_support": 110775
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          14009,
+          1315,
+          159,
+          53
+        ],
+        "adjusted_support": 17791,
+        "followers": 15591,
+        "groups": 12605,
+        "raw_spectrum": [
+          4028,
+          7717,
+          2146,
+          760
+        ],
+        "raw_support": 37835
+      },
+      "section_data_bytes": 344985
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          76845,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 76845,
+        "followers": 76845,
+        "groups": 76845,
+        "raw_spectrum": [
+          76845,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 76845
+      },
+      "order": 8,
+      "original": {
+        "adjusted_spectrum": [
+          89369,
+          1046,
+          105,
+          42
+        ],
+        "adjusted_support": 92295,
+        "followers": 90603,
+        "groups": 88406,
+        "raw_spectrum": [
+          79863,
+          7275,
+          1987,
+          672
+        ],
+        "raw_support": 110647
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          12524,
+          1046,
+          105,
+          42
+        ],
+        "adjusted_support": 15450,
+        "followers": 13758,
+        "groups": 11561,
+        "raw_spectrum": [
+          3018,
+          7275,
+          1987,
+          672
+        ],
+        "raw_support": 33802
+      },
+      "section_data_bytes": 322556
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          79740,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 79740,
+        "followers": 79740,
+        "groups": 79740,
+        "raw_spectrum": [
+          79740,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 79740
+      },
+      "order": 9,
+      "original": {
+        "adjusted_spectrum": [
+          91165,
+          846,
+          85,
+          41
+        ],
+        "adjusted_support": 93533,
+        "followers": 92167,
+        "groups": 90478,
+        "raw_spectrum": [
+          82064,
+          6938,
+          1860,
+          599
+        ],
+        "raw_support": 110519
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          11425,
+          846,
+          85,
+          41
+        ],
+        "adjusted_support": 13793,
+        "followers": 12427,
+        "groups": 10738,
+        "raw_spectrum": [
+          2324,
+          6938,
+          1860,
+          599
+        ],
+        "raw_support": 30779
+      },
+      "section_data_bytes": 317554
+    },
+    {
+      "dropped": {
+        "adjusted_spectrum": [
+          81939,
+          0,
+          0,
+          0
+        ],
+        "adjusted_support": 81939,
+        "followers": 81939,
+        "groups": 81939,
+        "raw_spectrum": [
+          81939,
+          0,
+          0,
+          0
+        ],
+        "raw_support": 81939
+      },
+      "order": 10,
+      "original": {
+        "adjusted_spectrum": [
+          83833,
+          6655,
+          1759,
+          537
+        ],
+        "adjusted_support": 110391,
+        "followers": 93405,
+        "groups": 92041,
+        "raw_spectrum": [
+          83833,
+          6655,
+          1759,
+          537
+        ],
+        "raw_support": 110391
+      },
+      "retained": {
+        "adjusted_spectrum": [
+          1894,
+          6655,
+          1759,
+          537
+        ],
+        "adjusted_support": 28452,
+        "followers": 11466,
+        "groups": 10102,
+        "raw_spectrum": [
+          1894,
+          6655,
+          1759,
+          537
+        ],
+        "raw_support": 28452
+      },
+      "section_data_bytes": 260734
+    }
+  ],
+  "source_bytes": 16459406,
+  "source_sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e",
+  "threshold": 2,
+  "train_sha256": "1466d3790e1c53bc4ac3982712f669967cce7b3ad1d7e0e34259568154d19cb6"
+}

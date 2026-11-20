@@ -1,0 +1,23 @@
+	Command being timed: "/mnt/plexpool/uor-r4-corpus/runs/20261120-count-identity-33/container-client-v2-target/release/uor-chat --discrete full-candidate/fixture.d11 --prompt-ids 0,55,2728,28,379,307,67,1040,85,581,2195,16,2130,292,1040,85,3585,322,16,1601,1303,379,307,67,1040,33,1155,673,265,2505,450,571,67,969,463,731,2708,583,265,537,969,85,642,2156,16,201,35,560,652,714,28 --temperature 0 --max-tokens 1"
+	User time (seconds): 5.90
+	System time (seconds): 4.33
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:10.24
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4592500
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1155448
+	Voluntary context switches: 7
+	Involuntary context switches: 106
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

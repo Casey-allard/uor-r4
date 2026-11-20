@@ -1,0 +1,22 @@
+{
+  "decision": "GO",
+  "host": "wick",
+  "dose": "c128",
+  "utc": "2026-11-20T06:38:24Z",
+  "gpu_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "sheet": "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/SHEET.md",
+  "sheet_sha256": "02ff9b45fabfdac3cd6a234731782e55fc653e296be84268c5de25a52cf267aa",
+  "fit": "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/FIT-FINITE-LIVENESS.md",
+  "fit_sha256": "a615d3048c310fb3f704203dbbdfadc70ac91eb7fcff97b0d802d2ec1e24cef6",
+  "plan": "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/full36/liveness-final/plan-c128.json",
+  "plan_sha256": "18c32d1820a2fcbda82f1505d01e49645228ad32a99fba93f42b64384c1331ae",
+  "executable": "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/full36/target-cuda-liveness/release/full-compact-count",
+  "executable_sha256": "d7687d9fb76fb1d54abf22c62d51521b2ab14b298c3ff76cdab84ac61935b3f0",
+  "corpus": "/home/callard/uor-codex/20261120-context-swap-30/count/c128.uort",
+  "corpus_sha256": "1466d3790e1c53bc4ac3982712f669967cce7b3ad1d7e0e34259568154d19cb6",
+  "census": "/home/callard/uor-codex/20261120-context-swap-30/count/custody-v1/runs/r1/receipt.json",
+  "census_sha256": "bd03c2da8a64c6150bd71f2d13a5cfe922dd7389de4b9ce0dc0cf060a031f7d1",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/gpu-c128-liveness",
+  "min_disk_bytes": 33554432,
+  "expected_sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e"
+}

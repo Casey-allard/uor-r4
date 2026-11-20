@@ -1,0 +1,24 @@
+   Compiling d36-count-batch v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/batch/negative/forget-batch-history)
+    Finished `release` profile [optimized] target(s) in 0.35s
+     Running unittests src/main.rs (negative-target/release/deps/d36_count_batch-666438a1acac1aee)
+
+running 1 test
+test tests::exact_probes_survive_batch_and_eos_boundaries ... FAILED
+
+failures:
+
+---- tests::exact_probes_survive_batch_and_eos_boundaries stdout ----
+
+thread 'tests::exact_probes_survive_batch_and_eos_boundaries' (2320519) panicked at src/main.rs:393:21:
+assertion `left == right` failed
+  left: [11]
+ right: [0, 10, 11]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::exact_probes_survive_batch_and_eos_boundaries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin d36-count-batch`

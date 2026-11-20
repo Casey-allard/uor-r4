@@ -1,0 +1,12 @@
+{
+  "scope": "D36 frozen finite C128 compact device readback only",
+  "authority": "Top-level codex D36 session explicit GO",
+  "recorded_at": "2026-11-20T06:38:33Z",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "fit_sha256": "07fec3d33ebfd65f8bf8c793ddd41845018706952229c8e4dd957a110c2917d1",
+  "source_sha256": "3e7a7ad96926fb5fc72f7bf5c077510eaea7452586404e9710d88aba3ac0b930",
+  "build_and_input_sha256": "a96a7baf45e9bd3c3c0d3bcf91f6ccb793478e67414a3243977dc8b064c76832",
+  "cuda_executable_sha256": "9c576eba1e78807cc5fea60f55b15c5c4d1ab5c828ba882ed488b76e32b70dc3",
+  "lock": "uor-codex/20261118-diagnostics/wick-codex-gpu.lock",
+  "output": "device-replay"
+}

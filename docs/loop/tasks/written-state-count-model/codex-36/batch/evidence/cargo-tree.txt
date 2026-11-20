@@ -1,0 +1,19 @@
+d36-count-batch v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/main-ac9fc3a/.worktrees/codex-whole-context-36/docs/loop/tasks/written-state-count-model/codex-36/batch)
+├── cudarc v0.19.10 (/mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/main-ac9fc3a/.worktrees/codex-whole-context-36/third_party/cudarc-0.19.10)
+│   └── libloading v0.9.1
+│       └── cfg-if v1.0.5
+├── hex v0.4.3
+├── sha2 v0.10.9
+│   ├── cfg-if v1.0.5
+│   ├── cpufeatures v0.2.17
+│   └── digest v0.10.7
+│       ├── block-buffer v0.10.4
+│       │   └── generic-array v0.14.7
+│       │       └── typenum v1.20.1
+│       │       [build-dependencies]
+│       │       └── version_check v0.9.5
+│       └── crypto-common v0.1.7
+│           ├── generic-array v0.14.7 (*)
+│           └── typenum v1.20.1
+└── uor-r4-count-runtime v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/main-ac9fc3a/.worktrees/codex-whole-context-36/crates/uor-r4-discrete/count-runtime)
+    └── sha2 v0.10.9 (*)

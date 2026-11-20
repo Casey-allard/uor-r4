@@ -159,6 +159,191 @@ impl<'a> OrderWriter<'a> {
     }
 }
 
+/// Write the complete canonical count source for the streaming pruner. The
+/// source only becomes usable after the independently pinned census passes.
+#[cfg(feature = "cuda")]
+pub fn spool(
+    dose: Dose,
+    training: production::Training,
+    expected: &Census,
+    plan: production::Plan,
+    output: &Path,
+) -> Result<Value, Fail> {
+    use uor_r4_discrete::device::Device;
+
+    let started = std::time::Instant::now();
+    let gpu = Device::memory_info(0)?;
+    let meminfo = fs::read_to_string("/proc/meminfo")?;
+    let available_kib: u64 = meminfo
+        .lines()
+        .find_map(|line| line.strip_prefix("MemAvailable:"))
+        .and_then(|value| value.split_whitespace().next())
+        .ok_or("cannot measure host MemAvailable")?
+        .parse()?;
+    // In addition to the counted arrays, CUDA needs allocator/driver space.
+    let gpu_required = plan.gpu_bytes + (512 << 20);
+    let host_required = plan.host_bytes + (512 << 20);
+    let available_host = available_kib * 1024 + training.tokens.capacity() as u64 * 2;
+    if (gpu.free_bytes as u64) < gpu_required || available_host < host_required {
+        return Err(format!(
+            "insufficient count headroom: GPU {} free, {} required; host {} free, {} required",
+            gpu.free_bytes, gpu_required, available_host, host_required,
+        )
+        .into());
+    }
+
+    let mut pos = HEADER;
+    let mut layouts = Vec::with_capacity(WIDTH);
+    for census in expected {
+        let layout = OrderLayout::new(pos, census)?;
+        pos = layout.end;
+        layouts.push(layout);
+    }
+    if pos != dose.bytes {
+        return Err("independent census does not imply the registered count-file size".into());
+    }
+    let production::Training {
+        tokens,
+        sha: training_sha,
+        ..
+    } = training;
+    let counter = NgramCounter::new(0, &tokens)?;
+    drop(tokens);
+    fs::create_dir(output)?;
+    let partial = output.join("compact.counts.partial");
+    let mut file = File::options()
+        .create_new(true)
+        .write(true)
+        .open(&partial)?;
+    let row_file = File::options().write(true).open(&partial)?;
+    file.set_len(pos)?;
+    file.write_all(b"UORKNC02")?;
+    file.write_all(&N.to_le_bytes())?;
+    file.write_all(&training_sha)?;
+    let mut continuation = UnigramContinuation::new();
+    let mut produced = Vec::with_capacity(WIDTH);
+    let mut max_targets = 0;
+    let mut range_counts = Vec::with_capacity(WIDTH);
+    for order in (0..=N).rev() {
+        let order_started = std::time::Instant::now();
+        let census = &expected[order as usize];
+        let spectra = [census[0].count_of_counts, census[1].count_of_counts];
+        let mut writer = OrderWriter::new(&file, &row_file, &layouts[order as usize], spectra)?;
+        let mut raw_assembler = NgramAssembler::new(order, false)?;
+        let mut adjusted_assembler = NgramAssembler::new_adjusted(order, false)?;
+        let mut consume = |raw: NgramPartition, adjusted: NgramPartition| -> Result<(), Fail> {
+            writer.append(&raw, &adjusted)?;
+            raw_assembler.push_owned(raw)?;
+            adjusted_assembler.push_owned(adjusted)?;
+            raw_assembler.drain_partitions()?;
+            adjusted_assembler.drain_partitions()?;
+            Ok(())
+        };
+
+        let histogram = counter.partition_histogram(order)?;
+        let ranges = &plan.base_ranges[usize::from(order != 0)];
+        let (mut targets, mut nonempty_ranges) = (0, 0);
+        let mut unigrams = if order == 0 {
+            Some(NgramAssembler::new(0, true)?)
+        } else {
+            None
+        };
+        for upper in ranges {
+            let actual = histogram[upper.lo as usize..upper.hi as usize]
+                .iter()
+                .sum::<u64>();
+            if actual > upper.targets || (order <= 1 && actual != upper.targets) {
+                return Err("GPU range target count differs from the TRAIN plan bound".into());
+            }
+            targets += actual;
+            nonempty_ranges += usize::from(actual != 0);
+            max_targets = max_targets.max(actual);
+            let range = PartitionRange {
+                targets: actual,
+                ..*upper
+            };
+            let raw = counter.count_partition(order, &range)?;
+            if let Some(unigrams) = unigrams.as_mut() {
+                unigrams.push_owned(raw)?;
+                unigrams.drain_partitions()?;
+                continue;
+            }
+            if order == 1 {
+                continuation.add(&raw)?;
+            }
+            let adjusted = if order == N {
+                raw.clone()
+            } else {
+                counter.count_partition_adjusted(order, N, &range)?
+            };
+            consume(raw, adjusted)?;
+        }
+        if targets != census[0].targets {
+            return Err("GPU histogram does not cover all independent census targets".into());
+        }
+        if let Some(unigrams) = unigrams {
+            let (raw, rows, _) = unigrams.finish();
+            if raw != census[0] {
+                return Err("GPU unigram count differs from independent census".into());
+            }
+            let adjusted = continuation.adjust(N, &rows)?;
+            consume(partition_from_triples(rows), adjusted)?;
+        }
+        writer.finish()?;
+        let (raw, _, _) = raw_assembler.finish();
+        let (adjusted, _, _) = adjusted_assembler.finish();
+        let observed = [raw, adjusted];
+        verify_digests(
+            std::slice::from_ref(&observed),
+            std::slice::from_ref(census),
+            dose.archive_aliases_raw_top_hashes,
+        )?;
+        produced.push(observed);
+        range_counts.push([ranges.len(), nonempty_ranges]);
+        eprintln!(
+            "order {order}: identical pinned census in {}s",
+            order_started.elapsed().as_secs()
+        );
+    }
+    drop(counter);
+    file.sync_all()?;
+    drop(file);
+    drop(row_file);
+
+    let mut source = BufReader::with_capacity(1 << 20, File::open(&partial)?);
+    let mut hash = Sha256::new();
+    if std::io::copy(&mut source, &mut hash)? != dose.bytes {
+        return Err("written count spool has the wrong physical length".into());
+    }
+    let pin = format!("{:x}", hash.finalize());
+    if dose.known_artifact.is_some_and(|known| pin != known) {
+        return Err("C128 spool differs from the frozen count artifact".into());
+    }
+    produced.reverse();
+    range_counts.reverse();
+    let receipt = json!({
+        "plan": plan.receipt,
+        "artifact_sha256": pin, "artifact_bytes": dose.bytes,
+        "max_partition_targets": max_targets, "planned_and_nonempty_partitions_by_order": range_counts,
+        "gpu_free_bytes_before": gpu.free_bytes, "gpu_required_bytes": gpu_required,
+        "host_available_bytes_including_train_buffer": available_host,
+        "host_required_bytes": host_required,
+        "gpu_count_image": compiled_ngram_count_image(), "wall_ms": started.elapsed().as_millis(),
+        "raw": produced.iter().map(|pair| digest_json(&pair[0])).collect::<Vec<_>>(),
+        "adjusted": produced.iter().map(|pair| digest_json(&pair[1])).collect::<Vec<_>>(),
+    });
+    let mut writer = new_writer(&output.join("receipt.json.partial"))?;
+    serde_json::to_writer_pretty(&mut writer, &receipt)?;
+    seal(writer)?;
+    fs::rename(partial, output.join("compact.counts"))?;
+    fs::rename(
+        output.join("receipt.json.partial"),
+        output.join("receipt.json"),
+    )?;
+    File::open(output)?.sync_all()?;
+    Ok(receipt)
+}
+
 #[cfg(feature = "cuda")]
 pub fn count(
     dose: Dose,
@@ -404,6 +589,8 @@ mod tests {
                 for (a, b) in &pairs {
                     raw_assembler.push(a)?;
                     adjusted_assembler.push(b)?;
+                    raw_assembler.drain_partitions()?;
+                    adjusted_assembler.drain_partitions()?;
                 }
                 let a = raw_assembler.finish();
                 let b = adjusted_assembler.finish();

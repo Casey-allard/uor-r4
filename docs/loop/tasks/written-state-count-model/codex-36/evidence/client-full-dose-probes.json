@@ -1,0 +1,240 @@
+[
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 80547677004101,
+    "mass_sha256": "b48a58adfcc5361ce804f3233210577fe5038c07b458694b51936f41777caaea",
+    "order": 4,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      4,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 47927412973332,
+    "mass_sha256": "42f947eb142dcd2a9d666cec533390ecfdd2a5e68e4be142ec3de0104b0b04fa",
+    "order": 4,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 119108870817646,
+    "mass_sha256": "e849b1795359feeb74549240ca9fac29230c0f61742d964a543f42a93bd3b2f9",
+    "order": 5,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 80547677004101,
+    "mass_sha256": "b48a58adfcc5361ce804f3233210577fe5038c07b458694b51936f41777caaea",
+    "order": 5,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 149971557152463,
+    "mass_sha256": "57280a857b1419cc88007c9efffb54fc033f227555b7825bad4a1969a0955aee",
+    "order": 6,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 119108870817646,
+    "mass_sha256": "e849b1795359feeb74549240ca9fac29230c0f61742d964a543f42a93bd3b2f9",
+    "order": 6,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 158550695971117,
+    "mass_sha256": "6397a1b8fa24ba307fe1e506a1682f197a13187625b3a014358e09e48ed57146",
+    "order": 7,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 149971557152463,
+    "mass_sha256": "57280a857b1419cc88007c9efffb54fc033f227555b7825bad4a1969a0955aee",
+    "order": 7,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 192401686049191,
+    "mass_sha256": "d975226ab26d524b999d50e34b56cb385ec46fe44bd2985fc23e1ce79f26f88f",
+    "order": 8,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 158550695971117,
+    "mass_sha256": "6397a1b8fa24ba307fe1e506a1682f197a13187625b3a014358e09e48ed57146",
+    "order": 8,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 210572782332490,
+    "mass_sha256": "2e2ffc70e2097450271972d4448cf327c63218a957d1998cdf2c9ae43827259a",
+    "order": 9,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 192401686049191,
+    "mass_sha256": "d975226ab26d524b999d50e34b56cb385ec46fe44bd2985fc23e1ce79f26f88f",
+    "order": 9,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 246452183462551,
+    "mass_sha256": "96751517eadb99bbe1ba756037451de9bc38807575e1287b3a77d55d6184d33d",
+    "order": 10,
+    "retained": true,
+    "token": 3,
+    "top_ties": 1
+  },
+  {
+    "context": [
+      19,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "mass_q48": 210572782332490,
+    "mass_sha256": "2e2ffc70e2097450271972d4448cf327c63218a957d1998cdf2c9ae43827259a",
+    "order": 10,
+    "retained": false,
+    "token": 3,
+    "top_ties": 1
+  }
+]

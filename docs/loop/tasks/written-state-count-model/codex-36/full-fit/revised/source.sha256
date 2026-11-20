@@ -1,0 +1,6 @@
+964e368cd673d429153413c4adff315d0d09e587f0ce0ba4563f1867a892999b  crates/uor-r4-discrete/src/ngram_count.rs
+dd0199e02e9265beb75d95477406a3365733653cde9ec78b56f026d576730b58  crates/uor-r4-discrete/src/ngram_count_device.rs
+e693ef6a51d14ac4c04559aa564ec648ffb3f9b1ae8aad25c400cfd06eae8f0b  crates/uor-r4-discrete/src/ngram_count.cu
+075127c567804dfad7476b72d347e35824eff5cf172d32b1b73314916da68392  docs/labs/kn-reference/instrument/src/bin/full-compact-count.rs
+0e20744c0dfedeead4763741e1cedcda54bf039102ef595fd60444dfa675e24b  docs/labs/kn-reference/instrument/src/bin/full-compact-count/materialize.rs
+adfd87ada1b88d44ce9f3230bf95d1ef22a20eb6c719bf27aaca903c903d1e11  docs/labs/kn-reference/instrument/src/bin/full-compact-count/production.rs

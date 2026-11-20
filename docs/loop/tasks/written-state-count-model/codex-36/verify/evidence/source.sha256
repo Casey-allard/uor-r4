@@ -1,0 +1,13 @@
+4176f407d54789632af71c0d5b088fbe89b315ca4e9cfcd6531ea85d15ad1003  docs/loop/tasks/written-state-count-model/codex-36/verify/Cargo.lock
+8c24a94aadfbea145f0e6f747126681e60d14fdcea5744db55d61b3e41401989  docs/loop/tasks/written-state-count-model/codex-36/verify/Cargo.toml
+f1c247bcd55456a037cfd7c1b05d21fcb84e3c8d37d67033fc0d9d8c02d59aca  docs/loop/tasks/written-state-count-model/codex-36/verify/src/main.rs
+348d1e6f308c3752b205effa915ebe1891276f5751d84d2e22f9e332650400e3  crates/uor-r4-discrete/count-runtime/Cargo.toml
+b9382e49e3634cb78a7af8d3b2db39649fc7d5f27fed297bcd98fa0c9c0fb8ba  crates/uor-r4-discrete/src/count_runtime.rs
+96ad2e063717c72f3e5ad98dc380668bd955df9386ffecc1d990134ec365b171  crates/uor-r4-discrete/src/kn_ceiling/frozen_pick.rs
+2fcd68794ecbe0498a6e3de7e3431d3d0eb85ec4bc1162a9c5ef3c59be54ade3  crates/uor-r4-discrete/src/kn_ceiling/runtime/code_pick.rs
+98f8300f2585321c0a5d6e7aaf6f8339f0678530dae93f10fbdad566edbbd0a7  crates/uor-r4-discrete/src/kn_ceiling/runtime/key.rs
+840c8552b8a029965ddea21edd2d31c885ee576abfe1d3180f950bd6c8bdd8db  crates/uor-r4-discrete/src/kn_ceiling/runtime/count_words.rs
+b7b1e470117ea17c7a5f80201fb3b060d0022ffbefff28c77da6a121673af061  crates/uor-r4-discrete/src/kn_ceiling/runtime/interpolation.rs
+5f0a1f8f721ecbd4ce6f657b9b5aeb3ea9cf1eccbbe3bb9b23c57923793bd834  crates/uor-r4-discrete/src/kn_ceiling/runtime/mixture.rs
+8d028c72f37c23eb7389f50f6c234a9e67358ea7e6c86b459451a3f4c51ce921  crates/uor-r4-discrete/src/kn_ceiling/runtime/compact.rs
+34270ffc4123093b7fc6d742f852389939bb4969479b83eabef8d8a5704e5cca  crates/uor-r4-discrete/src/kn_ceiling/runtime/rank.rs

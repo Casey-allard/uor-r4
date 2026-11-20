@@ -1,0 +1,16 @@
+{
+  "source_sha256": "1afd1c27bac4e963f4885ed275fa45c3e0a4014d3a6242f5deba82f04110ce26",
+  "candidate_sha256": "064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8",
+  "train_sha256": "cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a",
+  "threshold": 318,
+  "candidate_bytes": 3912334481,
+  "compact_cap": 3912936331,
+  "preceding_threshold_bytes": 3914255830,
+  "cap_slack_bytes": 601850,
+  "trunk_bytes": 86536132,
+  "tokenizer_bytes": 265393,
+  "fit_and_envelope_reserve_bytes": 262144,
+  "envelope_budget_with_reserve_bytes": 3999398150,
+  "deployment_cap_bytes": 4000000000,
+  "probes": 18
+}

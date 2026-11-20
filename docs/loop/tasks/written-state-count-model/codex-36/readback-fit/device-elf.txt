@@ -1,0 +1,2 @@
+ELF file    1: d36-count-device.1.sm_89.cubin
+ELF file    2: d36-count-device.2.sm_89.cubin
