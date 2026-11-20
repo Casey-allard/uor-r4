@@ -4,6 +4,10 @@
 //! Executes with strictly zero transformers and zero hardware matrix multiplication in the served runtime.
 //! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
+#[cfg(feature = "p1-count-serving")]
+#[path = "uor_chat/p1.rs"]
+mod p1;
+
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::io::{self, BufRead, Read as IoRead, Write};
@@ -51,6 +55,10 @@ struct CliArgs {
     stack_path: Option<PathBuf>,
     /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
     discrete_path: Option<PathBuf>,
+    #[cfg(feature = "p1-count-serving")]
+    p1_path: Option<PathBuf>,
+    #[cfg(feature = "p1-count-serving")]
+    p1_trace: bool,
     ordered_role_trace: bool,
     contextual_source_trace: bool,
     tokenizer_path: Option<PathBuf>,
@@ -299,6 +307,10 @@ impl Default for CliArgs {
             bundle_path: None,
             stack_path: None,
             discrete_path: None,
+            #[cfg(feature = "p1-count-serving")]
+            p1_path: None,
+            #[cfg(feature = "p1-count-serving")]
+            p1_trace: false,
             ordered_role_trace: false,
             contextual_source_trace: false,
             tokenizer_path: None,
@@ -353,9 +365,17 @@ fn print_usage() {
         "      --stack <ARTIFACT>      UORLUT01 geometric-stack artifact (model.lut); served"
     );
     eprintln!("                              directly by the D11 integer stack engine");
+    #[cfg(feature = "p1-count-serving")]
+    eprintln!(
+        "      --p1-state <PACKAGE>    Complete count and fitted A1 state bound to --discrete"
+    );
+    #[cfg(feature = "p1-count-serving")]
+    eprintln!("      --p1-trace              Record per-token Pick and count decisions and full mass hashes");
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
     eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
-    eprintln!("                              greedy raw-ID or text serving through IntegerDiscreteModel");
+    eprintln!(
+        "                              greedy raw-ID or text serving through IntegerDiscreteModel"
+    );
     eprintln!(
         "      --tokenizer <PATH>      tokenizer.json for --stack or a token-bound discrete text turn"
     );
@@ -518,6 +538,16 @@ fn parse_cli_args() -> CliArgs {
                     process::exit(1);
                 }
             }
+            #[cfg(feature = "p1-count-serving")]
+            "--p1-state" => {
+                idx += 1;
+                args.p1_path = Some(PathBuf::from(raw.get(idx).unwrap_or_else(|| {
+                    eprintln!("--p1-state requires a packed count and A1 state file");
+                    process::exit(1);
+                })));
+            }
+            #[cfg(feature = "p1-count-serving")]
+            "--p1-trace" => args.p1_trace = true,
             "--ordered-role-trace" => args.ordered_role_trace = true,
             "--contextual-source-trace" => args.contextual_source_trace = true,
             "--discrete" => {
@@ -973,6 +1003,16 @@ fn parse_cli_args() -> CliArgs {
         && (args.say.is_none() || args.tokenizer_path.is_none())
     {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--discrete' requires '--prompt-ids' or '--say' with its bound '--tokenizer'");
+        process::exit(1);
+    }
+    #[cfg(feature = "p1-count-serving")]
+    if args.p1_trace && args.p1_path.is_none() {
+        eprintln!("--p1-trace requires --p1-state");
+        process::exit(1);
+    }
+    #[cfg(feature = "p1-count-serving")]
+    if args.p1_path.is_some() && args.discrete_path.is_none() {
+        eprintln!("--p1-state requires its fitted --discrete trunk");
         process::exit(1);
     }
     if args.ordered_role_trace && args.discrete_path.is_none() {
@@ -1975,7 +2015,17 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
                 .to_owned(),
         ));
     }
+    #[cfg(feature = "p1-count-serving")]
+    let profile_start = (cli.p1_path.is_some() && std::env::var_os("UOR_P1_TIMING").is_some())
+        .then(std::time::Instant::now);
     let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::load(artifact)?;
+    #[cfg(feature = "p1-count-serving")]
+    let p1_bytes = cli.p1_path.as_deref().map(std::fs::read).transpose()?;
+    #[cfg(feature = "p1-count-serving")]
+    let p1 = p1_bytes
+        .as_deref()
+        .map(|bytes| p1::P1::load(bytes, &model))
+        .transpose()?;
     let mut text_mode = None;
     let encoded;
     let prompt = if let (Some(text), Some(path)) = (&cli.say, &cli.tokenizer_path) {
@@ -2052,9 +2102,27 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
     let mut context = prompt.to_vec();
     let mut generated_ids = Vec::with_capacity(cli.max_tokens);
     let mut count_masses = Vec::new();
+    #[cfg(feature = "p1-count-serving")]
+    let mut p1_steps = Vec::new();
     let mut s2_steps = Vec::new();
+    #[cfg(feature = "p1-count-serving")]
+    let decode_start = profile_start.map(|_| std::time::Instant::now());
     for _ in 0..cli.max_tokens {
-        let ordinary = if let Some(table) = model.active_s2() {
+        #[cfg(feature = "p1-count-serving")]
+        let p1_winner = if let Some(engine) = &p1 {
+            let (id, observation) = engine.next(&context, read_enabled, cli.p1_trace)?;
+            if let Some(step) = observation {
+                p1_steps.push(step);
+            }
+            Some(id)
+        } else {
+            None
+        };
+        #[cfg(not(feature = "p1-count-serving"))]
+        let p1_winner: Option<u32> = None;
+        let ordinary = if let Some(id) = p1_winner {
+            id
+        } else if let Some(table) = model.active_s2() {
             let read = table.predict_expert(&context)?;
             let best = read.top8[0];
             count_masses.push(best.mass);
@@ -2084,6 +2152,10 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
             ordinary
         };
         generated_ids.push(prediction);
+        #[cfg(feature = "p1-count-serving")]
+        if p1.is_some() && prediction == 1 {
+            break;
+        }
         if text_mode
             .as_ref()
             .is_some_and(|(_, protocol, _)| prediction == protocol.eos_id)
@@ -2095,6 +2167,18 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         }
         context.push(prediction);
     }
+    #[cfg(feature = "p1-count-serving")]
+    if let (Some(open), Some(decode)) = (profile_start, decode_start) {
+        let decode_ns = decode.elapsed().as_nanos();
+        eprintln!(
+            "{}",
+            serde_json::json!({
+                "schema":"uor-r4.p1-client-timing/1",
+                "open_and_prefill_ns":decode.duration_since(open).as_nanos(),
+                "decode_ns":decode_ns,"tokens":generated_ids.len(),"traced":cli.p1_trace
+            })
+        );
+    }
     let mut record = serde_json::json!({
         "schema": "uor-r4.uor-chat-discrete-parity/1",
         "artifact": artifact,
@@ -2105,6 +2189,16 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         "prompt_ids": prompt,
         "generated_ids": generated_ids,
     });
+    #[cfg(feature = "p1-count-serving")]
+    if let Some(engine) = &p1 {
+        record["decoding"] = "greedy complete count and fitted native A1 mixture".into();
+        record["p1_sha256"] = engine.artifact_sha256.as_str().into();
+        if cli.p1_trace {
+            record["p1_steps"] = p1_steps.into();
+            record["p1_components"] = engine.component_digests();
+        }
+        record["read_enabled"] = read_enabled.into();
+    }
     if let Some(choice) = choice {
         record["decoding"] =
             "role-only selector, WordStart, continuation and exact-copy EOS".into();

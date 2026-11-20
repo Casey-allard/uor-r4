@@ -1,0 +1,163 @@
+{
+  "host": "Wick, AMD Ryzen 9 9950X, x86_64 Linux, ordinary one-shot client",
+  "scope": "Eight matched prompts per read setting. Fresh processes, OS page cache uncontrolled. Compute excludes load and prefill for decode rate.",
+  "raw": [
+    {
+      "id": 31001,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4106927,
+      "open_and_prefill_ns": 4474624255
+    },
+    {
+      "id": 31001,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4101737,
+      "open_and_prefill_ns": 4479052185
+    },
+    {
+      "id": 31002,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4069365,
+      "open_and_prefill_ns": 4469347607
+    },
+    {
+      "id": 31002,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4067421,
+      "open_and_prefill_ns": 4467676049
+    },
+    {
+      "id": 31003,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4082380,
+      "open_and_prefill_ns": 4472177471
+    },
+    {
+      "id": 31003,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4118318,
+      "open_and_prefill_ns": 4455085330
+    },
+    {
+      "id": 31004,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4133537,
+      "open_and_prefill_ns": 4492309151
+    },
+    {
+      "id": 31004,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4085966,
+      "open_and_prefill_ns": 4474443045
+    },
+    {
+      "id": 31005,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4114160,
+      "open_and_prefill_ns": 4473976589
+    },
+    {
+      "id": 31005,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4098691,
+      "open_and_prefill_ns": 4480186353
+    },
+    {
+      "id": 31006,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4163244,
+      "open_and_prefill_ns": 4484326759
+    },
+    {
+      "id": 31006,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4140620,
+      "open_and_prefill_ns": 4462840911
+    },
+    {
+      "id": 31007,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4151701,
+      "open_and_prefill_ns": 4475825253
+    },
+    {
+      "id": 31007,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4139919,
+      "open_and_prefill_ns": 4458949653
+    },
+    {
+      "id": 31008,
+      "enabled": true,
+      "tokens": 12,
+      "decode_ns": 4146562,
+      "open_and_prefill_ns": 4471731600
+    },
+    {
+      "id": 31008,
+      "enabled": false,
+      "tokens": 12,
+      "decode_ns": 4145028,
+      "open_and_prefill_ns": 4457011876
+    }
+  ],
+  "summary": [
+    {
+      "read_enabled": true,
+      "replies": 8,
+      "tokens": 96,
+      "decode_ns": 32967876,
+      "aggregate_decode_tokens_per_second": 2911.93,
+      "median_open_and_prefill_seconds": 4.4743
+    },
+    {
+      "read_enabled": false,
+      "replies": 8,
+      "tokens": 96,
+      "decode_ns": 32897700,
+      "aggregate_decode_tokens_per_second": 2918.14,
+      "median_open_and_prefill_seconds": 4.4653
+    }
+  ],
+  "cold_json_equal": 16,
+  "untraced_tapes_equal": 16,
+  "gpu_steps_equal": 192,
+  "masses_per_step": 4095,
+  "hash_covered_mass_words": 786240,
+  "device_receipt": {
+    "candidates_per_step": 4095,
+    "count_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+    "fit_manifest_sha256": "98999a62b090218062ef61fb7faf0e7a04ef6662c71adb5bcdacbe1aa90d8ca4",
+    "kn_image": [
+      "cb423de7a83250100c81db4443748eb197bf81717ff8bf2ac17c5e887a777fe5",
+      "b62b491b9f443202a46c56eaa79e645f2589b25c9b0b4bebc549e9341ab30810",
+      "7f4c47533aa1087e7be0fff9abb4b9802b023ea3cfde442735eb3288f85bff1f"
+    ],
+    "panel_sha256": "e50d7812f4a4dcc3016793e07cf2efb55fa7524d880bf1253324ec255b4b8b11",
+    "prefix_packet_sha256": "a4fb823cdd5031cc7ffdb1c402f7d7df2c149002b1335a102a8a012371f081dc",
+    "raw_image": [
+      "c4544edd0405316d8324574c336ef9ffcdda3260a5991eba684e592a0e982380",
+      "9cb82018a08a257ae96c0a9d7edebbc66730cb25b833da2cbf2066b74cbc3194",
+      "9ef0d047f1fcbaeb455953e541b95a3aa3690beb65cb1e410ff048fb58b4167d"
+    ],
+    "schema": "uor-r4.d31.cuda-client-oracle/1",
+    "steps": 192,
+    "steps_sha256": "ffb4302a3677d94e156f6ad18f7639f2a8966010b0bed69cbf0f18afaff68ed9",
+    "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+    "weights_sha256": "40af50ff9b01bc857c9f86aefcd3e1f0a1f82d7ac62573167d26e4bba5062f29"
+  }
+}

@@ -1,0 +1,1100 @@
+{
+  "answer_key_sha256": "95d556eaf457b2f517123f01b5b3b5a39784e947ce106033119fe97a195238b5",
+  "device_receipt_sha256": "71c36b01b0063279fc7c4da8da93aa9dbc4d998f65aa2b7d22e56a24279eef56",
+  "device_steps_sha256": "ffb4302a3677d94e156f6ad18f7639f2a8966010b0bed69cbf0f18afaff68ed9",
+  "expert_lanes": [
+    "kn",
+    "ml_0",
+    "ml_1",
+    "ml_2",
+    "ml_3",
+    "ml_4",
+    "ml_5",
+    "ml_6",
+    "ml_7",
+    "ml_8",
+    "ml_9",
+    "ml_10",
+    "uniform",
+    "s5_pick"
+  ],
+  "first_step_contrasts": [
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "asked_person",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31001,
+        31002
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        439,
+        439
+      ],
+      "pick_words": [
+        [
+          3,
+          12,
+          1
+        ],
+        [
+          3,
+          12,
+          1
+        ]
+      ],
+      "read_enabled": true,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350318210,
+        213599350318210
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "asked_person",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31001,
+        31002
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        null,
+        null
+      ],
+      "pick_words": [
+        null,
+        null
+      ],
+      "read_enabled": false,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350367942,
+        213599350367942
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "asked_person",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31003,
+        31004
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        2593,
+        2593
+      ],
+      "pick_words": [
+        [
+          3,
+          12,
+          1
+        ],
+        [
+          3,
+          12,
+          1
+        ]
+      ],
+      "read_enabled": true,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350318210,
+        213599350318210
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "asked_person",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31003,
+        31004
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        null,
+        null
+      ],
+      "pick_words": [
+        null,
+        null
+      ],
+      "read_enabled": false,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350367942,
+        213599350367942
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "fact_order",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+      ],
+      "ids": [
+        31001,
+        31003
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 2,
+      "pick_successors": [
+        439,
+        2593
+      ],
+      "pick_words": [
+        [
+          3,
+          12,
+          1
+        ],
+        [
+          3,
+          12,
+          1
+        ]
+      ],
+      "read_enabled": true,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350318210,
+        213599350318210
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "fact_order",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31001,
+        31003
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        null,
+        null
+      ],
+      "pick_words": [
+        null,
+        null
+      ],
+      "read_enabled": false,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350367942,
+        213599350367942
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "fact_order",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+      ],
+      "ids": [
+        31002,
+        31004
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 2,
+      "pick_successors": [
+        439,
+        2593
+      ],
+      "pick_words": [
+        [
+          3,
+          12,
+          1
+        ],
+        [
+          3,
+          12,
+          1
+        ]
+      ],
+      "read_enabled": true,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350318210,
+        213599350318210
+      ]
+    },
+    {
+      "candidate_bucket_words_changed": 0,
+      "changed_input": "fact_order",
+      "expert_mass_words_changed_by_lane": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "ids": [
+        31002,
+        31004
+      ],
+      "input_prefix_hash_equal": false,
+      "mixed_candidate_masses_changed": 0,
+      "pick_successors": [
+        null,
+        null
+      ],
+      "pick_words": [
+        null,
+        null
+      ],
+      "read_enabled": false,
+      "winning_ids": [
+        799,
+        799
+      ],
+      "winning_masses_q48": [
+        213599350367942,
+        213599350367942
+      ]
+    }
+  ],
+  "ranked_ids": 4095,
+  "rows": [
+    {
+      "candidate_expert_rows_sha256": "a1e12ebb67033217d8c88e7545f856f7cee2bf4d23ef7fc16a49a4f8069e8c1a",
+      "candidate_masses_sha256": "4f5cebaddb24eeee8020695c124754aa1b12b646ac7aac0d3a74975a46bf13a7",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 581,
+      "gold_mass_q48": 1237799510,
+      "gold_rank": 96,
+      "gold_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "without_pick_same_bucket_q48": 1237799510
+      },
+      "id": 31001,
+      "pick_equals_gold": false,
+      "pick_successor": 439,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 439,
+        "mass_q48": 135108847453,
+        "rank": 10,
+        "s5": {
+          "bucket": 474,
+          "longest_active_order": 7,
+          "pick_contribution_q48": 65536,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 1,
+          "without_pick_same_bucket_q48": 135108781917
+        }
+      },
+      "prefix_sha256": "11750702bafd80627ca0c841e1b3b55e0cdd580db53db241d02142e83ce9592c",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350318210,
+      "winner_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599349998727,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350318210
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "3d5de52aa907d64e8bd14a651f360368072b3d303c3053f8537b714181768000",
+      "candidate_masses_sha256": "dfa514aa578acd964d090ff361878f435df840614cf73807e6e336c369aa5910",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 581,
+      "gold_mass_q48": 1237799510,
+      "gold_rank": 96,
+      "gold_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 1237799510
+      },
+      "id": 31001,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "11750702bafd80627ca0c841e1b3b55e0cdd580db53db241d02142e83ce9592c",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350367942,
+      "winner_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599350048459,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350367942
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "a1e12ebb67033217d8c88e7545f856f7cee2bf4d23ef7fc16a49a4f8069e8c1a",
+      "candidate_masses_sha256": "4f5cebaddb24eeee8020695c124754aa1b12b646ac7aac0d3a74975a46bf13a7",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 3646,
+      "gold_mass_q48": 1084197,
+      "gold_rank": 2928,
+      "gold_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "without_pick_same_bucket_q48": 1084197
+      },
+      "id": 31002,
+      "pick_equals_gold": false,
+      "pick_successor": 439,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 439,
+        "mass_q48": 135108847453,
+        "rank": 10,
+        "s5": {
+          "bucket": 474,
+          "longest_active_order": 7,
+          "pick_contribution_q48": 65536,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 1,
+          "without_pick_same_bucket_q48": 135108781917
+        }
+      },
+      "prefix_sha256": "0a99723b98195d8f1ae331b53b4a80b5398cf4150bbc0fa884e8ad8423375862",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350318210,
+      "winner_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599349998727,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350318210
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "3d5de52aa907d64e8bd14a651f360368072b3d303c3053f8537b714181768000",
+      "candidate_masses_sha256": "dfa514aa578acd964d090ff361878f435df840614cf73807e6e336c369aa5910",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 3646,
+      "gold_mass_q48": 1084197,
+      "gold_rank": 2928,
+      "gold_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 1084197
+      },
+      "id": 31002,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "0a99723b98195d8f1ae331b53b4a80b5398cf4150bbc0fa884e8ad8423375862",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350367942,
+      "winner_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599350048459,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350367942
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "b8d8a63411a5af3a664035925e050e75838a342e2e4645ccf249d560c0d8a93d",
+      "candidate_masses_sha256": "8b5a1eae29ce1cfde9c2e467b9078f35288b365187e326cc0ae467c2c1678094",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 581,
+      "gold_mass_q48": 1237799510,
+      "gold_rank": 96,
+      "gold_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "without_pick_same_bucket_q48": 1237799510
+      },
+      "id": 31003,
+      "pick_equals_gold": false,
+      "pick_successor": 2593,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 2593,
+        "mass_q48": 147723856,
+        "rank": 411,
+        "s5": {
+          "bucket": 474,
+          "longest_active_order": 7,
+          "pick_contribution_q48": 65536,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 1,
+          "without_pick_same_bucket_q48": 147658320
+        }
+      },
+      "prefix_sha256": "5af8c99eec435b31005b5d8c7113649cf49a1cd74926d7f9fe350b266b86e642",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350318210,
+      "winner_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599349998727,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350318210
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "3d5de52aa907d64e8bd14a651f360368072b3d303c3053f8537b714181768000",
+      "candidate_masses_sha256": "dfa514aa578acd964d090ff361878f435df840614cf73807e6e336c369aa5910",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 581,
+      "gold_mass_q48": 1237799510,
+      "gold_rank": 96,
+      "gold_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 1237799510
+      },
+      "id": 31003,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "5af8c99eec435b31005b5d8c7113649cf49a1cd74926d7f9fe350b266b86e642",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350367942,
+      "winner_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599350048459,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350367942
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "b8d8a63411a5af3a664035925e050e75838a342e2e4645ccf249d560c0d8a93d",
+      "candidate_masses_sha256": "8b5a1eae29ce1cfde9c2e467b9078f35288b365187e326cc0ae467c2c1678094",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 3646,
+      "gold_mass_q48": 1084197,
+      "gold_rank": 2928,
+      "gold_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "without_pick_same_bucket_q48": 1084197
+      },
+      "id": 31004,
+      "pick_equals_gold": false,
+      "pick_successor": 2593,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 2593,
+        "mass_q48": 147723856,
+        "rank": 411,
+        "s5": {
+          "bucket": 474,
+          "longest_active_order": 7,
+          "pick_contribution_q48": 65536,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 1,
+          "without_pick_same_bucket_q48": 147658320
+        }
+      },
+      "prefix_sha256": "a78eeabccfce893cd3acfc7651264a886b0b5721ee43ec963097c171dabd8fd4",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350318210,
+      "winner_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599349998727,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350318210
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "3d5de52aa907d64e8bd14a651f360368072b3d303c3053f8537b714181768000",
+      "candidate_masses_sha256": "dfa514aa578acd964d090ff361878f435df840614cf73807e6e336c369aa5910",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 3646,
+      "gold_mass_q48": 1084197,
+      "gold_rank": 2928,
+      "gold_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 1084197
+      },
+      "id": 31004,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "a78eeabccfce893cd3acfc7651264a886b0b5721ee43ec963097c171dabd8fd4",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350367942,
+      "winner_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599350048459,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350367942
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "74b3b2821517c7799282da75cc5dce5f3f51316113667d464b3a374780302efc",
+      "candidate_masses_sha256": "951fe94c045ad52d7bafbdb8dd34ff476d27524058c19e4f1c71d45391b62096",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 1667,
+      "gold_mass_q48": 1849296,
+      "gold_rank": 2555,
+      "gold_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "without_pick_same_bucket_q48": 1849296
+      },
+      "id": 31005,
+      "pick_equals_gold": false,
+      "pick_successor": 1049,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 1049,
+        "mass_q48": 19368894840,
+        "rank": 30,
+        "s5": {
+          "bucket": 474,
+          "longest_active_order": 7,
+          "pick_contribution_q48": 65536,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 1,
+          "without_pick_same_bucket_q48": 19368829304
+        }
+      },
+      "prefix_sha256": "082a1d5fd4298d5d1c00525ccc6449585d77377c96a4fc6dd1cc8f6e20f4e399",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350318210,
+      "winner_s5": {
+        "bucket": 474,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 1,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599349998727,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350318210
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "3d5de52aa907d64e8bd14a651f360368072b3d303c3053f8537b714181768000",
+      "candidate_masses_sha256": "dfa514aa578acd964d090ff361878f435df840614cf73807e6e336c369aa5910",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 1667,
+      "gold_mass_q48": 1849296,
+      "gold_rank": 2555,
+      "gold_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 1849296
+      },
+      "id": 31005,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "082a1d5fd4298d5d1c00525ccc6449585d77377c96a4fc6dd1cc8f6e20f4e399",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 213599350367942,
+      "winner_s5": {
+        "bucket": 122,
+        "longest_active_order": 7,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          213599350048459,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          0,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 213599350367942
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "42820fd7143fec856dff072ae4d2cf998f2c1c34aa77c8767258a2b401130f08",
+      "candidate_masses_sha256": "bae1253fc7aa33df741291c789fcf8b7b9533dc740ad4bda0f52e4b58d06efb6",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 756,
+      "gold_mass_q48": 122038184,
+      "gold_rank": 383,
+      "gold_s5": {
+        "bucket": 481,
+        "longest_active_order": 8,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 21695217,
+        "without_pick_same_bucket_q48": 122038184
+      },
+      "id": 31006,
+      "pick_equals_gold": false,
+      "pick_successor": 1049,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "picked_candidate": {
+        "id": 1049,
+        "mass_q48": 1436114292731,
+        "rank": 7,
+        "s5": {
+          "bucket": 481,
+          "longest_active_order": 8,
+          "pick_contribution_q48": 1421817741312,
+          "pick_expert_mass_q48": 281474976710656,
+          "pick_weight_q32": 21695217,
+          "without_pick_same_bucket_q48": 14296551419
+        }
+      },
+      "prefix_sha256": "752eda4149b24ff4b8beea27a99f8306bf71c209b09226851a5741c808176bce",
+      "read_enabled": true,
+      "winner_id": 799,
+      "winner_mass_q48": 229952693195806,
+      "winner_s5": {
+        "bucket": 481,
+        "longest_active_order": 8,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 21695217,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          229952692810787,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          65536,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 229952693195806
+      }
+    },
+    {
+      "candidate_expert_rows_sha256": "1435b9dfb6c6e962ee979fadae2eb4a281bd3ac8a795cfaf1b4ab672c35bac08",
+      "candidate_masses_sha256": "ccdb8dd693b9b129622e84f01c4290ae3cde21b04c1ed404782f183c6d61923c",
+      "first_wrong_step_zero_based": 0,
+      "gold_id": 756,
+      "gold_mass_q48": 122657766,
+      "gold_rank": 383,
+      "gold_s5": {
+        "bucket": 129,
+        "longest_active_order": 8,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "without_pick_same_bucket_q48": 122657766
+      },
+      "id": 31006,
+      "pick_equals_gold": false,
+      "pick_successor": null,
+      "pick_words": null,
+      "picked_candidate": null,
+      "prefix_sha256": "752eda4149b24ff4b8beea27a99f8306bf71c209b09226851a5741c808176bce",
+      "read_enabled": false,
+      "winner_id": 799,
+      "winner_mass_q48": 231120153046176,
+      "winner_s5": {
+        "bucket": 129,
+        "longest_active_order": 8,
+        "pick_contribution_q48": 0,
+        "pick_expert_mass_q48": 0,
+        "pick_weight_q32": 0,
+        "rounding_carry_and_floor_q48": 2,
+        "weighted_lane_floors_q48": [
+          231120152661157,
+          64,
+          1944,
+          50242,
+          51634,
+          51689,
+          52800,
+          52833,
+          58259,
+          65536,
+          0,
+          0,
+          16,
+          0
+        ],
+        "without_pick_same_bucket_q48": 231120153046176
+      }
+    }
+  ],
+  "schema": "uor-r4.d31.first-wrong-mass/1",
+  "weights_sha256": "40af50ff9b01bc857c9f86aefcd3e1f0a1f82d7ac62573167d26e4bba5062f29"
+}

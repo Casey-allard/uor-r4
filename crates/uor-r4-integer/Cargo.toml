@@ -15,6 +15,7 @@ crate-type = ["rlib", "cdylib"]
 [features]
 # Compatibility name only: selecting historical executors fails at compile time.
 historical-runtime = []
+p1-count-serving = ["serving-wasm", "dep:uor-r4-count-runtime"]
 # Serve the preserved D11 integer/stack runtime to WebAssembly (#1172). The
 # native qualification graph never selects this feature; with it, the facade's
 # compile_error! stands down and the preserved serving root compiles (see the
@@ -33,6 +34,7 @@ serving-wasm = [
 fbs-synthetic = []
 
 [dependencies]
+uor-r4-count-runtime = { path = "../uor-r4-discrete/count-runtime", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 sha2 = "0.10.8"

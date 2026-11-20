@@ -3001,6 +3001,30 @@ impl IntegerDiscreteModel {
             .collect()
     }
 
+    /// Compile the trained four-block Identity Pick codes once for A1 serving.
+    #[cfg(feature = "p1-count-serving")]
+    pub fn identity_pick_codes(&self) -> Result<Vec<[u16; 4]>> {
+        if !self.is_trunk_d11()
+            || !matches!(self.read_mode, DiscreteReadMode::Relation { .. })
+            || self.shape.read_position != 0
+            || self.shape.blocks != 4
+        {
+            return Err(invalid(
+                "A1 requires a four-block Relation trunk with its original token codes",
+            ));
+        }
+        self.token_blocks
+            .iter()
+            .map(|blocks| {
+                let row: &[[i32; 8]; 4] = blocks
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| invalid("wrong A1 token width"))?;
+                Ok(row.map(|root| root_code(&root)))
+            })
+            .collect()
+    }
+
     /// Reuse only the underlying Relation trunk's common orbit table, routes
     /// and level gates. Extra relation gates and relation transport are excluded.
     #[doc(hidden)]

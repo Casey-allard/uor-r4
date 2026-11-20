@@ -7,6 +7,7 @@ members = [
     "crates/uor-r4-float-train",
     "crates/uor-r4-vision",
     "crates/uor-r4-discrete",
+    "crates/uor-r4-discrete/count-runtime",
     "crates/uor-r4-native-vector",
     "crates/uor-r4-integer",
     "crates/uor-r4-lut",

@@ -1,0 +1,161 @@
+{
+  "scope": "C128 compact count table and planted uniform/one-hot A1 mixture, finite CLI test",
+  "executable_sha256": "3926236994bfca21cdf903e12643bce36aa396605d3e388fedb518a11d0eeae3",
+  "package_sha256": "c2bbb1141fe973db6804eda6d3f10135de4adf2791e94820dfd5024f7803d62c",
+  "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "components": {
+    "count_sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e",
+    "fit_manifest_sha256": "54c7dd8f978a58e14b30ee1ea9e933b4de5462e02c142a08f445656d7fab4543",
+    "weights_sha256": "932e3842743acd50a07aa2614c4315a04e1fe689cd26cd8b758dfafed0edb242"
+  },
+  "arms": [
+    {
+      "prompt": [
+        0
+      ],
+      "enabled": true,
+      "emitted": [
+        1
+      ],
+      "step": {
+        "bucket": 23,
+        "context_tokens": 1,
+        "mass_q48": 68719476736,
+        "mass_sha256": "106d6fcd697cd691cda699be16cb39683b47e0b39a63c2f88ece4b83e035b7f8",
+        "pick_successor": null,
+        "pick_words": null,
+        "prefix_sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+        "token": 1,
+        "top_ties": 4095
+      }
+    },
+    {
+      "prompt": [
+        0
+      ],
+      "enabled": false,
+      "emitted": [
+        1
+      ],
+      "step": {
+        "bucket": 23,
+        "context_tokens": 1,
+        "mass_q48": 68719476736,
+        "mass_sha256": "106d6fcd697cd691cda699be16cb39683b47e0b39a63c2f88ece4b83e035b7f8",
+        "pick_successor": null,
+        "pick_words": null,
+        "prefix_sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+        "token": 1,
+        "top_ties": 4095
+      }
+    },
+    {
+      "prompt": [
+        0,
+        17,
+        22,
+        44,
+        17,
+        22
+      ],
+      "enabled": true,
+      "emitted": [
+        44
+      ],
+      "step": {
+        "bucket": 211,
+        "context_tokens": 6,
+        "mass_q48": 281474976710656,
+        "mass_sha256": "4126d82203a466d4a60a99be022f68c0f6c3afe28aaf87ed86dbde556dd4336b",
+        "pick_successor": 44,
+        "pick_words": [
+          2,
+          0,
+          1
+        ],
+        "prefix_sha256": "7eb2ec41c9aa920fe62f4df7d33ddb5211cfd3250eae096f5904e2fe00c3ff1b",
+        "token": 44,
+        "top_ties": 1
+      }
+    },
+    {
+      "prompt": [
+        0,
+        17,
+        22,
+        44,
+        17,
+        22
+      ],
+      "enabled": false,
+      "emitted": [
+        1
+      ],
+      "step": {
+        "bucket": 35,
+        "context_tokens": 6,
+        "mass_q48": 68719476736,
+        "mass_sha256": "106d6fcd697cd691cda699be16cb39683b47e0b39a63c2f88ece4b83e035b7f8",
+        "pick_successor": null,
+        "pick_words": null,
+        "prefix_sha256": "7eb2ec41c9aa920fe62f4df7d33ddb5211cfd3250eae096f5904e2fe00c3ff1b",
+        "token": 1,
+        "top_ties": 4095
+      }
+    },
+    {
+      "prompt": [
+        0,
+        17,
+        22,
+        45,
+        17,
+        22
+      ],
+      "enabled": true,
+      "emitted": [
+        45
+      ],
+      "step": {
+        "bucket": 211,
+        "context_tokens": 6,
+        "mass_q48": 281474976710656,
+        "mass_sha256": "0f7f56b24d1575f14819d943c67015408b4eb94e1f325fdc5651dd2dc001a45f",
+        "pick_successor": 45,
+        "pick_words": [
+          2,
+          0,
+          1
+        ],
+        "prefix_sha256": "4742099d365210aa7cbcafb22dddea9203ce2445a7f221e6166f1bcde821576d",
+        "token": 45,
+        "top_ties": 1
+      }
+    },
+    {
+      "prompt": [
+        0,
+        17,
+        22,
+        45,
+        17,
+        22
+      ],
+      "enabled": false,
+      "emitted": [
+        1
+      ],
+      "step": {
+        "bucket": 35,
+        "context_tokens": 6,
+        "mass_q48": 68719476736,
+        "mass_sha256": "106d6fcd697cd691cda699be16cb39683b47e0b39a63c2f88ece4b83e035b7f8",
+        "pick_successor": null,
+        "pick_words": null,
+        "prefix_sha256": "4742099d365210aa7cbcafb22dddea9203ce2445a7f221e6166f1bcde821576d",
+        "token": 1,
+        "top_ties": 4095
+      }
+    }
+  ]
+}

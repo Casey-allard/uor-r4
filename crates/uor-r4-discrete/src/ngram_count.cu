@@ -18,6 +18,8 @@ typedef unsigned long long u64;
 #define RADIX_TILE 4096u
 #define RADIX_WARPS 8u
 #define BUCKET_TILE 1048576u
+#define HIST_THREADS 256u
+#define HIST_BLOCKS 256u
 #define SCAN_THREADS 256u
 #define SCAN_ITEMS 8u
 #define SCAN_BLOCK (SCAN_THREADS * SCAN_ITEMS)
@@ -54,16 +56,19 @@ __device__ __forceinline__ bool ngram_admitted(const u16 *tokens, u32 j, u32 k) 
 // ---------------------------------------------------------------- planning
 
 // Per-block histogram of the partition token t[j-off] over the admitted
-// targets j in begin..end of order k; shared integer adds only.
+// targets j in begin..end of order k; shared integer adds only. This kernel
+// is launched with the fixed HIST_BLOCKS-by-HIST_THREADS geometry in Rust.
+// Keeping the strides constant also prevents an optimizer-generated
+// floating-point reciprocal for the histogram-loop trip count.
 extern "C" __global__ void ngram_token_hist(const u16 *tokens, u32 begin, u32 end, u32 k, u32 off,
                                             u32 *block_hists) {
     __shared__ u32 h[4096];
-    for (u32 v = threadIdx.x; v < 4096u; v += blockDim.x) h[v] = 0;
+    for (u32 v = threadIdx.x; v < 4096u; v += HIST_THREADS) h[v] = 0;
     __syncthreads();
-    for (u32 j = begin + blockIdx.x * blockDim.x + threadIdx.x; j < end; j += gridDim.x * blockDim.x)
+    for (u32 j = begin + blockIdx.x * HIST_THREADS + threadIdx.x; j < end; j += HIST_BLOCKS * HIST_THREADS)
         if (ngram_admitted(tokens, j, k)) atomicAdd(&h[tokens[j - off] & 4095u], 1u);
     __syncthreads();
-    for (u32 v = threadIdx.x; v < 4096u; v += blockDim.x) block_hists[blockIdx.x * 4096u + v] = h[v];
+    for (u32 v = threadIdx.x; v < 4096u; v += HIST_THREADS) block_hists[blockIdx.x * 4096u + v] = h[v];
 }
 
 // Column sums of the per-block histograms, in block order.

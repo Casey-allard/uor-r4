@@ -1,0 +1,14 @@
+[package]
+name = "p1-state-tool"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+hex = "0.4"
+uor-r4-tokenizer = { path = "../../../../../../../crates/uor-r4-tokenizer" }
+uor-r4-count-runtime = { path = "../../../../../../../crates/uor-r4-discrete/count-runtime" }

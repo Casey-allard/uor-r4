@@ -1,0 +1,49 @@
+{
+  "scope": "Repaired CUDA finite qualification and product fixtures",
+  "gpu": "GPU-8cd7b2a3-ecce-712b-2962-0062cc035b16",
+  "stage_sha256": "560feb1f652e78fe1fa7b20639871b6f69ebf840e23032d712dac16a9db058c5",
+  "application_build_manifest_sha256": "64c0815b0d47056ff500aa213a20c5e87e7e754c37d1c40b65f7f4d90416b593",
+  "machine_manifest_sha256": "e8deefa5d33f08938b8a3b78aaf7dbff5612e7a5b239b86304c96bf9c18e42eb",
+  "finite_manifest_sha256": "d405582d447abe4412c60366a91ff8a014324e57d4a9e3a04a8f0d945c4fc179",
+  "c128": {
+    "physical_bytes": 16459406,
+    "sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e",
+    "probe_count": 12678,
+    "lookup_tape_sha256": "7dcd116dae4ebef8d7c96f5c17916cec55deb75d9d09cd9c276b52e078febd9e"
+  },
+  "a1_fixture": {
+    "targets": 128,
+    "q12_sums_equal": 97,
+    "q32_weight_words_equal": 717024,
+    "rejects_truncated_tape": true
+  },
+  "gpu_client_fixture": {
+    "steps": 17,
+    "original_ids_each": 4095,
+    "original_id_mass_comparisons": 69615,
+    "rejects_truncated_tape": true
+  },
+  "ordinary_client_fixture": {
+    "wick_executable_sha256": "1842bf7d504aa9fd15eaca49a2c0faf5f9e7e0f7c734bc2dd4732475b36cecea",
+    "mac_wick_equal_traces": 6,
+    "graded_synthetic_fixed_golds": 6,
+    "synthetic_all_exact": 6,
+    "synthetic_none_exact": 0,
+    "grade_sha256": "d532317f587fa1e6752d3031657b71d134d56d7653561de3c27264a33e97af10",
+    "negative_grades": [
+      "token substitution at step 1",
+      "omitted mass digest from both records",
+      "different fitted weight identity"
+    ]
+  },
+  "count_primary": {
+    "elapsed_seconds": 23.81,
+    "peak_host_rss_kib": 2479896,
+    "materialization_ms": 7888,
+    "with_readback_ms": 22389,
+    "count_receipt_sha256": "34e3cd6e9d4ae35a78284a36911547f4ca4109b52e0e85e09fb3af54630f3df7",
+    "initial_checksum_list_malformed": true,
+    "strict_go_manifest_sha256": "1fb3ac5fe156fec21149af6d07e7f27e3019d3f28f83a0f190811948dfb6b465",
+    "on_pod_results_sha256": "2d7da7a31230a846f3caa4037c9ffa8690061ebb10c557f813622a03c2bbace8"
+  }
+}

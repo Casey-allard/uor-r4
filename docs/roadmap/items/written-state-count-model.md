@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [m2-donor-corpus-generation]
 notebook: docs/research/notebook/m4-serving.md
-scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/discrete_d11/rival_admission.rs, crates/uor-r4-integer/src/all_starts.rs, crates/uor-r4-integer/src/all_starts/original.rs, crates/uor-r4-integer/src/all_starts/rival.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
+scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/Cargo.toml, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/discrete_d11/rival_admission.rs, crates/uor-r4-integer/src/all_starts.rs, crates/uor-r4-integer/src/all_starts/original.rs, crates/uor-r4-integer/src/all_starts/rival.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/src/bin/uor_chat/**, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
 done_class: gpu
 ---
 
@@ -19,6 +19,8 @@ The November 16 decision puts the current training and serving experiment on one
 ## What is missing
 
 P0 freezes the split, reference models and scoring instruments. PR #4057 measured 2.004736 bits per byte on DEV-tune with the order-2 modified Kneser–Ney reference. PR #4058 merged at `11c2901d9`. The DEV-tune sweep selected order 10, the maximum its key could represent. On sealed DEV-test the reference scored **1.418136 bits per byte on all targets** and **1.743746 on the novel subset**. The corresponding bar Q thresholds for a candidate are 1.134508 and 1.394996 bits per byte. The geometric model’s P1–P5 comparisons remain open under their original gates. [Calibration](../../loop/tasks/written-state-count-model/claude-421/REPORT.md) · [Sealed reference and thresholds](../../loop/tasks/written-state-count-model/claude-422/REPORT.md) · [Merged PR #4058](https://github.com/UOR-Foundation/uor-r4/pull/4058)
+
+D31 delivered the complete 1% C1 count file and the full reserved-TRAIN A1 fitted state through the ordinary text client. An independent blind CUDA run reproduced all 192 causal decisions and full Q48 score hashes. Both read modes scored 0/6 fixed-gold replies through EOS, and changing the requested person left the first-step distribution unchanged when fact order was fixed. The item stays ready for a full-dose P1 candidate within the 4 GB cap, scored after frozen fitting and readback on the registered panels. DEV-test stayed sealed during D31. The P1(d) ft/dev floor, P2 equal-byte comparison, P3 reply gates and P4 M1-class measurements remain open. [D31 result and next comparison](../../loop/tasks/written-state-count-model/codex-31/REPORT.md) · [First wrong token](../../loop/tasks/written-state-count-model/codex-31/client/FIRST-WRONG.md)
 
 ## Done when
 
@@ -38,6 +40,6 @@ Use the shared native operators and lossless representation specified in D85. Pr
 
 The [18 November program assessment and closure plan](../../loop/tasks/written-state-count-model/codex-9/CLOSURE-PLAN.md) reconciles the P0 amendments, Wick selector and writer diagnostics, LexLean correspondence and remaining M2–M8 product gates. Its proposed experiments include a crossed role/value-boundary test in parallel with the P1 frozen count baseline.
 
-The [first implementation and Wick decision](../../loop/tasks/written-state-count-model/codex-10/REPORT.md) replays the 1% count stream and packages a learned occurrence reader for ordinary text. The crossed writer and held copy-eligibility tests expose transfer and abstention errors. The deployable full-support P1 mixer, P2 predictive comparison and M2 free-reply milestone remain open.
+The [first implementation and Wick decision](../../loop/tasks/written-state-count-model/codex-10/REPORT.md) replays the 1% count stream and packages a learned occurrence reader for ordinary text. The crossed writer and held copy-eligibility tests expose transfer and abstention errors. This record predates the D31 1% full-support P1 prototype.
 
 The [fresh instrument and transfer retest](../../loop/tasks/written-state-count-model/codex-16/REPORT.md) independently verifies correct and rival source behavior and finds distinct requested-role ties and value-start errors on unmarked questions. The role-discrimination and boundary tests proceed under the existing milestone and P1–P5 criteria.

@@ -1,0 +1,21 @@
+{
+  "schema": "uor-r4.d31.full-c1-go/1",
+  "decision": "GO",
+  "utc": "2026-11-20 03:44:43 UTC",
+  "lab": "codex",
+  "scope": "Complete registered C1 count and lookup",
+  "pod": "vast-61568255",
+  "gpu": "GPU-8cd7b2a3-ecce-712b-2962-0062cc035b16",
+  "lease": "codex/count31-repaired-chain",
+  "stage_sha256": "560feb1f652e78fe1fa7b20639871b6f69ebf840e23032d712dac16a9db058c5",
+  "source_sha256": "372fded6915d8ab2677df4fb7b6c5ae768bbabd2226740d559f51b52681a236d",
+  "source_manifest_sha256": "cea9ed08d8efd552545597ae458bb03da3ac00f38ce31dfbca49acf0bf391e35",
+  "sheet_sha256": "601cf28a364de162e800a7b05ab0ecaae71ba14d9f158efa99c8aff086b8bf8e",
+  "fit_sha256": "ded32e34d12feab1624844e9457e6ce3e1778035751092738f77497550b662a6",
+  "build_sha256": "64c0815b0d47056ff500aa213a20c5e87e7e754c37d1c40b65f7f4d90416b593",
+  "machine_sha256": "e8deefa5d33f08938b8a3b78aaf7dbff5612e7a5b239b86304c96bf9c18e42eb",
+  "finite_sha256": "d405582d447abe4412c60366a91ff8a014324e57d4a9e3a04a8f0d945c4fc179",
+  "exe_sha256": "44bc78aa7efd39b13670f3d0912a1bfce3090b0d3b168d6bbd08f6d96c896519",
+  "c1_sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030",
+  "c128_sha256": "eea859b5d7272ef8d4be3a4ee623c92c2b11da866478b05765a7b20557b3788e"
+}

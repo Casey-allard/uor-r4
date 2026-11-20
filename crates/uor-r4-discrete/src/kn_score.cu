@@ -8,8 +8,10 @@
 // ctx_off[k]..ctx_off[k+1] and its triples tri_off[k]..tri_off[k+1], both in
 // the counter's canonical order. A key is two u64 words, lo then hi, of the
 // 128-bit PrimeRouteKey word. Arithmetic uses nvcc's unsigned __int128 for
-// add, subtract, multiply and shift; division is div_u128_u64 below, never
-// nvcc's own 128-bit division routine.
+// add, subtract, multiply and shift. The explicit restoring divider keeps
+// even the high-word quotient in integer instructions.
+
+#include "kn_score_division.cuh"
 
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -22,25 +24,6 @@ typedef unsigned __int128 u128;
 // (ahi, alo) < (bhi, blo) as one 128-bit word.
 __device__ __forceinline__ bool key_less(u64 ahi, u64 alo, u64 bhi, u64 blo) {
     return ahi < bhi || (ahi == bhi && alo < blo);
-}
-
-// floor(x / d) for d > 0, integer instructions only. nvcc's own 128-bit
-// division calls a routine that the integer PTX admission refuses (it holds
-// .f32), so: the high word by one native 64-bit divide, then the low word by
-// 64 shift-and-subtract steps on a remainder below d.
-__device__ __forceinline__ u128 div_u128_u64(u128 x, u64 d) {
-    u64 hi = (u64)(x >> 64), lo = (u64)x;
-    u64 q_hi = hi / d;
-    u128 r = (u128)(hi - q_hi * d);
-    u64 q_lo = 0;
-    for (int b = 63; b >= 0; --b) {
-        r = (r << 1) | (u128)((lo >> b) & 1ull);
-        if (r >= (u128)d) {
-            r -= (u128)d;
-            q_lo |= 1ull << b;
-        }
-    }
-    return ((u128)q_hi << 64) | (u128)q_lo;
 }
 
 // One thread per target j = positions[i]: masses[i] gets its Q48 mass and
@@ -90,11 +73,11 @@ extern "C" __global__ void kn_score_targets(const u16 *tokens, const u32 *positi
         if (b0 < tri_off[k + 1u] && tri_keys[2u * b0] == lo && tri_keys[2u * b0 + 1u] == hi && tri_next[b0] == target)
             a = tri_count[b0];
         u128 d1 = discounts[3u * k], d2 = discounts[3u * k + 1u], d3 = discounts[3u * k + 2u];
-        u128 gamma = div_u128_u64(d1 * n1 + d2 * n2 + d3 * n3, total);
+        u128 gamma = kn_score_division::divide(d1 * n1 + d2 * n2 + d3 * n3, total);
         u128 da = a == 0u ? (u128)0 : (a == 1u ? d1 : (a == 2u ? d2 : d3));
         u128 kept = (u128)a * m - da;
         // M = 2^48, so floor(gamma * mass / M) is a shift of a non-negative word.
-        mass = div_u128_u64(kept, total) + ((gamma * mass) >> 48);
+        mass = kn_score_division::divide(kept, total) + ((gamma * mass) >> 48);
     }
     // claude-422: a chain whose floors reach 0 is floored at one Q48 unit, as
     // KnTables::mass does.

@@ -551,9 +551,11 @@ extern "C" __global__ void discrete_init(int* table,U* routes,int* gates,const U
     if(i<gate_count(s))gates[i]=0;
     if(i==0)*status=0;
 }
+#include "discrete_index_arithmetic.cuh"
 extern "C" __global__ void discrete_encode(const int* table,const U* ids,U count,U width,U vocabulary,int* out,U* status) {
     U i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=count*width)return;
-    U token=ids[i/width];if(token>=vocabulary){atomicExch(status,1u);return;}out[i]=table[token*width+i%width];
+    U row=discrete_index_arithmetic::token_index(i,width);
+    U token=ids[row];if(token>=vocabulary){atomicExch(status,1u);return;}out[i]=table[token*width+i-row*width];
 }
 // Read-only current-checkpoint token cells, in token-ID order. Only cells/status
 // are writable; the existing identity-candidate helper supplies all geometry.
@@ -820,7 +822,7 @@ extern "C" __global__ void discrete_carrier_select(const U* targets,const U* top
     U lowest_target=ABSENT;
     for(U i=0;i<CARRIER_THREADS;++i)if(low[i]<lowest_target)lowest_target=low[i];
     if(lowest_target==ABSENT){atomicExch(status,4u);return;}
-    if(mode==2u){W r=carrier_mix(key)%(W)rows;out[0]=targets[r];out[1]=r;return;}
+    if(mode==2u){W r=discrete_index_arithmetic::carrier_index(carrier_mix(key),(W)rows);out[0]=targets[r];out[1]=r;return;}
     if(mode==0u){
         W credit=0;U winner=ABSENT;
         for(U i=0;i<CARRIER_THREADS;++i)if(value[i]>credit){credit=value[i];winner=token[i];}
@@ -830,7 +832,7 @@ extern "C" __global__ void discrete_carrier_select(const U* targets,const U* top
     W distinct=0;
     for(U i=0;i<CARRIER_THREADS;++i)distinct+=value[i];
     if(distinct==0){atomicExch(status,4u);return;}
-    W k=carrier_mix(key)%distinct;
+    W k=discrete_index_arithmetic::carrier_index(carrier_mix(key),distinct);
     for(U i=0;i<CARRIER_THREADS;++i){
         if(k>=value[i]){k-=value[i];continue;}
         U from=i*chunk,to=from+chunk;if(to>vocabulary)to=vocabulary;

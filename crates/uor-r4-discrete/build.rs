@@ -400,6 +400,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../uor-r4-core/src/spiralcore_operator.rs");
     println!("cargo:rerun-if-changed=src/discrete.cu");
+    println!("cargo:rerun-if-changed=src/discrete_index_arithmetic.cuh");
     println!("cargo:rerun-if-changed=src/decomposition_source.rs");
     println!("cargo:rerun-if-changed=src/baseline_reuse_source.rs");
     println!("cargo:rerun-if-changed=src/rows_source.rs");
@@ -411,6 +412,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/native_vector.cu");
     println!("cargo:rerun-if-changed=src/ngram_count.cu");
     println!("cargo:rerun-if-changed=src/kn_score.cu");
+    println!("cargo:rerun-if-changed=src/kn_score_division.cuh");
     println!("cargo:rerun-if-changed=src/kn_lookup.cu");
     println!("cargo:rerun-if-changed=src/equal_count.cu");
     println!("cargo:rerun-if-env-changed=NVCC");

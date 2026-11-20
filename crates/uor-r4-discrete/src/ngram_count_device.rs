@@ -101,7 +101,9 @@ const RADIX_WARPS: u32 = 8;
 const SCAN_THREADS: u32 = 256;
 const SCAN_BLOCK: u32 = 2048;
 const THREADS: u32 = 256;
+// ngram_token_hist fixes both launch dimensions as integer strides in CUDA.
 const HIST_BLOCKS: u32 = 256;
+const HIST_THREADS: u32 = 256;
 /// Targets examined per selection window: bounds the flag and scan buffers.
 const SELECT_WINDOW: u32 = 1 << 26;
 /// Positions per warp tile of the slot-1 bucket sort (`BUCKET_TILE` in the .cu).
@@ -278,12 +280,28 @@ impl NgramCounter {
         let mut hist = self.zeros::<u64>(4096)?;
         let (begin, end, blocks) = (order, self.n, HIST_BLOCKS);
         let off = partition_offset(order) as u32;
-        let mut launch = self.stream.launch_builder(self.function("ngram_token_hist"));
-        launch.arg(&self.tokens).arg(&begin).arg(&end).arg(&order).arg(&off).arg(&mut block_hists);
+        let mut launch = self
+            .stream
+            .launch_builder(self.function("ngram_token_hist"));
+        launch
+            .arg(&self.tokens)
+            .arg(&begin)
+            .arg(&end)
+            .arg(&order)
+            .arg(&off)
+            .arg(&mut block_hists);
         // SAFETY: j - off and j - (k-1) >= 0 since j >= order >= off; block_hists HIST_BLOCKS x 4096.
-        unsafe { launch.launch(LaunchConfig { grid_dim: (HIST_BLOCKS, 1, 1), block_dim: (THREADS, 1, 1), shared_mem_bytes: 0 }) }
-            .map_err(cuda)?;
-        let mut launch = self.stream.launch_builder(self.function("ngram_token_hist_reduce"));
+        unsafe {
+            launch.launch(LaunchConfig {
+                grid_dim: (HIST_BLOCKS, 1, 1),
+                block_dim: (HIST_THREADS, 1, 1),
+                shared_mem_bytes: 0,
+            })
+        }
+        .map_err(cuda)?;
+        let mut launch = self
+            .stream
+            .launch_builder(self.function("ngram_token_hist_reduce"));
         launch.arg(&block_hists).arg(&blocks).arg(&mut hist);
         // SAFETY: 4096 outputs, HIST_BLOCKS rows read.
         unsafe { launch.launch(grid(4096)) }.map_err(cuda)?;

@@ -66,3 +66,7 @@ test = false
 name = "compact-count"
 path = "src/bin/compact-count.rs"
 required-features = ["cuda"]
+
+[[bin]]
+name = "full-compact-count"
+path = "src/bin/full-compact-count.rs"

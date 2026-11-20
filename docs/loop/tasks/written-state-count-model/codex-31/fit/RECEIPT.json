@@ -1,0 +1,46 @@
+{
+  "cuda_probe_count": 575,
+  "cuda_probe_masses_sha256": "ce4982b560069c69798436569188ac61e8bf098857cf631e03dc2c8847d88867",
+  "cuda_trace_sha256": "1226d637f99b6abf169d39ba390e66b0ceaefcb072b20b37ddb1af5f4b0f8a30",
+  "final_fit_bits_q12": 235787974827,
+  "historical_q12_pass_sums_equal": 97,
+  "historical_q32_pick_words_equal": 306,
+  "historical_receipt_sha256": "c1c6fe526b99dbc3939ca2fa8927cdebe82eb47f23ebfe83499f35e035fdc959",
+  "passes": 96,
+  "preparation_sha256": "c70b352217374024b25f2faf962714476d2a05e3eb2bb4a2787536b66b519f49",
+  "prepared": {
+    "budget": 16777216,
+    "c_sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030",
+    "compact_sha256": "10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955",
+    "cuda_kn_image": [
+      "cb423de7a83250100c81db4443748eb197bf81717ff8bf2ac17c5e887a777fe5",
+      "b62b491b9f443202a46c56eaa79e645f2589b25c9b0b4bebc549e9341ab30810",
+      "7f4c47533aa1087e7be0fff9abb4b9802b023ea3cfde442735eb3288f85bff1f"
+    ],
+    "cuda_raw_image": [
+      "c4544edd0405316d8324574c336ef9ffcdda3260a5991eba684e592a0e982380",
+      "9cb82018a08a257ae96c0a9d7edebbc66730cb25b833da2cbf2066b74cbc3194",
+      "9ef0d047f1fcbaeb455953e541b95a3aa3690beb65cb1e410ff048fb58b4167d"
+    ],
+    "device_source_sha256": "76e5aaf08732c2dcc70fa46be7a25bbf4a7d139472af76b5b7510ee8a3a64ffe",
+    "elapsed_ms": 269652,
+    "format": "uor-r4.d31.a1-preparation/1",
+    "historical_global_orders_verified": [
+      11,
+      11
+    ],
+    "host_source_sha256": "fb1570a9ae98f1cbff12612103bc73991bff6b58e2f6a00586b779794d022d28",
+    "preparation_source_sha256": "c89ec6e5fb79cd12c8d5c7f9a064d69295dbddb71d9108e42c0145518a37284d",
+    "probe_ordinals_sha256": "5f0ccd4b7d93f87944c8c6a4aced2aab4d6d38064af431265ab2229137490bae",
+    "probes_sha256": "1c6b6b8765d6ef5a2b293824a33c2bcf1d3ab6a649637ec8c609f5f9069e1bca",
+    "r_sha256": "5875b173ad19aefbdd38929af8d88c15344333e941f44128d5e0a67b50102a0a",
+    "records": 4060,
+    "rows": 15947584,
+    "rows_sha256": "38709e7829137aaf2b99c5c54637b65cbb6a7a59dbcf4f7bd22393ee5d1d8cba",
+    "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d"
+  },
+  "q32_weight_words": 7392,
+  "rows": 15947584,
+  "schema": "uor-r4.d31.a1-fit/1",
+  "weight_format": "UORS5W01"
+}
