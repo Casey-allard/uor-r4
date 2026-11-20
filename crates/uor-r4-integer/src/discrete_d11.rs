@@ -1750,7 +1750,10 @@ fn validate_onset_bank(
     requested_policy: Option<RequestedPolicy>,
 ) -> Result<OnsetPolicy> {
     if let Some(policy) = &requested_policy {
-        if profile.mode != crate::all_starts::OnsetMode::Ordered {
+        if !matches!(
+            profile.mode,
+            crate::all_starts::OnsetMode::Ordered | crate::all_starts::OnsetMode::OrderedWholeWord
+        ) {
             return Err(invalid(
                 "assertion agreement requires the original ordered value policy",
             ));

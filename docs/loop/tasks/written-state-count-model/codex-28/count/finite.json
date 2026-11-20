@@ -1,0 +1,124 @@
+{
+  "bytes": 6956,
+  "final_bits_q12": 32777,
+  "fit_targets": 9,
+  "initial_bits_q12": 110592,
+  "manifest_sha256": "baebf26859e9fb213874066988303dbcfbc73e46e9c6c16d92a50c6f0ecf8fb8",
+  "replay": [
+    {
+      "bucket": 18,
+      "fit": true,
+      "mass_q48": 140737488279795,
+      "pick_class": 0,
+      "pick_hit": false
+    },
+    {
+      "bucket": 33,
+      "fit": true,
+      "mass_q48": 140737488279795,
+      "pick_class": 0,
+      "pick_hit": false
+    },
+    {
+      "bucket": 114,
+      "fit": true,
+      "mass_q48": 140737488247027,
+      "pick_class": 2,
+      "pick_hit": false
+    },
+    {
+      "bucket": 129,
+      "fit": true,
+      "mass_q48": 140737488247027,
+      "pick_class": 2,
+      "pick_hit": false
+    },
+    {
+      "bucket": 114,
+      "fit": true,
+      "mass_q48": 140737488312563,
+      "pick_class": 2,
+      "pick_hit": true
+    },
+    {
+      "bucket": 81,
+      "fit": true,
+      "mass_q48": 142418788702451,
+      "pick_class": 1,
+      "pick_hit": true
+    },
+    {
+      "bucket": 66,
+      "fit": true,
+      "mass_q48": 281474976504051,
+      "pick_class": 1,
+      "pick_hit": true
+    },
+    {
+      "bucket": 81,
+      "fit": true,
+      "mass_q48": 139056187857139,
+      "pick_class": 1,
+      "pick_hit": false
+    },
+    {
+      "bucket": 114,
+      "fit": true,
+      "mass_q48": 140737488247027,
+      "pick_class": 2,
+      "pick_hit": false
+    },
+    {
+      "bucket": 33,
+      "fit": false,
+      "mass_q48": 140737488279795,
+      "pick_class": 0,
+      "pick_hit": false
+    },
+    {
+      "bucket": 18,
+      "fit": false,
+      "mass_q48": 140737488279795,
+      "pick_class": 0,
+      "pick_hit": false
+    },
+    {
+      "bucket": 129,
+      "fit": false,
+      "mass_q48": 140737488247027,
+      "pick_class": 2,
+      "pick_hit": false
+    },
+    {
+      "bucket": 114,
+      "fit": false,
+      "mass_q48": 140737488247027,
+      "pick_class": 2,
+      "pick_hit": false
+    },
+    {
+      "bucket": 129,
+      "fit": false,
+      "mass_q48": 140737488312563,
+      "pick_class": 2,
+      "pick_hit": true
+    },
+    {
+      "bucket": 66,
+      "fit": false,
+      "mass_q48": 281474976504051,
+      "pick_class": 1,
+      "pick_hit": true
+    },
+    {
+      "bucket": 81,
+      "fit": false,
+      "mass_q48": 139056187857139,
+      "pick_class": 1,
+      "pick_hit": false
+    }
+  ],
+  "replay_targets": 16,
+  "sha256": "f32eed9a80b9d250442faaa99c094e47de262d06737c50b96bd30f770ef17261",
+  "weight_words": 864
+}

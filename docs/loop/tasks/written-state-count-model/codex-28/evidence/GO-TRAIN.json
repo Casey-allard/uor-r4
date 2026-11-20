@@ -1,0 +1,10 @@
+{
+  "decision": "GO-TRAIN",
+  "lab": "codex",
+  "time": "2026-11-20T01:07:19Z",
+  "non_author_fit": "b73077a1dc68ab3cefb6d62993247b10ec11d06fb208bf6c4c011b7c243245f5",
+  "sheet": "3a922fcddbe9d5688c67b652c3b2bbfbf7702017cdb6e8fd49965bffdb08ecc3",
+  "finite_manifest": "85a49508d065facb8cc386241fc6a1ad44832ecf40a9377f99bc124d81ab4a2f",
+  "frozen_train_packet": "dfcd22f0f4f75c6a0298c6b2f1363562d189b58508911b39d18877f41506bd9c",
+  "device": "vast-61548609/0"
+}

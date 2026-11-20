@@ -1,0 +1,17 @@
+[package]
+name = "d28-onset-fit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d28-onset-fit"
+path = "main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+all-starts-native = { path = "../../codex-17/native" }
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer" }

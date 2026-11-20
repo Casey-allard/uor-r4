@@ -1,0 +1,29 @@
+{
+  "any_other_target_pick_contribution_q48": 0,
+  "bucket": 527,
+  "copied_id": 11,
+  "copied_target_pick_contribution_q48": 65536,
+  "fit_targets": 406394,
+  "pick_class": 2,
+  "pick_distance": 12,
+  "pick_position": 9,
+  "pick_ties": 3,
+  "pick_weight_q32": 1,
+  "prefix_ids": [
+    0,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "report_sha256": "28d06be01c22439fb715d6ba516845c8ee5a0530c0b0c09ec9d062461d4a4a53",
+  "seen_order_supplied": 10,
+  "seen_total_supplied": 32768,
+  "trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d"
+}

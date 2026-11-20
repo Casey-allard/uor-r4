@@ -49,6 +49,7 @@ pub struct ArmScore {
     /// `bits_q12` of each target's mixed mass.
     pub bits: Vec<u64>,
     pub pick_weights: Vec<PickWeight>,
+    pub weights_q32: Vec<u64>,
 }
 
 pub struct B3 {
@@ -141,6 +142,7 @@ pub fn fit_arm(span: &SpanInputs, pick: ArmPick) -> Result<ArmScore, Failure> {
         gap_q12: gap,
         bits,
         pick_weights,
+        weights_q32: result.weights,
     })
 }
 
@@ -237,6 +239,7 @@ fn arm_json(
         .map(|w| json!({"bucket": w.bucket, "class": w.class, "fit_targets": w.fit_targets, "weight_q32": w.weight_q32}))
         .collect();
     out.insert("pick_weights".into(), json!(weights));
+    out.insert("weights_q32".into(), json!(&score.weights_q32));
     Ok((out, ok))
 }
 
@@ -620,6 +623,21 @@ mod tests {
         }
         for arm in ["a0", "a1", "c1", "c2", "c3"] {
             assert!(out["main"].get(arm).is_some(), "missing arm {arm}");
+        }
+        // The historical per-Pick diagnostics must be unchanged columns of
+        // the complete fitted state now emitted into the receipt.
+        let highest = data.span(0).highest;
+        let a1 = &out["main"]["a1"];
+        let words: Vec<u64> = serde_json::from_value(a1["weights_q32"].clone()).unwrap();
+        let frozen =
+            uor_r4_discrete::kn_ceiling::FrozenPickMixture::new(highest, [1; 32], words).unwrap();
+        let base = uor_r4_discrete::kn_ceiling::expert_count(highest);
+        for weight in a1["pick_weights"].as_array().unwrap() {
+            let bucket = weight["bucket"].as_u64().unwrap() as usize;
+            assert_eq!(
+                frozen.weights()[bucket * (base + 1) + base],
+                weight["weight_q32"].as_u64().unwrap()
+            );
         }
         for (_, side) in out["bands"].as_object().unwrap() {
             for part in ["all", "novel"] {

@@ -10,6 +10,12 @@ use crate::{
     Result,
 };
 
+mod original;
+pub use original::{
+    original_candidates, original_packet, OriginalCandidates, OriginalStart, OriginalStartGeometry,
+    ORIGINAL_CANDIDATE_WORDS, ORIGINAL_DECISION_WORDS,
+};
+
 const RAW: u32 = 0x31425355;
 const SEALED: u32 = 0x32425355;
 const CAP: usize = 256;
@@ -34,6 +40,7 @@ pub enum OnsetMode {
     /// External supplied-query evaluation only. Not a serialized onset profile.
     #[serde(skip)]
     EarlierConnectorV1 = 6,
+    OrderedWholeWord = 7,
 }
 
 impl OnsetMode {
@@ -46,6 +53,7 @@ impl OnsetMode {
             4 => Some(Self::Veto),
             5 => Some(Self::Both),
             6 => Some(Self::EarlierConnectorV1),
+            7 => Some(Self::OrderedWholeWord),
             _ => None,
         }
     }
@@ -59,13 +67,18 @@ impl OnsetMode {
             Self::Veto => "veto",
             Self::Both => "both",
             Self::EarlierConnectorV1 => "earlier-connector-v1",
+            Self::OrderedWholeWord => "ordered-whole-word",
         }
     }
 
     /// New policies select over the same losslessly loaded ordered bank.
     pub const fn fitted_mode(self) -> Self {
         match self {
-            Self::Ranked | Self::Veto | Self::Both | Self::EarlierConnectorV1 => Self::Ordered,
+            Self::Ranked
+            | Self::Veto
+            | Self::Both
+            | Self::EarlierConnectorV1
+            | Self::OrderedWholeWord => Self::Ordered,
             _ => self,
         }
     }
@@ -213,6 +226,9 @@ impl Bank {
         query: usize,
         frozen: AssertionValue,
     ) -> Result<OnsetDecision> {
+        if self.mode == OnsetMode::OrderedWholeWord {
+            return self.choose_original(ids, roots, classes, last, query, frozen);
+        }
         if self.mode == OnsetMode::EarlierConnectorV1 {
             return Err(invalid(
                 "earlier connector policy requires an external supplied-query row",

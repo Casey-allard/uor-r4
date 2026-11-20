@@ -15,6 +15,9 @@ use crate::ngram_count::{
 };
 use crate::{Error, Result};
 
+mod frozen_pick;
+pub use frozen_pick::FrozenPickMixture;
+
 /// Q32 unit of a mixing weight.
 pub const WEIGHT_ONE: u64 = 1 << 32;
 /// Buckets per seen order: min(15, floor(log2 total)).
@@ -225,6 +228,43 @@ pub struct PickTarget {
     pub hit: bool,
 }
 
+fn ceiling_pick_row(
+    highest: u32,
+    kn: u64,
+    counts: &[u32],
+    totals: &[u64],
+    pick: PickTarget,
+    row: &mut [u64],
+) -> Result<u16> {
+    if pick.class >= PICK_CLASSES {
+        return Err(invalid(format!(
+            "Pick class {} is above {}",
+            pick.class,
+            PICK_CLASSES - 1
+        )));
+    }
+    if pick.hit && pick.class == PICK_NOT_FIRED {
+        return Err(invalid("a Pick hit that did not fire"));
+    }
+    let base = expert_count(highest);
+    let plain = ceiling_expert_row(kn, counts, totals, &mut row[..base])?;
+    row[base] = if pick.hit { 1 << 48 } else { 0 };
+    let bucket = usize::from(pick.class) * bucket_count(highest) + usize::from(plain);
+    u16::try_from(bucket).map_err(|_| invalid("a bucket exceeded u16"))
+}
+
+fn mix_sum(weights: &[u64], masses: &[u64]) -> u128 {
+    weights
+        .iter()
+        .zip(masses)
+        .map(|(&weight, &mass)| u128::from(weight) * u128::from(mass))
+        .sum()
+}
+
+fn mixed_q48(sum: u128) -> u64 {
+    u64::try_from(sum >> 32).unwrap_or(u64::MAX).max(1)
+}
+
 /// Every target's bucket and its expert masses.
 pub struct CeilingTable {
     highest: u32,
@@ -267,31 +307,19 @@ impl CeilingTable {
         }
         // Rows are written in place, so no Pick-free copy of the table is held.
         let base = expert_count(highest);
-        let stride = bucket_count(highest);
         let mut buckets = Vec::with_capacity(targets);
         let mut masses = vec![0u64; targets * (base + 1)];
-        for (t, p) in pick.iter().enumerate() {
-            if p.class >= PICK_CLASSES {
-                return Err(invalid(format!(
-                    "target {t}: Pick class {} is above {}",
-                    p.class,
-                    PICK_CLASSES - 1
-                )));
-            }
-            if p.hit && p.class == PICK_NOT_FIRED {
-                return Err(invalid(format!("target {t}: a Pick hit that did not fire")));
-            }
+        for (t, &p) in pick.iter().enumerate() {
             let row = &mut masses[t * (base + 1)..(t + 1) * (base + 1)];
-            let plain_bucket = ceiling_expert_row(
+            let bucket = ceiling_pick_row(
+                highest,
                 kn_masses[t],
                 &counts[t * width..(t + 1) * width],
                 &totals[t * width..(t + 1) * width],
-                &mut row[..base],
+                p,
+                row,
             )
             .map_err(|error| invalid(format!("target {t}: {error}")))?;
-            row[base] = if p.hit { 1 << 48 } else { 0 };
-            let bucket = usize::from(p.class) * stride + usize::from(plain_bucket);
-            let bucket = u16::try_from(bucket).map_err(|_| invalid("a bucket exceeded u16"))?;
             buckets.push(bucket);
         }
         Ok(Self {
@@ -430,15 +458,11 @@ impl CeilingTable {
         let b = usize::from(self.buckets[t]);
         let w = &weights[b * experts..(b + 1) * experts];
         let p = &self.masses[t * experts..(t + 1) * experts];
-        w.iter()
-            .zip(p)
-            .map(|(&w, &p)| u128::from(w) * u128::from(p))
-            .sum()
+        mix_sum(w, p)
     }
 
     fn mixed(&self, weights: &[u64], t: usize) -> u64 {
-        let m = self.mix_sum(weights, t) >> 32;
-        u64::try_from(m).unwrap_or(u64::MAX).max(1)
+        mixed_q48(self.mix_sum(weights, t))
     }
 
     /// Every target's mixed Q48 mass, at least 1.

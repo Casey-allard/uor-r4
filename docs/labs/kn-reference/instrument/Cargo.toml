@@ -56,3 +56,8 @@ required-features = ["cuda"]
 [[bin]]
 name = "pick-split"
 path = "src/bin/pick-split.rs"
+
+[[bin]]
+name = "s5-mixture"
+path = "src/bin/s5-mixture.rs"
+test = false

@@ -1,0 +1,14 @@
+[package]
+name = "d28-onset-canary"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+sha2 = "0.10"
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+
+[[bin]]
+name = "d28-onset-canary"
+path = "canary.rs"

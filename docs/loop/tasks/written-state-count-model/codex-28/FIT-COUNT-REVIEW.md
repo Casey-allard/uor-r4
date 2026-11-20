@@ -1,0 +1,15 @@
+# [codex] Independent D28 method review
+
+**Method verdict:** fit for a bounded causal diagnostic, pending sealed materials and canaries before dispatch. I did not author the onset operator, TRAIN bank, panel or sheet. This review concerns the value-onset experiment. The count slice is independent.
+
+The four primary cells isolate the change in coverage and the change in candidate reachability, including their interaction. The two append-only cells are the independent test of the missing-negative-support hypothesis because they retain the originals, including radii, and consume only separately labeled TRAIN candidates. A successful answer in the refitted arm alone cannot distinguish newly supported shapes from removal or replacement of an old exemplar. Report the append-only contrast separately.
+
+Required planted checks before held dispatch:
+
+- For unchanged short starts, compare original addresses, descriptors, signed supports, vetoes and decisions under both enumeration policies. Include a farther candidate that enters only in the expanded policy and one token beyond the assertion fence that remains excluded. A new rival may change the final choice on a row, which must be reported as an enumeration effect.
+- Verify that the append-only artifact retains all old entries and radii and adds only distinct TRAIN negatives in an eligible originally positive-only bucket. Report bucket, occupancy, capacity and any skipped contradiction. Use the same augmented bank bytes across both enumeration modes.
+- Exercise each first-divergence class with actual candidate traces. Capture unavailable original start, eligible start with missing signed support, a supported start losing to rival or margin, and a correct selected start followed by a failure to complete through EOS. Compare complete unmodified output token IDs. Forced gold and competing selections remain oracle intervention cases.
+- A row-level trace must distinguish a candidate introduced beyond three connector pieces from an earlier candidate that merely changes rank after expansion. Compare declared first source and first emitted mismatch, then exact copy ending and EOS.
+- For the device check, pin the executable and artifact hashes. Verify original candidate and selected source addresses, support or rejection reason as implemented, and the result words on both processes. Record what portion of the ordinary full reply runs in the host client versus the device replay.
+
+Seal the final independent confirmatory prompts after the TRAIN source, fit packet and fit policy freeze. Use one deterministic fit for every held result, and require the independent unannotated reading to agree with the locked key before exposure or scoring. Earlier held-v2 is a development comparison since TRAIN was still under construction. Require the original paired decision rule in the final panel, including zero newly wrong supported starts or unsupported writes and retention of formerly exact short replies. Pair within prompt and report dependent families. These bounded interventions leave lexical transfer, milestone acceptance and broader conversation capability open.

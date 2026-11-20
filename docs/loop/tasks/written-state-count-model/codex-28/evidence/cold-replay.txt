@@ -1,0 +1,12 @@
+frozen-legacy 35/35 complete raw client transcripts identical
+206 row/lane grades
+frozen-whole 35/35 complete raw client transcripts identical
+206 row/lane grades
+fitted-legacy 35/35 complete raw client transcripts identical
+206 row/lane grades
+fitted-whole 35/35 complete raw client transcripts identical
+206 row/lane grades
+augmented-legacy 35/35 complete raw client transcripts identical
+206 row/lane grades
+augmented-whole 35/35 complete raw client transcripts identical
+206 row/lane grades
