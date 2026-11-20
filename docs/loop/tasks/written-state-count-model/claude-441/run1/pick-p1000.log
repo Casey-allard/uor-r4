@@ -1,0 +1,24 @@
+read: train 2075608357 of 2075608357 tokens, query 80271733 of 80271733, 3488 ms
+sweep: 127 shared ranges for orders 1..=10
+sweep phases ms: wall 239879 | own count 188886 extension count 0 | histogram 238 select 28225 sort 58630 emit 23666 download 36480 records 39370 | runs 0 adjust 0 | push 33281 keep 17481 | 1397 partitions counted
+order 0 sink ms: push 0 keep 0
+order 1 sink ms: push 19 keep 9
+order 2 sink ms: push 269 keep 136
+order 3 sink ms: push 1058 keep 517
+order 4 sink ms: push 2223 keep 1079
+order 5 sink ms: push 3343 keep 1662
+order 6 sink ms: push 4236 keep 2171
+order 7 sink ms: push 4857 keep 2566
+order 8 sink ms: push 5287 keep 2883
+order 9 sink ms: push 5575 keep 3134
+order 10 sink ms: push 6410 keep 3319
+raw order 0: grams 4079 contexts 1, kept triples 4003 contexts 1, order 17442 ms
+raw order 1: grams 3280628 contexts 4079, kept triples 665814 contexts 4003, order 7137 ms
+raw order 2: grams 52778642 contexts 3279140, kept triples 3361307 contexts 665626, order 9082 ms
+raw order 3: grams 200002354 contexts 52763176, kept triples 5983512 contexts 3360095, order 12660 ms
+raw order 4: grams 409311518 contexts 199938212, kept triples 7181352 contexts 5981402, order 18344 ms
+raw order 5: grams 629179289 contexts 409190290, kept triples 7177813 contexts 7178994, order 24706 ms
+raw order 6: grams 824304710 contexts 629005269, kept triples 6554380 contexts 7175652, order 31568 ms
+raw order 7: grams 982027371 contexts 824085379, kept triples 5807565 contexts 6552169, order 36858 ms
+kn-reference: CUDA: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")
+pick-p1000 rc=1 wall s: 480 peak rss KiB (sampled): 18667464 peak GPU used MiB (whole device): 24081

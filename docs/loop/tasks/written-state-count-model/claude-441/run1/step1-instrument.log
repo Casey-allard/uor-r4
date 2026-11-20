@@ -1,0 +1,153 @@
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling zmij v1.0.23
+   Compiling unicode-ident v1.0.27
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling serde v1.0.229
+   Compiling typenum v1.20.1
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.5
+   Compiling itoa v1.0.19
+   Compiling arrayref v0.3.9 (/root/work/c441/third_party/arrayref)
+   Compiling cc v1.11.2
+   Compiling libc v0.2.191
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.3.1
+   Compiling libm v0.2.16
+   Compiling generic-array v0.14.7
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+   Compiling cudarc v0.19.10 (/root/work/c441/third_party/cudarc-0.19.10)
+   Compiling libloading v0.9.1
+   Compiling syn v3.0.10
+   Compiling hex v0.4.3
+   Compiling uor-r4-native-vector v0.1.0 (/root/work/c441/crates/uor-r4-native-vector)
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling memmap2 v0.9.12
+   Compiling blake3 v1.5.0
+   Compiling sha2 v0.10.9
+   Compiling uor-addr v0.2.0 (/root/work/c441/third_party/uor-addr-0.2.0)
+   Compiling serde_derive v1.0.229
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/root/work/c441/crates/uor-r4-tokenizer)
+   Compiling uor-r4-integer v0.1.0 (/root/work/c441/crates/uor-r4-integer)
+   Compiling uor-r4-source-interface v0.1.0 (/root/work/c441/crates/uor-r4-source-interface)
+   Compiling uor-r4-core v0.1.0 (/root/work/c441/crates/uor-r4-core)
+   Compiling uor-r4-discrete v0.1.0 (/root/work/c441/crates/uor-r4-discrete)
+   Compiling kn-reference v0.1.0 (/root/work/c441/docs/labs/kn-reference/instrument)
+    Finished `release` profile [optimized] target(s) in 43.23s
+     Running unittests src/bin/count-ft-replay.rs (/root/work/c441-target-instrument/release/deps/count_ft_replay-aece2ba6ac58e0c8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/count-precision.rs (/root/work/c441-target-instrument/release/deps/count_precision-f61ee4f8d84481bd)
+
+running 1 test
+test tests::restore_only_matching_retained_edges ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/count-reweight.rs (/root/work/c441-target-instrument/release/deps/count_reweight-46fb6362a798c5bf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/equal-count.rs (/root/work/c441-target-instrument/release/deps/equal_count-b27cbce3bda6d966)
+
+running 2 tests
+test tests::tallies_differentiate_all_novel_and_response_novel ... ok
+test tests::novelty_requires_thirteen_within_record_and_train_only ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/root/work/c441-target-instrument/release/deps/kn_reference-ed80b39190911abb)
+
+running 47 tests
+test pick_arms::tests::b2_reads_second_copies_only ... ok
+test pick_device::tests::device_read_is_batch_invariant ... ignored
+test pick_device::tests::host_pick_equals_the_trunk_oracle ... ignored
+test fit_frame::tests::incomplete_target_rows_never_publish_a_seal ... ok
+test pick_arms::tests::segment_tallies_split_by_segment ... ok
+test pick_arms::tests::record_bits_sums_per_record ... ok
+test pick_arms::tests::paired_band_brackets_a_known_shift ... ok
+test pick_device::tests::root_codes_set_sign_bits ... ok
+test pick_device::tests::row_from_words_maps_classes ... ok
+test pick_device::tests::the_read_fills_each_device_call ... ok
+test pick_fit::tests::no_arm_is_read_without_b2_and_every_b3 ... ok
+test pick_fit::tests::a_band_beats_only_when_a1_is_lower ... ok
+test pick_fit::tests::refuses_a_span_with_no_fit_target ... ok
+test pick_fit::tests::each_span_fits_on_its_own_segment_only ... ok
+test pick_fit::tests::pick_stats_count_each_class ... ok
+test pick_fit::tests::the_reading_map_takes_each_row_in_order ... ok
+test pick_fit::tests::the_split_reading_map ... ok
+test pick_run::tests::c2_equals_the_identity_code_read ... ok
+test pick_run::tests::chunk_bounds_cut_at_records ... ok
+test pick_device::tests::permuted_table_matches_permuted_codes ... ok
+test pick_run::tests::first_row_mismatch_finds_the_first_difference ... ok
+test pick_run::tests::split_spans_finds_the_plus_span ... ok
+test pick_run::tests::split_targets_follow_the_distance ... ok
+test pick_run::tests::the_bands_resample_dev_tune_records_only ... ok
+test pick_run::tests::vm_hwm_reads_the_peak_line ... ok
+test tests::a_class_file_must_cover_the_whole_query_stream ... ok
+test tests::a_count_only_run_scores_nothing ... ok
+test tests::a_prefix_ends_before_a_record_start ... ok
+test tests::a_record_parity_counts_the_bos_tokens_before_each_target ... ok
+test tests::synchronized_phase_profiling_requires_its_flag ... ok
+test tests::the_ceiling_refuses_count_only_census_and_sealed_runs ... ok
+test tests::the_extension_census_scores_nothing ... ok
+test tests::the_lower_bound_subtracts_the_gap_and_floors ... ok
+test tests::the_pick_arms_never_cut_the_query ... ok
+test tests::the_sealed_stream_is_refused_outside_the_sealed_run ... ok
+test tests::the_pick_arms_refuse_other_modes ... ok
+test tests::the_split_fits_combine_back_in_stream_order ... ok
+test tests::the_tally_sums_bits_of_each_mass_and_bytes_of_each_target ... ok
+test pick_fit::tests::b2_refuses_a_plus_span_with_no_second_copy ... ok
+test pick_fit::tests::b3_holds_and_flags_a_mismatch ... ok
+test pick_fit::tests::c1_pick_weights_are_zero ... ok
+test pick_fit::tests::a1_beats_a0_on_repeats ... ok
+test fit_frame::tests::packed_columns_and_sealed_reopen_follow_the_direct_collection ... ok
+test pick_fit::tests::run_arms_emits_bands_and_b2 ... ok
+test pick_fit::tests::the_main_bands_read_a1_minus_the_control ... ok
+test pick_fit::tests::split_arms_leave_the_five_arms_unchanged ... ok
+test fit_frame::tests::cuda_fixture_count_lookup_and_cold_reopen ... ok
+
+test result: ok. 45 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running unittests src/bin/pick-reachability.rs (/root/work/c441-target-instrument/release/deps/pick_reachability-e3c86a24cde9dd67)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/pick-split.rs (/root/work/c441-target-instrument/release/deps/pick_split-ce929bc6b724e32d)
+
+running 5 tests
+test tests::a_stream_without_framing_is_refused ... ok
+test tests::only_the_pinned_inputs_are_read ... ok
+test tests::the_query_is_r_dev_rplus_devplus ... ok
+test tests::the_split_takes_every_128th_record ... ok
+test tests::existing_outputs_are_never_overwritten ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/bin/s5-mixture.rs (/root/work/c441-target-instrument/release/deps/s5_mixture-d21f0fca184d49dc)
+
+running 6 tests
+test pick_device::tests::device_read_is_batch_invariant ... ignored
+test pick_device::tests::host_pick_equals_the_trunk_oracle ... ignored
+test pick_device::tests::root_codes_set_sign_bits ... ok
+test pick_device::tests::row_from_words_maps_classes ... ok
+test pick_device::tests::the_read_fills_each_device_call ... ok
+test pick_device::tests::permuted_table_matches_permuted_codes ... ok
+
+test result: ok. 4 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

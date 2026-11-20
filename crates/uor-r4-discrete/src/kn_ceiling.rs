@@ -169,11 +169,27 @@ pub enum EmStart {
     Kn,
 }
 
+/// claude-441: the split scheme's classes: did not fire, then fired at pair
+/// distance 0, 1, 2, and 3 or more. Classes 0 and 1 mean what they mean in
+/// the three-class scheme.
+pub const PICK_SPLIT_CLASSES: u8 = 5;
+
+/// claude-441: a read's class in the split scheme, from its pair distance
+/// (`None` when the read did not fire).
+pub fn pick_split_class(distance: Option<u32>) -> u8 {
+    match distance {
+        None => PICK_NOT_FIRED,
+        Some(d) => PICK_FIRED_EXACT + d.min(3) as u8,
+    }
+}
+
 /// Every target's bucket and its expert masses.
 pub struct CeilingTable {
     highest: u32,
     /// claude-439: whether the table holds the Pick column after U.
     pick: bool,
+    /// claude-441: Pick classes of the bucket rule; 1 without the column.
+    pick_classes: u8,
     buckets: Vec<u16>,
     masses: Vec<u64>,
 }
@@ -192,6 +208,25 @@ impl CeilingTable {
         totals: &[u64],
         pick: &[PickTarget],
     ) -> Result<Self> {
+        Self::from_lookups_with_pick_classes(highest, kn_masses, counts, totals, pick, PICK_CLASSES)
+    }
+
+    /// claude-441: `from_lookups_with_pick` with `classes` Pick classes, from
+    /// 2 to `PICK_SPLIT_CLASSES`; `PICK_CLASSES` builds the same table. Refuses
+    /// a class at or above `classes`.
+    pub fn from_lookups_with_pick_classes(
+        highest: u32,
+        kn_masses: &[u64],
+        counts: &[u32],
+        totals: &[u64],
+        pick: &[PickTarget],
+        classes: u8,
+    ) -> Result<Self> {
+        if !(2..=PICK_SPLIT_CLASSES).contains(&classes) {
+            return Err(invalid(format!(
+                "{classes} Pick classes; the rule takes 2 to {PICK_SPLIT_CLASSES}"
+            )));
+        }
         if pick.len() != kn_masses.len() {
             return Err(invalid(format!(
                 "{} KN masses need as many Pick targets, got {}",
@@ -215,12 +250,13 @@ impl CeilingTable {
         let mut masses = vec![0u64; targets * (base + 1)];
         for (t, &p) in pick.iter().enumerate() {
             let row = &mut masses[t * (base + 1)..(t + 1) * (base + 1)];
-            let bucket = ceiling_pick_row(
+            let bucket = ceiling_pick_row_classes(
                 highest,
                 kn_masses[t],
                 &counts[t * width..(t + 1) * width],
                 &totals[t * width..(t + 1) * width],
                 p,
+                classes,
                 row,
             )
             .map_err(|error| invalid(format!("target {t}: {error}")))?;
@@ -229,16 +265,21 @@ impl CeilingTable {
         Ok(Self {
             highest,
             pick: true,
+            pick_classes: classes,
             buckets,
             masses,
         })
     }
 
-    /// claude-439: buckets of this table: `bucket_count(highest)`, times
-    /// `PICK_CLASSES` with the Pick column.
+    /// claude-439: buckets of this table: `bucket_count(highest)`, times its
+    /// Pick classes with the Pick column (claude-441).
     pub fn bucket_total(&self) -> usize {
-        let classes = if self.pick { usize::from(PICK_CLASSES) } else { 1 };
-        bucket_count(self.highest) * classes
+        bucket_count(self.highest) * usize::from(self.pick_classes)
+    }
+
+    /// claude-441: Pick classes of the bucket rule; 1 without the column.
+    pub fn pick_classes(&self) -> u8 {
+        self.pick_classes
     }
 
     /// claude-439: the Pick expert's index, if the table holds the column.
@@ -288,6 +329,7 @@ impl CeilingTable {
         Ok(Self {
             highest,
             pick: false,
+            pick_classes: 1,
             buckets,
             masses,
         })
@@ -1220,6 +1262,103 @@ mod tests {
         bad[0] = PickTarget { class: 0, hit: true };
         assert!(build(&bad));
         assert!(!build(&pick));
+    }
+
+    #[test]
+    fn the_split_class_rule() {
+        assert_eq!(pick_split_class(None), PICK_NOT_FIRED);
+        assert_eq!(pick_split_class(Some(0)), PICK_FIRED_EXACT);
+        assert_eq!(pick_split_class(Some(1)), 2);
+        assert_eq!(pick_split_class(Some(2)), 3);
+        for d in [3, 4, 12, 31, u32::MAX] {
+            assert_eq!(pick_split_class(Some(d)), 4, "distance {d}");
+        }
+        assert_eq!(PICK_SPLIT_CLASSES, 5);
+    }
+
+    #[test]
+    fn the_split_bucket_rule() {
+        let (kn, counts, totals) = fixture_inputs();
+        let plain = fixture();
+        let stride = bucket_count(2);
+        // Three classes through the new constructor: the same table, byte for byte.
+        let three = pick_targets(|t| t % 2 == 0);
+        let old = pick_table(&three);
+        let new =
+            CeilingTable::from_lookups_with_pick_classes(2, &kn, &counts, &totals, &three, 3)
+                .unwrap();
+        assert_eq!(new.buckets(), old.buckets());
+        assert_eq!(new.masses(), old.masses());
+        assert_eq!(new.bucket_total(), old.bucket_total());
+        assert_eq!((old.pick_classes(), plain.pick_classes()), (3, 1));
+        // Five classes: classes 0 to 4 in runs of three.
+        let split: Vec<PickTarget> = (0..240)
+            .map(|t| {
+                let class = ((t / 3) % 5) as u8;
+                PickTarget {
+                    class,
+                    hit: class != PICK_NOT_FIRED && t % 2 == 0,
+                }
+            })
+            .collect();
+        let table = CeilingTable::from_lookups_with_pick_classes(
+            2,
+            &kn,
+            &counts,
+            &totals,
+            &split,
+            PICK_SPLIT_CLASSES,
+        )
+        .unwrap();
+        assert_eq!(table.bucket_total(), 5 * stride);
+        assert_eq!(table.pick_classes(), PICK_SPLIT_CLASSES);
+        let xe = table.experts();
+        for (t, p) in split.iter().enumerate() {
+            let want = usize::from(p.class) * stride + usize::from(plain.buckets()[t]);
+            assert_eq!(usize::from(table.buckets()[t]), want, "target {t}");
+        }
+        assert!(split.iter().any(|p| p.class == 4));
+        for b in 0..table.bucket_total() {
+            assert_eq!(table.holds(b, xe - 1), b >= stride, "bucket {b}");
+        }
+        // At highest = 10: 5 * 176 = 880 buckets; a class-4 target sits in the last copy.
+        let mut wide_totals = vec![0u64; 11];
+        wide_totals[0] = 1;
+        let one = [PickTarget { class: 4, hit: true }];
+        let wide = CeilingTable::from_lookups_with_pick_classes(
+            10,
+            &[1],
+            &[0; 11],
+            &wide_totals,
+            &one,
+            PICK_SPLIT_CLASSES,
+        )
+        .unwrap();
+        assert_eq!(wide.bucket_total(), 880);
+        assert_eq!(wide.buckets(), &[4 * 176]);
+        // A five-class table whose targets never leave classes 0 to 2 fits
+        // the same bits and Pick weights as the three-class table.
+        let fit = vec![true; plain.targets()];
+        let on = vec![true; xe];
+        let wide3 =
+            CeilingTable::from_lookups_with_pick_classes(2, &kn, &counts, &totals, &three, 5)
+                .unwrap();
+        let a = old.fit_em_from(&fit, &on, EmStart::Kn, 24, test_bits).unwrap();
+        let b = wide3.fit_em_from(&fit, &on, EmStart::Kn, 24, test_bits).unwrap();
+        assert_eq!(a.fit_bits, b.fit_bits);
+        assert_eq!(&b.weights[..a.weights.len()], &a.weights[..]);
+        // Refusals: a class count outside 2 to 5, and a class at or above the count.
+        let build = |p: &[PickTarget], classes: u8| {
+            CeilingTable::from_lookups_with_pick_classes(2, &kn, &counts, &totals, p, classes)
+                .is_err()
+        };
+        assert!(build(&three, 1));
+        assert!(build(&three, 6));
+        assert!(build(&split, 3));
+        let mut bad = split.clone();
+        bad[0].class = 5;
+        assert!(build(&bad, PICK_SPLIT_CLASSES));
+        assert!(!build(&split, PICK_SPLIT_CLASSES));
     }
 
     #[test]

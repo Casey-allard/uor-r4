@@ -9,7 +9,8 @@ use crate::pick_arms::{b2_pass, paired_band, record_bits, segment_tally};
 use crate::{fail, Failure, EM_ITERATIONS};
 use serde_json::{json, Map, Value};
 use uor_r4_discrete::kn_ceiling::{
-    bucket_count, CeilingTable, EmStart, PickTarget, PICK_FIRED_EXACT, PICK_NOT_FIRED,
+    bucket_count, CeilingTable, EmStart, PickTarget, PICK_CLASSES, PICK_FIRED_EXACT, PICK_NOT_FIRED,
+    PICK_SPLIT_CLASSES,
 };
 use uor_r4_discrete::ngram_count::NGRAM_BOS;
 use uor_r4_integer::lawful_likelihood::bits_q12;
@@ -34,6 +35,8 @@ pub enum ArmPick<'a> {
     Absent,
     Read(&'a [PickTarget]),
     Masked(&'a [PickTarget]),
+    /// claude-441: a read under the split rule, `PICK_SPLIT_CLASSES` classes.
+    ReadSplit(&'a [PickTarget]),
 }
 
 pub struct PickWeight {
@@ -62,6 +65,8 @@ pub struct PickStats {
     pub targets: u64,
     pub fired: u64,
     pub exact: u64,
+    /// claude-441: per class, the targets in it and the reads that hit.
+    pub by_class: Vec<[u64; 2]>,
 }
 
 /// The segment of every non-BOS position, in stream order.
@@ -93,16 +98,23 @@ pub fn fit_arm(span: &SpanInputs, pick: ArmPick) -> Result<ArmScore, Failure> {
             CeilingTable::from_lookups(span.highest, span.kn_masses, span.counts, span.totals)?,
             false,
         ),
-        ArmPick::Read(rows) | ArmPick::Masked(rows) => (
-            CeilingTable::from_lookups_with_pick(
-                span.highest,
-                span.kn_masses,
-                span.counts,
-                span.totals,
-                rows,
-            )?,
-            true,
-        ),
+        ArmPick::Read(rows) | ArmPick::Masked(rows) | ArmPick::ReadSplit(rows) => {
+            let classes = match pick {
+                ArmPick::ReadSplit(_) => PICK_SPLIT_CLASSES,
+                _ => PICK_CLASSES,
+            };
+            (
+                CeilingTable::from_lookups_with_pick_classes(
+                    span.highest,
+                    span.kn_masses,
+                    span.counts,
+                    span.totals,
+                    rows,
+                    classes,
+                )?,
+                true,
+            )
+        }
     };
     let mut on = vec![true; table.experts()];
     let pick_expert = table.pick_expert();
@@ -187,6 +199,7 @@ pub fn pick_stats(
         targets: 0,
         fired: 0,
         exact: 0,
+        by_class: Vec::new(),
     };
     for (row, &s) in rows.iter().zip(&segments) {
         if s != segment {
@@ -195,6 +208,12 @@ pub fn pick_stats(
         stats.targets += 1;
         stats.fired += u64::from(row.class != PICK_NOT_FIRED);
         stats.exact += u64::from(row.class == PICK_FIRED_EXACT);
+        let class = usize::from(row.class);
+        if stats.by_class.len() <= class {
+            stats.by_class.resize(class + 1, [0, 0]);
+        }
+        stats.by_class[class][0] += 1;
+        stats.by_class[class][1] += u64::from(row.hit);
     }
     Ok(stats)
 }
@@ -264,7 +283,8 @@ fn main_arm(
         let s = pick_stats(span, rows, 1)?;
         out.insert(
             "pick_stats".into(),
-            json!({"targets": s.targets, "fired": s.fired, "exact": s.exact}),
+            json!({"targets": s.targets, "fired": s.fired, "exact": s.exact,
+                   "by_class_targets_hits": s.by_class}),
         );
     }
     let all = record_bits(
@@ -365,6 +385,33 @@ pub fn reading(bands: &Value) -> Result<&'static str, Failure> {
     })
 }
 
+/// claude-441: the split reading, fixed in the ORDER before any number is
+/// read; `None` when the run holds no split bands.
+pub fn split_reading(bands: &Value) -> Result<Option<&'static str>, Failure> {
+    if bands.get("a1s_minus_a1").is_none() {
+        return Ok(None);
+    }
+    let beats = |name: &str| {
+        bands[name]["all"]["beats"]
+            .as_bool()
+            .ok_or_else(|| fail(format!("split_reading: no overall band {name}")))
+    };
+    Ok(Some(if !beats("a1s_minus_a1")? {
+        "no_split_gain"
+    } else if beats("a1s_minus_c3s")? {
+        "split_gain_geometric"
+    } else {
+        "split_gain_no_geometry"
+    }))
+}
+
+/// claude-441: A1's and C3's rows under the split rule.
+#[derive(Clone, Copy)]
+pub struct SplitReads<'a> {
+    pub a1: &'a [PickTarget],
+    pub c3: &'a [PickTarget],
+}
+
 /// The main span's five arms and the bands between them.
 pub struct MainResult {
     pub arms: Value,
@@ -384,11 +431,14 @@ pub struct PlusResult {
 
 /// A0, A1, C1, C2 and C3 on the main span, one at a time: each table and
 /// score drops inside its own call. Only the per-record sums are kept.
+/// claude-441: with `split`, also A1s and C3s under the split rule, and the
+/// bands A1s − A1, A1s − C2, A1s − C3s and C3s − C3.
 pub fn run_main(
     main: &SpanInputs,
     a1: &[PickTarget],
     c2: &[PickTarget],
     c3: &[PickTarget],
+    split: Option<SplitReads>,
 ) -> Result<MainResult, Failure> {
     if main.fit_segment != 0 {
         return Err(fail("run_main: the main span fits on R (segment 0) only"));
@@ -398,19 +448,31 @@ pub fn run_main(
     let arm_c1 = main_arm(main, ArmPick::Masked(a1), None)?;
     let arm_c2 = main_arm(main, ArmPick::Read(c2), Some(c2))?;
     let arm_c3 = main_arm(main, ArmPick::Read(c3), Some(c3))?;
-    let bands = json!({
+    let mut bands = json!({
         "a1_minus_a0": band(&arm_a1, &arm_a0)?,
         "a1_minus_c1": band(&arm_a1, &arm_c1)?,
         "a1_minus_c2": band(&arm_a1, &arm_c2)?,
         "a1_minus_c3": band(&arm_a1, &arm_c3)?,
         "c1_minus_a0": band(&arm_c1, &arm_a0)?,
     });
-    let b3_ok = [&arm_a0, &arm_a1, &arm_c1, &arm_c2, &arm_c3]
+    let mut b3_ok = [&arm_a0, &arm_a1, &arm_c1, &arm_c2, &arm_c3]
         .iter()
         .all(|arm| arm.b3_ok);
+    let mut arms = json!({"a0": arm_a0.json, "a1": arm_a1.json, "c1": arm_c1.json,
+                          "c2": arm_c2.json, "c3": arm_c3.json});
+    if let Some(split) = split {
+        let arm_a1s = main_arm(main, ArmPick::ReadSplit(split.a1), Some(split.a1))?;
+        let arm_c3s = main_arm(main, ArmPick::ReadSplit(split.c3), Some(split.c3))?;
+        bands["a1s_minus_a1"] = band(&arm_a1s, &arm_a1)?;
+        bands["a1s_minus_c2"] = band(&arm_a1s, &arm_c2)?;
+        bands["a1s_minus_c3s"] = band(&arm_a1s, &arm_c3s)?;
+        bands["c3s_minus_c3"] = band(&arm_c3s, &arm_c3)?;
+        b3_ok &= arm_a1s.b3_ok && arm_c3s.b3_ok;
+        arms["a1s"] = arm_a1s.json;
+        arms["c3s"] = arm_c3s.json;
+    }
     Ok(MainResult {
-        arms: json!({"a0": arm_a0.json, "a1": arm_a1.json, "c1": arm_c1.json,
-                     "c2": arm_c2.json, "c3": arm_c3.json}),
+        arms,
         bands,
         b3_ok,
         records: arm_a0.all.len(),
@@ -444,6 +506,12 @@ pub fn combine(main: MainResult, plus: PlusResult) -> Result<Value, Failure> {
     } else {
         "instrument"
     };
+    // claude-441: null without split bands; "instrument" under the same rule.
+    let split_row = match split_reading(&main.bands)? {
+        None => Value::Null,
+        Some(_) if !allowed => json!("instrument"),
+        Some(row) => json!(row),
+    };
     Ok(json!({
         "main": main.arms,
         "plus": plus.arms,
@@ -452,6 +520,7 @@ pub fn combine(main: MainResult, plus: PlusResult) -> Result<Value, Failure> {
         "band_records": main.records,
         "reading_allowed": allowed,
         "reading": row,
+        "split_reading": split_row,
     }))
 }
 
@@ -460,10 +529,11 @@ pub fn run_arms(
     a1: &[PickTarget],
     c2: &[PickTarget],
     c3: &[PickTarget],
+    split: Option<SplitReads>,
     plus: &SpanInputs,
     plus_a1: &[PickTarget],
 ) -> Result<Value, Failure> {
-    combine(run_main(main, a1, c2, c3)?, run_plus(plus, plus_a1)?)
+    combine(run_main(main, a1, c2, c3, split)?, run_plus(plus, plus_a1)?)
 }
 
 #[cfg(test)]
@@ -605,6 +675,7 @@ mod tests {
             &data.pick,
             &data.pick,
             &data.pick,
+            None,
             &plus.span(2),
             &plus.pick,
         )
@@ -681,7 +752,7 @@ mod tests {
         let a1 = main_arm(&span, ArmPick::Read(&data.pick), Some(&data.pick)).unwrap();
         let a0 = main_arm(&span, ArmPick::Absent, None).unwrap();
         assert_ne!(a1.all, a0.all);
-        let out = run_main(&span, &data.pick, &data.pick, &data.pick).unwrap();
+        let out = run_main(&span, &data.pick, &data.pick, &data.pick, None).unwrap();
         assert_eq!(out.bands["a1_minus_a0"], band(&a1, &a0).unwrap());
         assert_ne!(out.bands["a1_minus_a0"], band(&a0, &a1).unwrap());
     }
@@ -743,10 +814,126 @@ mod tests {
         assert!(reading(&json!({})).is_err());
     }
 
+    /// claude-441: the fixture's reads under the split rule: classes 0 to 4.
+    fn split_pick(data: &Owned) -> Vec<PickTarget> {
+        (0..data.pick.len())
+            .map(|t| {
+                let class = ((t / 3) % 5) as u8;
+                PickTarget {
+                    class,
+                    hit: class != 0 && t % 7 != 0,
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn split_arms_leave_the_five_arms_unchanged() {
+        let data = main_data();
+        let span = data.span(0);
+        let split = split_pick(&data);
+        let reads = SplitReads {
+            a1: &split,
+            c3: &split,
+        };
+        let plain = run_main(&span, &data.pick, &data.pick, &data.pick, None).unwrap();
+        let with = run_main(&span, &data.pick, &data.pick, &data.pick, Some(reads)).unwrap();
+        for arm in ["a0", "a1", "c1", "c2", "c3"] {
+            assert_eq!(with.arms[arm], plain.arms[arm], "arm {arm}");
+        }
+        for name in plain.bands.as_object().unwrap().keys() {
+            assert_eq!(with.bands[name], plain.bands[name], "band {name}");
+        }
+        for arm in ["a1s", "c3s"] {
+            assert!(with.arms.get(arm).is_some(), "missing arm {arm}");
+            assert!(plain.arms.get(arm).is_none(), "arm {arm} without split");
+        }
+        for name in ["a1s_minus_a1", "a1s_minus_c2", "a1s_minus_c3s", "c3s_minus_c3"] {
+            assert!(with.bands.get(name).is_some(), "missing band {name}");
+        }
+        // The split arm fits five classes of buckets and reports each class.
+        let weights = with.arms["a1s"]["pick_weights"].as_array().unwrap();
+        assert!(weights.iter().any(|w| w["class"] == json!(4)));
+        let by_class = &with.arms["a1s"]["pick_stats"]["by_class_targets_hits"];
+        assert_eq!(by_class.as_array().unwrap().len(), 5);
+        assert_eq!(
+            with.arms["a1"]["pick_stats"]["by_class_targets_hits"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
+        // A1s − A1 reads the split arm against the three-class one.
+        let a1 = main_arm(&span, ArmPick::Read(&data.pick), Some(&data.pick)).unwrap();
+        let a1s = main_arm(&span, ArmPick::ReadSplit(&split), Some(&split)).unwrap();
+        assert_eq!(with.bands["a1s_minus_a1"], band(&a1s, &a1).unwrap());
+        assert_ne!(a1s.all, a1.all);
+    }
+
+    #[test]
+    fn pick_stats_count_each_class() {
+        let data = main_data();
+        let span = data.span(0);
+        let split = split_pick(&data);
+        let stats = pick_stats(&span, &split, 1).unwrap();
+        let summed: u64 = stats.by_class.iter().map(|c| c[0]).sum();
+        assert_eq!(summed, stats.targets);
+        assert_eq!(stats.by_class[0][1], 0);
+        assert_eq!(stats.fired, stats.targets - stats.by_class[0][0]);
+        assert_eq!(stats.exact, stats.by_class[1][0]);
+    }
+
+    #[test]
+    fn the_split_reading_map() {
+        let bands = |a1: bool, c3s: bool| {
+            let side = |beats: bool| json!({"all": {"beats": beats}, "novel": {"beats": !beats}});
+            json!({"a1s_minus_a1": side(a1), "a1s_minus_c3s": side(c3s)})
+        };
+        let row = |b: Value| split_reading(&b).unwrap();
+        assert_eq!(row(bands(false, true)), Some("no_split_gain"));
+        assert_eq!(row(bands(false, false)), Some("no_split_gain"));
+        assert_eq!(row(bands(true, true)), Some("split_gain_geometric"));
+        assert_eq!(row(bands(true, false)), Some("split_gain_no_geometry"));
+        assert_eq!(row(json!({"a1_minus_a0": {}})), None);
+        assert!(split_reading(&json!({"a1s_minus_a1": {"all": {"beats": true}}})).is_err());
+        // combine: null without split bands, "instrument" when the reading is not allowed.
+        let out = |bands: Value, allowed: bool| {
+            let main = MainResult {
+                arms: json!({}),
+                bands,
+                b3_ok: allowed,
+                records: 1,
+            };
+            let plus = PlusResult {
+                arms: json!({}),
+                b2: json!({}),
+                b2_pass: true,
+                b3_ok: true,
+            };
+            combine(main, plus).unwrap()["split_reading"].clone()
+        };
+        let mut both = bands(true, true);
+        for name in [
+            "a1_minus_a0",
+            "a1_minus_c1",
+            "c1_minus_a0",
+            "a1_minus_c2",
+            "a1_minus_c3",
+        ] {
+            both[name] = json!({"all": {"beats": true}});
+        }
+        assert_eq!(out(both.clone(), true), json!("split_gain_geometric"));
+        assert_eq!(out(both, false), json!("instrument"));
+        assert_eq!(
+            out(json!({"a1_minus_a0": {"all": {"beats": false}}}), true),
+            Value::Null
+        );
+    }
+
     #[test]
     fn each_span_fits_on_its_own_segment_only() {
         let data = main_data();
-        assert!(run_main(&data.span(1), &data.pick, &data.pick, &data.pick).is_err());
+        assert!(run_main(&data.span(1), &data.pick, &data.pick, &data.pick, None).is_err());
         let plus = synthetic(&[2, 2, 2, 3, 3, 4, 4]);
         assert!(run_plus(&plus.span(3), &plus.pick).is_err());
     }

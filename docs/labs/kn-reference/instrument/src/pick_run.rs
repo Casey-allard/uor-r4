@@ -133,6 +133,30 @@ pub fn fire_rows_to_targets(rows: &[PickRow]) -> Vec<PickTarget> {
         .collect()
 }
 
+/// claude-441: the scorer's view under the split rule, the class from each row's
+/// distance. Refuses a row whose split class disagrees with its own class: not
+/// fired stays 0, distance 0 stays 1, and every other distance had class 2.
+pub fn fire_rows_to_split_targets(rows: &[PickRow]) -> Result<Vec<PickTarget>, Failure> {
+    use uor_r4_discrete::kn_ceiling::pick_split_class;
+    rows.iter()
+        .enumerate()
+        .map(|(at, row)| {
+            let class = pick_split_class(row.distance);
+            let three = class.min(2);
+            if three != row.class {
+                return Err(fail(format!(
+                    "target {at}: class {} with distance {:?}, split class {class}",
+                    row.class, row.distance
+                )));
+            }
+            Ok(PickTarget {
+                class,
+                hit: row.hit,
+            })
+        })
+        .collect()
+}
+
 /// C2's B1: an independent host read of the exact pair. With one distinct code per token,
 /// the code Pick's distance is 0 exactly at an exact pair, and its latest-minimum rule is
 /// C2's latest-pair rule; so C2 must equal the code Pick's fired rows and be empty elsewhere.
@@ -437,6 +461,9 @@ fn run_claimed(job: PickRun, mut file: std::fs::File) -> Result<(), Failure> {
     let a1 = fire_rows_to_targets(&a1_main.rows);
     let c3 = fire_rows_to_targets(&c3_main.rows);
     let c2 = fire_rows_to_targets(&c2_rows);
+    // claude-441: the same rows under the split rule.
+    let a1s = fire_rows_to_split_targets(&a1_main.rows)?;
+    let c3s = fire_rows_to_split_targets(&c3_main.rows)?;
     drop((a1_main, c3_main, c2_rows));
     let main_inputs = SpanInputs {
         highest: job.highest,
@@ -455,11 +482,12 @@ fn run_claimed(job: PickRun, mut file: std::fs::File) -> Result<(), Failure> {
     // The main arms run, and the main span's lookups are freed, before the
     // plus span is looked up: the two spans' lookups never coexist.
     let at = Instant::now();
-    let main_result = run_main(&main_inputs, &a1, &c2, &c3)?;
+    let split = crate::pick_fit::SplitReads { a1: &a1s, c3: &c3s };
+    let main_result = run_main(&main_inputs, &a1, &c2, &c3, Some(split))?;
     check_band_records(main_result.records)?;
     phase(&mut phases, "main_arms", at);
     drop(main_inputs);
-    drop((main_counts, main_totals, a1, c2, c3));
+    drop((main_counts, main_totals, a1, c2, c3, a1s, c3s));
 
     // The plus span: lookups, A1 and B1.
     let at = Instant::now();
@@ -634,6 +662,32 @@ mod tests {
                 hit: true
             }
         );
+    }
+
+    #[test]
+    fn split_targets_follow_the_distance() {
+        let row = |class: u8, distance: Option<u32>| PickRow {
+            class,
+            hit: class != 0,
+            pick: distance.map(|_| 1),
+            distance,
+        };
+        let rows = [
+            row(0, None),
+            row(1, Some(0)),
+            row(2, Some(1)),
+            row(2, Some(2)),
+            row(2, Some(3)),
+            row(2, Some(40)),
+        ];
+        let got = fire_rows_to_split_targets(&rows).unwrap();
+        let classes: Vec<u8> = got.iter().map(|t| t.class).collect();
+        assert_eq!(classes, vec![0, 1, 2, 3, 4, 4]);
+        assert!(got.iter().zip(&rows).all(|(t, r)| t.hit == r.hit));
+        // A row whose class disagrees with its distance is refused.
+        for bad in [row(1, Some(2)), row(2, Some(0)), row(0, Some(1)), row(2, None)] {
+            assert!(fire_rows_to_split_targets(&[bad]).is_err(), "{bad:?}");
+        }
     }
 
     #[test]

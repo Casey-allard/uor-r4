@@ -1,0 +1,12 @@
+head aa36f9414756796a53db80d31aee693ab8f9c902
+MemAvailable >= 28 GB after 0 min: 28653868 kB
+pick-p1000 GPU before: 2186 MiB, 97 %; mem 27 GB available
+pick-p1000 rc=1 wall s: 480 peak rss KiB (sampled): 18667464 peak GPU used MiB (whole device): 24081
+retry: binary sha256 39b759a094c156f590f6a471b523e20b9ad0dbf49e352f79fba06a5c22b11129; GPU start bar raised from 16384 to 21504 MiB free (claude-439's 100 per cent run used 20,189 MiB beyond other jobs)
+MemAvailable >= 28 GB after 0 min: 33183644 kB
+free >= 21504 MiB after 7 min
+pick-p1000-retry GPU before: 3402 MiB, 93 %; mem 30 GB available
+pick-p1000-retry rc=0 wall s: 4798 peak rss KiB (sampled): 19655448 peak GPU used MiB (whole device): 24071
+{"b1":{"a1_main_rows":26755001,"a1_plus_rows":53503272,"c2_rows":26755001,"c3_rows":26755001,"oracle_targets":10807417},"b2":{"a0_bits_q12":"141916126554","a1_bits_q12":"49316761485","pass":true},"reading_allowed":true,"peak_rss_kib":20042956,"phases_ms":{"a1_main_read_ms":369740,"a1_main_rows_per_s":72361,"a1_plus_read_ms":753254,"a1_plus_rows_per_s":71029,"b1_main_ms":51778,"b1_plus_ms":33908,"c2_main_host_ms":1267,"c3_main_read_ms":377034,"c3_main_rows_per_s":70961,"load_ms":515,"main_arms_ms":962225,"main_lookups_ms":241429,"plus_arms_ms":541298,"plus_lookups_ms":334448}}
+replication: PASS
+{"reading":"geometric_gain","split_reading":"split_gain_geometric","split_bands":{"a1s_minus_a1":{"all":{"beats":true,"high":"-1507126","high_micro_bpb":"-16","low":"-2911893","low_micro_bpb":"-32"},"novel":{"beats":true,"high":"-1530310","high_micro_bpb":"-23","low":"-2919753","low_micro_bpb":"-44"}},"a1s_minus_c2":{"all":{"beats":true,"high":"-390105705","high_micro_bpb":"-4343","low":"-472438810","low_micro_bpb":"-5259"},"novel":{"beats":true,"high":"-388028084","high_micro_bpb":"-5922","low":"-470261784","low_micro_bpb":"-7177"}},"a1s_minus_c3s":{"all":{"beats":true,"high":"-2591654","high_micro_bpb":"-28","low":"-21657204","low_micro_bpb":"-241"},"novel":{"beats":true,"high":"-3025994","high_micro_bpb":"-46","low":"-21618024","low_micro_bpb":"-329"}},"c3s_minus_c3":{"all":{"beats":true,"high":"-931387","high_micro_bpb":"-10","low":"-2476487","low_micro_bpb":"-27"},"novel":{"beats":true,"high":"-989662","high_micro_bpb":"-15","low":"-2541117","low_micro_bpb":"-38"}}}}

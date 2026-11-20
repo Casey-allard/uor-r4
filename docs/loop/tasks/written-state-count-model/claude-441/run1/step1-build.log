@@ -1,0 +1,11 @@
+   Compiling kn-reference v0.1.0 (/root/work/c441/docs/labs/kn-reference/instrument)
+warning: unused import: `gpu::*`
+   --> src/bin/../pick_device.rs:133:9
+    |
+133 | pub use gpu::*;
+    |         ^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kn-reference` (bin "s5-mixture") generated 1 warning (run `cargo fix --bin "s5-mixture" -p kn-reference` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1.21s

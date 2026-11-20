@@ -88,11 +88,24 @@ fn ceiling_pick_row(
     pick: PickTarget,
     row: &mut [u64],
 ) -> Result<u16> {
-    if pick.class >= PICK_CLASSES {
+    ceiling_pick_row_classes(highest, kn, counts, totals, pick, PICK_CLASSES, row)
+}
+
+/// claude-441: `ceiling_pick_row` under a rule of `classes` Pick classes.
+fn ceiling_pick_row_classes(
+    highest: u32,
+    kn: u64,
+    counts: &[u32],
+    totals: &[u64],
+    pick: PickTarget,
+    classes: u8,
+    row: &mut [u64],
+) -> Result<u16> {
+    if pick.class >= classes {
         return Err(invalid(format!(
             "Pick class {} is above {}",
             pick.class,
-            PICK_CLASSES - 1
+            classes - 1
         )));
     }
     if pick.hit && pick.class == PICK_NOT_FIRED {
