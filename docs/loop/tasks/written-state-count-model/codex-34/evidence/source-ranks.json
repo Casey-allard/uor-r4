@@ -1,0 +1,261 @@
+{
+  "schema": "uor-r4.d34.frozen-value-ranks/1",
+  "rows": [
+    {
+      "row": 30100,
+      "gold": 25,
+      "selected": null,
+      "margin": 0,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 2,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        262,
+        1155
+      ]
+    },
+    {
+      "row": 30101,
+      "gold": 25,
+      "selected": null,
+      "margin": 0,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 2,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        262,
+        1155
+      ]
+    },
+    {
+      "row": 30102,
+      "gold": 35,
+      "selected": null,
+      "margin": 0,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 1,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        262,
+        1155
+      ]
+    },
+    {
+      "row": 30103,
+      "gold": 35,
+      "selected": null,
+      "margin": 0,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 1,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        262,
+        1155
+      ]
+    },
+    {
+      "row": 30104,
+      "gold": 36,
+      "selected": null,
+      "margin": -8,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 1,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        1881,
+        1155
+      ]
+    },
+    {
+      "row": 30105,
+      "gold": 36,
+      "selected": null,
+      "margin": -8,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 1,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        1881,
+        1155
+      ]
+    },
+    {
+      "row": 30106,
+      "gold": 26,
+      "selected": 26,
+      "margin": 4,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": null
+    },
+    {
+      "row": 30107,
+      "gold": 26,
+      "selected": 26,
+      "margin": 4,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": null
+    },
+    {
+      "row": 30116,
+      "gold": 24,
+      "selected": 24,
+      "margin": 8,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": null
+    },
+    {
+      "row": 30117,
+      "gold": 24,
+      "selected": 24,
+      "margin": 8,
+      "eligible": 3,
+      "strictly_higher": 0,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": null
+    },
+    {
+      "row": 30118,
+      "gold": 32,
+      "selected": 33,
+      "margin": 4,
+      "eligible": 3,
+      "strictly_higher": 1,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": [
+        0,
+        2537,
+        324
+      ]
+    },
+    {
+      "row": 30119,
+      "gold": 32,
+      "selected": 33,
+      "margin": 4,
+      "eligible": 3,
+      "strictly_higher": 1,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": [
+        0,
+        2537,
+        324
+      ]
+    },
+    {
+      "row": 30120,
+      "gold": 33,
+      "selected": null,
+      "margin": -20,
+      "eligible": 3,
+      "strictly_higher": 2,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        1323,
+        1155
+      ]
+    },
+    {
+      "row": 30121,
+      "gold": 33,
+      "selected": null,
+      "margin": -20,
+      "eligible": 3,
+      "strictly_higher": 2,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "nonpositive",
+      "first_error": [
+        0,
+        1323,
+        1155
+      ]
+    },
+    {
+      "row": 30122,
+      "gold": 24,
+      "selected": 23,
+      "margin": -12,
+      "eligible": 3,
+      "strictly_higher": 2,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": [
+        0,
+        1323,
+        1638
+      ]
+    },
+    {
+      "row": 30123,
+      "gold": 24,
+      "selected": 23,
+      "margin": -12,
+      "eligible": 3,
+      "strictly_higher": 2,
+      "same_margin_rivals": 0,
+      "identical_feature_rivals": [],
+      "outcome": "pick",
+      "first_error": [
+        0,
+        1323,
+        1638
+      ]
+    }
+  ],
+  "summary": [
+    {
+      "outcome": "nonpositive",
+      "n": 8,
+      "exact": 0
+    },
+    {
+      "outcome": "pick",
+      "n": 8,
+      "exact": 4
+    }
+  ],
+  "wrong_rows_with_higher": 6,
+  "wrong_rows_with_top_tie": 6,
+  "wrong_rows_with_strictly_best": 0,
+  "wrong_rows_with_identical_rival_features": 0
+}

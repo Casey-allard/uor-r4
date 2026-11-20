@@ -22,7 +22,7 @@ use uor_r4_integer::loopback::{serve_loopback, LoopbackConfig};
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict};
-use uor_r4_integer::paired_role::RequestedReplayArm;
+use uor_r4_integer::paired_role::{DetachedWordSites, RequestedReplayArm};
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
     is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
@@ -47,6 +47,12 @@ const ANSI_RED_BOLD: &str = "\x1b[1;31m";
 const ANSI_MAGENTA_BOLD: &str = "\x1b[1;35m";
 const ANSI_RESET: &str = "\x1b[0m";
 
+#[derive(Clone, Copy)]
+enum RoleReplay {
+    Frozen(RequestedReplayArm),
+    Detached,
+}
+
 struct CliArgs {
     bundle_path: Option<PathBuf>,
     /// A `UORLUT01` geometric-stack artifact (`--stack`): served directly by
@@ -59,7 +65,7 @@ struct CliArgs {
     #[cfg(feature = "p1-count-serving")]
     p1_trace: bool,
     ordered_role_trace: bool,
-    role_replay: Option<RequestedReplayArm>,
+    role_replay: Option<RoleReplay>,
     contextual_source_trace: bool,
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
@@ -376,7 +382,7 @@ fn print_usage() {
     #[cfg(feature = "p1-count-serving")]
     eprintln!("                              Counts may be embedded in the artifact");
     eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
-    eprintln!("      --role-replay ARM      trace historical/full crossed with inherited/repeated candidates");
+    eprintln!("      --role-replay ARM      trace historical/full with inherited/repeated candidates, or full-detached");
     eprintln!(
         "                              greedy raw-ID or text serving through IntegerDiscreteModel"
     );
@@ -556,12 +562,21 @@ fn parse_cli_args() -> CliArgs {
             "--role-replay" => {
                 idx += 1;
                 args.role_replay = match raw.get(idx).map(String::as_str) {
-                    Some("historical-inherited") => Some(RequestedReplayArm::HistoricalInherited),
-                    Some("historical-repeated") => Some(RequestedReplayArm::HistoricalRepeated),
-                    Some("full-inherited") => Some(RequestedReplayArm::FullInherited),
-                    Some("full-repeated") => Some(RequestedReplayArm::FullRepeated),
+                    Some("historical-inherited") => {
+                        Some(RoleReplay::Frozen(RequestedReplayArm::HistoricalInherited))
+                    }
+                    Some("historical-repeated") => {
+                        Some(RoleReplay::Frozen(RequestedReplayArm::HistoricalRepeated))
+                    }
+                    Some("full-inherited") => {
+                        Some(RoleReplay::Frozen(RequestedReplayArm::FullInherited))
+                    }
+                    Some("full-repeated") => {
+                        Some(RoleReplay::Frozen(RequestedReplayArm::FullRepeated))
+                    }
+                    Some("full-detached") => Some(RoleReplay::Detached),
                     _ => {
-                        eprintln!("--role-replay requires historical-inherited, historical-repeated, full-inherited, or full-repeated");
+                        eprintln!("--role-replay requires historical-inherited, historical-repeated, full-inherited, full-repeated, or full-detached");
                         process::exit(2);
                     }
                 };
@@ -1040,6 +1055,12 @@ fn parse_cli_args() -> CliArgs {
         && (args.discrete_path.is_none() || args.read_mode != ReadMode::Enabled)
     {
         eprintln!("--role-replay requires --discrete with reads enabled");
+        process::exit(1);
+    }
+    if matches!(args.role_replay, Some(RoleReplay::Detached))
+        && (args.tokenizer_path.is_none() || args.say.is_none())
+    {
+        eprintln!("--role-replay full-detached requires --say with the artifact-bound --tokenizer");
         process::exit(1);
     }
     if args.contextual_source_trace && args.discrete_path.is_none() {
@@ -2134,11 +2155,20 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         }
     }
     let read_enabled = cli.read_mode == ReadMode::Enabled;
-    let (paired, role_trace) = if let Some(arm) = cli.role_replay {
-        let (decision, trace) = model.requested_role_replay(prompt, arm)?;
-        (Some(decision), Some(trace))
-    } else {
-        (model.paired_copy_decision(prompt, read_enabled)?, None)
+    let (paired, role_trace) = match cli.role_replay {
+        Some(RoleReplay::Frozen(arm)) => {
+            let (decision, trace) = model.requested_role_replay(prompt, arm)?;
+            (Some(decision), Some(trace))
+        }
+        Some(RoleReplay::Detached) => {
+            let (tokenizer, _, _) = text_mode.as_ref().ok_or_else(|| {
+                IntegerError::Invalid("detached role replay requires a bound tokenizer".into())
+            })?;
+            let sites = DetachedWordSites::from_tokenizer(tokenizer)?;
+            let (decision, trace) = model.requested_detached_role_replay(prompt, &sites)?;
+            (Some(decision), Some(trace))
+        }
+        None => (model.paired_copy_decision(prompt, read_enabled)?, None),
     };
     let choice = match &paired {
         Some(decision) => Some(decision.choice),

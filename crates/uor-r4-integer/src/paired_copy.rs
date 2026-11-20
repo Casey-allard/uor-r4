@@ -98,6 +98,7 @@ impl Policy {
         roots: &[u32],
         roles: PairedRoleDecision,
         selected: Option<&[RoleSpan]>,
+        detached_heads: Option<&[[usize; 2]]>,
         mut visit: impl FnMut(PairedAssertionWitness),
         mut contextual_read: impl FnMut(
             RoleSpan,
@@ -123,7 +124,16 @@ impl Policy {
         // Original word IDs determine equality, including every continuation piece.
         let mut first = None;
         let mut agreed = None;
-        for (f, last) in self.assertion_sites(old, ids, query) {
+        let inherited = detached_heads
+            .is_none()
+            .then(|| self.assertion_sites(old, ids, query))
+            .into_iter()
+            .flatten();
+        let detached = detached_heads
+            .into_iter()
+            .flatten()
+            .map(|&[start, end]| (start, end - 1));
+        for (f, last) in inherited.chain(detached) {
             let fact = RoleSpan {
                 start: f,
                 end: last + 1,

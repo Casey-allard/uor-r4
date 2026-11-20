@@ -19,7 +19,10 @@ use crate::{
     ordered_role::{
         orbit_action_digest, RoleBank, RoleBindings, RoleFraming, RoleSites, ROLE_RECORD_BYTES,
     },
-    paired_role::{PairedRoleDecision, RequestedContext, RoleSpan, ROLE_VOCAB},
+    paired_role::{
+        DetachedWordSites, PairedRoleDecision, RequestedContext, RequestedReplayArm, RoleSpan,
+        ROLE_VOCAB,
+    },
     Result,
 };
 
@@ -2821,7 +2824,25 @@ impl IntegerDiscreteModel {
     pub fn requested_role_replay(
         &self,
         prompt: &[u32],
-        arm: crate::paired_role::RequestedReplayArm,
+        arm: RequestedReplayArm,
+    ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
+        self.requested_role_replay_inner(prompt, arm, None)
+    }
+
+    /// Widen only the endpoint grammar using facts from the artifact-bound tokenizer.
+    pub fn requested_detached_role_replay(
+        &self,
+        prompt: &[u32],
+        sites: &DetachedWordSites,
+    ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
+        self.requested_role_replay_inner(prompt, RequestedReplayArm::FullRepeated, Some(sites))
+    }
+
+    fn requested_role_replay_inner(
+        &self,
+        prompt: &[u32],
+        arm: RequestedReplayArm,
+        detached: Option<&DetachedWordSites>,
     ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
         let replay = self.frozen_role_replay()?;
         let framing = replay
@@ -2830,16 +2851,47 @@ impl IntegerDiscreteModel {
         let context = replay
             .requested_context
             .ok_or_else(|| invalid("role replay requires an occurrence policy"))?;
-        let (decision, roles) = replay.roles.requested_occurrence_replay(
-            prompt,
-            framing.content(prompt)?,
-            0..prompt.len(),
-            replay.delimiters,
-            replay.assertion_classes,
-            context,
-            arm,
-        )?;
-        let (copy, assertions) = self.paired_copy_witness(prompt, decision, None)?;
+        let content = framing.content(prompt)?;
+        let (decision, roles) = if let Some(sites) = detached {
+            replay.roles.requested_detached_occurrence_replay(
+                prompt,
+                content,
+                0..prompt.len(),
+                replay.delimiters,
+                replay.assertion_classes,
+                context,
+                sites,
+            )?
+        } else {
+            replay.roles.requested_occurrence_replay(
+                prompt,
+                content,
+                0..prompt.len(),
+                replay.delimiters,
+                replay.assertion_classes,
+                context,
+                arm,
+            )?
+        };
+        let (copy, assertions) =
+            if let Some(trace) = roles.detached.as_ref().filter(|t| t.requested_is_detached) {
+                let (policy, paired) = self
+                    .paired_policy()
+                    .ok_or_else(|| invalid("missing paired reader"))?;
+                let mut witnesses = Vec::new();
+                let copy = self.resolve_assertion_subset(
+                    policy,
+                    paired,
+                    prompt,
+                    decision,
+                    None,
+                    Some(&trace.matching_assertion_heads),
+                    |w| witnesses.push(w),
+                )?;
+                (copy, witnesses)
+            } else {
+                self.paired_copy_witness(prompt, decision, None)?
+            };
         let mut contextual_sources = Vec::new();
         if let Some(query) = decision.requested {
             for witness in &assertions {
@@ -2978,7 +3030,15 @@ impl IntegerDiscreteModel {
             ),
             _ => None,
         };
-        self.resolve_assertion_subset(policy, paired, prompt, roles, selected.as_deref(), visit)
+        self.resolve_assertion_subset(
+            policy,
+            paired,
+            prompt,
+            roles,
+            selected.as_deref(),
+            None,
+            visit,
+        )
     }
 
     fn resolve_assertion_subset(
@@ -2988,6 +3048,7 @@ impl IntegerDiscreteModel {
         prompt: &[u32],
         roles: PairedRoleDecision,
         selected: Option<&[RoleSpan]>,
+        detached_heads: Option<&[[usize; 2]]>,
         visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
         let roots;
@@ -3005,6 +3066,7 @@ impl IntegerDiscreteModel {
             packed,
             roles,
             selected,
+            detached_heads,
             visit,
             |fact, query| self.contextual_selection(prompt, fact, query),
         )
@@ -3022,10 +3084,15 @@ impl IntegerDiscreteModel {
             .paired_policy()
             .ok_or_else(|| invalid("missing paired reader"))?;
         let mut witnesses = Vec::new();
-        let result =
-            self.resolve_assertion_subset(policy, paired, prompt, roles, Some(selected), |w| {
-                witnesses.push(w)
-            })?;
+        let result = self.resolve_assertion_subset(
+            policy,
+            paired,
+            prompt,
+            roles,
+            Some(selected),
+            None,
+            |w| witnesses.push(w),
+        )?;
         if witnesses.len() != selected.len() {
             return Err(invalid(
                 "assertion selection includes an inadmissible or repeated head",

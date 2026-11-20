@@ -1,0 +1,5 @@
+2b82567e13919e50886b827d1866f9a22359ae01d49bf5cbf6023310623b5b05  crates/uor-r4-integer/src/paired_role.rs
+eeb18a2a472421bebe5e4a331c9fd9d5bfd35f6974e89a7561de6cbd713713ab  crates/uor-r4-integer/src/paired_copy.rs
+eb5c48103d54035cf43225e916316c302120ac53744cb65f360c674f16e84a6d  crates/uor-r4-integer/src/discrete_d11.rs
+94ec34e0bdb5d585d6eda8be0d82912d78a04d1cd4dcd4d75729b38d449b9dd1  crates/uor-r4-integer/src/bin/uor-chat.rs
+099bffa8416389a5fb1cca70bd81e7efcc6d49ed34cf1ef5c34d88e33692d115  ../ordinary-operator-target/release/uor-chat

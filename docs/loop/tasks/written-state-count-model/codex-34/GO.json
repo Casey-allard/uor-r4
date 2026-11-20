@@ -1,0 +1,9 @@
+{
+ "decision":"GO","phase":"exposed","host":"wick","utc":"2026-11-20T05:21:11Z",
+ "gpu_uuid":"GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41","stage_sha256":"717d02b3f31e025949e6e436f937727350dade485004bf1b2fe4de4b4f2ecc1e",
+ "exposed_packets_sha256":"407fa4977ba788f4b5059dd795d270002623ac2003aed279153125841a8394df","finite_results_sha256":"6d1cffef9b1636ca7ed1e7f79ff640170d6af53c329843f3996da74fb2674b55",
+ "native_sha256":"099bffa8416389a5fb1cca70bd81e7efcc6d49ed34cf1ef5c34d88e33692d115","grader_sha256":"472e8c3f3c2eea0650f6d2ad559f9d1b8a0dc472ceb741a2c24aa60b6a78d058",
+ "fit_sha256":"18afb1c45769a3a23bbbf9c1bc72bcdf42f41a24288ac90d98a249fd4596007f","panel_extent":"D32 exposed 22; primary and cold modes 7 and 8 per stage",
+ "panel_exposed_tools_sha256":"0fca64dc018916d823c57017fd41c88f43dd99defa0c711538dd16807a1973ea",
+ "stop":"Any source, capture, native decision, device endpoint, manifest, hardware, lock, or fixture mismatch nullifies the affected inference."
+}

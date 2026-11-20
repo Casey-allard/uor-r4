@@ -55,6 +55,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/detached-role-boundary": {
+    "branch": "codex/detached-role-boundary",
+    "claimed_at": "2026-11-20T00:10:08-05:00",
+    "head": "7ff7a7c55",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/fresh-boundary-validity": {
     "branch": "codex/fresh-boundary-validity",
     "claimed_at": "2026-11-19T00:00:33-05:00",

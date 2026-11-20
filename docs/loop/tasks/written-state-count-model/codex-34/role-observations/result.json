@@ -1,0 +1,1562 @@
+{
+  "schema": "uor-r4.d34.exposed-role-collisions/1",
+  "mentions": [
+    {
+      "row": 30100,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        73,
+        78
+      ],
+      "missing": true
+    },
+    {
+      "row": 30100,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        60,
+        64
+      ],
+      "missing": false,
+      "scores": [
+        48,
+        -22
+      ],
+      "ordered": [
+        36080,
+        74004,
+        139551,
+        207366,
+        272673,
+        369189
+      ],
+      "neutral": [
+        8467,
+        8477,
+        10525,
+        10755,
+        36080,
+        41504
+      ],
+      "supporting_head": [
+        20,
+        24
+      ]
+    },
+    {
+      "row": 30100,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30101,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        58,
+        63
+      ],
+      "missing": true
+    },
+    {
+      "row": 30101,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        74,
+        78
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        36080,
+        74004,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8467,
+        8477,
+        10755,
+        30578,
+        36080,
+        41236
+      ],
+      "supporting_head": [
+        20,
+        24
+      ]
+    },
+    {
+      "row": 30101,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30102,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        73,
+        78
+      ],
+      "missing": true
+    },
+    {
+      "row": 30102,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        60,
+        64
+      ],
+      "missing": false,
+      "scores": [
+        48,
+        -22
+      ],
+      "ordered": [
+        36080,
+        74004,
+        139551,
+        207366,
+        272673,
+        369189
+      ],
+      "neutral": [
+        8467,
+        8477,
+        10525,
+        10755,
+        36080,
+        41504
+      ],
+      "supporting_head": [
+        30,
+        34
+      ]
+    },
+    {
+      "row": 30102,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30103,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        58,
+        63
+      ],
+      "missing": true
+    },
+    {
+      "row": 30103,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        74,
+        78
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        36080,
+        74004,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8467,
+        8477,
+        10755,
+        30578,
+        36080,
+        41236
+      ],
+      "supporting_head": [
+        30,
+        34
+      ]
+    },
+    {
+      "row": 30103,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30104,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        74,
+        78
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        24
+      ]
+    },
+    {
+      "row": 30104,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        60,
+        65
+      ],
+      "missing": true
+    },
+    {
+      "row": 30104,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30105,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        58,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        8
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        311853,
+        362360
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        34675,
+        49705,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        24
+      ]
+    },
+    {
+      "row": 30105,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        73,
+        78
+      ],
+      "missing": true
+    },
+    {
+      "row": 30105,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30106,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        74,
+        78
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        30,
+        34
+      ]
+    },
+    {
+      "row": 30106,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        60,
+        65
+      ],
+      "missing": true
+    },
+    {
+      "row": 30106,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30107,
+      "family": "packing",
+      "role": "excluded",
+      "span": [
+        58,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        8
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        311853,
+        362360
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        34675,
+        49705,
+        58434
+      ],
+      "supporting_head": [
+        30,
+        34
+      ]
+    },
+    {
+      "row": 30107,
+      "family": "packing",
+      "role": "requested",
+      "span": [
+        73,
+        78
+      ],
+      "missing": true
+    },
+    {
+      "row": 30107,
+      "family": "packing",
+      "role": "unrequested",
+      "span": [
+        86,
+        91
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        40,
+        45
+      ]
+    },
+    {
+      "row": 30116,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        29,
+        32
+      ]
+    },
+    {
+      "row": 30116,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        59,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        56,
+        -16
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292182,
+        328504
+      ],
+      "neutral": [
+        819,
+        8477,
+        10395,
+        20480,
+        30034,
+        40685
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30116,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30117,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        53,
+        56
+      ],
+      "missing": false,
+      "scores": [
+        30,
+        -22
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        266527,
+        338612
+      ],
+      "neutral": [
+        4379,
+        8477,
+        9008,
+        10755,
+        10927,
+        58434
+      ],
+      "supporting_head": [
+        29,
+        32
+      ]
+    },
+    {
+      "row": 30117,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        52,
+        -20
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        10395,
+        20480,
+        30578,
+        40685,
+        41236
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30117,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30118,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30118,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        59,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        56,
+        -16
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292182,
+        328504
+      ],
+      "neutral": [
+        819,
+        8477,
+        10395,
+        20480,
+        30034,
+        40685
+      ],
+      "supporting_head": [
+        28,
+        31
+      ]
+    },
+    {
+      "row": 30118,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30119,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        53,
+        56
+      ],
+      "missing": false,
+      "scores": [
+        30,
+        -22
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        266527,
+        338612
+      ],
+      "neutral": [
+        4379,
+        8477,
+        9008,
+        10755,
+        10927,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30119,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        52,
+        -20
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        10395,
+        20480,
+        30578,
+        40685,
+        41236
+      ],
+      "supporting_head": [
+        28,
+        31
+      ]
+    },
+    {
+      "row": 30119,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30120,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30120,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        59,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        56,
+        -16
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292182,
+        328504
+      ],
+      "neutral": [
+        819,
+        8477,
+        10395,
+        20480,
+        30034,
+        40685
+      ],
+      "supporting_head": [
+        29,
+        32
+      ]
+    },
+    {
+      "row": 30120,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30121,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        53,
+        56
+      ],
+      "missing": false,
+      "scores": [
+        30,
+        -22
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        266527,
+        338612
+      ],
+      "neutral": [
+        4379,
+        8477,
+        9008,
+        10755,
+        10927,
+        58434
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30121,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        52,
+        -20
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        10395,
+        20480,
+        30578,
+        40685,
+        41236
+      ],
+      "supporting_head": [
+        29,
+        32
+      ]
+    },
+    {
+      "row": 30121,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30122,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        32,
+        -20
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        9008,
+        10755,
+        30578,
+        41236,
+        58434
+      ],
+      "supporting_head": [
+        28,
+        31
+      ]
+    },
+    {
+      "row": 30122,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        59,
+        62
+      ],
+      "missing": false,
+      "scores": [
+        56,
+        -16
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292182,
+        328504
+      ],
+      "neutral": [
+        819,
+        8477,
+        10395,
+        20480,
+        30034,
+        40685
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30122,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    },
+    {
+      "row": 30123,
+      "family": "delivery",
+      "role": "excluded",
+      "span": [
+        53,
+        56
+      ],
+      "missing": false,
+      "scores": [
+        30,
+        -22
+      ],
+      "ordered": [
+        58434,
+        74545,
+        139551,
+        207366,
+        266527,
+        338612
+      ],
+      "neutral": [
+        4379,
+        8477,
+        9008,
+        10755,
+        10927,
+        58434
+      ],
+      "supporting_head": [
+        28,
+        31
+      ]
+    },
+    {
+      "row": 30123,
+      "family": "delivery",
+      "role": "requested",
+      "span": [
+        70,
+        73
+      ],
+      "missing": false,
+      "scores": [
+        52,
+        -20
+      ],
+      "ordered": [
+        20480,
+        106222,
+        139551,
+        207006,
+        292726,
+        368921
+      ],
+      "neutral": [
+        8477,
+        10395,
+        20480,
+        30578,
+        40685,
+        41236
+      ],
+      "supporting_head": [
+        20,
+        23
+      ]
+    },
+    {
+      "row": 30123,
+      "family": "delivery",
+      "role": "unrequested",
+      "span": [
+        81,
+        84
+      ],
+      "missing": false,
+      "scores": [
+        -10,
+        -8
+      ],
+      "ordered": [
+        61438,
+        94753,
+        174482,
+        235660,
+        289724,
+        358263
+      ],
+      "neutral": [
+        27576,
+        29216,
+        30578,
+        39049,
+        43408,
+        61438
+      ],
+      "supporting_head": [
+        37,
+        40
+      ]
+    }
+  ],
+  "denominator": 48,
+  "present_by_role": [
+    {
+      "role": "excluded",
+      "present": 12,
+      "total": 16
+    },
+    {
+      "role": "requested",
+      "present": 12,
+      "total": 16
+    },
+    {
+      "role": "unrequested",
+      "present": 16,
+      "total": 16
+    }
+  ],
+  "ordered": {
+    "unique_observations": 8,
+    "present": 40,
+    "upper_bound_correct": 40,
+    "conflicting_groups": []
+  },
+  "offset_neutral": {
+    "unique_observations": 8,
+    "present": 40,
+    "upper_bound_correct": 40,
+    "conflicting_groups": []
+  },
+  "frozen_scores": {
+    "unique_observations": 7,
+    "present": 40,
+    "upper_bound_correct": 38,
+    "conflicting_groups": [
+      {
+        "rows": 8,
+        "labels": [
+          {
+            "role": "excluded",
+            "n": 6
+          },
+          {
+            "role": "requested",
+            "n": 2
+          }
+        ],
+        "examples": [
+          {
+            "row": 30101,
+            "role": "requested",
+            "span": [
+              74,
+              78
+            ]
+          },
+          {
+            "row": 30103,
+            "role": "requested",
+            "span": [
+              74,
+              78
+            ]
+          },
+          {
+            "row": 30104,
+            "role": "excluded",
+            "span": [
+              74,
+              78
+            ]
+          },
+          {
+            "row": 30106,
+            "role": "excluded",
+            "span": [
+              74,
+              78
+            ]
+          },
+          {
+            "row": 30116,
+            "role": "excluded",
+            "span": [
+              70,
+              73
+            ]
+          },
+          {
+            "row": 30118,
+            "role": "excluded",
+            "span": [
+              70,
+              73
+            ]
+          },
+          {
+            "row": 30120,
+            "role": "excluded",
+            "span": [
+              70,
+              73
+            ]
+          },
+          {
+            "row": 30122,
+            "role": "excluded",
+            "span": [
+              70,
+              73
+            ]
+          }
+        ],
+        "best": 6
+      }
+    ]
+  }
+}
