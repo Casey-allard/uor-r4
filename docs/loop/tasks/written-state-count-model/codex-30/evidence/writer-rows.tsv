@@ -1,0 +1,236 @@
+row	stratum	arm	tape_criterion	selected_source	exact_through_eos	first_mismatch_offset0	expected_id	emitted_id	stop	rendered_text
+30001	fresh	d26_ordinary	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30001	fresh	d26_client_read_disabled	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30001	fresh	supplied_local	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30001	fresh	supplied_nominal	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30001	fresh	supplied_swap	gold	63	false	0	601	1638	eos	 brought down jackets
+30001	fresh	supplied_zero	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30001	fresh	forced_early	own_legal_copy	64	true				eos	 down jackets
+30001	fresh	forced_late	own_legal_copy	65	true				eos	 jackets
+30002	fresh	d26_ordinary	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30002	fresh	d26_client_read_disabled	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30002	fresh	supplied_local	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30002	fresh	supplied_nominal	gold	50	false	0	3653	1638	eos	 brought down jackets
+30002	fresh	supplied_swap	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30002	fresh	supplied_zero	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30002	fresh	forced_early	own_legal_copy	51	true				eos	 down jackets
+30002	fresh	forced_late	own_legal_copy	52	true				eos	 jackets
+30003	fresh	d26_ordinary	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	d26_client_read_disabled	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	supplied_local	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	supplied_nominal	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	supplied_swap	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	supplied_zero	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30003	fresh	forced_early	own_legal_copy	82	true				eos	 home remedies
+30003	fresh	forced_late	own_legal_copy	83	true				eos	 remedies
+30004	fresh	d26_ordinary	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	d26_client_read_disabled	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	supplied_local	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	supplied_nominal	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	supplied_swap	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	supplied_zero	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30004	fresh	forced_early	own_legal_copy	41	true				eos	 home remedies
+30004	fresh	forced_late	own_legal_copy	42	true				eos	 remedies
+30005	fresh	d26_ordinary	gold		false	0	575	1155	eos	 Got it, I'll remember that.
+30005	fresh	d26_client_read_disabled	gold		false	0	575	1155	eos	 Got it, I'll remember that.
+30005	fresh	supplied_local	gold		false	0	575	1155	eos	 Got it, I'll remember that.
+30005	fresh	supplied_nominal	gold	57	false	0	575	2836	eos	 team jerseys
+30005	fresh	supplied_swap	gold	57	false	0	575	2836	eos	 team jerseys
+30005	fresh	supplied_zero	gold		false	0	575	1155	eos	 Got it, I'll remember that.
+30005	fresh	forced_early	own_legal_copy	56	true				eos	 away team jerseys
+30005	fresh	forced_late	own_legal_copy	57	true				eos	 team jerseys
+30006	fresh	d26_ordinary	gold	51	true				eos	 team jerseys
+30006	fresh	d26_client_read_disabled	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30006	fresh	supplied_local	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30006	fresh	supplied_nominal	gold	51	true				eos	 team jerseys
+30006	fresh	supplied_swap	gold	51	true				eos	 team jerseys
+30006	fresh	supplied_zero	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30006	fresh	forced_early	own_legal_copy	50	true				eos	 away team jerseys
+30006	fresh	forced_late	own_legal_copy	51	true				eos	 team jerseys
+30007	fresh	d26_ordinary	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	d26_client_read_disabled	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	supplied_local	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	supplied_nominal	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	supplied_swap	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	supplied_zero	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	forced_early	own_legal_copy	63	true				eos	 coach drivers
+30007	fresh	forced_late	own_legal_copy	65	true				eos	 drivers
+30008	fresh	d26_ordinary	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	d26_client_read_disabled	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	supplied_local	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	supplied_nominal	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	supplied_swap	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	supplied_zero	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30008	fresh	forced_early	own_legal_copy	56	true				eos	 coach drivers
+30008	fresh	forced_late	own_legal_copy	58	true				eos	 drivers
+30009	fresh	d26_ordinary	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30009	fresh	d26_client_read_disabled	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30009	fresh	supplied_local	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30009	fresh	supplied_nominal	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30009	fresh	supplied_swap	gold	66	false	0	515	262	eos	 sent back orders
+30009	fresh	supplied_zero	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30009	fresh	forced_early	own_legal_copy	68	true				eos	 back orders
+30009	fresh	forced_late	own_legal_copy	69	true				eos	 orders
+30010	fresh	d26_ordinary	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30010	fresh	d26_client_read_disabled	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30010	fresh	supplied_local	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30010	fresh	supplied_nominal	gold	58	false	0	2854	262	eos	 sent back orders
+30010	fresh	supplied_swap	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30010	fresh	supplied_zero	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30010	fresh	forced_early	own_legal_copy	60	true				eos	 back orders
+30010	fresh	forced_late	own_legal_copy	61	true				eos	 orders
+30011	fresh	d26_ordinary	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30011	fresh	d26_client_read_disabled	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30011	fresh	supplied_local	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30011	fresh	supplied_nominal	gold	61	false	0	2536	2836	eos	 teams
+30011	fresh	supplied_swap	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30011	fresh	supplied_zero	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30011	fresh	forced_early	own_legal_copy	60	true				eos	 search teams
+30011	fresh	forced_late	own_legal_copy	61	true				eos	 teams
+30012	fresh	d26_ordinary	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30012	fresh	d26_client_read_disabled	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30012	fresh	supplied_local	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30012	fresh	supplied_nominal	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30012	fresh	supplied_swap	gold	64	true				eos	 teams
+30012	fresh	supplied_zero	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30012	fresh	forced_early	own_legal_copy	63	true				eos	 search teams
+30012	fresh	forced_late	own_legal_copy	64	true				eos	 teams
+30013	control	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	supplied_local	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	supplied_nominal	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	supplied_swap	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	supplied_zero	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30013	control	forced_early	own_legal_copy	37	true				eos	 down jackets
+30013	control	forced_late	own_legal_copy	38	true				eos	 jackets
+30014	control	d26_ordinary	refusal_comparison	48	false	0	340	451	eos	 jerseys
+30014	control	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30014	control	supplied_local	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30014	control	supplied_nominal	refusal_comparison	48	false	0	340	451	eos	 jerseys
+30014	control	supplied_swap	refusal_comparison	48	false	0	340	451	eos	 jerseys
+30014	control	supplied_zero	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30014	control	forced_early	own_legal_copy	46	true				eos	 away team jerseys
+30014	control	forced_late	own_legal_copy	47	true				eos	 team jerseys
+30015	control	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30015	control	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30015	control	supplied_local	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30015	control	supplied_nominal	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30015	control	supplied_swap	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30015	control	supplied_zero	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30051	d29_exposed	d26_ordinary	gold	26	false	0	515	262	eos	 sent back issues
+30051	d29_exposed	d26_client_read_disabled	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30051	d29_exposed	supplied_local	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30051	d29_exposed	supplied_nominal	gold	26	false	0	515	262	eos	 sent back issues
+30051	d29_exposed	supplied_swap	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30051	d29_exposed	supplied_zero	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30051	d29_exposed	forced_early	own_legal_copy	28	true				eos	 back issues
+30051	d29_exposed	forced_late	own_legal_copy	29	true				eos	 issues
+30052	d29_exposed	d26_ordinary	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	d26_client_read_disabled	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	supplied_local	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	supplied_nominal	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	supplied_swap	gold	32	false	0	435	262	eos	 sent back issues
+30052	d29_exposed	supplied_zero	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	forced_early	own_legal_copy	34	true				eos	 back issues
+30052	d29_exposed	forced_late	own_legal_copy	35	true				eos	 issues
+30053	d29_exposed	d26_ordinary	gold	38	true				eos	 home office chairs
+30053	d29_exposed	d26_client_read_disabled	gold		false	0	582	1155	eos	 Got it, I'll remember.
+30053	d29_exposed	supplied_local	gold		false	0	582	1155	eos	 Got it, I'll remember.
+30053	d29_exposed	supplied_nominal	gold	38	true				eos	 home office chairs
+30053	d29_exposed	supplied_swap	gold		false	0	582	1155	eos	 Got it, I'll remember.
+30053	d29_exposed	supplied_zero	gold		false	0	582	1155	eos	 Got it, I'll remember.
+30053	d29_exposed	forced_early	own_legal_copy	38	true				eos	 home office chairs
+30053	d29_exposed	forced_late	own_legal_copy	39	true				eos	 office chairs
+30054	d29_exposed	d26_ordinary	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30054	d29_exposed	d26_client_read_disabled	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30054	d29_exposed	supplied_local	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30054	d29_exposed	supplied_nominal	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30054	d29_exposed	supplied_swap	gold	31	false	0	3366	582	eos	 home office chairs
+30054	d29_exposed	supplied_zero	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30054	d29_exposed	forced_early	own_legal_copy	31	true				eos	 home office chairs
+30054	d29_exposed	forced_late	own_legal_copy	32	true				eos	 office chairs
+30001	fresh	d29_ordinary	gold		false	0	601	1155	eos	 Got it, I'll remember that.
+30002	fresh	d29_ordinary	gold		false	0	3653	1155	eos	 Got it, your friend is 1.
+30003	fresh	d29_ordinary	gold		false	0	582	1155	eos	 Got it, I'll remember that.
+30004	fresh	d29_ordinary	gold		false	0	1032	1155	eos	 Got it, I'll remember that.
+30005	fresh	d29_ordinary	gold		false	0	575	1155	eos	 Got it, I'll remember that.
+30006	fresh	d29_ordinary	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30007	fresh	d29_ordinary	gold		false	0	581	1155	max_tokens	 Got it, I'm sorry you telling me, I'll remember that
+30008	fresh	d29_ordinary	gold		false	0	2141	1155	eos	 Got it, I'll remember that.
+30009	fresh	d29_ordinary	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30010	fresh	d29_ordinary	gold		false	0	2854	1155	eos	 Got it, I'll remember that.
+30011	fresh	d29_ordinary	gold		false	0	2536	1155	eos	 Got it, I'll remember that.
+30012	fresh	d29_ordinary	gold		false	0	2836	1155	eos	 Got it, I'll remember that.
+30013	control	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, your friend is 1.
+30014	control	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30015	control	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, you.
+30051	d29_exposed	d29_ordinary	gold		false	0	515	1155	eos	 Got it, I'll remember that.
+30052	d29_exposed	d29_ordinary	gold		false	0	435	1155	eos	 Got it, I'll remember that.
+30053	d29_exposed	d29_ordinary	gold		false	0	582	1155	eos	 Got it, I'll remember.
+30054	d29_exposed	d29_ordinary	gold		false	0	3366	1155	eos	 Got it, I'll remember that.
+30100	crossed	d26_ordinary	gold	15	false	0	262	261	eos	 a separate line
+30100	crossed	d26_client_read_disabled	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30101	crossed	d26_ordinary	gold	15	false	0	262	261	eos	 a separate line
+30101	crossed	d26_client_read_disabled	gold		false	0	262	1155	eos	 Got it, you telling me.
+30102	crossed	d26_ordinary	gold	15	false	0	262	261	eos	 a separate line
+30102	crossed	d26_client_read_disabled	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30103	crossed	d26_ordinary	gold	15	false	0	262	261	eos	 a separate line
+30103	crossed	d26_client_read_disabled	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30104	crossed	d26_ordinary	gold	15	false	0	1881	261	eos	 a separate line
+30104	crossed	d26_client_read_disabled	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30105	crossed	d26_ordinary	gold	15	false	0	1881	261	eos	 a separate line
+30105	crossed	d26_client_read_disabled	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30106	crossed	d26_ordinary	gold	15	false	0	1881	261	eos	 a separate line
+30106	crossed	d26_client_read_disabled	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30107	crossed	d26_ordinary	gold	15	false	0	1881	261	eos	 a separate line
+30107	crossed	d26_client_read_disabled	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30108	direct	d26_ordinary	gold		false	0	262	427	eos	 It's 1.
+30108	direct	d26_client_read_disabled	gold		false	0	262	427	eos	 It's 1.
+30109	unspecified	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30109	unspecified	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30110	incidental_only	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30110	incidental_only	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30116	crossed	d26_ordinary	gold	15	false	0	2537	261	eos	 a separate line
+30116	crossed	d26_client_read_disabled	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30117	crossed	d26_ordinary	gold	24	true				eos	 glass beads
+30117	crossed	d26_client_read_disabled	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30118	crossed	d26_ordinary	gold	15	false	0	2537	261	eos	 a separate line
+30118	crossed	d26_client_read_disabled	gold		false	0	2537	1155	eos	 Got it, I'll remember what
+30119	crossed	d26_ordinary	gold	33	false	0	2537	324	eos	 beads
+30119	crossed	d26_client_read_disabled	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30120	crossed	d26_ordinary	gold	15	false	0	1323	261	eos	 a separate line
+30120	crossed	d26_client_read_disabled	gold		false	0	1323	1155	eos	 Got it, I'll remember that.
+30121	crossed	d26_ordinary	gold		false	0	1323	1155	eos	 Got it, I'll remember that.
+30121	crossed	d26_client_read_disabled	gold		false	0	1323	1155	eos	 Got it, I'll remember that.
+30122	crossed	d26_ordinary	gold	15	false	0	1323	261	eos	 a separate line
+30122	crossed	d26_client_read_disabled	gold		false	0	1323	1155	eos	 Got it, I'm a small assistant.
+30123	crossed	d26_ordinary	gold	23	false	0	1323	1638	eos	 brought paper maps
+30123	crossed	d26_client_read_disabled	gold		false	0	1323	1155	eos	 Got it, thanksistant.
+30124	direct	d26_ordinary	gold	24	true				eos	 glass beads
+30124	direct	d26_client_read_disabled	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30125	unspecified	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30125	unspecified	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30126	incidental_only	d26_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30126	incidental_only	d26_client_read_disabled	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30100	crossed	d29_ordinary	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30101	crossed	d29_ordinary	gold		false	0	262	1155	eos	 Got it, you telling me.
+30102	crossed	d29_ordinary	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30103	crossed	d29_ordinary	gold		false	0	262	1155	eos	 Got it, I'll remember that.
+30104	crossed	d29_ordinary	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30105	crossed	d29_ordinary	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30106	crossed	d29_ordinary	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30107	crossed	d29_ordinary	gold		false	0	1881	1155	eos	 Got it, I'll remember that.
+30108	direct	d29_ordinary	gold		false	0	262	427	eos	 It's 1.
+30109	unspecified	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30110	incidental_only	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30116	crossed	d29_ordinary	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30117	crossed	d29_ordinary	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30118	crossed	d29_ordinary	gold		false	0	2537	1155	eos	 Got it, I'll remember what
+30119	crossed	d29_ordinary	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30120	crossed	d29_ordinary	gold		false	0	1323	1155	eos	 Got it, I'll remember that.
+30121	crossed	d29_ordinary	gold		false	0	1323	1155	eos	 Got it, I'll remember that.
+30122	crossed	d29_ordinary	gold		false	0	1323	1155	eos	 Got it, I'm a small assistant.
+30123	crossed	d29_ordinary	gold		false	0	1323	1155	eos	 Got it, thanksistant.
+30124	direct	d29_ordinary	gold		false	0	2537	1155	eos	 Got it, I'll remember that.
+30125	unspecified	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.
+30126	incidental_only	d29_ordinary	refusal_comparison		false	0	340	1155	eos	 Got it, I'll remember that.

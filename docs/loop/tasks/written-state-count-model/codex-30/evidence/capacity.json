@@ -1,0 +1,931 @@
+[
+  {
+    "donor": 30002,
+    "eligible": [
+      63,
+      64,
+      65
+    ],
+    "gold": 64,
+    "gold_codes": 835,
+    "gold_min_block_changes": 2,
+    "nominal_code": 20835,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 1587,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 63,
+        "witness_code": 21347
+      },
+      {
+        "count": 835,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 64,
+        "witness_code": 20926
+      },
+      {
+        "count": 10011,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 65,
+        "witness_code": 20832
+      },
+      {
+        "count": 51152,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 20835
+      },
+      {
+        "count": 1951,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 20839
+      }
+    ],
+    "row": 30001
+  },
+  {
+    "donor": 30001,
+    "eligible": [
+      50,
+      51,
+      52
+    ],
+    "gold": 52,
+    "gold_codes": 10011,
+    "gold_min_block_changes": 1,
+    "nominal_code": 31145,
+    "nominal_source": 50,
+    "outcomes": [
+      {
+        "count": 1587,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 50,
+        "witness_code": 31145
+      },
+      {
+        "count": 835,
+        "min_block_changes": 3,
+        "reason": "pick",
+        "source": 51,
+        "witness_code": 29374
+      },
+      {
+        "count": 10011,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 52,
+        "witness_code": 28841
+      },
+      {
+        "count": 51152,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 18857
+      },
+      {
+        "count": 1951,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 20649
+      }
+    ],
+    "row": 30002
+  },
+  {
+    "donor": 30004,
+    "eligible": [
+      81,
+      82,
+      83
+    ],
+    "gold": 82,
+    "gold_codes": 0,
+    "gold_min_block_changes": null,
+    "nominal_code": 31136,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 2327,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 81,
+        "witness_code": 2468
+      },
+      {
+        "count": 13317,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 83,
+        "witness_code": 31056
+      },
+      {
+        "count": 46263,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 31136
+      },
+      {
+        "count": 3629,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 29345
+      }
+    ],
+    "row": 30003
+  },
+  {
+    "donor": 30003,
+    "eligible": [
+      40,
+      41,
+      42
+    ],
+    "gold": 42,
+    "gold_codes": 13317,
+    "gold_min_block_changes": 1,
+    "nominal_code": 32677,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 2327,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 40,
+        "witness_code": 57253
+      },
+      {
+        "count": 13317,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 42,
+        "witness_code": 32517
+      },
+      {
+        "count": 46263,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 32677
+      },
+      {
+        "count": 3629,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 3925
+      }
+    ],
+    "row": 30004
+  },
+  {
+    "donor": 30006,
+    "eligible": [
+      56,
+      57,
+      58
+    ],
+    "gold": 56,
+    "gold_codes": 1300,
+    "gold_min_block_changes": 2,
+    "nominal_code": 29088,
+    "nominal_source": 57,
+    "outcomes": [
+      {
+        "count": 1300,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 56,
+        "witness_code": 29009
+      },
+      {
+        "count": 12491,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 57,
+        "witness_code": 29088
+      },
+      {
+        "count": 15669,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 58,
+        "witness_code": 29022
+      },
+      {
+        "count": 34515,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 4512
+      },
+      {
+        "count": 1561,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 28752
+      }
+    ],
+    "row": 30005
+  },
+  {
+    "donor": 30005,
+    "eligible": [
+      50,
+      51,
+      52
+    ],
+    "gold": 51,
+    "gold_codes": 12491,
+    "gold_min_block_changes": 0,
+    "nominal_code": 31402,
+    "nominal_source": 51,
+    "outcomes": [
+      {
+        "count": 1300,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 50,
+        "witness_code": 28778
+      },
+      {
+        "count": 12491,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 51,
+        "witness_code": 31402
+      },
+      {
+        "count": 15669,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 52,
+        "witness_code": 31418
+      },
+      {
+        "count": 34515,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 31242
+      },
+      {
+        "count": 1561,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 2650
+      }
+    ],
+    "row": 30006
+  },
+  {
+    "donor": 30008,
+    "eligible": [
+      61,
+      62,
+      63,
+      65
+    ],
+    "gold": 63,
+    "gold_codes": 95,
+    "gold_min_block_changes": 3,
+    "nominal_code": 32624,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 1312,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 61,
+        "witness_code": 20342
+      },
+      {
+        "count": 95,
+        "min_block_changes": 3,
+        "reason": "pick",
+        "source": 63,
+        "witness_code": 28753
+      },
+      {
+        "count": 25253,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 65,
+        "witness_code": 3952
+      },
+      {
+        "count": 38798,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 32624
+      },
+      {
+        "count": 78,
+        "min_block_changes": 3,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 29268
+      }
+    ],
+    "row": 30007
+  },
+  {
+    "donor": 30007,
+    "eligible": [
+      54,
+      55,
+      56,
+      58
+    ],
+    "gold": 58,
+    "gold_codes": 25253,
+    "gold_min_block_changes": 1,
+    "nominal_code": 39341,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 1312,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 54,
+        "witness_code": 19373
+      },
+      {
+        "count": 95,
+        "min_block_changes": 3,
+        "reason": "pick",
+        "source": 56,
+        "witness_code": 36945
+      },
+      {
+        "count": 25253,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 58,
+        "witness_code": 37805
+      },
+      {
+        "count": 38798,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 39341
+      },
+      {
+        "count": 78,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 37469
+      }
+    ],
+    "row": 30008
+  },
+  {
+    "donor": 30010,
+    "eligible": [
+      66,
+      68,
+      69
+    ],
+    "gold": 68,
+    "gold_codes": 7172,
+    "gold_min_block_changes": 2,
+    "nominal_code": 31139,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 16405,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 66,
+        "witness_code": 30979
+      },
+      {
+        "count": 7172,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 68,
+        "witness_code": 29604
+      },
+      {
+        "count": 822,
+        "min_block_changes": 3,
+        "reason": "pick",
+        "source": 69,
+        "witness_code": 1475
+      },
+      {
+        "count": 36517,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 31139
+      },
+      {
+        "count": 4620,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 29491
+      }
+    ],
+    "row": 30009
+  },
+  {
+    "donor": 30009,
+    "eligible": [
+      58,
+      60,
+      61
+    ],
+    "gold": 61,
+    "gold_codes": 822,
+    "gold_min_block_changes": 2,
+    "nominal_code": 30043,
+    "nominal_source": 58,
+    "outcomes": [
+      {
+        "count": 16405,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 58,
+        "witness_code": 30043
+      },
+      {
+        "count": 7172,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 60,
+        "witness_code": 21339
+      },
+      {
+        "count": 822,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 61,
+        "witness_code": 1483
+      },
+      {
+        "count": 36517,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 21851
+      },
+      {
+        "count": 4620,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 30155
+      }
+    ],
+    "row": 30010
+  },
+  {
+    "donor": 30012,
+    "eligible": [
+      58,
+      59,
+      60,
+      61
+    ],
+    "gold": 60,
+    "gold_codes": 17024,
+    "gold_min_block_changes": 2,
+    "nominal_code": 36256,
+    "nominal_source": 61,
+    "outcomes": [
+      {
+        "count": 4470,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 59,
+        "witness_code": 28064
+      },
+      {
+        "count": 17024,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 60,
+        "witness_code": 3392
+      },
+      {
+        "count": 13839,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 61,
+        "witness_code": 36256
+      },
+      {
+        "count": 25296,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 23968
+      },
+      {
+        "count": 4907,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 3488
+      }
+    ],
+    "row": 30011
+  },
+  {
+    "donor": 30011,
+    "eligible": [
+      61,
+      62,
+      63,
+      64
+    ],
+    "gold": 64,
+    "gold_codes": 13839,
+    "gold_min_block_changes": 1,
+    "nominal_code": 6563,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 4470,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 62,
+        "witness_code": 4512
+      },
+      {
+        "count": 17024,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 63,
+        "witness_code": 5539
+      },
+      {
+        "count": 13839,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 64,
+        "witness_code": 6564
+      },
+      {
+        "count": 25296,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 6563
+      },
+      {
+        "count": 4907,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 5024
+      }
+    ],
+    "row": 30012
+  },
+  {
+    "donor": null,
+    "eligible": [
+      36,
+      37,
+      38
+    ],
+    "gold": null,
+    "gold_codes": null,
+    "gold_min_block_changes": null,
+    "nominal_code": 32672,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 1587,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 36,
+        "witness_code": 31136
+      },
+      {
+        "count": 835,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 37,
+        "witness_code": 32606
+      },
+      {
+        "count": 10011,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 38,
+        "witness_code": 28832
+      },
+      {
+        "count": 51152,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 32672
+      },
+      {
+        "count": 1951,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 30624
+      }
+    ],
+    "row": 30013
+  },
+  {
+    "donor": null,
+    "eligible": [
+      46,
+      47,
+      48
+    ],
+    "gold": null,
+    "gold_codes": null,
+    "gold_min_block_changes": null,
+    "nominal_code": 54259,
+    "nominal_source": 48,
+    "outcomes": [
+      {
+        "count": 1300,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 46,
+        "witness_code": 54002
+      },
+      {
+        "count": 12491,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 47,
+        "witness_code": 54179
+      },
+      {
+        "count": 15669,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 48,
+        "witness_code": 54259
+      },
+      {
+        "count": 34515,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 53491
+      },
+      {
+        "count": 1561,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 54180
+      }
+    ],
+    "row": 30014
+  },
+  {
+    "donor": null,
+    "eligible": [],
+    "gold": null,
+    "gold_codes": null,
+    "gold_min_block_changes": null,
+    "nominal_code": null,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 65536,
+        "min_block_changes": null,
+        "reason": "empty",
+        "source": null,
+        "witness_code": 0
+      }
+    ],
+    "row": 30015
+  },
+  {
+    "donor": 30052,
+    "eligible": [
+      26,
+      28,
+      29
+    ],
+    "gold": 28,
+    "gold_codes": 12759,
+    "gold_min_block_changes": 1,
+    "nominal_code": 31006,
+    "nominal_source": 26,
+    "outcomes": [
+      {
+        "count": 3034,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 26,
+        "witness_code": 31006
+      },
+      {
+        "count": 12759,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 28,
+        "witness_code": 28702
+      },
+      {
+        "count": 4426,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 29,
+        "witness_code": 22814
+      },
+      {
+        "count": 44468,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 2334
+      },
+      {
+        "count": 849,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 30494
+      }
+    ],
+    "row": 30051
+  },
+  {
+    "donor": 30051,
+    "eligible": [
+      32,
+      34,
+      35
+    ],
+    "gold": 35,
+    "gold_codes": 4426,
+    "gold_min_block_changes": 1,
+    "nominal_code": 29347,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 3034,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 32,
+        "witness_code": 29187
+      },
+      {
+        "count": 12759,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 34,
+        "witness_code": 29379
+      },
+      {
+        "count": 4426,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 35,
+        "witness_code": 28835
+      },
+      {
+        "count": 44468,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 29347
+      },
+      {
+        "count": 849,
+        "min_block_changes": 2,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 3491
+      }
+    ],
+    "row": 30052
+  },
+  {
+    "donor": 30054,
+    "eligible": [
+      37,
+      38,
+      39,
+      40
+    ],
+    "gold": 38,
+    "gold_codes": 15209,
+    "gold_min_block_changes": 0,
+    "nominal_code": 51632,
+    "nominal_source": 38,
+    "outcomes": [
+      {
+        "count": 15209,
+        "min_block_changes": 0,
+        "reason": "pick",
+        "source": 38,
+        "witness_code": 51632
+      },
+      {
+        "count": 5267,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 39,
+        "witness_code": 49328
+      },
+      {
+        "count": 9332,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 40,
+        "witness_code": 50096
+      },
+      {
+        "count": 22045,
+        "min_block_changes": 1,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 49584
+      },
+      {
+        "count": 13683,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 49840
+      }
+    ],
+    "row": 30053
+  },
+  {
+    "donor": 30053,
+    "eligible": [
+      30,
+      31,
+      32,
+      33
+    ],
+    "gold": 32,
+    "gold_codes": 5267,
+    "gold_min_block_changes": 2,
+    "nominal_code": 30125,
+    "nominal_source": null,
+    "outcomes": [
+      {
+        "count": 15209,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 31,
+        "witness_code": 30173
+      },
+      {
+        "count": 5267,
+        "min_block_changes": 2,
+        "reason": "pick",
+        "source": 32,
+        "witness_code": 17725
+      },
+      {
+        "count": 9332,
+        "min_block_changes": 1,
+        "reason": "pick",
+        "source": 33,
+        "witness_code": 30141
+      },
+      {
+        "count": 22045,
+        "min_block_changes": 0,
+        "reason": "nonpositive",
+        "source": null,
+        "witness_code": 30125
+      },
+      {
+        "count": 13683,
+        "min_block_changes": 1,
+        "reason": "tie",
+        "source": null,
+        "witness_code": 29613
+      }
+    ],
+    "row": 30054
+  }
+]

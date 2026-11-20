@@ -1,0 +1,26 @@
+[package]
+name = "d30-panel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d30-panel"
+path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+serde = { version = "1", features = ["derive"] }
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+
+[[bin]]
+name = "d30-writer"
+path = "writer.rs"
+
+[[bin]]
+name = "d30-role-read"
+path = "../ordinary/main.rs"

@@ -1,0 +1,15 @@
+{
+  "decision": "GO-SCORE",
+  "at": "2026-11-20T02:54:01Z",
+  "fit": "8399a65c3707dd85763285b73351d7dbd63d3ce2237bc99b2b31a8d279d61e33",
+  "sheet": "4b013eecdce39bd7ef58b909047384760759eb5ac80a6abef8da5a7615ff64dc",
+  "full_inputs": "958e28d34bb800dd234467e993cedc212643384a9fa3e79278572edbd69be488",
+  "panel": "a39c8980b935b2e7d45cabc4e8fa9cc7bbe2126d494f29c2a37dddaf2f2068b1",
+  "pod": "vast-61560422",
+  "executables": "6ea23a5bb514d550d2350ac89fdd78fc1c02cdb129cd69f55e410d576a1f3a79",
+  "chat": "2740ca303d1d9cf549ebcc2dc00cc0cdb8fa16137af155834053f6e756c9689c",
+  "score_inputs": "846326235c137498d131e1530d91b42fb4eb53a0cacd8546ab0183712ec17fff",
+  "cold_projection_equal": true,
+  "prefixes_native_equal": 1353,
+  "fixed_packet_columns": 37
+}

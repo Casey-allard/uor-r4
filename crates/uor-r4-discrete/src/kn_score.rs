@@ -242,7 +242,6 @@ impl KnTables {
                 "token id {target} is outside the 12-bit vocabulary"
             )));
         }
-        let m = u128::from(PROBABILITY_ONE);
         let mut mass = u128::from(KN_BASE_MASS);
         for k in 0..=(self.highest as usize).min(j) {
             let order = &self.orders[k];
@@ -250,23 +249,11 @@ impl KnTables {
             let Ok(at) = order.contexts.binary_search_by(|c| c.key.cmp(&key)) else {
                 continue;
             };
-            let NgramContext {
-                total,
-                n1,
-                n2,
-                n3_plus,
-                ..
-            } = order.contexts[at];
             let a = order
                 .triples
                 .binary_search_by(|t| (t.key, t.next).cmp(&(key, target)))
                 .map_or(0, |i| order.triples[i].count);
-            let [d1, d2, d3] = order.discounts.dq.map(u128::from);
-            let total = u128::from(total);
-            let gamma =
-                (d1 * u128::from(n1) + d2 * u128::from(n2) + d3 * u128::from(n3_plus)) / total;
-            let kept = u128::from(a) * m - u128::from(order.discounts.discount(a));
-            mass = kept / total + gamma * mass / m;
+            mass = interpolate_order(mass, a, order.contexts[at], order.discounts);
         }
         u64::try_from(mass.max(1)).map_err(|_| invalid("a KN mass exceeded 2^64"))
     }
@@ -278,6 +265,24 @@ impl KnTables {
             .map(|j| self.score_target(tokens, j))
             .collect()
     }
+}
+
+/// One integer interpolation step for every representation of the same order.
+pub(crate) fn interpolate_order(
+    lower_mass: u128,
+    target_count: u32,
+    context: NgramContext,
+    discounts: KnDiscounts,
+) -> u128 {
+    let m = u128::from(PROBABILITY_ONE);
+    let [d1, d2, d3] = discounts.dq.map(u128::from);
+    let total = u128::from(context.total);
+    let gamma = (d1 * u128::from(context.n1)
+        + d2 * u128::from(context.n2)
+        + d3 * u128::from(context.n3_plus))
+        / total;
+    let kept = u128::from(target_count) * m - u128::from(discounts.discount(target_count));
+    kept / total + gamma * lower_mass / m
 }
 
 /// claude-422: N = 0 tables whose gamma chain floors an unseen id to 0. One

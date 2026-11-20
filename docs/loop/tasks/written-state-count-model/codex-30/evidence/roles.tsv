@@ -1,0 +1,23 @@
+row	family	stratum	factors	request_ok	exclusion_ok	request_span	request_eligibility	excluded_span	excluded_eligibility	candidate_boundary	role_words	source	first_error	exact
+30100	packing	crossed	[0,0,0]	false	false	[60,64]	outside_query	[73,78]		78	[79,80,69,70,0,58,4294967294,16]	15	[0,262,261]	false
+30101	packing	crossed	[0,0,1]	false	false	[74,78]	outside_query	[58,63]		78	[79,80,54,55,0,58,4294967294,16]	15	[0,262,261]	false
+30102	packing	crossed	[0,1,0]	false	false	[60,64]	outside_query	[73,78]		78	[79,80,69,70,0,58,4294967294,16]	15	[0,262,261]	false
+30103	packing	crossed	[0,1,1]	false	false	[74,78]	outside_query	[58,63]		78	[79,80,54,55,0,58,4294967294,16]	15	[0,262,261]	false
+30104	packing	crossed	[1,0,0]	false	false	[60,65]		[74,78]	outside_query	78	[79,80,70,71,0,58,4294967294,26]	15	[0,1881,261]	false
+30105	packing	crossed	[1,0,1]	false	false	[73,78]		[58,62]	outside_query	78	[79,80,54,55,0,58,4294967294,26]	15	[0,1881,261]	false
+30106	packing	crossed	[1,1,0]	false	false	[60,65]		[74,78]	outside_query	78	[79,80,70,71,0,58,4294967294,26]	15	[0,1881,261]	false
+30107	packing	crossed	[1,1,1]	false	false	[73,78]		[58,62]	outside_query	78	[79,80,54,55,0,58,4294967294,26]	15	[0,1881,261]	false
+30108	packing	direct	null	true	true	[40,44]	eligible	null		29	[40,44,4294967295,4294967295,58,16,2147483648,16]		[0,262,427]	false
+30109	packing	unspecified	null	true	true	null		null		76	[4294967295,4294967295,4294967295,4294967295,2147483648,8,2147483648,4294967281]		[0,340,1155]	false
+30110	packing	incidental_only	null	true	true	null		null		102	[4294967295,4294967295,4294967295,4294967295,2147483648,8,2147483648,4294967288]		[0,340,1155]	false
+30116	delivery	crossed	[0,0,0]	false	false	[59,62]	outside_query	[70,73]	outside_query	73	[74,75,55,56,0,24,4294967294,10]	15	[0,2537,261]	false
+30117	delivery	crossed	[0,0,1]	true	false	[70,73]	eligible	[53,56]	outside_query	56	[70,73,66,67,72,24,0,10]	24	null	true
+30118	delivery	crossed	[0,1,0]	false	false	[59,62]	outside_query	[70,73]	outside_query	73	[74,75,55,56,0,24,4294967294,10]	15	[0,2537,261]	false
+30119	delivery	crossed	[0,1,1]	true	false	[70,73]	eligible	[53,56]	outside_query	56	[70,73,66,67,72,24,0,10]	33	[0,2537,324]	false
+30120	delivery	crossed	[1,0,0]	false	false	[59,62]	outside_query	[70,73]	outside_query	73	[74,75,55,56,0,24,4294967294,10]	15	[0,1323,261]	false
+30121	delivery	crossed	[1,0,1]	true	false	[70,73]	eligible	[53,56]	outside_query	56	[70,73,66,67,72,24,0,10]		[0,1323,1155]	false
+30122	delivery	crossed	[1,1,0]	false	false	[59,62]	outside_query	[70,73]	outside_query	73	[74,75,55,56,0,24,4294967294,10]	15	[0,1323,261]	false
+30123	delivery	crossed	[1,1,1]	true	false	[70,73]	eligible	[53,56]	outside_query	56	[70,73,66,67,72,24,0,10]	23	[0,1323,1638]	false
+30124	delivery	direct	null	true	false	[42,45]	eligible	null		28	[42,45,38,39,78,24,2147483648,4294967281]	24	null	true
+30125	delivery	unspecified	null	true	true	null		null		72	[4294967295,4294967295,4294967295,4294967295,2147483648,10,2147483648,8]		[0,340,1155]	false
+30126	delivery	incidental_only	null	true	true	null		null		96	[4294967295,4294967295,4294967295,4294967295,2147483648,10,2147483648,8]		[0,340,1155]	false

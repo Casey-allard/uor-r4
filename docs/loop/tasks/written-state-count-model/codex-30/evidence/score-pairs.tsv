@@ -1,0 +1,9 @@
+left	right	local_masks_and_words_equal	left_swap_equals_right_nominal	right_swap_equals_left_nominal
+30001	30002	true	true	true
+30003	30004	true	true	true
+30005	30006	true	true	true
+30007	30008	true	true	true
+30009	30010	true	true	true
+30011	30012	true	true	true
+30051	30052	true	true	true
+30053	30054	true	true	true

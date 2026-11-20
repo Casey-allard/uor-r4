@@ -1,0 +1,9 @@
+left	right	first_token_difference_bos_length	first_token_left	first_token_right	first_recurrence_difference_bos_length	boundary_left	boundary_right	first_equal_shared_offset	equal_prefixes_shared	shared_prefixes_including_boundary
+30001	30002	6	3414	3653	6	20835	31145	NA	0	34
+30003	30004	6	3229	499	6	31136	32677	NA	0	35
+30005	30006	6	327	3979	6	29088	31402	NA	0	40
+30007	30008	5	971	287	5	32624	39341	NA	0	43
+30009	30010	6	3599	280	6	31139	30043	9	1	37
+30011	30012	5	287	301	5	36256	6563	NA	0	44
+30051	30052	6	3554	3196	6	31006	29347	NA	0	35
+30053	30054	5	341	287	6	51632	30125	25	1	33

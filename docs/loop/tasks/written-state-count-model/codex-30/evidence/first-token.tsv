@@ -1,0 +1,96 @@
+row	stratum	reading	target	gold_address	arm	selected_address	first_error_offset	expected_id	emitted_id	exact_through_eos	generated_text
+30001	fresh	early	down jackets	64	local		0	601	1155	false	 Got it, I'll remember that.
+30001	fresh	early	down jackets	64	nominal		0	601	1155	false	 Got it, I'll remember that.
+30001	fresh	early	down jackets	64	swap	63	0	601	1638	false	 brought down jackets
+30001	fresh	early	down jackets	64	zero		0	601	1155	false	 Got it, I'll remember that.
+30001	fresh	early	down jackets	64	ordinary		0	601	1155	false	 Got it, I'll remember that.
+30002	fresh	late	jackets	52	local		0	3653	1155	false	 Got it, your friend is 1.
+30002	fresh	late	jackets	52	nominal	50	0	3653	1638	false	 brought down jackets
+30002	fresh	late	jackets	52	swap		0	3653	1155	false	 Got it, your friend is 1.
+30002	fresh	late	jackets	52	zero		0	3653	1155	false	 Got it, your friend is 1.
+30002	fresh	late	jackets	52	ordinary		0	3653	1155	false	 Got it, your friend is 1.
+30003	fresh	early	home remedies	82	local		0	582	1155	false	 Got it, I'll remember that.
+30003	fresh	early	home remedies	82	nominal		0	582	1155	false	 Got it, I'll remember that.
+30003	fresh	early	home remedies	82	swap		0	582	1155	false	 Got it, I'll remember that.
+30003	fresh	early	home remedies	82	zero		0	582	1155	false	 Got it, I'll remember that.
+30003	fresh	early	home remedies	82	ordinary		0	582	1155	false	 Got it, I'll remember that.
+30004	fresh	late	remedies	42	local		0	1032	1155	false	 Got it, I'll remember that.
+30004	fresh	late	remedies	42	nominal		0	1032	1155	false	 Got it, I'll remember that.
+30004	fresh	late	remedies	42	swap		0	1032	1155	false	 Got it, I'll remember that.
+30004	fresh	late	remedies	42	zero		0	1032	1155	false	 Got it, I'll remember that.
+30004	fresh	late	remedies	42	ordinary		0	1032	1155	false	 Got it, I'll remember that.
+30005	fresh	early	away team jerseys	56	local		0	575	1155	false	 Got it, I'll remember that.
+30005	fresh	early	away team jerseys	56	nominal	57	0	575	2836	false	 team jerseys
+30005	fresh	early	away team jerseys	56	swap	57	0	575	2836	false	 team jerseys
+30005	fresh	early	away team jerseys	56	zero		0	575	1155	false	 Got it, I'll remember that.
+30005	fresh	early	away team jerseys	56	ordinary		0	575	1155	false	 Got it, I'll remember that.
+30006	fresh	late	team jerseys	51	local		0	2836	1155	false	 Got it, I'll remember that.
+30006	fresh	late	team jerseys	51	nominal	51				true	 team jerseys
+30006	fresh	late	team jerseys	51	swap	51				true	 team jerseys
+30006	fresh	late	team jerseys	51	zero		0	2836	1155	false	 Got it, I'll remember that.
+30006	fresh	late	team jerseys	51	ordinary	51				true	 team jerseys
+30007	fresh	early	coach drivers	63	local		0	581	1155	false	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	early	coach drivers	63	nominal		0	581	1155	false	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	early	coach drivers	63	swap		0	581	1155	false	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	early	coach drivers	63	zero		0	581	1155	false	 Got it, I'm sorry you telling me, I'll remember that
+30007	fresh	early	coach drivers	63	ordinary		0	581	1155	false	 Got it, I'm sorry you telling me, I'll remember that
+30008	fresh	late	drivers	58	local		0	2141	1155	false	 Got it, I'll remember that.
+30008	fresh	late	drivers	58	nominal		0	2141	1155	false	 Got it, I'll remember that.
+30008	fresh	late	drivers	58	swap		0	2141	1155	false	 Got it, I'll remember that.
+30008	fresh	late	drivers	58	zero		0	2141	1155	false	 Got it, I'll remember that.
+30008	fresh	late	drivers	58	ordinary		0	2141	1155	false	 Got it, I'll remember that.
+30009	fresh	early	back orders	68	local		0	515	1155	false	 Got it, I'll remember that.
+30009	fresh	early	back orders	68	nominal		0	515	1155	false	 Got it, I'll remember that.
+30009	fresh	early	back orders	68	swap	66	0	515	262	false	 sent back orders
+30009	fresh	early	back orders	68	zero		0	515	1155	false	 Got it, I'll remember that.
+30009	fresh	early	back orders	68	ordinary		0	515	1155	false	 Got it, I'll remember that.
+30010	fresh	late	orders	61	local		0	2854	1155	false	 Got it, I'll remember that.
+30010	fresh	late	orders	61	nominal	58	0	2854	262	false	 sent back orders
+30010	fresh	late	orders	61	swap		0	2854	1155	false	 Got it, I'll remember that.
+30010	fresh	late	orders	61	zero		0	2854	1155	false	 Got it, I'll remember that.
+30010	fresh	late	orders	61	ordinary		0	2854	1155	false	 Got it, I'll remember that.
+30011	fresh	early	search teams	60	local		0	2536	1155	false	 Got it, I'll remember that.
+30011	fresh	early	search teams	60	nominal	61	0	2536	2836	false	 teams
+30011	fresh	early	search teams	60	swap		0	2536	1155	false	 Got it, I'll remember that.
+30011	fresh	early	search teams	60	zero		0	2536	1155	false	 Got it, I'll remember that.
+30011	fresh	early	search teams	60	ordinary		0	2536	1155	false	 Got it, I'll remember that.
+30012	fresh	late	teams	64	local		0	2836	1155	false	 Got it, I'll remember that.
+30012	fresh	late	teams	64	nominal		0	2836	1155	false	 Got it, I'll remember that.
+30012	fresh	late	teams	64	swap	64				true	 teams
+30012	fresh	late	teams	64	zero		0	2836	1155	false	 Got it, I'll remember that.
+30012	fresh	late	teams	64	ordinary		0	2836	1155	false	 Got it, I'll remember that.
+30013	control	ambiguous			local		0	340	1155	false	 Got it, your friend is 1.
+30013	control	ambiguous			nominal		0	340	1155	false	 Got it, your friend is 1.
+30013	control	ambiguous			swap		0	340	1155	false	 Got it, your friend is 1.
+30013	control	ambiguous			zero		0	340	1155	false	 Got it, your friend is 1.
+30013	control	ambiguous			ordinary		0	340	1155	false	 Got it, your friend is 1.
+30014	control	ambiguous			local		0	340	1155	false	 Got it, I'll remember that.
+30014	control	ambiguous			nominal	48	0	340	451	false	 jerseys
+30014	control	ambiguous			swap	48	0	340	451	false	 jerseys
+30014	control	ambiguous			zero		0	340	1155	false	 Got it, I'll remember that.
+30014	control	ambiguous			ordinary	48	0	340	451	false	 jerseys
+30015	control	missing			local		0	340	1155	false	 Got it, you.
+30015	control	missing			nominal		0	340	1155	false	 Got it, you.
+30015	control	missing			swap		0	340	1155	false	 Got it, you.
+30015	control	missing			zero		0	340	1155	false	 Got it, you.
+30015	control	missing			ordinary		0	340	1155	false	 Got it, you.
+30051	d29_exposed	early	back issues	28	local		0	515	1155	false	 Got it, I'll remember that.
+30051	d29_exposed	early	back issues	28	nominal	26	0	515	262	false	 sent back issues
+30051	d29_exposed	early	back issues	28	swap		0	515	1155	false	 Got it, I'll remember that.
+30051	d29_exposed	early	back issues	28	zero		0	515	1155	false	 Got it, I'll remember that.
+30051	d29_exposed	early	back issues	28	ordinary	26	0	515	262	false	 sent back issues
+30052	d29_exposed	late	issues	35	local		0	435	1155	false	 Got it, I'll remember that.
+30052	d29_exposed	late	issues	35	nominal		0	435	1155	false	 Got it, I'll remember that.
+30052	d29_exposed	late	issues	35	swap	32	0	435	262	false	 sent back issues
+30052	d29_exposed	late	issues	35	zero		0	435	1155	false	 Got it, I'll remember that.
+30052	d29_exposed	late	issues	35	ordinary		0	435	1155	false	 Got it, I'll remember that.
+30053	d29_exposed	early	home office chairs	38	local		0	582	1155	false	 Got it, I'll remember.
+30053	d29_exposed	early	home office chairs	38	nominal	38				true	 home office chairs
+30053	d29_exposed	early	home office chairs	38	swap		0	582	1155	false	 Got it, I'll remember.
+30053	d29_exposed	early	home office chairs	38	zero		0	582	1155	false	 Got it, I'll remember.
+30053	d29_exposed	early	home office chairs	38	ordinary	38				true	 home office chairs
+30054	d29_exposed	late	office chairs	32	local		0	3366	1155	false	 Got it, I'll remember that.
+30054	d29_exposed	late	office chairs	32	nominal		0	3366	1155	false	 Got it, I'll remember that.
+30054	d29_exposed	late	office chairs	32	swap	31	0	3366	582	false	 home office chairs
+30054	d29_exposed	late	office chairs	32	zero		0	3366	1155	false	 Got it, I'll remember that.
+30054	d29_exposed	late	office chairs	32	ordinary		0	3366	1155	false	 Got it, I'll remember that.

@@ -12,7 +12,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 
 const MAGIC: &[u8; 8] = b"UORKNC01";
-type Order = (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>);
+pub(super) type Order = (NgramOrderDigest, Vec<NgramTriple>, Vec<NgramContext>);
 
 /// Complete model-independent lookups for one pinned original-token window.
 pub struct CompleteCountLookup {
@@ -184,7 +184,7 @@ fn read_orders(wire: &mut Wire<'_>, highest: u32) -> Result<Vec<Order>> {
     Ok(output)
 }
 
-fn validate_records(
+pub(super) fn validate_records(
     triples: &[NgramTriple],
     contexts: &[NgramContext],
     expected_spectrum: [u64; 4],
@@ -236,6 +236,62 @@ fn validate_records(
 mod tests {
     use super::*;
     use crate::ngram_count_oracle::{oracle_adjusted, oracle_count};
+
+    #[test]
+    fn compact_lookup_preserves_native_words_and_refuses_invalid_rows() -> Result<()> {
+        use super::super::{encode_compact_lookup, CompactCountLookup};
+
+        let train = [0, 4095, 2, 3, 2, 4, 1, 0, 4, 2, 3, 2, 3, 1];
+        let probe = [0, 4095, 2, 3, 2, 4, 1, 0, 4095, 2, 5, 1];
+        for highest in [0, 1, 2, 3, 10] {
+            let raw = (0..=highest)
+                .map(|order| oracle_count(&train, order))
+                .collect::<Result<Vec<_>>>()?;
+            let adjusted = (0..=highest)
+                .map(|order| oracle_adjusted(&train, order, highest))
+                .collect::<Result<Vec<_>>>()?;
+            let old_bytes = encode_complete_lookup(highest, [3; 32], &raw, &adjusted)?;
+            let new_bytes = encode_compact_lookup(highest, [3; 32], &raw, &adjusted)?;
+            let new_hash = Sha256::digest(&new_bytes).into();
+            assert!(new_bytes.len() < old_bytes.len());
+            let old = CompleteCountLookup::from_bytes(
+                &old_bytes,
+                [3; 32],
+                Sha256::digest(&old_bytes).into(),
+            )?;
+            let new = CompactCountLookup::from_bytes(&new_bytes, [3; 32], new_hash)?;
+            assert!(CompactCountLookup::from_bytes(&new_bytes, [4; 32], new_hash).is_err());
+            assert!(CompactCountLookup::from_bytes(&new_bytes, [3; 32], [0; 32]).is_err());
+            let mut changed = new_bytes.clone();
+            *changed
+                .last_mut()
+                .ok_or_else(|| invalid("fixture has no rows"))? ^= 0x80;
+            assert!(CompactCountLookup::from_bytes(
+                &changed,
+                [3; 32],
+                Sha256::digest(&changed).into()
+            )
+            .is_err());
+            let truncated = &new_bytes[..new_bytes.len() - 1];
+            assert!(CompactCountLookup::from_bytes(
+                truncated,
+                [3; 32],
+                Sha256::digest(truncated).into()
+            )
+            .is_err());
+            let width = highest as usize + 1;
+            let (mut raw_a, mut total_a) = (vec![0; width], vec![0; width]);
+            let (mut raw_b, mut total_b) = (vec![0; width], vec![0; width]);
+            for (at, _) in probe.iter().enumerate().filter(|&(_, id)| *id != 0) {
+                assert_eq!(
+                    old.lookup(&probe, at, &mut raw_a, &mut total_a)?,
+                    new.lookup(&probe, at, &mut raw_b, &mut total_b)?
+                );
+                assert_eq!((&raw_a, &total_a), (&raw_b, &total_b));
+            }
+        }
+        Ok(())
+    }
 
     #[test]
     fn complete_lookup_roundtrips_raw_and_adjusted_words() -> Result<()> {

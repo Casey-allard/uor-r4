@@ -1,0 +1,45 @@
+arm	row	family	stratum	candidate_boundary	requested_expected	requested_actual	requested_eligibility	excluded_expected	excluded_actual	excluded_eligibility	incidental_expected	incidental_eligibility	incidental_chosen	source	exact_comparison_through_eos	first_mismatch_offset0	expected_id	emitted_id	stop
+d26	30100	packing	crossed	78	60,64	79,80	outside_query	73,78	69,70		86,91	eligible	false	15	false	0	262	261	eos
+d26	30101	packing	crossed	78	74,78	79,80	outside_query	58,63	54,55		86,91	eligible	false	15	false	0	262	261	eos
+d26	30102	packing	crossed	78	60,64	79,80	outside_query	73,78	69,70		86,91	eligible	false	15	false	0	262	261	eos
+d26	30103	packing	crossed	78	74,78	79,80	outside_query	58,63	54,55		86,91	eligible	false	15	false	0	262	261	eos
+d26	30104	packing	crossed	78	60,65	79,80		74,78	70,71	outside_query	86,91	eligible	false	15	false	0	1881	261	eos
+d26	30105	packing	crossed	78	73,78	79,80		58,62	54,55	outside_query	86,91	eligible	false	15	false	0	1881	261	eos
+d26	30106	packing	crossed	78	60,65	79,80		74,78	70,71	outside_query	86,91	eligible	false	15	false	0	1881	261	eos
+d26	30107	packing	crossed	78	73,78	79,80		58,62	54,55	outside_query	86,91	eligible	false	15	false	0	1881	261	eos
+d26	30108	packing	direct	29	40,44	40,44	eligible						false		false	0	262	427	eos
+d26	30109	packing	unspecified	76									false		false	0	340	1155	eos
+d26	30110	packing	incidental_only	102							57,62	outside_query	false		false	0	340	1155	eos
+d26	30116	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false	15	false	0	2537	261	eos
+d26	30117	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false	24	true				eos
+d26	30118	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false	15	false	0	2537	261	eos
+d26	30119	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false	33	false	0	2537	324	eos
+d26	30120	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false	15	false	0	1323	261	eos
+d26	30121	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false		false	0	1323	1155	eos
+d26	30122	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false	15	false	0	1323	261	eos
+d26	30123	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false	23	false	0	1323	1638	eos
+d26	30124	delivery	direct	28	42,45	42,45	eligible		38,39				false	24	true				eos
+d26	30125	delivery	unspecified	72									false		false	0	340	1155	eos
+d26	30126	delivery	incidental_only	96							53,56	outside_query	false		false	0	340	1155	eos
+d29	30100	packing	crossed	78	60,64	79,80	outside_query	73,78	69,70		86,91	eligible	false		false	0	262	1155	eos
+d29	30101	packing	crossed	78	74,78	79,80	outside_query	58,63	54,55		86,91	eligible	false		false	0	262	1155	eos
+d29	30102	packing	crossed	78	60,64	79,80	outside_query	73,78	69,70		86,91	eligible	false		false	0	262	1155	eos
+d29	30103	packing	crossed	78	74,78	79,80	outside_query	58,63	54,55		86,91	eligible	false		false	0	262	1155	eos
+d29	30104	packing	crossed	78	60,65	79,80		74,78	70,71	outside_query	86,91	eligible	false		false	0	1881	1155	eos
+d29	30105	packing	crossed	78	73,78	79,80		58,62	54,55	outside_query	86,91	eligible	false		false	0	1881	1155	eos
+d29	30106	packing	crossed	78	60,65	79,80		74,78	70,71	outside_query	86,91	eligible	false		false	0	1881	1155	eos
+d29	30107	packing	crossed	78	73,78	79,80		58,62	54,55	outside_query	86,91	eligible	false		false	0	1881	1155	eos
+d29	30108	packing	direct	29	40,44	40,44	eligible						false		false	0	262	427	eos
+d29	30109	packing	unspecified	76									false		false	0	340	1155	eos
+d29	30110	packing	incidental_only	102							57,62	outside_query	false		false	0	340	1155	eos
+d29	30116	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false		false	0	2537	1155	eos
+d29	30117	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false		false	0	2537	1155	eos
+d29	30118	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false		false	0	2537	1155	eos
+d29	30119	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false		false	0	2537	1155	eos
+d29	30120	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false		false	0	1323	1155	eos
+d29	30121	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false		false	0	1323	1155	eos
+d29	30122	delivery	crossed	73	59,62	74,75	outside_query	70,73	55,56	outside_query	81,84	eligible	false		false	0	1323	1155	eos
+d29	30123	delivery	crossed	56	70,73	70,73	eligible	53,56	66,67	outside_query	81,84	eligible	false		false	0	1323	1155	eos
+d29	30124	delivery	direct	28	42,45	42,45	eligible		38,39				false		false	0	2537	1155	eos
+d29	30125	delivery	unspecified	72									false		false	0	340	1155	eos
+d29	30126	delivery	incidental_only	96							53,56	outside_query	false		false	0	340	1155	eos

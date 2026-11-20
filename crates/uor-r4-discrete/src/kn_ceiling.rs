@@ -15,8 +15,10 @@ use crate::ngram_count::{
 };
 use crate::{Error, Result};
 
+mod compact_lookup;
 mod complete_lookup;
 mod frozen_pick;
+pub use compact_lookup::{encode_compact_lookup, CompactCountLookup};
 pub use complete_lookup::{encode_complete_lookup, CompleteCountLookup};
 pub use frozen_pick::FrozenPickMixture;
 

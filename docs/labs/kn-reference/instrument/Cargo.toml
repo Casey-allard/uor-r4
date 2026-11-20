@@ -61,3 +61,8 @@ path = "src/bin/pick-split.rs"
 name = "s5-mixture"
 path = "src/bin/s5-mixture.rs"
 test = false
+
+[[bin]]
+name = "compact-count"
+path = "src/bin/compact-count.rs"
+required-features = ["cuda"]
