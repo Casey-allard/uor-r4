@@ -1,0 +1,16 @@
+[package]
+name = "role-endpoint-packet"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "role-endpoint-packet"
+path = "main.rs"
+
+[dependencies]
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+sha2 = "0.10"

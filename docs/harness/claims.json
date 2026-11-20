@@ -55,6 +55,13 @@
     "lab": "codex",
     "note": "Fresh validity and source-start retest; prospective input seals; no training"
   },
+  "codex/full-user-role-endpoints": {
+    "branch": "codex/full-user-role-endpoints",
+    "claimed_at": "2026-11-19T23:23:41-05:00",
+    "head": "ac9fc3a2d",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/geometric-value-ranking": {
     "branch": "codex/geometric-value-ranking",
     "claimed_at": "2026-11-19T00:31:01-05:00",

@@ -69,6 +69,22 @@ pub struct FrozenRoleReplay<'a> {
     pub requested_framing: Option<&'a RoleFraming>,
     pub requested_context: Option<RequestedContext>,
 }
+
+#[derive(Serialize)]
+pub struct RequestedRoleReplayTrace {
+    #[serde(flatten)]
+    pub roles: crate::paired_role::RequestedOccurrenceTrace,
+    pub assertions: Vec<PairedAssertionWitness>,
+    pub contextual_sources: Vec<ReplayContextualSource>,
+}
+
+#[derive(Serialize)]
+pub struct ReplayContextualSource {
+    pub fact_span: [usize; 2],
+    pub selection: contextual_source::SourceSelection,
+    pub candidates: Vec<(contextual_source::SourceCandidate, contextual_source::SourceScore)>,
+}
+
 /// Version 1 stops at a period, EOS, BOS or newline. A witnessed delimiter after a nonempty copy emits EOS.
 pub const ROLE_COPY_STOPS: [u32; 4] = [16, 1, 0, 201];
 
@@ -2795,6 +2811,60 @@ impl IntegerDiscreteModel {
             requested_framing: policy.requested_framing(),
             requested_context: policy.requested_policy().map(RequestedPolicy::context),
         })
+    }
+
+    /// Compare role scope and candidate enumeration using the sealed bank, then
+    /// hand the result to the ordinary assertion and source reader.
+    pub fn requested_role_replay(
+        &self,
+        prompt: &[u32],
+        arm: crate::paired_role::RequestedReplayArm,
+    ) -> Result<(PairedCopyDecision, RequestedRoleReplayTrace)> {
+        let replay = self.frozen_role_replay()?;
+        let framing = replay
+            .requested_framing
+            .ok_or_else(|| invalid("role replay requires literal-role framing"))?;
+        let context = replay
+            .requested_context
+            .ok_or_else(|| invalid("role replay requires an occurrence policy"))?;
+        let (decision, roles) = replay.roles.requested_occurrence_replay(
+            prompt,
+            framing.content(prompt)?,
+            0..prompt.len(),
+            replay.delimiters,
+            replay.assertion_classes,
+            context,
+            arm,
+        )?;
+        let (copy, assertions) = self.paired_copy_witness(prompt, decision, None)?;
+        let mut contextual_sources = Vec::new();
+        if let Some(query) = decision.requested {
+            for witness in &assertions {
+                if let Some(expected) = witness.contextual_source {
+                    let [start, end] = witness.fact_span;
+                    let (selection, candidates) =
+                        self.trace_bound_contextual_source(prompt, RoleSpan { start, end }, query)?;
+                    if selection != expected {
+                        return Err(invalid(
+                            "role replay source trace differs from ordinary reader",
+                        ));
+                    }
+                    contextual_sources.push(ReplayContextualSource {
+                        fact_span: witness.fact_span,
+                        selection,
+                        candidates,
+                    });
+                }
+            }
+        }
+        Ok((
+            copy,
+            RequestedRoleReplayTrace {
+                roles,
+                assertions,
+                contextual_sources,
+            },
+        ))
     }
 
     pub fn frozen_role_trace(

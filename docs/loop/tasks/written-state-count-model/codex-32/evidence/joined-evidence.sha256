@@ -1,0 +1,14 @@
+306a13d98105a96575617519de59b57818d085bdcaa788586285292c1c9b9e68  joined.json
+2c01bf0c761d53229a15ba53b21df4fed3b11f82fde11494c043c6e9913db515  grades.json
+633fefec0446d3fb1aec6082abb3a919fcaa51a00f5c4e42713f6b4dff7448a3  ordinary-evidence.sha256
+382e0154d4b0af80f888242d2bc20007900a4d1653d8648f45a3bcbdcdfb762e  join/target/release/d32-role-join
+1909e2c0d2bc57775e0c2e68ac90c0634c12b08204f24ee7882a269981bb390a  join/join.rs
+db80aa1b137c03caff0f614d77b3dc3d2f1bf32853b15aaaa4738f96b3767064  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/blind-final.sha256
+6f8d815b067c234c2296e85f741f48e5df7a7acb2231b8eb7cf81750823afe36  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/primary/mode-4.out
+7838dd352033765e6d46721e593fce30d4f2fc90a3a470b57199a1d28118d7e3  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/primary/mode-5.out
+6f8d815b067c234c2296e85f741f48e5df7a7acb2231b8eb7cf81750823afe36  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/primary/mode-6.out
+7838dd352033765e6d46721e593fce30d4f2fc90a3a470b57199a1d28118d7e3  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/primary/mode-7.out
+6f8d815b067c234c2296e85f741f48e5df7a7acb2231b8eb7cf81750823afe36  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/cold/mode-4.out
+7838dd352033765e6d46721e593fce30d4f2fc90a3a470b57199a1d28118d7e3  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/cold/mode-5.out
+6f8d815b067c234c2296e85f741f48e5df7a7acb2231b8eb7cf81750823afe36  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/cold/mode-6.out
+7838dd352033765e6d46721e593fce30d4f2fc90a3a470b57199a1d28118d7e3  /mnt/plexpool/uor-r4-corpus/runs/20261120-role-endpoints-32/pod-final-custody/d32-role-endpoints/cold/mode-7.out

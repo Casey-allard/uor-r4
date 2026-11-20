@@ -59,6 +59,10 @@ pub struct FrozenRoleCandidateTrace {
 #[derive(Clone, Debug, Serialize)]
 pub struct RequestedOccurrenceCandidateTrace {
     pub span: [usize; 2],
+    pub inherited: bool,
+    pub repeated_head: Option<[usize; 2]>,
+    pub requested_admitted: bool,
+    pub excluded_admitted: bool,
     pub scores: [i32; 2],
     pub feature_keys: [u32; ROLE_OFFSETS],
     /// Original full-prefix score pair when the requested rank used other keys.
@@ -84,6 +88,26 @@ pub enum RequestedContext {
     FullPrefix,
     UserTextOnly,
     ClauseToEntity([u32; 2]),
+}
+
+/// Bounded frozen-state role replay. Production uses the historical arm.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum RequestedReplayArm {
+    #[default]
+    HistoricalInherited,
+    HistoricalRepeated,
+    FullInherited,
+    FullRepeated,
+}
+
+impl RequestedReplayArm {
+    fn full(self) -> bool {
+        matches!(self, Self::FullInherited | Self::FullRepeated)
+    }
+
+    fn repeated(self) -> bool {
+        matches!(self, Self::HistoricalRepeated | Self::FullRepeated)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -268,6 +292,7 @@ impl PairedRoleState {
             delimiters,
             assertion_classes,
             context,
+            RequestedReplayArm::HistoricalInherited,
             |_| {},
         )
         .map(|(decision, _)| decision)
@@ -300,21 +325,47 @@ impl PairedRoleState {
         assertion_classes: &[u32],
         context: RequestedContext,
     ) -> Result<RequestedOccurrenceTrace> {
+        self.requested_occurrence_replay(
+            ids,
+            content,
+            region,
+            delimiters,
+            assertion_classes,
+            context,
+            RequestedReplayArm::HistoricalInherited,
+        )
+        .map(|(_, trace)| trace)
+    }
+
+    pub fn requested_occurrence_replay(
+        &self,
+        ids: &[u32],
+        content: core::ops::Range<usize>,
+        region: core::ops::Range<usize>,
+        delimiters: &[u32],
+        assertion_classes: &[u32],
+        context: RequestedContext,
+        arm: RequestedReplayArm,
+    ) -> Result<(PairedRoleDecision, RequestedOccurrenceTrace)> {
         let mut candidates = Vec::new();
-        let (_, query_boundary) = self.replay_assertion_agreement(
+        let (decision, query_boundary) = self.replay_assertion_agreement(
             ids,
             content.clone(),
             region,
             delimiters,
             assertion_classes,
             context,
+            arm,
             |candidate| candidates.push(candidate),
         )?;
-        Ok(RequestedOccurrenceTrace {
-            content: [content.start, content.end],
-            query_boundary,
-            candidates,
-        })
+        Ok((
+            decision,
+            RequestedOccurrenceTrace {
+                content: [content.start, content.end],
+                query_boundary,
+                candidates,
+            },
+        ))
     }
 
     fn replay_assertion_agreement(
@@ -325,6 +376,7 @@ impl PairedRoleState {
         delimiters: &[u32],
         assertion_classes: &[u32],
         context: RequestedContext,
+        arm: RequestedReplayArm,
         mut visit: impl FnMut(RequestedOccurrenceCandidateTrace),
     ) -> Result<(PairedRoleDecision, Option<usize>)> {
         use RequestedEligibility::*;
@@ -341,47 +393,100 @@ impl PairedRoleState {
         let last_word = content
             .clone()
             .rfind(|&p| self.sites[ids[p] as usize][1] == 1);
-        let boundary = last_word
+        let historical_boundary = last_word
             .and_then(|last| (content.start..last).rfind(|&p| delimiters.contains(&ids[p])));
-        let supporting_head = |span: RoleSpan| {
-            let boundary = boundary?;
-            if span.start <= boundary || span.end > content.end {
+        let boundary = if arm.full() {
+            None
+        } else {
+            historical_boundary
+        };
+        let assertion_head = |start: usize| {
+            use crate::span_selector::{bounds, START};
+            if assertion_classes[ids[start] as usize] != START
+                || !delimiters.contains(&ids[start - 1])
+            {
                 return None;
             }
-            (content.start.max(1)..boundary).find_map(|start| {
-                use crate::span_selector::{bounds, START};
-                if assertion_classes[ids[start] as usize] != START
-                    || !delimiters.contains(&ids[start - 1])
-                {
-                    return None;
-                }
-                let end = bounds(ids, assertion_classes, start).1 + 1;
-                (end <= boundary && ids[start..end] == ids[span.start..span.end])
-                    .then_some([start, end])
-            })
+            let end = bounds(ids, assertion_classes, start).1 + 1;
+            (end <= content.end).then_some([start, end])
         };
+        let supporting_head = |span: RoleSpan| {
+            let stop = if arm.full() { span.start } else { boundary? };
+            let query_start = boundary.map_or(content.start, |p| p + 1);
+            (span.start >= query_start && span.end <= content.end)
+                .then(|| {
+                    (content.start.max(1)..stop)
+                        .filter_map(assertion_head)
+                        .find(|&[start, end]| {
+                            end <= stop && ids[start..end] == ids[span.start..span.end]
+                        })
+                })
+                .flatten()
+        };
+        let mut repeated = std::collections::BTreeMap::new();
+        if arm.repeated() {
+            for [head_start, head_end] in
+                (content.start.max(1)..content.end).filter_map(assertion_head)
+            {
+                let head = &ids[head_start..head_end];
+                for (offset, occurrence) in
+                    ids[head_end..content.end].windows(head.len()).enumerate()
+                {
+                    if occurrence == head {
+                        let start = head_end + offset;
+                        let end = start + head.len();
+                        if end == ids.len()
+                            || assertion_classes[ids[end] as usize] != crate::span_selector::CONT
+                        {
+                            repeated
+                                .entry((start, end))
+                                .or_insert([head_start, head_end]);
+                        }
+                    }
+                }
+            }
+        }
         let mut supported_mentions = Vec::new();
         if matches!(context, RequestedContext::ClauseToEntity(_)) {
             supported_mentions.extend(
                 role_spans(&self.sites, ids).filter(|&span| supporting_head(span).is_some()),
             );
+            supported_mentions.extend(repeated.keys().filter_map(|&(start, end)| {
+                let span = RoleSpan { start, end };
+                (role_span_at(&self.sites, ids, start, ids[start]) != Some(span)
+                    && supporting_head(span).is_some())
+                .then_some(span)
+            }));
         }
         let mut requested_rank = RoleRank::new();
         let mut excluded_rank = RoleRank::new();
-        for (span, keys) in candidates {
+        let inherited = candidates.map(|(span, keys)| {
+            (
+                span,
+                keys,
+                true,
+                repeated.get(&(span.start, span.end)).copied(),
+            )
+        });
+        let augmented = repeated.iter().filter_map(|(&(start, end), &head)| {
+            let span = RoleSpan { start, end };
+            (role_span_at(&self.sites, ids, start, ids[start]) != Some(span))
+                .then(|| (span, role_keys(&self.sites, ids, span), false, Some(head)))
+        });
+        for (span, keys, inherited, repeated_head) in inherited.chain(augmented) {
             let full_scores = self.scores(keys);
             let [requested, excluded] = full_scores;
             let in_region = span.start >= region.start && span.end <= region.end;
-            if in_region && excluded > requested {
+            let excluded_admitted = in_region && excluded > requested;
+            if excluded_admitted {
                 excluded_rank.update(span, excluded);
             }
-            let (eligibility, head) = match boundary {
-                None => (NoBoundary, None),
-                Some(boundary) if span.start <= boundary || span.end > content.end => {
-                    (OutsideQuery, None)
-                }
-                Some(_) if !in_region => (OutsideRegion, None),
-                Some(_) => {
+            let query_start = boundary.map_or(content.start, |p| p + 1);
+            let (eligibility, head) = match () {
+                _ if !arm.full() && boundary.is_none() => (NoBoundary, None),
+                _ if span.start < query_start || span.end > content.end => (OutsideQuery, None),
+                _ if !in_region => (OutsideRegion, None),
+                _ => {
                     let head = supporting_head(span);
                     (
                         if head.is_some() {
@@ -411,12 +516,12 @@ impl PairedRoleState {
             } else {
                 self.scores(feature_keys)
             };
-            let clause_evidence = match (context, boundary, head) {
-                (RequestedContext::ClauseToEntity(separators), Some(boundary), Some(_)) => {
+            let clause_evidence = match (context, head) {
+                (RequestedContext::ClauseToEntity(separators), Some(_)) => {
                     Some(self.clause_evidence(
                         ids,
                         span,
-                        boundary + 1..content.end,
+                        query_start..content.end,
                         separators,
                         delimiters,
                         &supported_mentions,
@@ -434,6 +539,10 @@ impl PairedRoleState {
             }
             visit(RequestedOccurrenceCandidateTrace {
                 span: [span.start, span.end],
+                inherited,
+                repeated_head,
+                requested_admitted: contrast.is_some(),
+                excluded_admitted,
                 scores,
                 feature_keys,
                 excluded_decision_scores: (feature_keys != keys).then_some(full_scores),
@@ -678,6 +787,76 @@ mod tests {
         let candidates: Vec<_> = role_candidates(&sites, &[0, 7]).unwrap().collect();
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].0, RoleSpan { start: 1, end: 2 });
+    }
+
+    #[test]
+    fn full_repeated_combines_scope_and_whole_factual_head_recovery() {
+        let mut sites = vec![[0, 0]; ROLE_VOCAB];
+        sites[5][1] = 1;
+        sites[8][0] = 8;
+        sites[11][1] = 1;
+        let excluded_key = 3 * ROLE_ROOTS as u32 + 8;
+        let state =
+            PairedRoleState::new([[0; 32]; 4], sites, vec![[excluded_key, 0, 0, 8]]).unwrap();
+        let mut classes = vec![0; ROLE_VOCAB];
+        classes[5] = crate::span_selector::START;
+        classes[6] = crate::span_selector::CONT;
+        classes[10] = crate::span_selector::CONT;
+        let ids = [0, 2, 5, 6, 8, 2, 7, 5, 6, 8, 2, 6, 5, 6, 10, 2, 7, 11];
+        for (arm, expected) in [
+            (RequestedReplayArm::HistoricalInherited, None),
+            (RequestedReplayArm::HistoricalRepeated, None),
+            (RequestedReplayArm::FullInherited, None),
+            (
+                RequestedReplayArm::FullRepeated,
+                Some(RoleSpan { start: 7, end: 9 }),
+            ),
+        ] {
+            let (decision, trace) = state
+                .requested_occurrence_replay(
+                    &ids,
+                    1..ids.len(),
+                    0..ids.len(),
+                    &[2],
+                    &classes,
+                    RequestedContext::FullPrefix,
+                    arm,
+                )
+                .unwrap();
+            assert_eq!(decision.requested, expected);
+            assert_eq!(
+                decision.excluded,
+                arm.repeated().then_some(RoleSpan { start: 7, end: 9 }),
+            );
+            assert!(trace.candidates.iter().all(|row| row.span != [12, 14]));
+            assert!(trace.candidates.iter().all(|row| row.span != [11, 12]));
+            let recovered = trace.candidates.iter().find(|row| row.span == [7, 9]);
+            assert_eq!(recovered.is_some(), arm.repeated());
+            if let Some(row) = recovered {
+                assert!(!row.inherited);
+                assert_eq!(row.repeated_head, Some([2, 4]));
+                assert_eq!(row.requested_admitted, arm.full());
+                assert!(row.excluded_admitted);
+            }
+        }
+        let (_, boundary_trace) = state
+            .requested_occurrence_replay(
+                &ids,
+                1..14,
+                0..ids.len(),
+                &[2],
+                &classes,
+                RequestedContext::FullPrefix,
+                RequestedReplayArm::FullRepeated,
+            )
+            .unwrap();
+        assert!(
+            boundary_trace
+                .candidates
+                .iter()
+                .all(|row| row.span != [12, 14]),
+            "a continuation outside user content still makes the match incomplete"
+        );
     }
 
     #[test]

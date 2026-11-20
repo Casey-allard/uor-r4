@@ -1,0 +1,3744 @@
+{
+  "arms": [
+    {
+      "arm": "historical-inherited",
+      "mode": 4,
+      "state_words": 17932,
+      "strata": {
+        "crossed": {
+          "both_admitted": 0,
+          "both_present": 8,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 0,
+          "excluded_present": 12,
+          "first_errors": [
+            [
+              30100,
+              0,
+              262,
+              261
+            ],
+            [
+              30101,
+              0,
+              262,
+              261
+            ],
+            [
+              30102,
+              0,
+              262,
+              261
+            ],
+            [
+              30103,
+              0,
+              262,
+              261
+            ],
+            [
+              30104,
+              0,
+              1881,
+              261
+            ],
+            [
+              30105,
+              0,
+              1881,
+              261
+            ],
+            [
+              30106,
+              0,
+              1881,
+              261
+            ],
+            [
+              30107,
+              0,
+              1881,
+              261
+            ],
+            [
+              30116,
+              0,
+              2537,
+              261
+            ],
+            [
+              30118,
+              0,
+              2537,
+              261
+            ],
+            [
+              30119,
+              0,
+              2537,
+              324
+            ],
+            [
+              30120,
+              0,
+              1323,
+              261
+            ],
+            [
+              30121,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30122,
+              0,
+              1323,
+              261
+            ],
+            [
+              30123,
+              0,
+              1323,
+              1638
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 4,
+          "requested_correct": 4,
+          "requested_present": 12,
+          "rows": 16,
+          "source_selected": 15,
+          "unsupported_copy": 0
+        },
+        "direct": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 1,
+          "excluded_present": 0,
+          "first_errors": [
+            [
+              30108,
+              0,
+              262,
+              427
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 1,
+          "requested_admitted": 2,
+          "requested_correct": 2,
+          "requested_present": 2,
+          "rows": 2,
+          "source_selected": 1,
+          "unsupported_copy": 0
+        },
+        "incidental_only": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        },
+        "unspecified": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    {
+      "arm": "full-inherited",
+      "mode": 5,
+      "state_words": 17932,
+      "strata": {
+        "crossed": {
+          "both_admitted": 0,
+          "both_present": 8,
+          "correct_source": 2,
+          "exact_through_eos": 2,
+          "excluded_admitted": 0,
+          "excluded_correct": 0,
+          "excluded_present": 12,
+          "first_errors": [
+            [
+              30100,
+              0,
+              262,
+              1155
+            ],
+            [
+              30101,
+              0,
+              262,
+              1155
+            ],
+            [
+              30102,
+              0,
+              262,
+              1155
+            ],
+            [
+              30103,
+              0,
+              262,
+              1155
+            ],
+            [
+              30104,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30105,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30106,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30107,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30118,
+              0,
+              2537,
+              324
+            ],
+            [
+              30119,
+              0,
+              2537,
+              324
+            ],
+            [
+              30120,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30121,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30122,
+              0,
+              1323,
+              1638
+            ],
+            [
+              30123,
+              0,
+              1323,
+              1638
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 12,
+          "requested_correct": 12,
+          "requested_present": 12,
+          "rows": 16,
+          "source_selected": 6,
+          "unsupported_copy": 0
+        },
+        "direct": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 1,
+          "excluded_present": 0,
+          "first_errors": [
+            [
+              30108,
+              0,
+              262,
+              427
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 1,
+          "requested_admitted": 2,
+          "requested_correct": 2,
+          "requested_present": 2,
+          "rows": 2,
+          "source_selected": 1,
+          "unsupported_copy": 0
+        },
+        "incidental_only": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 0,
+          "requested_correct": 0,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 2,
+          "unsupported_copy": 2
+        },
+        "unspecified": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    {
+      "arm": "historical-repeated",
+      "mode": 6,
+      "state_words": 17932,
+      "strata": {
+        "crossed": {
+          "both_admitted": 0,
+          "both_present": 8,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 0,
+          "excluded_present": 12,
+          "first_errors": [
+            [
+              30100,
+              0,
+              262,
+              261
+            ],
+            [
+              30101,
+              0,
+              262,
+              261
+            ],
+            [
+              30102,
+              0,
+              262,
+              261
+            ],
+            [
+              30103,
+              0,
+              262,
+              261
+            ],
+            [
+              30104,
+              0,
+              1881,
+              261
+            ],
+            [
+              30105,
+              0,
+              1881,
+              261
+            ],
+            [
+              30106,
+              0,
+              1881,
+              261
+            ],
+            [
+              30107,
+              0,
+              1881,
+              261
+            ],
+            [
+              30116,
+              0,
+              2537,
+              261
+            ],
+            [
+              30118,
+              0,
+              2537,
+              261
+            ],
+            [
+              30119,
+              0,
+              2537,
+              324
+            ],
+            [
+              30120,
+              0,
+              1323,
+              261
+            ],
+            [
+              30121,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30122,
+              0,
+              1323,
+              261
+            ],
+            [
+              30123,
+              0,
+              1323,
+              1638
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 4,
+          "requested_correct": 4,
+          "requested_present": 12,
+          "rows": 16,
+          "source_selected": 15,
+          "unsupported_copy": 0
+        },
+        "direct": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 1,
+          "excluded_present": 0,
+          "first_errors": [
+            [
+              30108,
+              0,
+              262,
+              427
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 1,
+          "requested_admitted": 2,
+          "requested_correct": 2,
+          "requested_present": 2,
+          "rows": 2,
+          "source_selected": 1,
+          "unsupported_copy": 0
+        },
+        "incidental_only": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        },
+        "unspecified": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        }
+      }
+    },
+    {
+      "arm": "full-repeated",
+      "mode": 7,
+      "state_words": 17932,
+      "strata": {
+        "crossed": {
+          "both_admitted": 0,
+          "both_present": 8,
+          "correct_source": 2,
+          "exact_through_eos": 2,
+          "excluded_admitted": 0,
+          "excluded_correct": 0,
+          "excluded_present": 12,
+          "first_errors": [
+            [
+              30100,
+              0,
+              262,
+              1155
+            ],
+            [
+              30101,
+              0,
+              262,
+              1155
+            ],
+            [
+              30102,
+              0,
+              262,
+              1155
+            ],
+            [
+              30103,
+              0,
+              262,
+              1155
+            ],
+            [
+              30104,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30105,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30106,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30107,
+              0,
+              1881,
+              1155
+            ],
+            [
+              30118,
+              0,
+              2537,
+              324
+            ],
+            [
+              30119,
+              0,
+              2537,
+              324
+            ],
+            [
+              30120,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30121,
+              0,
+              1323,
+              1155
+            ],
+            [
+              30122,
+              0,
+              1323,
+              1638
+            ],
+            [
+              30123,
+              0,
+              1323,
+              1638
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 12,
+          "requested_correct": 12,
+          "requested_present": 12,
+          "rows": 16,
+          "source_selected": 6,
+          "unsupported_copy": 0
+        },
+        "direct": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 1,
+          "exact_through_eos": 1,
+          "excluded_admitted": 0,
+          "excluded_correct": 1,
+          "excluded_present": 0,
+          "first_errors": [
+            [
+              30108,
+              0,
+              262,
+              427
+            ]
+          ],
+          "incidental_chosen": 0,
+          "joint_correct": 1,
+          "requested_admitted": 2,
+          "requested_correct": 2,
+          "requested_present": 2,
+          "rows": 2,
+          "source_selected": 1,
+          "unsupported_copy": 0
+        },
+        "incidental_only": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 0,
+          "requested_admitted": 0,
+          "requested_correct": 0,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 2,
+          "unsupported_copy": 2
+        },
+        "unspecified": {
+          "both_admitted": 0,
+          "both_present": 0,
+          "correct_source": 0,
+          "exact_through_eos": 0,
+          "excluded_admitted": 0,
+          "excluded_correct": 2,
+          "excluded_present": 0,
+          "first_errors": [],
+          "incidental_chosen": 0,
+          "joint_correct": 2,
+          "requested_admitted": 0,
+          "requested_correct": 2,
+          "requested_present": 0,
+          "rows": 2,
+          "source_selected": 0,
+          "unsupported_copy": 0
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "81e4dfe812869eda7494621967f3c680d6a5825b9e3c5a0f95a42bd808def61c",
+      "role_words": [
+        79,
+        80,
+        69,
+        70,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30100,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "6307f3caefc06b87072165db67e3e725beae2a9dbf1b9eb1c4f78dc207e55cab",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30101,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "2c6b5d86dbbf22ed403308ca4f45d54ad66c5d0bb46be6e485e2bdce4d435bf6",
+      "role_words": [
+        79,
+        80,
+        69,
+        70,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30102,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "ec24f894f5009f2c813dfb30047730f69236cf8868b740e8407d3f4557f3a29d",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30103,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "4f6eefe634064fae3a40a5541453fb1b759f24707cfe8764cafe6cced955b0c0",
+      "role_words": [
+        79,
+        80,
+        70,
+        71,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30104,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "547e13d266e0c621897078ebe63c80b4bb3b2a68dcad5986704a70d01bac0453",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30105,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "5000b5e05a461b1bac6e5fdb0032117782aead3b38e414d82e53b5063ddfaa63",
+      "role_words": [
+        79,
+        80,
+        70,
+        71,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30106,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "8028dc543293c7179bca414646ea5ca5bafb2e147532679e49825145ef86dc3d",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30107,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "a568616b3db190b4b04e28d37aaf03111b4a5b9b86b9314dff4f69399fd34731",
+      "role_words": [
+        40,
+        44,
+        4294967295,
+        4294967295,
+        58,
+        16,
+        2147483648,
+        16
+      ],
+      "row": 30108,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "62fbc1c06d4cffb348bb96417f3560c0f32767d26d0243cc61c2ba5b56bb45cb",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967281
+      ],
+      "row": 30109,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "d8cdc7c1165f981109b92be70039cbce183a593e1d9addb4e075183afe97ef81",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967288
+      ],
+      "row": 30110,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "5f50457b0018783775d348644c5863ea58155c07d164adf1f4fa9cf22d29b568",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30116,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "d3799a81de6c6436597a1fdb0fb0af8047e807feb857fcb7f559f818b69b1b64",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30117,
+      "selected_source": 24
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "877e13e3f036a7276f0efe9586ddfd75a96af02a212d9ff78d9106bc33967fe9",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30118,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "ab2908ca054e95722a1a164f76a6e19f1bb7357f784db1c08d8f60cd417fbfd7",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30119,
+      "selected_source": 33
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "fe9b2873bd525269d52ab5f332432fa238cade9897acd8cf4001e9ca13d9a893",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30120,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "16e9a68f67d72e754fe5236d8b77eaf6cf378c528aade42f6b7f42c86a73c0b6",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30121,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "d769a29cd9217c9da9fb486d3b64befca5d492a0c72ee404b3e6e7943162e633",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30122,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "d7cfe6360bd8a0a4fda2917acf6e8ef61440ed575f7ebc0b7e4ba2ef02a9e2e1",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30123,
+      "selected_source": 23
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "bb89613a6ad320728d794d6049c3eb21df8142faadbf014568171be90dbf9756",
+      "role_words": [
+        42,
+        45,
+        38,
+        39,
+        78,
+        24,
+        2147483648,
+        4294967281
+      ],
+      "row": 30124,
+      "selected_source": 24
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "65abbb450e73de5645c27134ac027fd5d86e92f601da387934f1c85079e734bf",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30125,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 4,
+      "prompt_sha256_le32": "853c3ab75389e9cee632a5140d0ad1dd19486701922be173e277b6820141406d",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30126,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "81e4dfe812869eda7494621967f3c680d6a5825b9e3c5a0f95a42bd808def61c",
+      "role_words": [
+        60,
+        64,
+        69,
+        70,
+        70,
+        58,
+        0,
+        16
+      ],
+      "row": 30100,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          351
+        ],
+        [
+          5,
+          null,
+          1265
+        ],
+        [
+          6,
+          null,
+          300
+        ],
+        [
+          7,
+          null,
+          519
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "6307f3caefc06b87072165db67e3e725beae2a9dbf1b9eb1c4f78dc207e55cab",
+      "role_words": [
+        74,
+        78,
+        54,
+        55,
+        52,
+        58,
+        0,
+        16
+      ],
+      "row": 30101,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "2c6b5d86dbbf22ed403308ca4f45d54ad66c5d0bb46be6e485e2bdce4d435bf6",
+      "role_words": [
+        60,
+        64,
+        69,
+        70,
+        70,
+        58,
+        0,
+        16
+      ],
+      "row": 30102,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "ec24f894f5009f2c813dfb30047730f69236cf8868b740e8407d3f4557f3a29d",
+      "role_words": [
+        74,
+        78,
+        54,
+        55,
+        52,
+        58,
+        0,
+        16
+      ],
+      "row": 30103,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "4f6eefe634064fae3a40a5541453fb1b759f24707cfe8764cafe6cced955b0c0",
+      "role_words": [
+        74,
+        78,
+        70,
+        71,
+        52,
+        58,
+        0,
+        26
+      ],
+      "row": 30104,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "547e13d266e0c621897078ebe63c80b4bb3b2a68dcad5986704a70d01bac0453",
+      "role_words": [
+        58,
+        62,
+        54,
+        55,
+        24,
+        58,
+        0,
+        26
+      ],
+      "row": 30105,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "5000b5e05a461b1bac6e5fdb0032117782aead3b38e414d82e53b5063ddfaa63",
+      "role_words": [
+        74,
+        78,
+        70,
+        71,
+        52,
+        58,
+        0,
+        26
+      ],
+      "row": 30106,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "8028dc543293c7179bca414646ea5ca5bafb2e147532679e49825145ef86dc3d",
+      "role_words": [
+        58,
+        62,
+        54,
+        55,
+        24,
+        58,
+        0,
+        26
+      ],
+      "row": 30107,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "a568616b3db190b4b04e28d37aaf03111b4a5b9b86b9314dff4f69399fd34731",
+      "role_words": [
+        40,
+        44,
+        4294967295,
+        4294967295,
+        58,
+        16,
+        2147483648,
+        16
+      ],
+      "row": 30108,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "62fbc1c06d4cffb348bb96417f3560c0f32767d26d0243cc61c2ba5b56bb45cb",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967281
+      ],
+      "row": 30109,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          1155,
+          261
+        ],
+        [
+          1,
+          302,
+          3877
+        ],
+        [
+          2,
+          311,
+          834
+        ],
+        [
+          3,
+          14,
+          2422
+        ],
+        [
+          4,
+          340,
+          1
+        ],
+        [
+          5,
+          1919,
+          null
+        ],
+        [
+          6,
+          1203,
+          null
+        ],
+        [
+          7,
+          383,
+          null
+        ],
+        [
+          8,
+          16,
+          null
+        ],
+        [
+          9,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        1155,
+        261
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "d8cdc7c1165f981109b92be70039cbce183a593e1d9addb4e075183afe97ef81",
+      "role_words": [
+        50,
+        51,
+        4294967295,
+        4294967295,
+        0,
+        8,
+        4294967294,
+        4294967288
+      ],
+      "row": 30110,
+      "selected_source": 15
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          2537
+        ],
+        [
+          1,
+          3877,
+          324
+        ],
+        [
+          2,
+          834,
+          373
+        ],
+        [
+          3,
+          2422,
+          85
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        2537
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "5f50457b0018783775d348644c5863ea58155c07d164adf1f4fa9cf22d29b568",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30116,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "d3799a81de6c6436597a1fdb0fb0af8047e807feb857fcb7f559f818b69b1b64",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30117,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          324
+        ],
+        [
+          1,
+          3877,
+          373
+        ],
+        [
+          2,
+          834,
+          85
+        ],
+        [
+          3,
+          2422,
+          1
+        ],
+        [
+          4,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        324
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "877e13e3f036a7276f0efe9586ddfd75a96af02a212d9ff78d9106bc33967fe9",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30118,
+      "selected_source": 33
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "ab2908ca054e95722a1a164f76a6e19f1bb7357f784db1c08d8f60cd417fbfd7",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30119,
+      "selected_source": 33
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "fe9b2873bd525269d52ab5f332432fa238cade9897acd8cf4001e9ca13d9a893",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30120,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "16e9a68f67d72e754fe5236d8b77eaf6cf378c528aade42f6b7f42c86a73c0b6",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30121,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1638
+        ],
+        [
+          1,
+          3877,
+          1323
+        ],
+        [
+          2,
+          834,
+          2390
+        ],
+        [
+          3,
+          2422,
+          85
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1638
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "d769a29cd9217c9da9fb486d3b64befca5d492a0c72ee404b3e6e7943162e633",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30122,
+      "selected_source": 23
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "d7cfe6360bd8a0a4fda2917acf6e8ef61440ed575f7ebc0b7e4ba2ef02a9e2e1",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30123,
+      "selected_source": 23
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "bb89613a6ad320728d794d6049c3eb21df8142faadbf014568171be90dbf9756",
+      "role_words": [
+        42,
+        45,
+        38,
+        39,
+        78,
+        24,
+        2147483648,
+        4294967281
+      ],
+      "row": 30124,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 5,
+      "prompt_sha256_le32": "65abbb450e73de5645c27134ac027fd5d86e92f601da387934f1c85079e734bf",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30125,
+      "selected_source": null
+    },
+    {
+      "arm": "full-inherited",
+      "emission_changes": [
+        [
+          0,
+          1155,
+          261
+        ],
+        [
+          1,
+          302,
+          3877
+        ],
+        [
+          2,
+          311,
+          834
+        ],
+        [
+          3,
+          14,
+          2422
+        ],
+        [
+          4,
+          340,
+          1
+        ],
+        [
+          5,
+          1919,
+          null
+        ],
+        [
+          6,
+          1203,
+          null
+        ],
+        [
+          7,
+          383,
+          null
+        ],
+        [
+          8,
+          16,
+          null
+        ],
+        [
+          9,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        1155,
+        261
+      ],
+      "mode": 5,
+      "prompt_sha256_le32": "853c3ab75389e9cee632a5140d0ad1dd19486701922be173e277b6820141406d",
+      "role_words": [
+        46,
+        47,
+        4294967295,
+        4294967295,
+        28,
+        10,
+        4294967294,
+        8
+      ],
+      "row": 30126,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "81e4dfe812869eda7494621967f3c680d6a5825b9e3c5a0f95a42bd808def61c",
+      "role_words": [
+        79,
+        80,
+        69,
+        70,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30100,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "6307f3caefc06b87072165db67e3e725beae2a9dbf1b9eb1c4f78dc207e55cab",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30101,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "2c6b5d86dbbf22ed403308ca4f45d54ad66c5d0bb46be6e485e2bdce4d435bf6",
+      "role_words": [
+        79,
+        80,
+        69,
+        70,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30102,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "ec24f894f5009f2c813dfb30047730f69236cf8868b740e8407d3f4557f3a29d",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        16
+      ],
+      "row": 30103,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "4f6eefe634064fae3a40a5541453fb1b759f24707cfe8764cafe6cced955b0c0",
+      "role_words": [
+        79,
+        80,
+        70,
+        71,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30104,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "547e13d266e0c621897078ebe63c80b4bb3b2a68dcad5986704a70d01bac0453",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30105,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "5000b5e05a461b1bac6e5fdb0032117782aead3b38e414d82e53b5063ddfaa63",
+      "role_words": [
+        79,
+        80,
+        70,
+        71,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30106,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "8028dc543293c7179bca414646ea5ca5bafb2e147532679e49825145ef86dc3d",
+      "role_words": [
+        79,
+        80,
+        54,
+        55,
+        0,
+        58,
+        4294967294,
+        26
+      ],
+      "row": 30107,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "a568616b3db190b4b04e28d37aaf03111b4a5b9b86b9314dff4f69399fd34731",
+      "role_words": [
+        40,
+        44,
+        4294967295,
+        4294967295,
+        58,
+        16,
+        2147483648,
+        16
+      ],
+      "row": 30108,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "62fbc1c06d4cffb348bb96417f3560c0f32767d26d0243cc61c2ba5b56bb45cb",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967281
+      ],
+      "row": 30109,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "d8cdc7c1165f981109b92be70039cbce183a593e1d9addb4e075183afe97ef81",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967288
+      ],
+      "row": 30110,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "5f50457b0018783775d348644c5863ea58155c07d164adf1f4fa9cf22d29b568",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30116,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "d3799a81de6c6436597a1fdb0fb0af8047e807feb857fcb7f559f818b69b1b64",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30117,
+      "selected_source": 24
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "877e13e3f036a7276f0efe9586ddfd75a96af02a212d9ff78d9106bc33967fe9",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30118,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "ab2908ca054e95722a1a164f76a6e19f1bb7357f784db1c08d8f60cd417fbfd7",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30119,
+      "selected_source": 33
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "fe9b2873bd525269d52ab5f332432fa238cade9897acd8cf4001e9ca13d9a893",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30120,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "16e9a68f67d72e754fe5236d8b77eaf6cf378c528aade42f6b7f42c86a73c0b6",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30121,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "d769a29cd9217c9da9fb486d3b64befca5d492a0c72ee404b3e6e7943162e633",
+      "role_words": [
+        74,
+        75,
+        55,
+        56,
+        0,
+        24,
+        4294967294,
+        10
+      ],
+      "row": 30122,
+      "selected_source": 15
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "d7cfe6360bd8a0a4fda2917acf6e8ef61440ed575f7ebc0b7e4ba2ef02a9e2e1",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        0,
+        10
+      ],
+      "row": 30123,
+      "selected_source": 23
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "bb89613a6ad320728d794d6049c3eb21df8142faadbf014568171be90dbf9756",
+      "role_words": [
+        42,
+        45,
+        38,
+        39,
+        78,
+        24,
+        2147483648,
+        4294967281
+      ],
+      "row": 30124,
+      "selected_source": 24
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "65abbb450e73de5645c27134ac027fd5d86e92f601da387934f1c85079e734bf",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30125,
+      "selected_source": null
+    },
+    {
+      "arm": "historical-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 6,
+      "prompt_sha256_le32": "853c3ab75389e9cee632a5140d0ad1dd19486701922be173e277b6820141406d",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30126,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "81e4dfe812869eda7494621967f3c680d6a5825b9e3c5a0f95a42bd808def61c",
+      "role_words": [
+        60,
+        64,
+        69,
+        70,
+        70,
+        58,
+        0,
+        16
+      ],
+      "row": 30100,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          351
+        ],
+        [
+          5,
+          null,
+          1265
+        ],
+        [
+          6,
+          null,
+          300
+        ],
+        [
+          7,
+          null,
+          519
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "6307f3caefc06b87072165db67e3e725beae2a9dbf1b9eb1c4f78dc207e55cab",
+      "role_words": [
+        74,
+        78,
+        54,
+        55,
+        52,
+        58,
+        0,
+        16
+      ],
+      "row": 30101,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "2c6b5d86dbbf22ed403308ca4f45d54ad66c5d0bb46be6e485e2bdce4d435bf6",
+      "role_words": [
+        60,
+        64,
+        69,
+        70,
+        70,
+        58,
+        0,
+        16
+      ],
+      "row": 30102,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "ec24f894f5009f2c813dfb30047730f69236cf8868b740e8407d3f4557f3a29d",
+      "role_words": [
+        74,
+        78,
+        54,
+        55,
+        52,
+        58,
+        0,
+        16
+      ],
+      "row": 30103,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "4f6eefe634064fae3a40a5541453fb1b759f24707cfe8764cafe6cced955b0c0",
+      "role_words": [
+        74,
+        78,
+        70,
+        71,
+        52,
+        58,
+        0,
+        26
+      ],
+      "row": 30104,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "547e13d266e0c621897078ebe63c80b4bb3b2a68dcad5986704a70d01bac0453",
+      "role_words": [
+        58,
+        62,
+        54,
+        55,
+        24,
+        58,
+        0,
+        26
+      ],
+      "row": 30105,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "5000b5e05a461b1bac6e5fdb0032117782aead3b38e414d82e53b5063ddfaa63",
+      "role_words": [
+        74,
+        78,
+        70,
+        71,
+        52,
+        58,
+        0,
+        26
+      ],
+      "row": 30106,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "8028dc543293c7179bca414646ea5ca5bafb2e147532679e49825145ef86dc3d",
+      "role_words": [
+        58,
+        62,
+        54,
+        55,
+        24,
+        58,
+        0,
+        26
+      ],
+      "row": 30107,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "a568616b3db190b4b04e28d37aaf03111b4a5b9b86b9314dff4f69399fd34731",
+      "role_words": [
+        40,
+        44,
+        4294967295,
+        4294967295,
+        58,
+        16,
+        2147483648,
+        16
+      ],
+      "row": 30108,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "62fbc1c06d4cffb348bb96417f3560c0f32767d26d0243cc61c2ba5b56bb45cb",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        8,
+        2147483648,
+        4294967281
+      ],
+      "row": 30109,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          1155,
+          261
+        ],
+        [
+          1,
+          302,
+          3877
+        ],
+        [
+          2,
+          311,
+          834
+        ],
+        [
+          3,
+          14,
+          2422
+        ],
+        [
+          4,
+          340,
+          1
+        ],
+        [
+          5,
+          1919,
+          null
+        ],
+        [
+          6,
+          1203,
+          null
+        ],
+        [
+          7,
+          383,
+          null
+        ],
+        [
+          8,
+          16,
+          null
+        ],
+        [
+          9,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        1155,
+        261
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "d8cdc7c1165f981109b92be70039cbce183a593e1d9addb4e075183afe97ef81",
+      "role_words": [
+        50,
+        51,
+        4294967295,
+        4294967295,
+        0,
+        8,
+        4294967294,
+        4294967288
+      ],
+      "row": 30110,
+      "selected_source": 15
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          2537
+        ],
+        [
+          1,
+          3877,
+          324
+        ],
+        [
+          2,
+          834,
+          373
+        ],
+        [
+          3,
+          2422,
+          85
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        2537
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "5f50457b0018783775d348644c5863ea58155c07d164adf1f4fa9cf22d29b568",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30116,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "d3799a81de6c6436597a1fdb0fb0af8047e807feb857fcb7f559f818b69b1b64",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30117,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          324
+        ],
+        [
+          1,
+          3877,
+          373
+        ],
+        [
+          2,
+          834,
+          85
+        ],
+        [
+          3,
+          2422,
+          1
+        ],
+        [
+          4,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        324
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "877e13e3f036a7276f0efe9586ddfd75a96af02a212d9ff78d9106bc33967fe9",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30118,
+      "selected_source": 33
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "ab2908ca054e95722a1a164f76a6e19f1bb7357f784db1c08d8f60cd417fbfd7",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30119,
+      "selected_source": 33
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1155
+        ],
+        [
+          1,
+          3877,
+          302
+        ],
+        [
+          2,
+          834,
+          311
+        ],
+        [
+          3,
+          2422,
+          14
+        ],
+        [
+          4,
+          1,
+          340
+        ],
+        [
+          5,
+          null,
+          1919
+        ],
+        [
+          6,
+          null,
+          1203
+        ],
+        [
+          7,
+          null,
+          383
+        ],
+        [
+          8,
+          null,
+          16
+        ],
+        [
+          9,
+          null,
+          1
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1155
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "fe9b2873bd525269d52ab5f332432fa238cade9897acd8cf4001e9ca13d9a893",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30120,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "16e9a68f67d72e754fe5236d8b77eaf6cf378c528aade42f6b7f42c86a73c0b6",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30121,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          261,
+          1638
+        ],
+        [
+          1,
+          3877,
+          1323
+        ],
+        [
+          2,
+          834,
+          2390
+        ],
+        [
+          3,
+          2422,
+          85
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        261,
+        1638
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "d769a29cd9217c9da9fb486d3b64befca5d492a0c72ee404b3e6e7943162e633",
+      "role_words": [
+        59,
+        62,
+        55,
+        56,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30122,
+      "selected_source": 23
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "d7cfe6360bd8a0a4fda2917acf6e8ef61440ed575f7ebc0b7e4ba2ef02a9e2e1",
+      "role_words": [
+        70,
+        73,
+        66,
+        67,
+        72,
+        24,
+        52,
+        10
+      ],
+      "row": 30123,
+      "selected_source": 23
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "bb89613a6ad320728d794d6049c3eb21df8142faadbf014568171be90dbf9756",
+      "role_words": [
+        42,
+        45,
+        38,
+        39,
+        78,
+        24,
+        2147483648,
+        4294967281
+      ],
+      "row": 30124,
+      "selected_source": 24
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [],
+      "first_change_from_historical": null,
+      "mode": 7,
+      "prompt_sha256_le32": "65abbb450e73de5645c27134ac027fd5d86e92f601da387934f1c85079e734bf",
+      "role_words": [
+        4294967295,
+        4294967295,
+        4294967295,
+        4294967295,
+        2147483648,
+        10,
+        2147483648,
+        8
+      ],
+      "row": 30125,
+      "selected_source": null
+    },
+    {
+      "arm": "full-repeated",
+      "emission_changes": [
+        [
+          0,
+          1155,
+          261
+        ],
+        [
+          1,
+          302,
+          3877
+        ],
+        [
+          2,
+          311,
+          834
+        ],
+        [
+          3,
+          14,
+          2422
+        ],
+        [
+          4,
+          340,
+          1
+        ],
+        [
+          5,
+          1919,
+          null
+        ],
+        [
+          6,
+          1203,
+          null
+        ],
+        [
+          7,
+          383,
+          null
+        ],
+        [
+          8,
+          16,
+          null
+        ],
+        [
+          9,
+          1,
+          null
+        ]
+      ],
+      "first_change_from_historical": [
+        0,
+        1155,
+        261
+      ],
+      "mode": 7,
+      "prompt_sha256_le32": "853c3ab75389e9cee632a5140d0ad1dd19486701922be173e277b6820141406d",
+      "role_words": [
+        46,
+        47,
+        4294967295,
+        4294967295,
+        28,
+        10,
+        4294967294,
+        8
+      ],
+      "row": 30126,
+      "selected_source": 15
+    }
+  ]
+}

@@ -431,6 +431,16 @@ impl IntegerDiscreteModel {
         query: RoleSpan,
     ) -> Result<(SourceSelection, Vec<(SourceCandidate, SourceScore)>)> {
         self.validate_contextual_assertion(ids, fact, query)?;
+        self.trace_bound_contextual_source(ids, fact, query)
+    }
+
+    /// Read-only trace for an assertion already admitted by the model binder.
+    pub(super) fn trace_bound_contextual_source(
+        &self,
+        ids: &[u32],
+        fact: RoleSpan,
+        query: RoleSpan,
+    ) -> Result<(SourceSelection, Vec<(SourceCandidate, SourceScore)>)> {
         let policy = self
             .contextual_source
             .as_ref()

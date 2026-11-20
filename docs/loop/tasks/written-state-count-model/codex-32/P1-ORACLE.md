@@ -1,0 +1,47 @@
+# [codex] P1(a) evidence inventory for the complete C1 count carrier
+
+**Open for the complete C1 carrier.** D31 has GPU-produced counts and a native compact reader replay for the same input. The missing leg is an independent CPU census from the original C1 token stream. The original decision also names the D11 loader, so the receipt for a separate compact payload needs to identify the ordinary serving loader and the component it opens. Keep the literal D11 requirement explicit when presenting the result.
+
+## What the gate requires
+
+- The [accepted decision, §3.3 and §4 P1(a)](../../../../research/reviews/pi-review-2026-11-16/DECISION.md) requires the GPU canonical triple-stream SHA, the CPU oracle SHA on the 1% slice and the `discrete_d11` loader readback SHA to agree. [Claude-409's native-space contract](../claude-409/NATIVE-SPACE.md) makes the two streams explicit. Compare unpruned exact counts between GPU and CPU. Apply the declared freeze rule independently to those counts, then compare the declared stream across CUDA, CPU and the serving reader. C1's complete compact layout preserves the exact raw and adjusted follower words. Record that complete representation and both digest domains explicitly. Any later pruning or rank quantization needs its own declared-stream replay.
+- [D10](../codex-10/COUNT-RESULT.md) tested the two stream comparisons under that unit's freeze rule on C420 TRAIN record ordinals 0 modulo 100. The 5,196 records, 20,475,957 tokens and 14,634,359 declared top-four, rank-quantized triples bound a 379,223,660-byte D11 with the normal loader. That run used the independent ordered-map count oracle. Its record sample and codec differ from D31's contiguous record-aligned C1 prefix with complete counts. D10 therefore supplies finite precedent and a scoped 1% witness. [D31](../codex-31/REPORT.md) explicitly leaves the same-input CPU count oracle open for the new carrier.
+- [Current PLAN](../../../../../PLAN.md) keeps the three-way equality. The claude-440 card added A1 as the selected S5 read and retained the controls and reload contract. [PR #4127](https://github.com/UOR-Foundation/uor-r4/pull/4127) was open at inspection. Its registered scope is the claude-441 S5 Pick bucket experiment on Wick's 4090 at 100% C, with the prior five arms for comparison and `--check-host`. It supplies no same-input C1 CPU count receipt. There is no recorded amendment waiving the independent CPU leg or authorizing a general CPU scoring run.
+
+## What Wick custody supports
+
+| Evidence | Identity and coverage |
+|---|---|
+| D29 C1 input | 41,508,666 bytes, 20,754,301 tokens, 5,402 complete TRAIN records. UORT SHA-256 `8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030`. [Dose manifest](../codex-29/count/manifest.json) |
+| D31 producer | Repaired and machine-audited sm_120 RTX 5090 stage. `UORKNC02` file 2,229,740,835 bytes, SHA-256 `10bf54111de5c0cb471ed3c96365710431f1ebae13aef85900134d5871e30955`. Producer recorded both raw and adjusted canonical digests for orders 0–10 and checked them against the compact reader. [Count receipt](../codex-31/count/RECEIPT.json) · [Run report](../codex-31/count/REPORT.md) |
+| Independent claude-439 C1 comparison | Prior CUDA census for the same prefix, SHA-256 `c1c6fe526b99dbc3939ca2fa8927cdebe82eb47f23ebfe83499f35e035fdc959`. Its raw order-10 row repeats the adjusted-domain hashes. Raw and adjusted top-order follower words coincide, while the digest domains are distinct. D31 supplies separate raw-domain hashes at order 10. [Historical census](../claude-439/run2/pick-p10.json) |
+| Native readback | `CompactCountLookup::canonical_digests` expands the actual compact file. D31 independently reopened it on Wick and reproduced all 25,034 ordered lookup probes, of which 20,938 are original TRAIN positions and 4,096 generated histories. D31 also loaded the separately bound D11 seed-one trunk and ran the ordinary [client package loader](../../../../../crates/uor-r4-integer/src/bin/uor_chat/p1.rs) with both components. The D11 trunk and the compact count file are separate payloads. [Receipt and custody](../codex-31/CUSTODY.md) · [Reader replay](../../../../../crates/uor-r4-discrete/src/kn_ceiling/compact_lookup.rs) |
+
+This inventory rehashed the C1 UORT bytes on Wick, ran both archived custody manifests with strict checking and used `cmp` to confirm the saved cold and device JSONL tapes were byte-identical. It executed no new counts, probes or scoring. The device results manifest SHA-256 is `2d7da7a31230a846f3caa4037c9ffa8690061ebb10c557f813622a03c2bbace8` and the cold manifest SHA-256 is `6c611e6b37aeeb940525e6cfc90e1a6912604f6e8ec5b1b51ba5a2dfbed98ed9`.
+
+## Bounded next experiment
+
+[Charter §3.5 and §4.5](../../../../../CHARTER.md) and [D84](../../../../integration/DECISIONS.md#decisions-after-the-charter-from-d43) reserve qualification for GPU evidence and permit named, separately scanned CPU parity work. The adopted P1 plan designates `cpu-trunk-count-driver` as the originally named host parity oracle for a 1–10% slice. The stock executable consumes a D11 trunk and a masked training corpus, updates sparse M1 trunk statistics and evaluates held rows. It cannot emit the C1 positional-prime raw and KN-adjusted order 0–10 census. [Driver](../../../../../crates/uor-r4-cpu-train/src/bin/cpu-trunk-count-driver.rs)
+
+The compatible implementation is the separately isolated `ngram_count_oracle` path from claude-412 and D10, with `oracle_count` and `oracle_adjusted` over packed `PrimeRouteKey` words. Register and scan the exact parity-only entry point and dependencies in the run sheet. The review should explicitly bind the implementation to the purpose and scope of the accepted D84 parity leg. The CPU reconstructs integer counts from pinned TRAIN bytes and compares hashes to the GPU receipt. Any change to the owner-defined CPU research boundary requires owner authority. Keep CPU language evaluation, fit and held rows outside this unit. Wick hardware observed for this inventory is AMD Ryzen 9 9950X. [Oracle source](../../../../../crates/uor-r4-discrete/src/ngram_count_oracle.rs) · [Historical oracle order](../claude-412/ORDER.md)
+
+1. Use the existing verified C128 control first. Require exact equality for all raw and adjusted order 0–10 triple and context digests, targets, distinct triples, distinct contexts and count-of-counts. Use its same-input D30/D31 receipts and keep the raw and adjusted domains distinct, including at order 10. Stop on a control mismatch and preserve the first failing order and domain.
+2. Add a minimal Rust parity-only entry point using the existing non-default `count-oracle` feature and the C1/C128 input validators in `full-compact-count`. For C1 hash the registered UORT file, verify record boundaries and count the entire fixed dose. Compute one order and domain at a time. If measured memory requires partitioning, use the existing canonical token partition ordering and include per-partition context totals and keys, so reassembly hashes the exact stream including headers. Recompute adjusted left-neighbor sets from the input, including order-zero continuation and the BOS rule. Freeze from independently counted words. The comparison inputs are the fresh CPU receipt, the pinned GPU receipt and the full compact decode. Validate both domains for every order against D31's receipt, including the actual raw order-10 digest. Record input, source, executable, CPU, memory and elapsed identities. A readback through the ordinary serving entry point can cover the bound compact component, with the separate D11 load clearly identified. If the release claim depends on literal `discrete_d11` readback of the count words, the current split carrier needs the registered loader integration before that claim.
+3. Reuse the v4 GPU producer receipt and intact compact artifact when the sheet, source and input identities match. That avoids a repeat GPU rental and keeps the GPU evidence as the qualification side of the comparison. Existing C128 and reduced-order CUDA tests verify pieces of the instrument. The ignored `ngram_count_cuda_real_stream_matches_the_oracle` checks raw orders 0–5 only, and `ngram_count_cuda_real_stream_adjusted_matches_the_oracle` compares the CPU against the first two million tokens at orders 0–3 only. Neither can fill the full C1 leg. The historical C1 CUDA census, another GPU replay and the archived CPU decode cannot replace independent counting from TRAIN.
+
+Read-only custody command on Wick for the next pre-run review:
+
+```sh
+input=/home/callard/uor-codex/20261119-rival-admission-29/count/cr-v1/c1.tokens.u16
+custody=/mnt/plexpool/uor-r4-corpus/runs/20261120-complete-c1-31/repaired-v4/count-v4
+(
+    cd "$custody" &&
+    printf '%s  %s\n' 8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030 "$input" |
+        sha256sum --strict -c - &&
+    sha256sum --strict -c cold-custody.sha256 &&
+    sha256sum --strict -c results.sha256 &&
+    cmp c1-cold.jsonl runs/c1/lookup.jsonl
+)
+```
+
+The existing Wick host binary `verifier-v4/target/release/full-compact-count` (SHA-256 `9b03d814183909bafe17ee0dc02a1112160b2f318b1164159d37c278ebb34d26`) accepts `verify c1 TRAIN CENSUS ARTIFACT SHA NEW-EVIDENCE`. Its `verify` command reloads counts and executes lookup probes, so leave it out of custody-only checks. The proposed parity-only entry point is new work. P1(b), P1(d) and the P2 deployment comparison stay open.

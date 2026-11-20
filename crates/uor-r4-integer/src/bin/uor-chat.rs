@@ -24,6 +24,7 @@ use uor_r4_integer::loopback::{serve_loopback, LoopbackConfig};
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::openai::OpenAiServing;
 use uor_r4_integer::pair_experts::{Check, PairExperts, Ratio, Setting, Verdict};
+use uor_r4_integer::paired_role::RequestedReplayArm;
 use uor_r4_integer::sampling::SamplePolicy;
 use uor_r4_integer::stack::{
     is_dialogue_query, recall_from_dialogue, ContentReadout, CopyRule, IntegerStackModel,
@@ -60,6 +61,7 @@ struct CliArgs {
     #[cfg(feature = "p1-count-serving")]
     p1_trace: bool,
     ordered_role_trace: bool,
+    role_replay: Option<RequestedReplayArm>,
     contextual_source_trace: bool,
     tokenizer_path: Option<PathBuf>,
     /// Optional artifact-bound content readout for the `--stack` path.
@@ -312,6 +314,7 @@ impl Default for CliArgs {
             #[cfg(feature = "p1-count-serving")]
             p1_trace: false,
             ordered_role_trace: false,
+            role_replay: None,
             contextual_source_trace: false,
             tokenizer_path: None,
             content_readout_path: None,
@@ -373,6 +376,7 @@ fn print_usage() {
     eprintln!("      --p1-trace              Record per-token Pick and count decisions and full mass hashes");
     eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
     eprintln!("      --ordered-role-trace   include full-prefix ordered-role candidate details");
+    eprintln!("      --role-replay ARM      trace historical/full crossed with inherited/repeated candidates");
     eprintln!(
         "                              greedy raw-ID or text serving through IntegerDiscreteModel"
     );
@@ -549,6 +553,19 @@ fn parse_cli_args() -> CliArgs {
             #[cfg(feature = "p1-count-serving")]
             "--p1-trace" => args.p1_trace = true,
             "--ordered-role-trace" => args.ordered_role_trace = true,
+            "--role-replay" => {
+                idx += 1;
+                args.role_replay = match raw.get(idx).map(String::as_str) {
+                    Some("historical-inherited") => Some(RequestedReplayArm::HistoricalInherited),
+                    Some("historical-repeated") => Some(RequestedReplayArm::HistoricalRepeated),
+                    Some("full-inherited") => Some(RequestedReplayArm::FullInherited),
+                    Some("full-repeated") => Some(RequestedReplayArm::FullRepeated),
+                    _ => {
+                        eprintln!("--role-replay requires historical-inherited, historical-repeated, full-inherited, or full-repeated");
+                        process::exit(2);
+                    }
+                };
+            }
             "--contextual-source-trace" => args.contextual_source_trace = true,
             "--discrete" => {
                 idx += 1;
@@ -1017,6 +1034,12 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.ordered_role_trace && args.discrete_path.is_none() {
         eprintln!("--ordered-role-trace requires --discrete");
+        process::exit(1);
+    }
+    if args.role_replay.is_some()
+        && (args.discrete_path.is_none() || args.read_mode != ReadMode::Enabled)
+    {
+        eprintln!("--role-replay requires --discrete with reads enabled");
         process::exit(1);
     }
     if args.contextual_source_trace && args.discrete_path.is_none() {
@@ -2092,7 +2115,12 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         }
     }
     let read_enabled = cli.read_mode == ReadMode::Enabled;
-    let paired = model.paired_copy_decision(prompt, read_enabled)?;
+    let (paired, role_trace) = if let Some(arm) = cli.role_replay {
+        let (decision, trace) = model.requested_role_replay(prompt, arm)?;
+        (Some(decision), Some(trace))
+    } else {
+        (model.paired_copy_decision(prompt, read_enabled)?, None)
+    };
     let choice = match &paired {
         Some(decision) => Some(decision.choice),
         None => model.role_choice(prompt, read_enabled)?,
@@ -2210,6 +2238,9 @@ fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
         record["decoding"] =
             "paired role, assertion-local value agreement and exact-copy EOS".into();
         record["paired"] = serde_json::to_value(decision)?;
+    }
+    if let Some(trace) = role_trace {
+        record["role_replay"] = serde_json::to_value(trace)?;
     }
     if let Some(arm) = model.contextual_source_arm() {
         record["decoding"] =

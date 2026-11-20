@@ -109,6 +109,56 @@ __device__ Word word_end(const Site* sites, const Row& row, Word start) {
     return end;
 }
 
+// Modes 4..7 replay the D26 role bank at the original prefix coordinates.
+// The low two mode bits enable the whole user range and repeated head spans.
+__device__ Word assertion_end(const Site* sites, const Row& row, Word start) {
+    Word end = start + 1;
+    while (end < row.size && sites[row.ids[end]].assertion_cls == 2) ++end;
+    return end;
+}
+
+__device__ bool earlier_exact_head(const Site* sites, const Row& row, Span span, Word limit) {
+    if (span.start < row.content.start || span.end > row.content.end) return false;
+    const Word first = row.content.start > 1 ? row.content.start : 1;
+    for (Word head = first; head < limit; ++head) {
+        if (!(sites[row.ids[head - 1]].fences & SentenceFence) ||
+            sites[row.ids[head]].assertion_cls != 1) continue;
+        const Word end = assertion_end(sites, row, head);
+        if (end > limit || end - head != span.end - span.start) continue;
+        Word j = 0;
+        while (head + j < end && row.ids[head + j] == row.ids[span.start + j]) ++j;
+        if (head + j == end) return true;
+    }
+    return false;
+}
+
+__device__ void rank_endpoint(const Site* sites, const Cell* cells, Word count, const Row& row,
+                              Span span, bool full_user, Word fence, Rank (&ranks)[2]) {
+    int evidence[2]{};
+    scores(sites, cells, count, row, span, {0, row.size}, evidence);
+    if (evidence[1] > evidence[0]) ranks[1].add(span, evidence[1]);
+    const bool admit = full_user ? earlier_exact_head(sites, row, span, span.start)
+                                 : supported(sites, row, span, fence);
+    if (admit) ranks[0].add(span, evidence[0] - evidence[1]);
+}
+
+__device__ void rank_endpoints(const Site* sites, const Cell* cells, Word count, const Row& row,
+                               Word mode, Word fence, Rank (&ranks)[2]) {
+    const bool full_user = (mode & 1) != 0;
+    const bool repeat = (mode & 2) != 0;
+    for (Word start = 0; start < row.size; ++start) {
+        const Site site = sites[row.ids[start]];
+        const Word native_end = site.cls == 1 ? word_end(sites, row, start) : Nil;
+        if (native_end != Nil)
+            rank_endpoint(sites, cells, count, row, {start, native_end}, full_user, fence, ranks);
+        if (!repeat || start < row.content.start || start >= row.content.end ||
+            site.assertion_cls != 1) continue;
+        const Span candidate{start, assertion_end(sites, row, start)};
+        if (candidate.end != native_end && earlier_exact_head(sites, row, candidate, start))
+            rank_endpoint(sites, cells, count, row, candidate, full_user, fence, ranks);
+    }
+}
+
 __device__ void add_clause(const Site* sites, const Cell* cells, Word count, const Row& row,
                            Span span, Word split, const bool* admitted, Rank& rank) {
     Word first = span.start, end = span.end;
@@ -143,7 +193,8 @@ __global__ void predict(const Site* sites, const Cell* cells, Word count, const 
             }
         }
     }
-    for (Word start = 0; start < row.size; ++start) {
+    if (mode >= 4) rank_endpoints(sites, cells, count, row, mode, split, ranks);
+    for (Word start = 0; mode < 4 && start < row.size; ++start) {
         if (sites[row.ids[start]].cls != 1) continue;
         const Span span{start, word_end(sites, row, start)};
         int evidence[2]{};
@@ -196,7 +247,7 @@ int main() {
     Word header[4];
     read(header, 4);
     const Word mode = header[1], n = header[2], count = header[3];
-    if (header[0] != Abi || mode > 3 || n == 0 || n > 8192 || count == 0 ||
+    if (header[0] != Abi || mode > 7 || n == 0 || n > 8192 || count == 0 ||
         count > Offsets * Roots) return 2;
     std::vector<Site> sites(Vocab);
     read(sites.data(), sites.size());
