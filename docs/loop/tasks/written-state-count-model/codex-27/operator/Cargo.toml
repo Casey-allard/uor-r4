@@ -1,0 +1,21 @@
+[package]
+name = "d27-relation-canary"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d27-relation-canary"
+path = "canary.rs"
+
+[dependencies]
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[[bin]]
+name = "d27-relation-stage"
+path = "stage.rs"

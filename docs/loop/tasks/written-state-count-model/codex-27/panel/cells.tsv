@@ -1,0 +1,6 @@
+train	Cora	paints	repairs	paints	repairs	wooden stools	garden benches
+overlap	Nina	paints	repairs	paints	repairs	cedar boxes	porch swings
+overlap	Owen	collects	catalogs	collects	catalogs	ceramic bowls	copper lamps
+transfer	Nina	paints	repairs	colors	mends	birch tables	wooden ladders
+transfer	Owen	collects	catalogs	gathers	indexes	antique buttons	vintage stamps
+train	Ron	collects	catalogs	collects	catalogs	wool rugs	brass clocks

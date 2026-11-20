@@ -1,0 +1,102 @@
+{
+  "capBytes": 125998708,
+  "countProvenanceBytes": 96,
+  "countRecordBytes": 39462220,
+  "headerAndAlignmentBytes": 3136,
+  "orders": [
+    {
+      "allowanceRows": 4,
+      "inputGroups": 1,
+      "inputRows": 4,
+      "order": 0,
+      "retainedGroups": 1,
+      "retainedRows": 4
+    },
+    {
+      "allowanceRows": 14740,
+      "inputGroups": 3912,
+      "inputRows": 14740,
+      "order": 1,
+      "retainedGroups": 3912,
+      "retainedRows": 14740
+    },
+    {
+      "allowanceRows": 556034,
+      "inputGroups": 287163,
+      "inputRows": 556034,
+      "order": 2,
+      "retainedGroups": 287163,
+      "retainedRows": 556034
+    },
+    {
+      "allowanceRows": 175292,
+      "inputGroups": 986120,
+      "inputRows": 1433768,
+      "order": 3,
+      "retainedGroups": 120400,
+      "retainedRows": 175292
+    },
+    {
+      "allowanceRows": 175292,
+      "inputGroups": 1481109,
+      "inputRows": 1869601,
+      "order": 4,
+      "retainedGroups": 138864,
+      "retainedRows": 175292
+    },
+    {
+      "allowanceRows": 175292,
+      "inputGroups": 1675455,
+      "inputRows": 1963743,
+      "order": 5,
+      "retainedGroups": 149618,
+      "retainedRows": 175292
+    },
+    {
+      "allowanceRows": 175292,
+      "inputGroups": 1708755,
+      "inputRows": 1921214,
+      "order": 6,
+      "retainedGroups": 155793,
+      "retainedRows": 175292
+    },
+    {
+      "allowanceRows": 175292,
+      "inputGroups": 1677063,
+      "inputRows": 1839067,
+      "order": 7,
+      "retainedGroups": 159868,
+      "retainedRows": 175292
+    },
+    {
+      "allowanceRows": 175291,
+      "inputGroups": 1629223,
+      "inputRows": 1753211,
+      "order": 8,
+      "retainedGroups": 162746,
+      "retainedRows": 175291
+    },
+    {
+      "allowanceRows": 175291,
+      "inputGroups": 1577284,
+      "inputRows": 1675429,
+      "order": 9,
+      "retainedGroups": 164890,
+      "retainedRows": 175291
+    },
+    {
+      "allowanceRows": 175291,
+      "inputGroups": 1527560,
+      "inputRows": 1607548,
+      "order": 10,
+      "retainedGroups": 166519,
+      "retainedRows": 175291
+    }
+  ],
+  "outputBytes": 125998700,
+  "outputSha256": "81a36d7ed720952ce72f0b0535a1ad40afe33b69a3f02a0a7ecb483b8d3d0750",
+  "tokenizerSha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377",
+  "trunkBytes": 86533188,
+  "trunkPaddingBytes": 60,
+  "unusedBytes": 8
+}

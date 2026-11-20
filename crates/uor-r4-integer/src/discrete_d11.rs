@@ -25,8 +25,10 @@ use crate::{
 
 mod s2_expert;
 pub use s2_expert::{s2_route_key, S2ExpertPrediction, S2ExpertRead, S2RankedToken, S2_MASS_TOTAL};
+mod assertion_retrieval;
 #[path = "contextual_source.rs"]
 pub mod contextual_source;
+pub use assertion_retrieval::pack_assertion_retrieval;
 
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
@@ -1190,6 +1192,7 @@ pub struct IntegerDiscreteModel {
     count_mixer: Option<crate::count_mixer::CountMixer>,
     role_policy: Option<RolePolicy>,
     contextual_source: Option<contextual_source::SourcePolicy>,
+    assertion_arm: Option<crate::relation_retrieval::Arm>,
     tokenizer_sha256: Option<String>,
     shape: DiscreteLutShape,
     source: DiscreteLutSource,
@@ -1905,6 +1908,9 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if schema == assertion_retrieval::SCHEMA {
+            return assertion_retrieval::read(bytes, encoded_header, end_header, allow_role);
+        }
         if matches!(
             schema.as_str(),
             contextual_source::SCHEMA | contextual_source::RECURRENCE_SCHEMA
@@ -2486,6 +2492,7 @@ impl IntegerDiscreteModel {
             count_mixer: None,
             role_policy: None,
             contextual_source: None,
+            assertion_arm: None,
             tokenizer_sha256: header.tokenizer_sha256,
             shape: header.shape,
             source: header.source,
@@ -2560,6 +2567,9 @@ impl IntegerDiscreteModel {
 
     /// Schema of the artifact loaded by this instance.
     pub fn artifact_schema(&self) -> &'static str {
+        if self.assertion_arm.is_some() {
+            return assertion_retrieval::SCHEMA;
+        }
         if let Some(arm) = self.contextual_source_arm() {
             arm.schema()
         } else if let Some(mixer) = &self.count_mixer {
@@ -2876,30 +2886,68 @@ impl IntegerDiscreteModel {
         roles: PairedRoleDecision,
         visit: impl FnMut(PairedAssertionWitness),
     ) -> Result<PairedCopyDecision> {
-        if let Some(onset) = &policy.onset {
-            return paired.choose_with_roles(
-                policy,
-                prompt,
-                &onset.packed_roots,
-                roles,
-                visit,
-                |fact, query| self.contextual_selection(prompt, fact, query),
-            );
-        }
-        match &paired.roles {
-            paired_copy::Roles::Frozen(_) => paired.choose_with_roles(
-                policy,
-                prompt,
-                &self.packed_codebook_roots(),
-                roles,
-                visit,
-                |_, _| Ok(None),
+        let selected = match (self.assertion_arm, roles.requested) {
+            (Some(arm), Some(person)) => Some(
+                self.assertion_retrieval_plan(prompt, person, roles.excluded)?
+                    .select(arm)
+                    .selected_facts,
             ),
-            paired_copy::Roles::Ordered { packed_roots, .. } => {
-                paired
-                    .choose_with_roles(policy, prompt, packed_roots, roles, visit, |_, _| Ok(None))
-            }
+            _ => None,
+        };
+        self.resolve_assertion_subset(policy, paired, prompt, roles, selected.as_deref(), visit)
+    }
+
+    fn resolve_assertion_subset(
+        &self,
+        policy: &RolePolicy,
+        paired: &paired_copy::Policy,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        selected: Option<&[RoleSpan]>,
+        visit: impl FnMut(PairedAssertionWitness),
+    ) -> Result<PairedCopyDecision> {
+        let roots;
+        let packed = if let Some(onset) = &policy.onset {
+            onset.packed_roots.as_slice()
+        } else if let paired_copy::Roles::Ordered { packed_roots, .. } = &paired.roles {
+            packed_roots.as_slice()
+        } else {
+            roots = self.packed_codebook_roots();
+            &roots
+        };
+        paired.choose_with_roles(
+            policy,
+            prompt,
+            packed,
+            roles,
+            selected,
+            visit,
+            |fact, query| self.contextual_selection(prompt, fact, query),
+        )
+    }
+
+    /// Replay only the named original assertion heads. The same native binder
+    /// still requires complete, agreeing values and owns the copy address.
+    pub fn paired_copy_selected_witness(
+        &self,
+        prompt: &[u32],
+        roles: PairedRoleDecision,
+        selected: &[RoleSpan],
+    ) -> Result<(PairedCopyDecision, Vec<PairedAssertionWitness>)> {
+        let (policy, paired) = self
+            .paired_policy()
+            .ok_or_else(|| invalid("missing paired reader"))?;
+        let mut witnesses = Vec::new();
+        let result =
+            self.resolve_assertion_subset(policy, paired, prompt, roles, Some(selected), |w| {
+                witnesses.push(w)
+            })?;
+        if witnesses.len() != selected.len() {
+            return Err(invalid(
+                "assertion selection includes an inadmissible or repeated head",
+            ));
         }
+        Ok((result, witnesses))
     }
 
     pub fn source(&self) -> &DiscreteLutSource {

@@ -1,0 +1,14 @@
+agreement	Nina	paints	Nina|paints|cedar boxes;Nina|paints|cedar boxes;Nina|repairs|porch swings	0,1
+agreement	Nina	paints	Nina|repairs|porch swings;Nina|paints|cedar boxes;Nina|paints|cedar boxes	1,2
+conflict	Nina	paints	Nina|paints|cedar boxes;Nina|repairs|porch swings;Nina|paints|porch swings	0,2
+conflict	Nina	paints	Nina|paints|porch swings;Nina|repairs|porch swings;Nina|paints|cedar boxes	0,2
+absent	Nina	paints	Nina|repairs|porch swings;Nina|collects|cedar boxes	-
+absent	Owen	catalogs	Owen|collects|copper lamps;Owen|repairs|ceramic bowls	-
+misleading_value	Nina	paints	Nina|paints|cedar boxes;Nina|sells|decorative paints	0
+misleading_value	Nina	paints	Nina|sells|decorative paints;Nina|paints|cedar boxes	1
+competing_person	Nina	paints	Owen|paints|porch swings;Nina|repairs|ceramic bowls;Nina|paints|cedar boxes	2
+competing_person	Owen	paints	Nina|paints|cedar boxes;Owen|paints|porch swings;Owen|repairs|ceramic bowls	1
+competing_person_absent	Nina	paints	Owen|paints|porch swings;Nina|repairs|cedar boxes	-
+competing_person_absent	Owen	paints	Nina|paints|cedar boxes;Owen|repairs|porch swings	-
+exclusion	Nina	paints	Owen|paints|porch swings;Nina|paints|cedar boxes	1
+exclusion	Owen	paints	Owen|paints|porch swings;Nina|paints|cedar boxes	0

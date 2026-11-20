@@ -1,0 +1,207 @@
+{
+  "supported": 80,
+  "ordered_oracle_exact_addresses": 0,
+  "recurrence_oracle_exact_addresses": 22,
+  "ordered_continuation_correct_on_all_selected_assertions": [
+    {
+      "value": false,
+      "count": 24
+    },
+    {
+      "value": true,
+      "count": 56
+    }
+  ],
+  "ordered_assertion_states": [
+    {
+      "value": {
+        "status": 1,
+        "continuation_already_gold": false
+      },
+      "count": 16
+    },
+    {
+      "value": {
+        "status": 2,
+        "continuation_already_gold": false
+      },
+      "count": 8
+    },
+    {
+      "value": {
+        "status": 2,
+        "continuation_already_gold": true
+      },
+      "count": 60
+    }
+  ],
+  "recurrence_assertion_states": [
+    {
+      "value": {
+        "outcome": "nonpositive",
+        "source_gold": false
+      },
+      "count": 40
+    },
+    {
+      "value": {
+        "outcome": "pick",
+        "source_gold": false
+      },
+      "count": 18
+    },
+    {
+      "value": {
+        "outcome": "pick",
+        "source_gold": true
+      },
+      "count": 24
+    },
+    {
+      "value": {
+        "outcome": "tie",
+        "source_gold": false
+      },
+      "count": 2
+    }
+  ],
+  "example_2703": {
+    "ordered": {
+      "assertions": [
+        {
+          "expected_value_span": [
+            22,
+            26
+          ],
+          "gold_offset_from_predicate_end": 0,
+          "predicate_span": [
+            20,
+            22
+          ],
+          "witness": {
+            "assertion": {
+              "continuation": {
+                "connector_mask": 5,
+                "onset_mask": 2,
+                "reason": 0,
+                "source": 22
+              },
+              "fence": 26,
+              "source": null,
+              "value": {
+                "both": null,
+                "current": 22,
+                "eligible_mask": 7,
+                "ordered": null,
+                "ordered_mask": 0,
+                "word_start": 22,
+                "word_start_mask": 2
+              }
+            },
+            "completed_source_range": null,
+            "fact_span": [
+              17,
+              20
+            ],
+            "onset": {
+              "source": null,
+              "status": 2
+            }
+          }
+        }
+      ],
+      "decision": {
+        "choice": {
+          "fact": null,
+          "query": 53,
+          "source": null
+        },
+        "complete_values": 0,
+        "role_words": [
+          53,
+          56,
+          4294967295,
+          4294967295,
+          0,
+          2147483648,
+          2147483648,
+          2147483648
+        ],
+        "supporting_facts": 1,
+        "values_disagree": false
+      },
+      "expected_value": "copper lamps",
+      "row": 2703,
+      "stratum": "overlap"
+    },
+    "recurrence": {
+      "assertions": [
+        {
+          "expected_value_span": [
+            22,
+            26
+          ],
+          "gold_offset_from_predicate_end": 0,
+          "predicate_span": [
+            20,
+            22
+          ],
+          "witness": {
+            "assertion": {
+              "continuation": {
+                "connector_mask": 0,
+                "onset_mask": 0,
+                "reason": 0,
+                "source": null
+              },
+              "fence": 26,
+              "source": null,
+              "value": {
+                "both": null,
+                "current": null,
+                "eligible_mask": 0,
+                "ordered": null,
+                "ordered_mask": 0,
+                "word_start": null,
+                "word_start_mask": 0
+              }
+            },
+            "completed_source_range": null,
+            "contextual_source": {
+              "arm": "wide_recurrence",
+              "outcome": "nonpositive",
+              "source": null
+            },
+            "fact_span": [
+              17,
+              20
+            ]
+          }
+        }
+      ],
+      "decision": {
+        "choice": {
+          "fact": null,
+          "query": 53,
+          "source": null
+        },
+        "complete_values": 0,
+        "role_words": [
+          53,
+          56,
+          4294967295,
+          4294967295,
+          0,
+          2147483648,
+          2147483648,
+          2147483648
+        ],
+        "supporting_facts": 1,
+        "values_disagree": false
+      },
+      "expected_value": "copper lamps",
+      "row": 2703,
+      "stratum": "overlap"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "device": "NVIDIA GeForce RTX 4090",
+  "device_uuid": "GPU-be79bd7b-6b2b-839a-782a-78666ce01210",
+  "provider": "Vast.ai",
+  "terminal": "down",
+  "estimated_compute_usd": 0.19380472222222223,
+  "events": [
+    {
+      "ts": "2026-11-20T00:17:33Z",
+      "event": "up",
+      "usd_per_h": 1.309
+    },
+    {
+      "ts": "2026-11-20T00:18:45Z",
+      "event": "ssh-ready"
+    },
+    {
+      "ts": "2026-11-20T00:20:17Z",
+      "event": "lease"
+    },
+    {
+      "ts": "2026-11-20T00:20:31Z",
+      "event": "run",
+      "cmd": "/workspace/d27/device.sh finite"
+    },
+    {
+      "ts": "2026-11-20T00:25:10Z",
+      "event": "run",
+      "cmd": "/workspace/d27/device.sh held"
+    },
+    {
+      "ts": "2026-11-20T00:25:17Z",
+      "event": "run",
+      "cmd": "bash -c 'cd /workspace/d27-count && bash run-device.sh output'"
+    },
+    {
+      "ts": "2026-11-20T00:26:22Z",
+      "event": "release"
+    },
+    {
+      "ts": "2026-11-20T00:26:29Z",
+      "event": "down",
+      "usd_per_h": 1.309,
+      "uptime_s": 533
+    }
+  ]
+}

@@ -97,6 +97,7 @@ impl Policy {
         ids: &[u32],
         roots: &[u32],
         roles: PairedRoleDecision,
+        selected: Option<&[RoleSpan]>,
         mut visit: impl FnMut(PairedAssertionWitness),
         mut contextual_read: impl FnMut(
             RoleSpan,
@@ -123,11 +124,14 @@ impl Policy {
         let mut first = None;
         let mut agreed = None;
         for (f, last) in self.assertion_sites(old, ids, query) {
-            result.supporting_facts += 1;
             let fact = RoleSpan {
                 start: f,
                 end: last + 1,
             };
+            if selected.is_some_and(|heads| !heads.contains(&fact)) {
+                continue;
+            }
+            result.supporting_facts += 1;
             let span = SpanChoice {
                 query: Some(q as u32),
                 fact: Some(f as u32),

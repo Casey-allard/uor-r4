@@ -62,6 +62,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/query-assertion-retrieval": {
+    "branch": "codex/query-assertion-retrieval",
+    "claimed_at": "2026-11-19T19:03:22-05:00",
+    "head": "418526081",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/requested-occurrence-ranking": {
     "branch": "codex/requested-occurrence-ranking",
     "claimed_at": "2026-11-19T14:05:18-05:00",

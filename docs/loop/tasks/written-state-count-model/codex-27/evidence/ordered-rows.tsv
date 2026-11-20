@@ -1,0 +1,93 @@
+parent	row	stratum	tail_instruction	requested_person	gold_fact_heads	unfiltered_heads	selected_heads	unfiltered_source	selected_source	unfiltered_first_error_offset/expected/actual	exact_first_error_offset/expected/actual	geometry_first_error_offset/expected/actual
+ordered	2703	overlap	false	53..56	17..20	17..20,27..30	17..20	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2706	transfer	false	52..55	31..34	17..20,31..34		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2709	conflict	false	52..54	17..19,31..33	17..19,24..26,31..33	17..19,31..33	none	none	unscored	unscored	unscored
+ordered	2711	overlap	true	53..56	29..32	17..20,29..32	29..32	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2714	transfer	true	52..55	29..32	17..20,29..32		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2717	misleading_value	true	48..50	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2719	transfer	false	49..51	17..19	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2724	overlap	true	45..47	24..26	17..19,24..26	24..26	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2725	competing_person_absent	false	46..48		25..27		none	none	unscored	unscored	unscored
+ordered	2727	transfer	true	49..51	27..29	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2732	overlap	false	45..47	17..19	17..19,24..26	17..19	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2733	exclusion	true	46..49	17..20	17..20	17..20	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2735	transfer	false	49..51	17..19	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2738	agreement	false	54..56	17..19,26..28	17..19,26..28,35..37	17..19,26..28	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2740	overlap	true	53..56	17..20	17..20,27..30	17..20	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2743	transfer	true	52..55	31..34	17..20,31..34		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2746	conflict	true	52..54	17..19,31..33	17..19,24..26,31..33	17..19,31..33	none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2748	overlap	false	53..56	27..30	17..20,27..30	27..30	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2751	transfer	false	52..55	17..20	17..20,31..34		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2754	misleading_value	false	48..50	27..29	17..19,27..29	27..29	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2756	transfer	true	49..51	17..19	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2761	overlap	false	45..47	26..28	17..19,26..28	26..28	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2762	competing_person_absent	true	46..48		25..27		none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2764	transfer	false	49..51	27..29	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2769	overlap	true	45..47	17..19	17..19,24..26	17..19	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2772	transfer	true	49..51	17..19	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2775	agreement	true	54..56	17..19,26..28	17..19,26..28,35..37	17..19,26..28	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2777	overlap	false	53..56	29..32	17..20,29..32	29..32	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2780	transfer	false	52..55	28..31	17..20,28..31		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2783	absent	false	45..47		17..19,24..26		none	none	unscored	unscored	unscored
+ordered	2785	overlap	true	53..56	27..30	17..20,27..30	27..30	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2788	transfer	true	52..55	17..20	17..20,31..34		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2790	overlap	false	45..47	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2791	misleading_value	true	48..50	27..29	17..19,27..29	27..29	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2793	transfer	false	49..51	17..19	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2798	overlap	true	45..47	26..28	17..19,26..28	26..28	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2799	competing_person_absent	false	46..49		26..29		none	none	unscored	unscored	unscored
+ordered	2801	transfer	true	49..51	27..29	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2806	overlap	false	45..47	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2809	transfer	false	52..55	17..20	17..20,26..29		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2812	agreement	false	54..56	24..26,33..35	17..19,24..26,33..35	24..26,33..35	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2814	overlap	true	53..56	29..32	17..20,29..32	29..32	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2817	transfer	true	52..55	28..31	17..20,28..31		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2820	absent	true	45..47		17..19,24..26		none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2822	overlap	false	53..56	17..20	17..20,29..32	17..20	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2825	transfer	false	52..55	17..20	17..20,28..31		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2827	overlap	true	45..47	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2828	competing_person	false	57..59	36..38	25..27,36..38	36..38	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2830	transfer	true	49..51	17..19	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2835	overlap	false	45..47	26..28	17..19,26..28	26..28	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2836	competing_person_absent	true	46..49		26..29		none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2838	transfer	false	49..51	27..29	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2843	overlap	true	45..47	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2846	transfer	true	52..55	17..20	17..20,26..29		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2849	agreement	true	54..56	24..26,33..35	17..19,24..26,33..35	24..26,33..35	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2851	overlap	false	53..56	31..34	17..20,31..34	31..34	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2854	transfer	false	52..55	26..29	17..20,26..29		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2857	absent	false	51..54		17..20,27..30		none	none	unscored	unscored	unscored
+ordered	2859	overlap	true	53..56	17..20	17..20,29..32	17..20	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2862	transfer	true	52..55	17..20	17..20,28..31		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2864	overlap	false	45..47	17..19	17..19,24..26	17..19	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2865	competing_person	true	57..59	36..38	25..27,36..38	36..38	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2867	transfer	false	49..51	27..29	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2872	overlap	true	45..47	26..28	17..19,26..28	26..28	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2873	exclusion	false	46..48	25..27	25..27	25..27	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2875	transfer	true	49..51	27..29	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2880	overlap	false	53..56	17..20	17..20,29..32	17..20	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2883	transfer	false	52..55	17..20	17..20,29..32		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2886	conflict	false	52..54	17..19,33..35	17..19,26..28,33..35	17..19,33..35	none	none	unscored	unscored	unscored
+ordered	2888	overlap	true	53..56	31..34	17..20,31..34	31..34	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2891	transfer	true	52..55	26..29	17..20,26..29		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2894	absent	true	51..54		17..20,27..30		none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2896	overlap	false	53..56	17..20	17..20,31..34	17..20	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2901	overlap	true	45..47	17..19	17..19,24..26	17..19	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2902	competing_person	false	58..61	26..29	26..29,34..37	26..29	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2904	transfer	true	49..51	27..29	17..19,27..29		none	none	0/267/1155	0/267/1155	0/267/1155
+ordered	2909	overlap	false	45..47	24..26	17..19,24..26	24..26	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2910	exclusion	true	46..48	25..27	25..27	25..27	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2912	transfer	false	49..51	17..19	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2917	overlap	true	53..56	17..20	17..20,29..32	17..20	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2920	transfer	true	52..55	17..20	17..20,29..32		none	none	0/683/1155	0/683/1155	0/683/1155
+ordered	2923	conflict	true	52..54	17..19,33..35	17..19,26..28,33..35	17..19,33..35	none	none	0/340/1155	0/340/1155	0/340/1155
+ordered	2925	overlap	false	53..56	29..32	17..20,29..32	29..32	none	none	0/581/1155	0/581/1155	0/581/1155
+ordered	2928	transfer	false	52..55	29..32	17..20,29..32		none	none	0/1386/1155	0/1386/1155	0/1386/1155
+ordered	2931	misleading_value	false	48..50	17..19	17..19,26..28	17..19	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2933	overlap	true	53..56	17..20	17..20,31..34	17..20	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2938	overlap	false	45..47	24..26	17..19,24..26	24..26	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2939	competing_person	true	58..61	26..29	26..29,34..37	26..29	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2941	transfer	false	49..51	27..29	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155
+ordered	2946	overlap	true	45..47	24..26	17..19,24..26	24..26	none	none	0/280/1155	0/280/1155	0/280/1155
+ordered	2947	exclusion	false	46..49	17..20	17..20	17..20	none	none	0/4071/1155	0/4071/1155	0/4071/1155
+ordered	2949	transfer	true	49..51	17..19	17..19,27..29		none	none	0/1334/1155	0/1334/1155	0/1334/1155

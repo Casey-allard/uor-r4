@@ -1,0 +1,244 @@
+{
+  "alternative_evidence_lane": "person",
+  "families": [
+    {
+      "alternative_evidence_by_row": {},
+      "competing_comparisons_to_declared_query": [
+        {
+          "distance": null,
+          "fact_ids": [
+            2718,
+            85
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            2874,
+            839,
+            382
+          ],
+          "query_pieces": 3,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ],
+      "device_exact_geometry_outcomes": {
+        "0/0": 8
+      },
+      "fact_cue": "catalogs",
+      "first_blockers": {
+        "unequal_bpe_piece_counts": 8
+      },
+      "query_word": "indexes",
+      "row_ids": [
+        2714,
+        2751,
+        2788,
+        2825,
+        2854,
+        2862,
+        2891,
+        2928
+      ],
+      "rows": 8,
+      "target_comparisons": [
+        {
+          "distance": null,
+          "fact_ids": [
+            462,
+            421,
+            762,
+            85
+          ],
+          "fact_pieces": 4,
+          "query_ids": [
+            2874,
+            839,
+            382
+          ],
+          "query_pieces": 3,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ]
+    },
+    {
+      "alternative_evidence_by_row": {},
+      "competing_comparisons_to_declared_query": [
+        {
+          "distance": null,
+          "fact_ids": [
+            462,
+            421,
+            762,
+            85
+          ],
+          "fact_pieces": 4,
+          "query_ids": [
+            2427,
+            85
+          ],
+          "query_pieces": 2,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ],
+      "device_exact_geometry_outcomes": {
+        "0/0": 8
+      },
+      "fact_cue": "collects",
+      "first_blockers": {
+        "outside_radius": 8
+      },
+      "query_word": "gathers",
+      "row_ids": [
+        2706,
+        2743,
+        2780,
+        2809,
+        2817,
+        2846,
+        2883,
+        2920
+      ],
+      "rows": 8,
+      "target_comparisons": [
+        {
+          "distance": 80,
+          "fact_ids": [
+            2718,
+            85
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            2427,
+            85
+          ],
+          "query_pieces": 2,
+          "status": "outside_radius",
+          "threshold_if_comparable": 32
+        }
+      ]
+    },
+    {
+      "alternative_evidence_by_row": {},
+      "competing_comparisons_to_declared_query": [
+        {
+          "distance": null,
+          "fact_ids": [
+            3296,
+            2803
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            1299
+          ],
+          "query_pieces": 1,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ],
+      "device_exact_geometry_outcomes": {
+        "0/0": 8
+      },
+      "fact_cue": "paints",
+      "first_blockers": {
+        "unequal_bpe_piece_counts": 8
+      },
+      "query_word": "colors",
+      "row_ids": [
+        2719,
+        2727,
+        2756,
+        2793,
+        2830,
+        2867,
+        2904,
+        2941
+      ],
+      "rows": 8,
+      "target_comparisons": [
+        {
+          "distance": null,
+          "fact_ids": [
+            1514,
+            85
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            1299
+          ],
+          "query_pieces": 1,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ]
+    },
+    {
+      "alternative_evidence_by_row": {},
+      "competing_comparisons_to_declared_query": [
+        {
+          "distance": null,
+          "fact_ids": [
+            1514,
+            85
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            283,
+            355,
+            85
+          ],
+          "query_pieces": 3,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ],
+      "device_exact_geometry_outcomes": {
+        "0/0": 8
+      },
+      "fact_cue": "repairs",
+      "first_blockers": {
+        "unequal_bpe_piece_counts": 8
+      },
+      "query_word": "mends",
+      "row_ids": [
+        2735,
+        2764,
+        2772,
+        2801,
+        2838,
+        2875,
+        2912,
+        2949
+      ],
+      "rows": 8,
+      "target_comparisons": [
+        {
+          "distance": null,
+          "fact_ids": [
+            3296,
+            2803
+          ],
+          "fact_pieces": 2,
+          "query_ids": [
+            283,
+            355,
+            85
+          ],
+          "query_pieces": 3,
+          "status": "unequal_bpe_piece_counts",
+          "threshold_if_comparable": null
+        }
+      ]
+    }
+  ],
+  "inputs": {
+    "device_input_sha256": "3e0a3385ab487ab90c7d290bacf6def1ce42019527d342332b272a4005eed03c",
+    "device_output_sha256": "d73912c8f121b0e3b68bfe3198f0382671c53006edaf98a53d6e1f723c994312",
+    "gold_sha256": "8ae69f6c9c035bf441ad44d35d2a6b39e9c8808afa4b9ca66a27969c4ddbd2a0",
+    "native_index_sha256": "ea63fc41ce3e6cfe59be5330243c01db13303d15f6cc7a1edd9ce8411f0b0f35",
+    "supplied_relation_sha256": "c78b656180d67e87b86f85d1eb53addbe9bb32076fc9e741c27d8242ae5389c1"
+  },
+  "lane": "person_relation",
+  "schema": "uor-r4.d27-transfer-failure/1"
+}

@@ -1,0 +1,357 @@
+{
+  "map": {
+    "artifact_sha256": "81a36d7ed720952ce72f0b0535a1ad40afe33b69a3f02a0a7ecb483b8d3d0750",
+    "context": 192,
+    "decoding": "greedy retained S2 suffix expert",
+    "generated_ids": [
+      799
+    ],
+    "generated_mass_q32": [
+      3598518889
+    ],
+    "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+    "prompt_ids": [
+      0,
+      55,
+      2728,
+      28,
+      1601,
+      435,
+      261,
+      2390,
+      33,
+      201,
+      35,
+      560,
+      652,
+      714,
+      28
+    ],
+    "protocol": "uor-r4.literal-role-dialogue/2",
+    "s2_steps": [
+      {
+        "key_hex": "0201c2ca000000000000000000000000",
+        "order": 2,
+        "reads": [
+          [
+            201,
+            256
+          ],
+          [
+            223,
+            128
+          ],
+          [
+            287,
+            256
+          ],
+          [
+            799,
+            4096
+          ]
+        ],
+        "top8": [
+          [
+            799,
+            3598518889
+          ],
+          [
+            201,
+            224938158
+          ],
+          [
+            287,
+            224938158
+          ],
+          [
+            223,
+            112485467
+          ],
+          [
+            1,
+            32777
+          ],
+          [
+            2,
+            32777
+          ],
+          [
+            3,
+            32777
+          ],
+          [
+            4,
+            32777
+          ]
+        ]
+      }
+    ],
+    "schema": "uor-r4.uor-chat-discrete-text/1",
+    "stop": "max_tokens",
+    "text": " We",
+    "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+  },
+  "planted": {
+    "red": {
+      "artifact_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+      "context": 192,
+      "decoding": "greedy retained S2 suffix expert",
+      "generated_ids": [
+        677,
+        1
+      ],
+      "generated_mass_q32": [
+        3916032369,
+        4160782345
+      ],
+      "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+      "prompt_ids": [
+        0,
+        55,
+        2728,
+        28,
+        677,
+        384,
+        265,
+        4027,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ],
+      "protocol": "uor-r4.literal-role-dialogue/2",
+      "s2_steps": [
+        {
+          "key_hex": "0a01c2ca28c2300230c9fbb1091802a5",
+          "order": 10,
+          "reads": [
+            [
+              677,
+              128
+            ],
+            [
+              924,
+              8
+            ]
+          ],
+          "top8": [
+            [
+              677,
+              3916032369
+            ],
+            [
+              924,
+              244782751
+            ],
+            [
+              1,
+              32777
+            ],
+            [
+              2,
+              32777
+            ],
+            [
+              3,
+              32777
+            ],
+            [
+              4,
+              32777
+            ],
+            [
+              5,
+              32777
+            ],
+            [
+              6,
+              32777
+            ]
+          ]
+        },
+        {
+          "key_hex": "022a501c000000000000000000000000",
+          "order": 2,
+          "reads": [
+            [
+              1,
+              32
+            ]
+          ],
+          "top8": [
+            [
+              1,
+              4160782345
+            ],
+            [
+              2,
+              32777
+            ],
+            [
+              3,
+              32777
+            ],
+            [
+              4,
+              32777
+            ],
+            [
+              5,
+              32777
+            ],
+            [
+              6,
+              32777
+            ],
+            [
+              7,
+              32777
+            ],
+            [
+              8,
+              32777
+            ]
+          ]
+        }
+      ],
+      "schema": "uor-r4.uor-chat-discrete-text/1",
+      "stop": "eos",
+      "text": " red",
+      "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+    },
+    "blue": {
+      "artifact_sha256": "eebb8ff66ca5190e0ddfbe0ae4c6d701b3adcbbe52162c77681dd3d67cae03e7",
+      "context": 192,
+      "decoding": "greedy retained S2 suffix expert",
+      "generated_ids": [
+        924,
+        1
+      ],
+      "generated_mass_q32": [
+        3916032370,
+        4160782345
+      ],
+      "model_schema": "uor-r4.lut-discrete-trunk-s2/2",
+      "prompt_ids": [
+        0,
+        55,
+        2728,
+        28,
+        924,
+        384,
+        265,
+        4027,
+        201,
+        35,
+        560,
+        652,
+        714,
+        28
+      ],
+      "protocol": "uor-r4.literal-role-dialogue/2",
+      "s2_steps": [
+        {
+          "key_hex": "0a01c2ca28c2300230c9fbb10918039c",
+          "order": 10,
+          "reads": [
+            [
+              677,
+              8
+            ],
+            [
+              924,
+              128
+            ]
+          ],
+          "top8": [
+            [
+              924,
+              3916032370
+            ],
+            [
+              677,
+              244782750
+            ],
+            [
+              1,
+              32777
+            ],
+            [
+              2,
+              32777
+            ],
+            [
+              3,
+              32777
+            ],
+            [
+              4,
+              32777
+            ],
+            [
+              5,
+              32777
+            ],
+            [
+              6,
+              32777
+            ]
+          ]
+        },
+        {
+          "key_hex": "0239c01c000000000000000000000000",
+          "order": 2,
+          "reads": [
+            [
+              1,
+              32
+            ]
+          ],
+          "top8": [
+            [
+              1,
+              4160782345
+            ],
+            [
+              2,
+              32777
+            ],
+            [
+              3,
+              32777
+            ],
+            [
+              4,
+              32777
+            ],
+            [
+              5,
+              32777
+            ],
+            [
+              6,
+              32777
+            ],
+            [
+              7,
+              32777
+            ],
+            [
+              8,
+              32777
+            ]
+          ]
+        }
+      ],
+      "schema": "uor-r4.uor-chat-discrete-text/1",
+      "stop": "eos",
+      "text": " blue",
+      "tokenizer_sha256": "a9fb13f70c69ffe5afed40c8251a8e702adf0b00732d35ccff9457a3309ee377"
+    }
+  },
+  "fresh_map_process_byte_identical": true,
+  "matched_raw_ids_for_all_integer_fields": true,
+  "raw_ids_has_stop_metadata": false
+}

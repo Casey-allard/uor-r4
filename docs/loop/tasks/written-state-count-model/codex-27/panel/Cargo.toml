@@ -1,0 +1,16 @@
+[package]
+name = "d27-relation-panel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d27-relation-panel"
+path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+sha2 = "0.10"
