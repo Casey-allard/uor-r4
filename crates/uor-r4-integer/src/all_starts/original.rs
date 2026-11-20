@@ -140,7 +140,7 @@ impl Bank {
     }
 
     /// Canonical ordered score, shared by ordinary selection and the device
-    /// differential. Every rival with geometry retains the original veto.
+    /// differential. An explicit calibration may clear an unresolved rival.
     pub fn score_original_row(
         &self,
         row: &[u32; ORIGINAL_CANDIDATE_WORDS],
@@ -207,9 +207,11 @@ impl Bank {
             let shape = depth as u32 | ((end - source) << 8);
             let mut closest = [NIL; 2];
             let mut radius = NO_RADIUS;
-            for record in self
+            let mut negative_radius = NO_RADIUS;
+            for (index, record) in self
                 .records()
-                .filter(|record| record[0] & 65535 == shape && record[1] == signature)
+                .enumerate()
+                .filter(|(_, record)| record[0] & 65535 == shape && record[1] == signature)
             {
                 let distance = (0..slots)
                     .map(|slot| l1(root_at(geometry, slot), root_at(&record[3..], slot)))
@@ -217,9 +219,22 @@ impl Bank {
                 let label = (record[0] >> 16) as usize;
                 closest[label] = closest[label].min(distance);
                 radius = record[2];
+                if let Some(calibration) = &self.negative_calibration {
+                    negative_radius = calibration.radius(index);
+                }
             }
             trace[4..8].copy_from_slice(&[2, closest[0], closest[1], radius]);
             if closest.contains(&NIL) || radius == NO_RADIUS || closest[0] > radius {
+                if self.negative_calibration.is_some() {
+                    trace[8] = negative_radius;
+                    if negative_radius != NO_RADIUS
+                        && closest[1] <= negative_radius
+                        && closest[1] < closest[0]
+                    {
+                        trace[4] = 4;
+                        continue;
+                    }
+                }
                 unseen = true;
                 continue;
             }
@@ -402,6 +417,7 @@ mod tests {
         Bank {
             words: words.into_boxed_slice(),
             mode: OnsetMode::OrderedWholeWord,
+            negative_calibration: None,
         }
     }
 

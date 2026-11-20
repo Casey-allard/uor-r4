@@ -1,0 +1,16 @@
+[package]
+name = "d29-rival-panel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "d29-rival-panel"
+path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+uor-r4-tokenizer = { path = "../../../../../../crates/uor-r4-tokenizer" }
+sha2 = "0.10"

@@ -1,4 +1,4 @@
-use super::{open_bank, parts, save, Result};
+use super::{save, Result};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{fs, path::Path};
@@ -83,13 +83,19 @@ fn words(bytes: &mut Vec<u8>, values: &[u32]) {
     bytes.extend(values.iter().flat_map(|v| v.to_le_bytes()));
 }
 
-pub fn grade(model_file: &Path, panel: &Path, clients: Option<&Path>, out: &Path) -> Result<()> {
+pub fn grade_with(
+    model_file: &Path,
+    panel: &Path,
+    clients: Option<&Path>,
+    out: &Path,
+    open: impl FnOnce(&[u8], OnsetMode) -> Result<(uor_r4_integer::all_starts::Bank, Vec<u8>)>,
+    correct_conflicting_exclusion: bool,
+) -> Result<()> {
     fs::create_dir(out)?;
     let bytes = fs::read(model_file)?;
     let model = IntegerDiscreteModel::from_bytes(&bytes)?;
     let mode = model.onset_mode().ok_or("missing onset policy")?;
-    let frozen = parts(&bytes)?;
-    let bank = open_bank(frozen.bank, mode)?;
+    let (bank, raw_bank) = open(&bytes, mode)?;
     let roots = model.packed_codebook_roots();
     let classes = model.frozen_role_replay()?.assertion_classes;
     if let Some(clients) = clients {
@@ -115,6 +121,9 @@ pub fn grade(model_file: &Path, panel: &Path, clients: Option<&Path>, out: &Path
         let gold_person = span(p.requested);
         let mut supplied = ordinary;
         supplied.requested = Some(gold_person);
+        if correct_conflicting_exclusion && supplied.excluded == Some(gold_person) {
+            supplied.excluded = None;
+        }
         let heads = k
             .selected
             .iter()
@@ -263,7 +272,7 @@ pub fn grade(model_file: &Path, panel: &Path, clients: Option<&Path>, out: &Path
     }
     save(&out.join("input.bin"), &inputs)?;
     save(&out.join("expected.bin"), &expected)?;
-    save(&out.join("bank.raw"), &frozen.bank[super::BINDINGS..])?;
+    save(&out.join("bank.raw"), &raw_bank)?;
     save(&out.join("visits.json"), &serde_json::to_vec(&visits)?)?;
     save(&out.join("rows.json"), &serde_json::to_vec(&rows)?)
 }

@@ -26,9 +26,11 @@ use crate::{
 mod s2_expert;
 pub use s2_expert::{s2_route_key, S2ExpertPrediction, S2ExpertRead, S2RankedToken, S2_MASS_TOTAL};
 mod assertion_retrieval;
+mod rival_admission;
 #[path = "contextual_source.rs"]
 pub mod contextual_source;
 pub use assertion_retrieval::pack_assertion_retrieval;
+pub use rival_admission::pack_rival_admission;
 
 /// Container magic (`UORLUT01`).
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
@@ -1911,6 +1913,9 @@ impl IntegerDiscreteModel {
             schema: String,
         }
         let schema = serde_json::from_slice::<Schema>(encoded_header)?.schema;
+        if schema == rival_admission::SCHEMA {
+            return rival_admission::read(bytes, encoded_header, end_header, allow_role);
+        }
         if schema == assertion_retrieval::SCHEMA {
             return assertion_retrieval::read(bytes, encoded_header, end_header, allow_role);
         }
@@ -2579,6 +2584,9 @@ impl IntegerDiscreteModel {
             mixer.schema()
         } else if let Some(policy) = &self.role_policy {
             if let Some(onset) = &policy.onset {
+                if onset.bank.has_negative_calibration() {
+                    return rival_admission::SCHEMA;
+                }
                 return onset_schema(onset.requested_policy.as_ref());
             }
             match policy.paired.as_ref().map(|paired| &paired.roles) {

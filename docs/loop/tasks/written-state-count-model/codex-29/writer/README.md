@@ -1,0 +1,5 @@
+# D29 fixed writer differential
+
+Build the detached crate with Cargo. The executable takes the candidate carrier, exact pinned parent carrier, bound fitted bank, panel directory, client output directory (or a dash for packet staging), and a new output directory. Reconstruct and reparse each calibrated carrier before scoring. Reuse the D28 original-address replay for the ordinary, supplied person, supplied person plus assertion heads, forced gold, legal opposing onset, and disabled-read paths. The supplied intervention also clears a coincident excluded query span when it replaces the requested role. Existing D28 replay retains its original handling.
+
+The device consumes only the per-visit original integer packets. The ordinary client consumes only raw prompt text. Labels supply the explicit diagnostic interventions and independently grade whole token tapes, including EOS. All three modes must agree on the packet emitted per visit, and every graded CUDA response word must match the loaded model on both cold device passes.

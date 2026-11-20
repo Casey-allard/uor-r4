@@ -11,10 +11,12 @@ use crate::{
 };
 
 mod original;
+mod rival;
 pub use original::{
     original_candidates, original_packet, OriginalCandidates, OriginalStart, OriginalStartGeometry,
     ORIGINAL_CANDIDATE_WORDS, ORIGINAL_DECISION_WORDS,
 };
+pub use rival::{NegativeCalibration, NEGATIVE_CALIBRATION_BYTES};
 
 const RAW: u32 = 0x31425355;
 const SEALED: u32 = 0x32425355;
@@ -103,6 +105,7 @@ pub struct OnsetDecision {
 pub struct Bank {
     words: Box<[u32]>,
     mode: OnsetMode,
+    negative_calibration: Option<NegativeCalibration>,
 }
 impl Bank {
     pub fn from_profile(
@@ -210,6 +213,7 @@ impl Bank {
         Ok(Self {
             words,
             mode: profile.mode,
+            negative_calibration: None,
         })
     }
 

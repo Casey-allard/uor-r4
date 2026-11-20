@@ -1,0 +1,9 @@
+c1.tokens.u16: original payload and unrelated header bytes exact, declared count 20754301
+r.tokens.u16: original payload and unrelated header bytes exact, declared count 15951644
+R classes/segments and ID-bytes: exact
+8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030  c1.tokens.u16
+5875b173ad19aefbdd38929af8d88c15344333e941f44128d5e0a67b50102a0a  r.tokens.u16
+ca686ed8072b78fa03174530862842db60089b24e659f98f95e3e92921b465d5  r.classes.u8
+eab84282e3ff934f6344a2558db402db6b346f35d6d85dea98200c2fa85aa1ac  r.segments.u8
+befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9  id-bytes.u8
+84a340eed728583a6ea978c5e78dcd4f7e5b8bf38b68e7c407e06d0b6bcffc31  manifest.json

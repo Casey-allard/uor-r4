@@ -179,6 +179,23 @@ fn augmented(old: &[u8], fitted: &[u8], raw: &[u8], output: &Path) -> Result<()>
     );
     Ok(())
 }
+fn grade(model: &Path, panel: &Path, clients: Option<&Path>, out: &Path) -> Result<()> {
+    replay::grade_with(
+        model,
+        panel,
+        clients,
+        out,
+        |bytes, mode| {
+            let frozen = parts(bytes)?;
+            Ok((
+                open_bank(frozen.bank, mode)?,
+                frozen.bank[BINDINGS..].to_vec(),
+            ))
+        },
+        false,
+    )
+}
+
 fn main() -> Result<()> {
     let args: Vec<_> = env::args().skip(1).collect();
     match args.as_slice() {
@@ -189,8 +206,8 @@ fn main() -> Result<()> {
         }
         [cmd,p,t,b,m,out] if cmd=="pack" => pack(p.as_ref(),t.as_ref(),b.as_ref(),m,out.as_ref()),
         [cmd,old,new,raw,out] if cmd=="augment" => augmented(&fs::read(old)?,&fs::read(new)?,&fs::read(raw)?,out.as_ref()),
-        [cmd,model,panel,out] if cmd=="stage" => replay::grade(model.as_ref(),panel.as_ref(),None,out.as_ref()),
-        [cmd,model,panel,clients,out] if cmd=="grade" => replay::grade(model.as_ref(),panel.as_ref(),Some(clients.as_ref()),out.as_ref()),
+        [cmd,model,panel,out] if cmd=="stage" => grade(model.as_ref(),panel.as_ref(),None,out.as_ref()),
+        [cmd,model,panel,clients,out] if cmd=="grade" => grade(model.as_ref(),panel.as_ref(),Some(clients.as_ref()),out.as_ref()),
         _=>Err("usage: extract BASELINE BANK | pack BASELINE TOKENIZER BANK legacy|whole OUT | augment FROZEN FITTED RAW OUT | grade MODEL PANEL CLIENTS NEW_DIRECTORY".into()),
     }
 }

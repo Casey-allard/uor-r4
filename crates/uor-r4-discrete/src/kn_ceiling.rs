@@ -15,7 +15,9 @@ use crate::ngram_count::{
 };
 use crate::{Error, Result};
 
+mod complete_lookup;
 mod frozen_pick;
+pub use complete_lookup::{encode_complete_lookup, CompleteCountLookup};
 pub use frozen_pick::FrozenPickMixture;
 
 /// Q32 unit of a mixing weight.
@@ -108,27 +110,44 @@ impl RawTables {
             if target == NGRAM_BOS {
                 continue;
             }
-            if u32::from(target) >= NGRAM_VOCABULARY {
-                return Err(invalid(format!(
-                    "token id {target} is outside the 12-bit vocabulary"
-                )));
-            }
             let start = counts.len();
             counts.resize(start + width, 0);
             totals.resize(start + width, 0);
-            for k in 0..=(self.highest as usize).min(j) {
-                let (triples, contexts) = &self.orders[k];
-                let key = PrimeRouteKey::from_context(&tokens[j - k..j])?.word();
-                let Ok(at) = contexts.binary_search_by(|c| c.key.cmp(&key)) else {
-                    continue;
-                };
-                totals[start + k] = contexts[at].total;
-                counts[start + k] = triples
-                    .binary_search_by(|t| (t.key, t.next).cmp(&(key, target)))
-                    .map_or(0, |i| triples[i].count);
-            }
+            self.lookup_target(tokens, j, &mut counts[start..], &mut totals[start..])?;
         }
         Ok((counts, totals))
+    }
+
+    /// One original token target and its per-order raw count and context total.
+    pub fn lookup_target(
+        &self,
+        tokens: &[u16],
+        j: usize,
+        counts: &mut [u32],
+        totals: &mut [u64],
+    ) -> Result<()> {
+        let target = *tokens.get(j).ok_or_else(|| invalid("missing raw lookup target"))?;
+        if target == NGRAM_BOS || u32::from(target) >= NGRAM_VOCABULARY {
+            return Err(invalid("raw lookup target is not a valid non-BOS token"));
+        }
+        let width = self.highest as usize + 1;
+        if counts.len() != width || totals.len() != width {
+            return Err(invalid("wrong raw lookup output width"));
+        }
+        counts.fill(0);
+        totals.fill(0);
+        for k in 0..width.min(j + 1) {
+            let (triples, contexts) = &self.orders[k];
+            let key = PrimeRouteKey::from_context(&tokens[j - k..j])?.word();
+            let Ok(at) = contexts.binary_search_by(|c| c.key.cmp(&key)) else {
+                continue;
+            };
+            totals[k] = contexts[at].total;
+            counts[k] = triples
+                .binary_search_by(|t| (t.key, t.next).cmp(&(key, target)))
+                .map_or(0, |i| triples[i].count);
+        }
+        Ok(())
     }
 }
 

@@ -1,0 +1,82 @@
+{
+  "c": {
+    "mark_token": 20756083,
+    "original_tokens": 2075608357,
+    "records": 5402,
+    "targets": 20748899,
+    "tokens": 20754301
+  },
+  "c_boundary_sha256": "a83c107b2e9d655a01dd69364e3cdcb1a186e37db82ee78b91dd6745a340aba9",
+  "header_changed_bytes": [
+    8,
+    16
+  ],
+  "held_input": false,
+  "outputs": [
+    {
+      "bytes": 41508666,
+      "file": "c1.tokens.u16",
+      "sha256": "8d94e88ac31305ad6973734181a9727f520da46a5ecc263b944247ceedd07030"
+    },
+    {
+      "bytes": 31903352,
+      "file": "r.tokens.u16",
+      "sha256": "5875b173ad19aefbdd38929af8d88c15344333e941f44128d5e0a67b50102a0a"
+    },
+    {
+      "bytes": 15951644,
+      "file": "r.classes.u8",
+      "sha256": "ca686ed8072b78fa03174530862842db60089b24e659f98f95e3e92921b465d5"
+    },
+    {
+      "bytes": 15951644,
+      "file": "r.segments.u8",
+      "sha256": "eab84282e3ff934f6344a2558db402db6b346f35d6d85dea98200c2fa85aa1ac"
+    },
+    {
+      "bytes": 4096,
+      "file": "id-bytes.u8",
+      "sha256": "befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9"
+    }
+  ],
+  "r": {
+    "records": 4060,
+    "segment": 0,
+    "targets": 15947584,
+    "tokens": 15951644
+  },
+  "schema": "uor-r4.d29-cr-preparation/1",
+  "sources": [
+    {
+      "file": "c.tokens.u16",
+      "prefix_sha256": "91db0e3005deb8a796d170d383b10273633acd781e272d6bd8547e653ef13334",
+      "source_bytes": 4151216778,
+      "verified_prefix_bytes": 41508666
+    },
+    {
+      "file": "q.tokens.u16",
+      "prefix_sha256": "bab6ee5f2524014e54cb5f72acf555bf39dc9430fdb92dfed3e8e84f9359b454",
+      "source_bytes": 160543530,
+      "verified_prefix_bytes": 31903352
+    },
+    {
+      "file": "q.classes.u8",
+      "prefix_sha256": "ca686ed8072b78fa03174530862842db60089b24e659f98f95e3e92921b465d5",
+      "source_bytes": 80271733,
+      "verified_prefix_bytes": 15951644
+    },
+    {
+      "file": "q.segments.u8",
+      "prefix_sha256": "eab84282e3ff934f6344a2558db402db6b346f35d6d85dea98200c2fa85aa1ac",
+      "source_bytes": 80271733,
+      "verified_prefix_bytes": 15951644
+    },
+    {
+      "file": "id-bytes.u8",
+      "prefix_sha256": "befb22f6908751ae522a80336afa584eb2c24e36a10b90ad3105e39271a48ac9",
+      "source_bytes": 4096,
+      "verified_prefix_bytes": 4096
+    }
+  ],
+  "training": false
+}

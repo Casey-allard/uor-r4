@@ -1,0 +1,14 @@
+uuid, name, driver_version, compute_cap
+GPU-635e0488-ca33-a7ca-dfcb-5b8b0b6944e5, NVIDIA GeForce RTX 4090, 580.178.04, 8.9
+489aee62f059ceb84b12b3d9149701b6e82095eb0a9ae506156820d312ecffb2  inputs/input.d28i
+dadfe387a008363eaf90af998b396a4662e31cae8662b8d31bbf4ca3e6e253c5  dispatch/train/primary.raw
+dadfe387a008363eaf90af998b396a4662e31cae8662b8d31bbf4ca3e6e253c5  dispatch/train/cold.raw
+ac7ae015fa472da93e204f09fb42dda9f25db72ea6ee1c2f5ceb86ac641efcb3  dispatch/held/baseline-primary
+ac7ae015fa472da93e204f09fb42dda9f25db72ea6ee1c2f5ceb86ac641efcb3  dispatch/held/baseline-cold
+3da479c6bc4c18f02f729e1e85402ef66565d0920571264f442d8cb115d867c9  dispatch/held/calibrated-primary
+3da479c6bc4c18f02f729e1e85402ef66565d0920571264f442d8cb115d867c9  dispatch/held/calibrated-cold
+d13bb98662c23187e6f55941303f4cea04810aaa90f78db98e36a7f71eec6048  dispatch/held/shuffled-primary
+d13bb98662c23187e6f55941303f4cea04810aaa90f78db98e36a7f71eec6048  dispatch/held/shuffled-cold
+baseline host and both GPU runs matched every decision word
+calibrated host and both GPU runs matched every decision word
+shuffled host and both GPU runs matched every decision word

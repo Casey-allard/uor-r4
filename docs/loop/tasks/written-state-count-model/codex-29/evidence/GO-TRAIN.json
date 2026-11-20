@@ -1,0 +1,9 @@
+{
+  "decision": "GO-TRAIN",
+  "fit": "903c52a0cc930f69e3b95e5976720206b0a1c80575831360b1eba2f53019570f",
+  "observed": "c1a420ec341b43c669a16953fe591dff5d5a5fcae5fc64138eb29d155923132c",
+  "sheet": "07b0222dbbc712d06fc10fc7316ae30184e17db74b71b2587113ce1359833494",
+  "pod": "vast-61553355",
+  "finite_inputs": "5c8b8bd0a4957d3ef80a3c67c5f19d39757446e73fa0a34a7520a46ccf21a59d",
+  "time": "2026-11-20T01:41:45Z"
+}

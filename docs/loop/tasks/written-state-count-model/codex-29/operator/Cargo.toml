@@ -1,0 +1,16 @@
+[package]
+name = "d29-rival-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+hex = "0.4"
+sha2 = "0.10"
+uor-r4-integer = { path = "../../../../../../crates/uor-r4-integer", features = ["serving-wasm"] }
+
+[[bin]]
+name = "d29-rival-host"
+path = "main.rs"

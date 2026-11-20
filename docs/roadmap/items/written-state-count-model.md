@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: [m2-donor-corpus-generation]
 notebook: docs/research/notebook/m4-serving.md
-scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
+scope: [docs/research/notebook/m4-serving.md, docs/research/notebook/data-tokenizer.md, crates/uor-r4-discrete/**, crates/uor-r4-integer/src/discrete_d11.rs, crates/uor-r4-integer/src/discrete_d11/rival_admission.rs, crates/uor-r4-integer/src/all_starts.rs, crates/uor-r4-integer/src/all_starts/original.rs, crates/uor-r4-integer/src/all_starts/rival.rs, crates/uor-r4-integer/src/bin/uor-chat.rs, crates/uor-r4-integer/tests/discrete*, docs/labs/kn-reference/**, docs/loop/tasks/written-state-count-model/**, docs/roadmap/items/written-state-count-model.md]
 done_class: gpu
 ---
 
