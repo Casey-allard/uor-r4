@@ -1,6 +1,17 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/UOR-Foundation/.github/main/profile/readme-banner-PLACEHOLDER.png" alt="Shared provisional UOR Foundation banner, not approved UOR-R4 artwork" width="100%">
+</p>
+
+*Illustrative Foundation placeholder, not final UOR-R4 branding.*
+
 # UOR-R4 · A geometric language model
 
 **Can a laptop predict language by rotating points, following a few addresses and reading exact memory?** UOR-R4 is an open research project testing that question. We build the model in Rust, measure each proposed mechanism against a simple baseline, and publish the failures alongside the results.
+
+[Try the predictor](#try-the-m1-predictor) · [Current evidence](#where-we-are) · [Research direction](#current-research-direction) · [Model design](#how-it-works) · [Roadmap](#where-were-going) · [Contribute](#contribute)
+
+[![CI](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml) [![Research stage: pre-alpha](https://img.shields.io/badge/research-pre--alpha-718096)](#where-we-are) [![License: MIT](https://img.shields.io/badge/license-MIT-718096)](LICENSE)
+
 
 [Research book](https://uor-foundation.github.io/uor-r4/) · [Studio](https://uor-foundation.github.io/uor-r4/studio/) · [M1 model files](https://huggingface.co/caseyallard/uor-r4-m1-model) · [Roadmap and open work](https://github.com/UOR-Foundation/uor-r4/issues/2028)
 
