@@ -1,0 +1,16 @@
+{
+  "decision": "GO",
+  "phase": "D37 R-only S5 fit",
+  "utc": "2026-11-20T07:57:41Z",
+  "host": "wick",
+  "pick_mode": "identity",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "dispatch_sha256": "8e7f9cfc949b6e67fa801b29128ad755672cdcfbf3b2f0830923f149b0ecc63f",
+  "sheet_sha256": "9109078855dba389a3f30765c64efe7b1152d3f3619358dabc54265bb010fa69",
+  "stage_sha256": "d861520806e09debd02c0f125501c612573e6b20356ea252a8788447e8b930b0",
+  "fit_sha256": "38fdb5bc2c7371d84a5d07973796166789fa10cce40b53f5fcb9d6565ea29ca4",
+  "finite_result_sha256": "1511096a1ad64bb9d64266bff26b2051a740084b83d0510551090730f01b04ab",
+  "finite_result": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/finite-result-v1",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/real-v1",
+  "pre_run": "Top session verified P1(b) full-C deployment purpose, sealed R tape, causal original Pick path, 4 linked cubins, independent real FIT, finite 527/879 replay, primary 4090 and the registered idle-lock probe. A successful R-only fit admits two frozen weights to normal-client replay and selection under the registered tune comparison. A divergence preserves the first failing stage. No DEV access or rented device in this dispatch."
+}

@@ -1,0 +1,14 @@
+8c8bb5ed722c6114ab7c2081c05e70e5d175a202294721eb0669407138861d34  control-source.sha256
+81ec073a849aa61553d499681f16a3771bacab17e42b91e5b1345cba081178e5  d37-r-fit-control
+9dc81179eb9ee34532b5e9bb791896526af5e9e0e72d0e8bdb8d883e9a29840a  d37-r-device-masked
+5a9d132b5f7957750ab351607d1e9d06f707e56bb55a6d4411a99201d6c20d7f  d37-c2-device
+686f658df026a698d81ded9bdeeacfe2a1c12f7d7996cf7a7a86149126a6c4cf  c2.sass
+399b7c55d139e91b8221e4c0ec74d1d3ac5417743d379699c90bb3bb160f2e51  c2-input/fixture.uort
+c256201b4624a4436f61d5d3657f4eccf7587d31254617d9625a21222a8d0327  embedded.list
+3b7c91ad698a2ef1eb81eca2d3c2f42fd9a188e1a55899bea827bc8bc0326aaf  ../d37-r-device
+42c198a7fd52742038d49def7951ac4d9f9bfa3e521103c055f3db95640824e9  ../control-stage/masked.sass
+0b434707d07e0289d7d4a5992943ac1e8d8489b96836724c663cb85daa0d2b83  finite-result/results.sha256
+e2d85c3308d3dc47ad9e859ecd6c70ae66237f1b7c82157de3b1ad1f9a0bcf4a  ../control-stage/target/release/build/uor-r4-discrete-6b6c67d73227d7df/out/baseline-reuse.cubin
+0cd6bb767fe251eed332b2ebec3e084d5f3a01b30512d9ca2f20e784afb749ac  ../control-stage/target/release/build/uor-r4-discrete-6b6c67d73227d7df/out/decomposition.cubin
+a208e2937a341e6700c9199aded3be7b83bb1fce9d85a95c97338eb7d8a04f69  ../control-stage/target/release/build/uor-r4-discrete-6b6c67d73227d7df/out/ordinary.cubin
+02cde4b3a60e9de4808ad1f1c4821bdcf76afe6623d2b0ce3fd8db025c8a7a48  ../control-stage/target/release/build/uor-r4-discrete-6b6c67d73227d7df/out/rows.cubin

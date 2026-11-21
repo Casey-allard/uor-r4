@@ -1,0 +1,55 @@
+{
+  "schema": "uor-r4.d37.tune-go/1",
+  "decision": "GO",
+  "phase": "DEV-tune frozen S5 selection",
+  "host_kind": "vast",
+  "host_name": "0150a7a76615",
+  "device_uuid": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25",
+  "lease": "vast-61843938 / codex/d37-tune-21 / gpu0",
+  "fit_verdict": "FIT",
+  "fit_sha256": "c981557b2c6dc1ff5ae2f74a46f7027ebc381cff70284d5d5bcf3333ca88a657",
+  "stage_sha256": "c8d01f39b4030a51c0fc3d6e05e0fe47c94469601d7f89e4093c74311518417d",
+  "transfer_manifest_sha256": "6ff8fd2bb732442419cafa2b861d17215d44d7c3c3f315add81c5bac408260db",
+  "dispatch_sha256": "1f32c1a73cd6102340f9ea85ebfd4014ac827c23b9446dca9487c8d3c4ca8ef3",
+  "sheet_sha256": "a42969b45e70f23739101a4c1d47c9344a344d837accb627526831f4e4254af7",
+  "finite_sha256": "34679d11c02b5e1616186d308ca7ee738e73ca4a5ae42ea07bfcf25a364d8ce6",
+  "finite_result_sha256": "24c17ff571066e54ed5964c6c7d6861cf5e65c79dfb5e073beea18fa5b08440c",
+  "c2_result_sha256": "bfbae00aa06abd875dfd22437da84809572815d4db97de6c47eadc2c1937acde",
+  "scorer_sha256": "86638d458b4ea3c5a8700bbbb70d454d36bef1489dabfcb93d605164fdc86757",
+  "device_scorer_sha256": "b44b430c7121624751c920f45783b4b1246cfc3e31cbed5b2c082500ca14744c",
+  "census_sha256": "90fbc73a7b19129d39860cece7403027f71d6d952a6825e89bd1619dac3f8467",
+  "compact": "/workspace/d37-tune-21/revision-v2/input/compact.counts",
+  "compact_sha256": "064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8",
+  "count_tape": "/workspace/d37-tune-21/revision-v2/input/count.features",
+  "dev_tune_tape_sha256": "e161600681d4c46179967565b77012c3cb4929291a8a408f92505a401f12a7ff",
+  "r_count_tape_sha256": "add9aa306fd70d87e02048e2a2a32d23f6f9e9be89bb8ff8011c64690042f4dd",
+  "c2_tape": "/workspace/d37-tune-21/revision-v2/c2-v1/c2.picks.u32",
+  "dev_tune_c2_tape_sha256": "ead26b720a18458be453045de2d5dfcbeea44b4bbe4137ffd0c0154615b4bfeb",
+  "trunk": "/workspace/d37-tune-21/revision-v2/input/trunk.d11",
+  "split_root": "/workspace/d37-tune-21/revision-v2/input/split",
+  "fit_root": "/workspace/d37-tune-21/revision-v2/input/fits",
+  "out": "/workspace/d37-tune-21/revision-v2/real-v1",
+  "arms": {
+    "a0": {
+      "seal_sha256": "5a7d108997da3378f3bee79599b95910155e646dc81d54ae1fafe6891d06267e"
+    },
+    "a1": {
+      "seal_sha256": "cbd754452cee41906a33fcae8fd44ddbd90bd5c888c84427fd22cae1c3c73544"
+    },
+    "a1s": {
+      "seal_sha256": "589a68020bf3c1124af66967fea297c70c96d3d0ad013414f0467844d2277c23"
+    },
+    "c1": {
+      "seal_sha256": "7b15f3fc54439010292c51943c677f70d2c35d5c0d5ddecb18151b476992ea56"
+    },
+    "c2": {
+      "seal_sha256": "0c37decb5aa7b1d1e87090499f287593bd3366b4694133842be5a4924e62295d"
+    },
+    "c3": {
+      "seal_sha256": "c4ca1733646dfe81d24a21d004a389c1a53cacfad7546013432c82b261120e88"
+    },
+    "c3s": {
+      "seal_sha256": "a43ff59b805f71185f9a1c72c9890139b33b874f237c17b49e4558a6f7c3beb5"
+    }
+  }
+}

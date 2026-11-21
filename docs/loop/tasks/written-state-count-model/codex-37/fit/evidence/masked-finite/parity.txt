@@ -1,0 +1,1 @@
+a1-masked finite parity with bucket 527, 128 rows, 97 sums and 717024 Q32 words

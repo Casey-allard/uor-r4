@@ -1,0 +1,11 @@
+{
+  "decision": "GO",
+  "phase": "D37 finite masked optimizer",
+  "utc": "2026-11-20T08:01:05Z",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "dispatch_sha256": "025324329951fa58ff7bba509d990dbba2189ebf4be1d62806a6e235c2230901",
+  "sheet_sha256": "90bdc1d820aa7aa6b01c83cebda7365bc77dc58ab5cfab6694555b159f1d972d",
+  "fit_sha256": "e712083d84f17918375f78dd8e4e78f9b50f3573ac02597589c7aa7d74c7ae65",
+  "stage_sha256": "40c0d4d93f2606dc24ba0dd0ef304539f6c5a58154c8f606aac3234700a13b1f",
+  "pre_run": "Finite masked copy control only. Non-author FIT verified planted fired bucket with no admitted pick weight. The zero-weight/dose oracle controls attribution; a failed differential holds C1. Top-session real-control review requires a qualified CUDA exact-pair path for C2."
+}

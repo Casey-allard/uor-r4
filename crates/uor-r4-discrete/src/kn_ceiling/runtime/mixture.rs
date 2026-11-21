@@ -71,6 +71,33 @@ pub const PICK_FIRED_EXACT: u8 = 1;
 pub const PICK_FIRED_NEAR: u8 = 2;
 /// claude-439: Pick classes; each holds one copy of the base buckets.
 pub const PICK_CLASSES: u8 = 3;
+/// Split the positive geometric distances into 1, 2, and 3 or more.
+pub const PICK_SPLIT_CLASSES: u8 = 5;
+
+/// The native rules carried by frozen S5 weights.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PickClassRule {
+    Three,
+    Five,
+}
+
+impl PickClassRule {
+    pub const fn classes(self) -> u8 {
+        match self {
+            Self::Three => PICK_CLASSES,
+            Self::Five => PICK_SPLIT_CLASSES,
+        }
+    }
+
+    pub fn classify(self, distance: Option<u32>) -> u8 {
+        match (self, distance) {
+            (_, None) => PICK_NOT_FIRED,
+            (_, Some(0)) => PICK_FIRED_EXACT,
+            (Self::Three, Some(_)) => PICK_FIRED_NEAR,
+            (Self::Five, Some(distance)) => PICK_FIRED_EXACT + distance.min(3) as u8,
+        }
+    }
+}
 
 /// claude-439: one target's Pick reading: its class and whether the copied
 /// token is the target. `hit` needs a fired class.
@@ -78,17 +105,6 @@ pub const PICK_CLASSES: u8 = 3;
 pub struct PickTarget {
     pub class: u8,
     pub hit: bool,
-}
-
-fn ceiling_pick_row(
-    highest: u32,
-    kn: u64,
-    counts: &[u32],
-    totals: &[u64],
-    pick: PickTarget,
-    row: &mut [u64],
-) -> Result<u16> {
-    ceiling_pick_row_classes(highest, kn, counts, totals, pick, PICK_CLASSES, row)
 }
 
 /// claude-441: `ceiling_pick_row` under a rule of `classes` Pick classes.

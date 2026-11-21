@@ -1,0 +1,220 @@
+diff --git a/crates/uor-r4-integer/src/discrete_count.rs b/crates/uor-r4-integer/src/discrete_count.rs
+index 7133d97..5f02532 100644
+--- a/crates/uor-r4-integer/src/discrete_count.rs
++++ b/crates/uor-r4-integer/src/discrete_count.rs
+@@ -14,7 +14,6 @@ fn invalid(s: impl ToString) -> IntegerError {
+ struct Fit {
+     schema: String,
+     prepared: Preparation,
+-    arm: Option<String>,
+     weight_format: Option<String>,
+     pick_classes: Option<u8>,
+     q32_weight_words: Option<usize>,
+@@ -25,7 +24,6 @@ struct Preparation {
+     format: String,
+     c_sha256: String,
+     r_sha256: Option<String>,
+-    pick_mode: Option<String>,
+     trunk_sha256: String,
+     compact_sha256: String,
+ }
+@@ -41,11 +39,6 @@ impl Fit {
+             }
+             "uor-r4.d37.r-fit/1"
+                 if self.prepared.format == "uor-r4.d37.r-preparation/1"
+-                    && self.prepared.pick_mode.as_deref() == Some("identity")
+-                    && matches!(
+-                        (self.arm.as_deref(), weights.rule()),
+-                        (Some("a1"), PickClassRule::Three) | (Some("a1s"), PickClassRule::Five)
+-                    )
+                     && self.pick_classes == Some(weights.rule().classes())
+                     && self.weight_format.as_deref() == Some(weights.wire_tag())
+                     && self.q32_weight_words == Some(weights.weights().len()) =>
+@@ -311,9 +304,7 @@ pub fn is_embedded(bytes: &[u8], has_sidecar: bool) -> Result<bool> {
+ 
+ impl<'a> DiscreteCountModel<'a> {
+     pub fn bind_legacy(model: IntegerDiscreteModel, sidecar: Option<&'a [u8]>) -> Result<Self> {
+-        let state = sidecar
+-            .map(|sidecar| P1::load(sidecar, &model))
+-            .transpose()?;
++        let state = sidecar.map(|sidecar| P1::load(sidecar, &model)).transpose()?;
+         Ok(Self {
+             model,
+             state,
+@@ -407,30 +398,7 @@ mod tests {
+             manifest.q32_weight_words = Some(weights.weights().len());
+             assert!(manifest.validate_weights(&weights).is_err());
+             manifest.pick_classes = Some(rule.classes());
+-            manifest.arm = Some(
+-                match rule {
+-                    PickClassRule::Three => "a1",
+-                    PickClassRule::Five => "a1s",
+-                }
+-                .to_owned(),
+-            );
+-            for mode in ["permuted", "exact", "disabled"] {
+-                manifest.prepared.pick_mode = Some(mode.to_owned());
+-                assert!(manifest.validate_weights(&weights).is_err());
+-            }
+-            manifest.prepared.pick_mode = Some("identity".to_owned());
+             manifest.validate_weights(&weights)?;
+-            let correct_arm = manifest.arm.take();
+-            manifest.arm = Some(
+-                if rule == PickClassRule::Three {
+-                    "a1s"
+-                } else {
+-                    "a1"
+-                }
+-                .to_owned(),
+-            );
+-            assert!(manifest.validate_weights(&weights).is_err());
+-            manifest.arm = correct_arm;
+             manifest.prepared.r_sha256 = Some("bad".to_owned());
+             assert!(manifest.validate_weights(&weights).is_err());
+         }
+diff --git a/docs/loop/tasks/written-state-count-model/codex-37/fit/device.cu b/docs/loop/tasks/written-state-count-model/codex-37/fit/device.cu
+index 111f785..42f2217 100644
+--- a/docs/loop/tasks/written-state-count-model/codex-37/fit/device.cu
++++ b/docs/loop/tasks/written-state-count-model/codex-37/fit/device.cu
+@@ -22,13 +22,7 @@ struct Row { Word bucket, mass[experts]; };
+ } while (0)
+ 
+ __device__ bool live(unsigned bucket, unsigned expert) {
+-    if (expert == 13) {
+-#ifdef D37_MASK_PICK
+-        return false;
+-#else
+-        return bucket >= base_buckets;
+-#endif
+-    }
++    if (expert == 13) return bucket >= base_buckets;
+     return expert == 0 || expert == 12 || expert <= 1 + (bucket % base_buckets) / 16;
+ }
+ 
+diff --git a/docs/loop/tasks/written-state-count-model/codex-37/fit/main.rs b/docs/loop/tasks/written-state-count-model/codex-37/fit/main.rs
+index 8c3648d..7725d44 100644
+--- a/docs/loop/tasks/written-state-count-model/codex-37/fit/main.rs
++++ b/docs/loop/tasks/written-state-count-model/codex-37/fit/main.rs
+@@ -13,7 +13,6 @@ use uor_r4_discrete::kn_ceiling::{
+ };
+ use uor_r4_integer::lawful_likelihood::bits_q12;
+ 
+-mod controls;
+ #[cfg(feature = "cuda")]
+ #[path = "../../../../../labs/kn-reference/instrument/src/pick_device.rs"]
+ mod pick_device;
+@@ -123,7 +122,7 @@ fn trace(
+ }
+ 
+ // This oracle accepts only invented inputs and never reads a real training tape.
+-fn finite(dir: &Path, verify: bool, masked: bool) -> Result<(), Failure> {
++fn finite(dir: &Path, verify: bool) -> Result<(), Failure> {
+     const ROWS: usize = 128;
+     let mut counts = Vec::new();
+     let mut totals = Vec::new();
+@@ -144,18 +143,13 @@ fn finite(dir: &Path, verify: bool, masked: bool) -> Result<(), Failure> {
+             counts.push((i % (total + 1)) as u32);
+         }
+     }
+-    let arms: &[(_, _)] = if masked {
+-        &[("a1-masked", PickClassRule::Three)]
+-    } else {
+-        &ARMS
+-    };
+-    for &(arm, rule) in arms {
++    for (arm, rule) in ARMS {
+         let pick: Vec<_> = (0..ROWS)
+             .map(|i| {
+                 let distance = distances[i % distances.len()];
+                 PickTarget {
+                     class: rule.classify(distance),
+-                    hit: !masked && distance.is_some() && i % 2 == 0,
++                    hit: distance.is_some() && i % 2 == 0,
+                 }
+             })
+             .collect();
+@@ -168,8 +162,7 @@ fn finite(dir: &Path, verify: bool, masked: bool) -> Result<(), Failure> {
+             rule.classes(),
+         )?;
+         if usize::from(table.buckets()[WIDTH - 1]) != buckets(rule) - 1
+-            || table.masses()[(WIDTH - 1) * EXPERTS + EXPERTS - 1]
+-                != if masked { 0 } else { 1 << 48 }
++            || table.masses()[(WIDTH - 1) * EXPERTS + EXPERTS - 1] != 1 << 48
+         {
+             return Err(fail(
+                 "finite fixture failed to reach the final live Pick bucket",
+@@ -178,8 +171,7 @@ fn finite(dir: &Path, verify: bool, masked: bool) -> Result<(), Failure> {
+         if verify {
+             let (_, seen) = trace(&dir.join(format!("{arm}.trace")), ROWS, rule)?;
+             let selected = vec![true; ROWS];
+-            let mut enabled = vec![true; EXPERTS];
+-            enabled[EXPERTS - 1] = !masked;
++            let enabled = vec![true; EXPERTS];
+             let mut terminal = None;
+             for (pass, row) in seen.iter().enumerate() {
+                 let expected =
+@@ -251,8 +243,6 @@ fn seal(out: &Path, mode: &str, arm: &str) -> Result<(), Failure> {
+         || prepared["device_source_sha256"] != digest(include_bytes!("device.cu"))
+         || prepared["host_source_sha256"] != digest(include_bytes!("main.rs"))
+         || prepared["prep_source_sha256"] != digest(include_bytes!("prepare.rs"))
+-        || (mode == "masked"
+-            && prepared["masked_source_sha256"] != digest(include_bytes!("controls.rs")))
+         || prepared["arms"][arm]["rows_sha256"] != file_digest(&out.join(format!("{arm}.rows")))?
+     {
+         return Err(fail("invalid R preparation receipt or row tape identity"));
+@@ -260,13 +250,6 @@ fn seal(out: &Path, mode: &str, arm: &str) -> Result<(), Failure> {
+     let (trace_sha, steps) = trace(&out.join(format!("{arm}.trace")), REAL_ROWS, rule)?;
+     for step in &steps {
+         FrozenPickMixture::with_rule(N, [0; 32], step[1..].to_vec(), rule)?;
+-        if mode == "masked"
+-            && step[1..]
+-                .chunks_exact(EXPERTS)
+-                .any(|weights| weights[EXPERTS - 1] != 0)
+-        {
+-            return Err(fail("masked fit gave weight to the disabled Pick lane"));
+-        }
+     }
+     let final_step = steps
+         .last()
+@@ -356,7 +339,7 @@ fn seal(out: &Path, mode: &str, arm: &str) -> Result<(), Failure> {
+         probe["bucket"] = json!(bucket);
+         probe["mixed_q48"] = json!(got);
+     }
+-    if rejected_closed == 0 || (!["disabled", "masked"].contains(&mode) && substantive_hits == 0) {
++    if rejected_closed == 0 || (mode != "disabled" && substantive_hits == 0) {
+         return Err(fail(
+             "real replay lacks a closed gate or a substantive fired hit",
+         ));
+@@ -387,22 +370,14 @@ fn seal(out: &Path, mode: &str, arm: &str) -> Result<(), Failure> {
+ fn main() -> Result<(), Failure> {
+     let args: Vec<_> = env::args_os().skip(1).map(PathBuf::from).collect();
+     match args.as_slice() {
+-        [mode, dir] if mode == Path::new("finite") => finite(dir, false, false),
+-        [mode, dir] if mode == Path::new("verify-finite") => finite(dir, true, false),
+-        [mode, dir] if mode == Path::new("finite-masked") => finite(dir, false, true),
+-        [mode, dir] if mode == Path::new("verify-finite-masked") => finite(dir, true, true),
++        [mode, dir] if mode == Path::new("finite") => finite(dir, false),
++        [mode, dir] if mode == Path::new("verify-finite") => finite(dir, true),
+         [mode, dir, pick, arm] if mode == Path::new("seal") => seal(
+             dir,
+             pick.to_str()
+                 .ok_or_else(|| fail("Pick mode must be UTF-8"))?,
+             arm.to_str().ok_or_else(|| fail("arm must be UTF-8"))?,
+         ),
+-        [mode, identity, pin, out] if mode == Path::new("prepare-masked") => controls::masked(
+-            identity,
+-            pin.to_str()
+-                .ok_or_else(|| fail("identity pin must be UTF-8"))?,
+-            out,
+-        ),
+         #[cfg(feature = "cuda")]
+         [command, mode, r, trunk, compact, tape, pin, out] if command == Path::new("prepare") => {
+             prepare::run(
+@@ -420,7 +395,6 @@ fn main() -> Result<(), Failure> {
+         _ => Err(fail(concat!(
+             "usage: d37-r-fit finite DIR | verify-finite DIR | ",
+             "prepare PICK_MODE R_UORT TRUNK COMPACT FEATURES FEATURES_SHA256 NEW_DIR | ",
+-            "prepare-masked SEALED_IDENTITY_DIR IDENTITY_PREP_SHA256 NEW_DIR | ",
+             "seal DIR PICK_MODE ARM"
+         ))),
+     }

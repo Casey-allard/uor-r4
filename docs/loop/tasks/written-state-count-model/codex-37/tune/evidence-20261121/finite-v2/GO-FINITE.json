@@ -1,0 +1,16 @@
+{
+  "decision": "GO",
+  "phase": "D37 finite frozen scorer",
+  "host_kind": "vast",
+  "host_name": "0150a7a76615",
+  "device_uuid": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25",
+  "lease": "vast-61843938 / codex/d37-tune-21 / gpu0",
+  "stage_sha256": "c8d01f39b4030a51c0fc3d6e05e0fe47c94469601d7f89e4093c74311518417d",
+  "source_diff_sha256": "291138913ec297b69449a73cb00ac9919444fe369c65ef42d6979d48e6ff0417",
+  "dispatch_sha256": "b689244bd0a265782d61651c1f69b51d8a02f6c82cd4469beecb168fb86261d4",
+  "sheet_sha256": "9b66c70272875910d4959c515e664fec850e0080f04815029d4a2b24b5b225a2",
+  "fit_sha256": "3b768c6cd4c7f8fae32fe010eeb2bcbf7e9029a7d1c56cedadd18c81ed7f20d4",
+  "scorer_sha256": "86638d458b4ea3c5a8700bbbb70d454d36bef1489dabfcb93d605164fdc86757",
+  "device_scorer_sha256": "b44b430c7121624751c920f45783b4b1246cfc3e31cbed5b2c082500ca14744c",
+  "out": "/workspace/d37-tune-21/revision-v2/finite-v2"
+}

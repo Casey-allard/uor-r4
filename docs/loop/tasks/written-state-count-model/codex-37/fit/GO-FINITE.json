@@ -1,0 +1,13 @@
+{
+  "decision": "GO",
+  "phase": "D37 finite two-shape optimizer",
+  "utc": "2026-11-20T07:54:25Z",
+  "host": "wick",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "dispatch_sha256": "0f55e875b14583aca2b23886f3212fe3d77ee536fb74596964e484f8a0e651ea",
+  "sheet_sha256": "4f4eb0d2a4a5c222a731df040a765554c437161fc93722219392abf96d312583",
+  "stage_sha256": "4f97e8a8e1a4e4e54dd99e8b920054bb8bbe3d864e3fb29be997da0315b30a89",
+  "fit_sha256": "4a121c9985fbeea720c4d4c6bb054ca2e8545f435d802c5265bf22d2a2f1f6a3",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/finite-result-v1",
+  "pre_run": "Native two-shape R-fit prerequisite. Top session verified nonauthor FIT, discriminating invented fixture for last buckets and truncated input, physical pinned sm89 fixture list and available owned lock. Successful device differential admits consideration of original R fit under separate review. Failure holds fitter."
+}

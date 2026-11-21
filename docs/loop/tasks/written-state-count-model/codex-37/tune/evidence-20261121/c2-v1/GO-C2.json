@@ -1,0 +1,18 @@
+{
+  "decision": "GO",
+  "phase": "D37 DEV-tune C2 tape",
+  "host_kind": "vast",
+  "host_name": "0150a7a76615",
+  "device_uuid": "GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25",
+  "lease": "vast-61843938 / codex/d37-tune-21 / gpu0",
+  "transfer_manifest_sha256": "6ff8fd2bb732442419cafa2b861d17215d44d7c3c3f315add81c5bac408260db",
+  "dispatch_sha256": "b689244bd0a265782d61651c1f69b51d8a02f6c82cd4469beecb168fb86261d4",
+  "sheet_sha256": "7a5f105ef3f743d57583b7a6a165033bb1de5f12683ae565e70af1d7cab38c5f",
+  "fit_sha256": "4c2ee2b093c5f7c60649eb0445656d6bb489b4efa07ef01d227f88425ccf6cc2",
+  "scorer_sha256": "26db6eef2bf5545ef458679d4c3b5058979f07ad291c72742e11b4bfac612a68",
+  "c2_selector_sha256": "5a9d132b5f7957750ab351607d1e9d06f707e56bb55a6d4411a99201d6c20d7f",
+  "c2_finite_result": "/workspace/d37-tune-21/input/c2-finite",
+  "c2_finite_result_sha256": "39d146f8e9f40637c35a4d7f4fa8eebb76998ca30ba113e09b0368ecccf9e840",
+  "split_root": "/workspace/d37-tune-21/input/split",
+  "out": "/workspace/d37-tune-21/c2-v1"
+}

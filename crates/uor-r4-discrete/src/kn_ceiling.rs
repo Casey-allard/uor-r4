@@ -169,18 +169,10 @@ pub enum EmStart {
     Kn,
 }
 
-/// claude-441: the split scheme's classes: did not fire, then fired at pair
-/// distance 0, 1, 2, and 3 or more. Classes 0 and 1 mean what they mean in
-/// the three-class scheme.
-pub const PICK_SPLIT_CLASSES: u8 = 5;
-
 /// claude-441: a read's class in the split scheme, from its pair distance
 /// (`None` when the read did not fire).
 pub fn pick_split_class(distance: Option<u32>) -> u8 {
-    match distance {
-        None => PICK_NOT_FIRED,
-        Some(d) => PICK_FIRED_EXACT + d.min(3) as u8,
-    }
+    PickClassRule::Five.classify(distance)
 }
 
 /// Every target's bucket and its expert masses.

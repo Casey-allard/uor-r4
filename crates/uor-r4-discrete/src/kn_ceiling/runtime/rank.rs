@@ -20,11 +20,7 @@ impl CompactCountLookup<'_> {
         if picked.is_some_and(|(id, _)| id == NGRAM_BOS || u32::from(id) >= NGRAM_VOCABULARY) {
             return Err(invalid("invalid A1 successor"));
         }
-        let class = match picked {
-            None => PICK_NOT_FIRED,
-            Some((_, 0)) => PICK_FIRED_EXACT,
-            Some(_) => PICK_FIRED_NEAR,
-        };
+        let class = fit.rule().classify(picked.map(|(_, distance)| distance));
         const WIDTH: usize = NGRAM_MAX_ORDER as usize + 1;
         let mut active: [Option<ActiveOrder<'_>>; WIDTH] = std::array::from_fn(|_| None);
         let mut totals = [0; WIDTH];

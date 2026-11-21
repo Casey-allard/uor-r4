@@ -36,3 +36,5 @@ A row needs the data and tokenizer identity (hashes), a bar fixed beforehand and
 - [Data and tokenizer](../../model/data-and-tokenizer.md) and the [tokenizer mechanism](../../mechanisms/tokenizer.md).
 - [Format and verdict words](./README.md).
 - [`archive/CATALOG.md`](../../../archive/CATALOG.md), filtered by line `data-tokenizer`.
+
+| 2026-11-20 | [codex] Full-C deployed count reader on reserved TRAIN, D37 | 15,947,584 targets including 4,060 EOS. Two 2,232,661,872-byte tapes matched across 244 batches at different widths. Native matched 287,500 words at 12,500 registered ordinals. | Exact tape equality, complete original framing and native subset equality | PASS capture | [D37 report](../../loop/tasks/written-state-count-model/codex-37/REPORT.md) |

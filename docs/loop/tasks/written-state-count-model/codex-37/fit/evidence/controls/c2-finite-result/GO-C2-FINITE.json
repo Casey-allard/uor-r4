@@ -1,0 +1,11 @@
+{
+  "decision": "GO",
+  "phase": "D37 finite C2 exact pair",
+  "utc": "2026-11-20T08:05:33Z",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "dispatch_sha256": "e7361e752de2ddb70828c5e0a51c26e3ce078fc54f840886c69afed1ce716815",
+  "sheet_sha256": "780827878fcbcaf71466e821ac01f016e91f31a2a919e3a39b315387c8c3b229",
+  "fit_sha256": "991579f2a786533ccdf014d81f838e63f4a24828f1a0ddc61cf960235219741a",
+  "stage_sha256": "e718ced93a91b1b0f9969c6901c9e604c0d3aaf1924f1044a9204958e36b5a0c",
+  "pre_run": "Qualify CUDA latest exact-pair selector on the planted native differential prior to the registered real C2 control. Top session verified its nonauthor FIT, correct 4090, finite boundaries and shared lock. Failure holds C2."
+}

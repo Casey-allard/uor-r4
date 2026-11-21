@@ -1,0 +1,23 @@
+	Command being timed: "./d37-dev-tune score /workspace/d37-tune-21/revision-v2/input/split /workspace/d37-tune-21/revision-v2/GO.json c0aef0330284ed66bb2ebd2d36f06f4ba4839d087b00efc1b3ce0cb4afa49224 /workspace/d37-tune-21/revision-v2/input/compact.counts /workspace/d37-tune-21/revision-v2/input/trunk.d11 /workspace/d37-tune-21/revision-v2/input/count.features /workspace/d37-tune-21/revision-v2/c2-v1/c2.picks.u32 /workspace/d37-tune-21/revision-v2/d37-tune-device /workspace/d37-tune-21/revision-v2/input/fits /workspace/d37-tune-21/revision-v2/real-v1"
+	User time (seconds): 406.64
+	System time (seconds): 128.63
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 8:54.06
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5448700
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 45313803
+	Voluntary context switches: 329003
+	Involuntary context switches: 1089
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 824
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,10 @@
+# uor-pod job by=codex/d37-tune-21 pod=vast-61843938 gpu=0 queued 2026-11-21T18:54:18Z
+# cmd: set -e; S=/workspace/d37-tune-21; "$S/tape-dispatch.sh" finite "$S" 3ed4af4cc223f82166c49dd5161664ebfd208d871be6a17e138475c9f906a29c; jq -e ".synthetic_rows_per_arm==8193 and .arms==2 and .raw_words_compared==49158 and .divergent_words==0" "$S/finite-v1/parity.json"; "$S/tape-dispatch.sh" c2 "$S" 818b629a59266200150fc72f7f4c80d056ec7505c0932df0956460eabf74449e
+# start 2026-11-21T18:54:18Z (holding /root/gpu0.lock)
+GO-FINITE.json: OK
+tape-dispatch.sh: OK
+SHEET-FINITE.md: OK
+FIT-FINITE.md: OK
+d37-dev-tune: OK
+d37-tune-device: OK
+# exit=1 end=2026-11-21T18:54:19Z

@@ -1,0 +1,12 @@
+--- score.rs.v1
++++ score.rs.v2
+@@ -750,7 +750,8 @@
+         kn.push(match i % 5 {
+             0 => 1,
+             1 => 1 << 48,
+-            _ => 1 + i as u64 * 65_537 * 524_287,
++            // Keep the final batch-seam row inside the Q48 mass domain.
++            _ => 1 + i as u64 * 65_537 * 524_271,
+         });
+         let order = i % WIDTH;
+         distances.push([None, Some(0), Some(1), Some(2), Some(3), Some(16)][i % 6]);

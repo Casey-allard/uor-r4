@@ -1,0 +1,16 @@
+   Compiling uor-r4-count-runtime v0.1.0 (/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/carrier/repo/crates/uor-r4-discrete/count-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running unittests ../src/count_runtime.rs (../target/debug/deps/uor_r4_count_runtime-b1a07474ceed56cf)
+
+running 2 tests
+test kn_ceiling::frozen_pick::tests::rejects_corrupt_or_misbound_weight_bytes_and_bad_inputs ... ok
+test kn_ceiling::frozen_pick::tests::five_class_carrier_reaches_bucket_879_and_rejects_other_classes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests uor_r4_count_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

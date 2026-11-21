@@ -1,0 +1,23 @@
+	Command being timed: "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/count-stage/d37-count-replay /mnt/plexpool/uor-r4-corpus/runs/20261120-whole-context-36/pruned-full-v1/compact.counts cd3adfe949ee34a62bc8d5e48592e091fcece796618d7910d1667d014a4bae2a 064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8 /home/callard/uor-codex/20261119-rival-admission-29/count/cr-v1/r.tokens.u16 5875b173ad19aefbdd38929af8d88c15344333e941f44128d5e0a67b50102a0a /mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/count-v1/primary.features 65536"
+	User time (seconds): 3.91
+	System time (seconds): 5.58
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:09.50
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3885472
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 46
+	Minor (reclaiming a frame) page faults: 971081
+	Voluntary context switches: 129
+	Involuntary context switches: 62
+	Swaps: 0
+	File system inputs: 55296
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

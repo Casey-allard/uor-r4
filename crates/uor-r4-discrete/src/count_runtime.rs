@@ -22,9 +22,7 @@ mod kn_ceiling {
     use crate::{invalid, kn_score::KN_BASE_MASS, ngram_count::NGRAM_MAX_ORDER, Result};
     include!("kn_ceiling/runtime/mixture.rs");
     pub mod compact {
-        use super::{
-            FrozenPickMixture, PickTarget, PICK_FIRED_EXACT, PICK_FIRED_NEAR, PICK_NOT_FIRED,
-        };
+        use super::{FrozenPickMixture, PickTarget};
         use crate::{
             invalid,
             kn_score::{interpolate_order, KnDiscounts, KN_BASE_MASS},
@@ -40,7 +38,9 @@ mod kn_ceiling {
     pub mod frozen_pick;
     pub use frozen_pick::FrozenPickMixture;
 }
-pub use kn_ceiling::{compact::CompactCountLookup, frozen_pick::FrozenPickMixture, PickTarget};
+pub use kn_ceiling::{
+    compact::CompactCountLookup, frozen_pick::FrozenPickMixture, PickClassRule, PickTarget,
+};
 
 #[derive(Debug)]
 pub struct Error(String);

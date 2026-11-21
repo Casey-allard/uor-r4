@@ -1,0 +1,20 @@
+# uor-pod job by=codex/d37-tune-21 pod=vast-61843938 gpu=0 queued 2026-11-21T18:54:49Z
+# cmd: /workspace/d37-tune-21/tape-dispatch.sh c2 /workspace/d37-tune-21 818b629a59266200150fc72f7f4c80d056ec7505c0932df0956460eabf74449e
+# start 2026-11-21T18:54:49Z (holding /root/gpu0.lock)
+GO-C2.json: OK
+tape-dispatch.sh: OK
+SHEET-C2.md: OK
+FIT-C2.md: OK
+d37-dev-tune: OK
+d37-c2-device: OK
+/workspace/d37-tune-21/input/c2-finite/results.sha256: OK
+GO-C2-FINITE.json: OK
+SHEET-CONTROLS.md: OK
+FIT-C2-FINITE.md: OK
+device.csv: OK
+fixture.picks.u32: OK
+selector.stderr: OK
+selector.time: OK
+parity.txt: OK
+/workspace/d37-tune-21/input/split/dev-tune.tokens.u16: OK
+# exit=0 end=2026-11-21T18:54:51Z

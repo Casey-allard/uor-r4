@@ -1,0 +1,252 @@
+{
+  "artifact": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/client/result-ordinal-v1/a1/artifact.d11",
+  "artifact_sha256": "167be3be18b748f48c545ed48b125c37a77acd2354c1756a4cfa1cf283150784",
+  "context": 192,
+  "decoding": "greedy complete count and fitted native A1 mixture",
+  "generated_ids": [
+    799,
+    767,
+    2505,
+    16,
+    2237,
+    71,
+    266,
+    962,
+    375,
+    16,
+    3184,
+    2728
+  ],
+  "model_schema": "uor-r4.lut-discrete-count/1",
+  "p1_components": {
+    "count_sha256": "064b691a54895771df1a957b2f97c91163990b6c6b6e09504c43285a97c49ef8",
+    "fit_manifest_sha256": "540186e3c0a721f2ea4f99a612f323636d084ade7788f54d9e6717f25aa890c4",
+    "weights_sha256": "71418cf666fcc8f6b7e214d1f0300b05358b3f97212e0a2e597aa324e0fe205e"
+  },
+  "p1_sha256": "34b3f94c621d021f2b74aa8bb56aa1b25644fe5c71a3d99c8fe2cbfa0c9b9952",
+  "p1_state_sha256": "34b3f94c621d021f2b74aa8bb56aa1b25644fe5c71a3d99c8fe2cbfa0c9b9952",
+  "p1_steps": [
+    {
+      "bucket": 479,
+      "context_tokens": 37,
+      "mass_q48": 123263551945986,
+      "mass_sha256": "5e55e8d4b8e70a77f5db65e681ad56639187bf9720b0646248cfb5a0f76c2786",
+      "pick_successor": 2237,
+      "pick_words": [
+        3,
+        12,
+        1
+      ],
+      "prefix_sha256": "b28137b5d937aaf000e418e071e3725b25e1302e20551138c4892f44d0d2dc1e",
+      "token": 799,
+      "top_ties": 1
+    },
+    {
+      "bucket": 495,
+      "context_tokens": 38,
+      "mass_q48": 281331836551907,
+      "mass_sha256": "c04213f07b53b2b12c60b8fef9f232758c11760dc18bc1b67b4d3b99b1fb544b",
+      "pick_successor": 67,
+      "pick_words": [
+        15,
+        16,
+        3
+      ],
+      "prefix_sha256": "86e3e09363e0e3b11ca2994c8d89da9e6efba2a15629830fc5bead3d75508776",
+      "token": 767,
+      "top_ties": 1
+    },
+    {
+      "bucket": 511,
+      "context_tokens": 39,
+      "mass_q48": 162156339550161,
+      "mass_sha256": "98682452c9fad64a256527a59e86db0275f28ed1214d7f10b883d24915d19bad",
+      "pick_successor": 331,
+      "pick_words": [
+        22,
+        14,
+        1
+      ],
+      "prefix_sha256": "ea6cbc4cac2f12166fe422997f626fc00963ba4edee95728be80f0bcefbafa33",
+      "token": 2505,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 40,
+      "mass_q48": 145951787120375,
+      "mass_sha256": "791a2d50e53b5c0c30349ff25386dc15bb0960e1b22dea64d85d892b67d0daea",
+      "pick_successor": 571,
+      "pick_words": [
+        23,
+        16,
+        1
+      ],
+      "prefix_sha256": "eea78897421217cf2602ea071b73cdcf2f3b75c66bef9a31699dc084306e9e0e",
+      "token": 16,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 41,
+      "mass_q48": 263253010416142,
+      "mass_sha256": "e1c5171471c574dba10e6a18ddc335106050ba2e14b4f8dd69afb1aa9fdcbc96",
+      "pick_successor": 1601,
+      "pick_words": [
+        11,
+        14,
+        1
+      ],
+      "prefix_sha256": "52a9301fb153dfb876633e02cc402d0ea0d74e829475adb8a8ebfee4c751b22f",
+      "token": 2237,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 42,
+      "mass_q48": 281458164153322,
+      "mass_sha256": "8e160424cc53872a0a0a34cc573be27c4a25502802eae9951c292150e4dff328",
+      "pick_successor": 35,
+      "pick_words": [
+        31,
+        10,
+        3
+      ],
+      "prefix_sha256": "f91f410514ce24539180241ecce6d76c6ba3d94582d8f979968ced7cc68a363e",
+      "token": 71,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 43,
+      "mass_q48": 281468131879471,
+      "mass_sha256": "21f68637c05f979935ad0d59d4cb129a4921a5832a8d1e36c3e2b38b0a5a4d20",
+      "pick_successor": 306,
+      "pick_words": [
+        4,
+        14,
+        1
+      ],
+      "prefix_sha256": "1972bf451486c233671a988d57183f2996af5df61523a611b3c2c2abe13f21d7",
+      "token": 266,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 44,
+      "mass_q48": 101188623545450,
+      "mass_sha256": "b6724732078c13b307d4b0a5372d5512b16ca6c3c3f098edd4405f924f921d67",
+      "pick_successor": 284,
+      "pick_words": [
+        21,
+        16,
+        2
+      ],
+      "prefix_sha256": "169778ffb0251ba83f611fb595b94330c7ebe7ab043a332e253534fd35623ac2",
+      "token": 962,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 45,
+      "mass_q48": 280928789104518,
+      "mass_sha256": "aa79f0e77555c946f36b99f2f6b7646d2bfa032a982c31d437c85493fd043986",
+      "pick_successor": 1040,
+      "pick_words": [
+        16,
+        20,
+        2
+      ],
+      "prefix_sha256": "c0fc3f4686840e62830a08add1c660dbc0c2a5aa13e8267cece6dd16bca2e9e2",
+      "token": 375,
+      "top_ties": 1
+    },
+    {
+      "bucket": 527,
+      "context_tokens": 46,
+      "mass_q48": 74088900676478,
+      "mass_sha256": "6ee5f9e7aeef36b7692e520def271cc47d998dc3926f625f60df0ead63cc5005",
+      "pick_successor": 67,
+      "pick_words": [
+        15,
+        18,
+        2
+      ],
+      "prefix_sha256": "d0df1c7ed111e88b5697196f24470fe807db625eddaf5ccf823a1471d1e089c0",
+      "token": 16,
+      "top_ties": 1
+    },
+    {
+      "bucket": 526,
+      "context_tokens": 47,
+      "mass_q48": 63788345924690,
+      "mass_sha256": "acfc5e89a0e19e70c0cee94c49a4a02fc9711264daa05f5d70e0c1439286bbeb",
+      "pick_successor": 201,
+      "pick_words": [
+        30,
+        12,
+        1
+      ],
+      "prefix_sha256": "deb2a8239ca558e521c6f83f058af26eed1a8fb262abc37ccddd8275dfbe21bb",
+      "token": 3184,
+      "top_ties": 1
+    },
+    {
+      "bucket": 524,
+      "context_tokens": 48,
+      "mass_q48": 276595710317961,
+      "mass_sha256": "3310a8d47cad85b99c6ed51240c34d100eece9a3a4fa28f8e68e79517fd2f711",
+      "pick_successor": 28,
+      "pick_words": [
+        2,
+        12,
+        1
+      ],
+      "prefix_sha256": "cab322ceaaadf836ac974a94813bf112b729a80279f016991dd9a39bb9b8ac8c",
+      "token": 2728,
+      "top_ties": 1
+    }
+  ],
+  "p1_trunk_sha256": "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d",
+  "prompt_ids": [
+    0,
+    55,
+    2728,
+    28,
+    2237,
+    306,
+    67,
+    1040,
+    85,
+    581,
+    2195,
+    16,
+    1601,
+    1303,
+    2237,
+    306,
+    67,
+    1040,
+    33,
+    439,
+    80,
+    1903,
+    284,
+    331,
+    571,
+    67,
+    969,
+    463,
+    731,
+    2708,
+    16,
+    201,
+    35,
+    560,
+    652,
+    714,
+    28
+  ],
+  "read_enabled": true,
+  "schema": "uor-r4.uor-chat-discrete-parity/1"
+}

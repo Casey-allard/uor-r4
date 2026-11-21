@@ -1,0 +1,17 @@
+{
+  "decision": "GO",
+  "phase": "D37 R-only S5 controls",
+  "utc": "2026-11-20T08:06:00Z",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "dispatch_sha256": "3eea8bdb298f625f09b4893f7da2e42443fbc79203b64a839a5ebb6fecbf50bf",
+  "sheet_sha256": "780827878fcbcaf71466e821ac01f016e91f31a2a919e3a39b315387c8c3b229",
+  "fit_sha256": "37867474cd6a5b7cbe996ee9489d4c6b937f8a91db8551cf19d48ced10dc0c55",
+  "stage_sha256": "e718ced93a91b1b0f9969c6901c9e604c0d3aaf1924f1044a9204958e36b5a0c",
+  "masked_finite_result_sha256": "0b434707d07e0289d7d4a5992943ac1e8d8489b96836724c663cb85daa0d2b83",
+  "c2_finite_result_sha256": "39d146f8e9f40637c35a4d7f4fa8eebb76998ca30ba113e09b0368ecccf9e840",
+  "identity_run": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/real-v1",
+  "identity_result_sha256": "086fa5d1cc7676bb836f15327415481d0f881da8f76724a248cc6e027ff479a3",
+  "identity_preparation_sha256": "94e0d1796c99f212a508139bfe6fcd890495fce8e85a7ffea7fd0e87b96bee40",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/control-stage-v2/real-v1",
+  "pre_run": "P1(b) controls distinguish count-only, masked-copy, exact-match and permuted-code arms. C1 finite complete and C2 real CPU path superseded by AOT CUDA matched to 234 invented targets. Non-author FIT, counted R tape, actual identity fit, expected controls and fresh shared lock verified before dispatch. Failure holds affected comparison, success admits frozen controls for the registered tune stage only."
+}

@@ -1,0 +1,13 @@
+{
+  "decision": "GO",
+  "phase": "D37 real-R resident count capture",
+  "host": "wick",
+  "device_uuid": "GPU-7c813ad0-2151-bb1d-5efb-a3340b9a6a41",
+  "utc": "2026-11-20T07:50:57Z",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/count-v1",
+  "sheet_sha256": "b8bc5cde47c8f7af9180b597c81d075c3566d02dedab205a589232a311276093",
+  "dispatch_sha256": "e9fc1d844f4a70c4aba2a210f06416b2f256c3c33d939ec58551ef45c0433081",
+  "fit_sha256": "09886e149ab3c69e8a034d41fd35aa68ded5b1784f45e6eec3444cbf939e820d",
+  "replay_sha256": "53435175c783ab644da6e2aa7e80dd0f0efdf5c5702a1b54c4d1b6875ccb4fdd",
+  "pre_run": "codex top session: P1(b) requires pruned full-C readback on reserved TRAIN for its two R fits. D36 finite and full-table proofs, original R, discriminating native mutation, independent sample/receipt, fixed inputs, registered FIT and available Wick verified. A pass admits R join; divergence preserves outputs and holds fitting. Existing rented lease belongs to a separate unit. No rented resources used. Take the shared Wick lock at live process admission."
+}

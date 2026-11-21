@@ -1,0 +1,2 @@
+a1 finite parity with bucket 527, 128 rows, 97 sums and 717024 Q32 words
+a1s finite parity with bucket 879, 128 rows, 97 sums and 1195040 Q32 words

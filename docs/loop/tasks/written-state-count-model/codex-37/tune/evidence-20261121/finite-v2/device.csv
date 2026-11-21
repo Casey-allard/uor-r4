@@ -1,0 +1,2 @@
+uuid, name, driver_version, compute_cap, memory.free [MiB]
+GPU-f9afc849-5fb5-d7c6-c8d5-3154e9a2bd25, NVIDIA GeForce RTX 4090, 580.95.05, 8.9, 24080 MiB

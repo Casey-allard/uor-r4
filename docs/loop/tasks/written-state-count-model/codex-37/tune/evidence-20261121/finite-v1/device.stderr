@@ -1,0 +1,2 @@
+mass outside Q48 domain
+Error: Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }

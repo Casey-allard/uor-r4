@@ -1,0 +1,11 @@
+[workspace]
+[package]
+name = "verify-d37-records"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[[bin]]
+name = "verify-d37-records"
+path = "main.rs"
+[dependencies]
+serde_json = "1"

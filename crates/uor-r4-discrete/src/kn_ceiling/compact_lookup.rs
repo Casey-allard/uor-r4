@@ -4,7 +4,7 @@
 
 use super::{
     complete_lookup::{validate_records, Order},
-    invalid, FrozenPickMixture, PickTarget, PICK_FIRED_EXACT, PICK_FIRED_NEAR, PICK_NOT_FIRED,
+    invalid, FrozenPickMixture, PickTarget,
 };
 use crate::{
     kn_score::{interpolate_order, KnDiscounts, KN_BASE_MASS},

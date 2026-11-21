@@ -2,7 +2,7 @@ use crate::{discrete_d11::IntegerDiscreteModel, IntegerError, Result};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use uor_r4_count_runtime::{CompactCountLookup, FrozenPickMixture};
+use uor_r4_count_runtime::{CompactCountLookup, FrozenPickMixture, PickClassRule};
 
 const A1_TRUNK: &str = "04652a3de8e966a23539b04fbd77c7d9872d9f13a541fcb224d48e766e2c147d";
 
@@ -14,14 +14,53 @@ fn invalid(s: impl ToString) -> IntegerError {
 struct Fit {
     schema: String,
     prepared: Preparation,
+    arm: Option<String>,
+    weight_format: Option<String>,
+    pick_classes: Option<u8>,
+    q32_weight_words: Option<usize>,
 }
 
 #[derive(Deserialize)]
 struct Preparation {
     format: String,
     c_sha256: String,
+    r_sha256: Option<String>,
+    pick_mode: Option<String>,
     trunk_sha256: String,
     compact_sha256: String,
+}
+
+impl Fit {
+    fn validate_weights(&self, weights: &FrozenPickMixture) -> Result<()> {
+        match self.schema.as_str() {
+            "uor-r4.d31.a1-fit/1"
+                if self.prepared.format == "uor-r4.d31.a1-preparation/1"
+                    && weights.rule() == PickClassRule::Three =>
+            {
+                Ok(())
+            }
+            "uor-r4.d37.r-fit/1"
+                if self.prepared.format == "uor-r4.d37.r-preparation/1"
+                    && self.prepared.pick_mode.as_deref() == Some("identity")
+                    && matches!(
+                        (self.arm.as_deref(), weights.rule()),
+                        (Some("a1"), PickClassRule::Three) | (Some("a1s"), PickClassRule::Five)
+                    )
+                    && self.pick_classes == Some(weights.rule().classes())
+                    && self.weight_format.as_deref() == Some(weights.wire_tag())
+                    && self.q32_weight_words == Some(weights.weights().len()) =>
+            {
+                digest(
+                    self.prepared
+                        .r_sha256
+                        .as_deref()
+                        .ok_or_else(|| invalid("P1 fit manifest has no R digest"))?,
+                )?;
+                Ok(())
+            }
+            _ => Err(invalid("P1 fit schema or weight carrier mismatch")),
+        }
+    }
 }
 
 fn digest(hex_string: &str) -> Result<[u8; 32]> {
@@ -70,10 +109,8 @@ impl<'a> P1<'a> {
             return Err(invalid("P1 weight digest mismatch"));
         }
         let manifest: Fit = serde_json::from_slice(fit)?;
-        let prepared = manifest.prepared;
-        if manifest.schema != "uor-r4.d31.a1-fit/1"
-            || prepared.format != "uor-r4.d31.a1-preparation/1"
-            || prepared.trunk_sha256 != A1_TRUNK
+        let prepared = &manifest.prepared;
+        if prepared.trunk_sha256 != A1_TRUNK
             || prepared.trunk_sha256 != model.artifact_sha256()
             || model.shape().context != 192
             || model.shape().vocabulary != 4096
@@ -83,6 +120,7 @@ impl<'a> P1<'a> {
         }
         let fit_digest = Sha256::digest(fit);
         let weights = FrozenPickMixture::from_bytes(weights, fit_digest.into()).map_err(invalid)?;
+        manifest.validate_weights(&weights)?;
         let counts = CompactCountLookup::from_bytes(
             counts,
             digest(&prepared.c_sha256)?,
@@ -94,7 +132,7 @@ impl<'a> P1<'a> {
             weights,
             codes: model.identity_pick_codes()?,
             artifact_sha256: hex::encode(Sha256::digest(bytes)),
-            count_sha256: prepared.compact_sha256,
+            count_sha256: prepared.compact_sha256.clone(),
             weights_sha256: hex::encode(weight_digest),
             fit_manifest_sha256: hex::encode(fit_digest),
         })
@@ -273,7 +311,9 @@ pub fn is_embedded(bytes: &[u8], has_sidecar: bool) -> Result<bool> {
 
 impl<'a> DiscreteCountModel<'a> {
     pub fn bind_legacy(model: IntegerDiscreteModel, sidecar: Option<&'a [u8]>) -> Result<Self> {
-        let state = sidecar.map(|sidecar| P1::load(sidecar, &model)).transpose()?;
+        let state = sidecar
+            .map(|sidecar| P1::load(sidecar, &model))
+            .transpose()?;
         Ok(Self {
             model,
             state,
@@ -331,4 +371,69 @@ pub fn write_deployment(trunk: &[u8], state: &[u8], path: &std::path::Path) -> R
     output.write_all(state)?;
     output.sync_all()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn p1_weight_manifest_matches_the_decoded_carrier() -> Result<()> {
+        for rule in [PickClassRule::Three, PickClassRule::Five] {
+            let mut words = vec![0; usize::from(rule.classes()) * 16 * 4];
+            for row in words.chunks_exact_mut(4) {
+                row[0] = 1 << 32;
+            }
+            let fit = FrozenPickMixture::with_rule(0, [9; 32], words, rule).map_err(invalid)?;
+            let wire = fit.to_bytes();
+            let weights = FrozenPickMixture::from_bytes(&wire, [9; 32]).map_err(invalid)?;
+            let mut manifest: Fit = serde_json::from_value(json!({
+                "schema": "uor-r4.d31.a1-fit/1",
+                "prepared": {
+                    "format": "uor-r4.d31.a1-preparation/1",
+                    "c_sha256": "00".repeat(32),
+                    "compact_sha256": "00".repeat(32),
+                    "trunk_sha256": A1_TRUNK
+                }
+            }))?;
+            assert_eq!(
+                manifest.validate_weights(&weights).is_ok(),
+                rule == PickClassRule::Three,
+            );
+            manifest.schema = "uor-r4.d37.r-fit/1".to_owned();
+            manifest.prepared.format = "uor-r4.d37.r-preparation/1".to_owned();
+            manifest.prepared.r_sha256 = Some("01".repeat(32));
+            manifest.weight_format = Some(weights.wire_tag().to_owned());
+            manifest.q32_weight_words = Some(weights.weights().len());
+            assert!(manifest.validate_weights(&weights).is_err());
+            manifest.pick_classes = Some(rule.classes());
+            manifest.arm = Some(
+                match rule {
+                    PickClassRule::Three => "a1",
+                    PickClassRule::Five => "a1s",
+                }
+                .to_owned(),
+            );
+            for mode in ["permuted", "exact", "disabled"] {
+                manifest.prepared.pick_mode = Some(mode.to_owned());
+                assert!(manifest.validate_weights(&weights).is_err());
+            }
+            manifest.prepared.pick_mode = Some("identity".to_owned());
+            manifest.validate_weights(&weights)?;
+            let correct_arm = manifest.arm.take();
+            manifest.arm = Some(
+                if rule == PickClassRule::Three {
+                    "a1s"
+                } else {
+                    "a1"
+                }
+                .to_owned(),
+            );
+            assert!(manifest.validate_weights(&weights).is_err());
+            manifest.arm = correct_arm;
+            manifest.prepared.r_sha256 = Some("bad".to_owned());
+            assert!(manifest.validate_weights(&weights).is_err());
+        }
+        Ok(())
+    }
 }

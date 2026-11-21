@@ -1,0 +1,11 @@
+{
+  "decision": "GO",
+  "phase": "D37 ordinary D11 closure",
+  "run_sha256": "8382cf55ef4de93d2ed1036bb27e0ce7918447d848c202dc52da1b9f4a8b7971",
+  "sheet_sha256": "6be62f5df335bfaadb369282f8e2d3aafc3eb9874b03a11b6678b33188833464",
+  "fit_sha256": "4f4db0215b644d4f8cf4845438911a9b729324f9bb612c6b33e3e056b8e66e00",
+  "stage_sha256": "b9b7b6c4ec2caf9ebaa0ee423e0e212ef022edb5b1088a531430223dfc00c48f",
+  "fit_result": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/fit/real-v1",
+  "fit_result_sha256": "086fa5d1cc7676bb836f15327415481d0f881da8f76724a248cc6e027ff479a3",
+  "output": "/mnt/plexpool/uor-r4-corpus/runs/20261120-pruned-r-fit-37/client/result-ordinal-v1"
+}
