@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/UOR-Foundation/.github/main/profile/readme-banner-PLACEHOLDER.png" alt="Shared provisional UOR Foundation banner, not approved UOR-R4 artwork" width="100%">
+  <img src="assets/readme-banner-PLACEHOLDER.png" alt="Shared provisional UOR Foundation banner, not approved UOR-R4 artwork" width="100%">
 </p>
 
 *Illustrative Foundation placeholder, not final UOR-R4 branding.*
