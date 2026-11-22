@@ -104,4 +104,7 @@ for p in sorted(src.rglob("*")):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(p, target)
 '
+for req in q/pkg/holospaces_web.js q/pkg/holospaces_web_bg.wasm core.wasm host.bundle.js manifest.json sw.js; do
+    [ -f "$dist_dir/$req" ] || { echo "build_foundry_studio: missing required dist file $req" >&2; exit 1; }
+done
 printf 'Built Foundry Studio in %s (%s files)\n' "$dist_dir" "$(find "$dist_dir" -type f | wc -l | tr -d ' ')"

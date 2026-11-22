@@ -249,6 +249,7 @@ cp -R "$staging/studio/." "$site_wt/studio/"
 # The staged page is what ships: prove the browser's files are there and stale ones are gone.
 for f in index.html 404.html holo.html manifest.json sw.js models.json host.bundle.js core.wasm \
          assets/index.js assets/index.css kernel/kernel.holo \
+         q/pkg/holospaces_web.js q/pkg/holospaces_web_bg.wasm \
          pkg/uor_r4_integer.js pkg/uor_r4_integer_bg.wasm pkg/synthetic-stack.lut pkg/tokenizer.json \
          pkg-mvm/uor_r4_mvm.js pkg-mvm/uor_r4_mvm_bg.wasm \
          uor/js/uor_model_worker.js uor/js/uor_tokenizer_artifact.js; do

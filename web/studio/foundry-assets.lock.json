@@ -196,6 +196,12 @@
       "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/lean/library.ndjson.gz"
     },
     {
+      "path": "studio/shell/q/pkg/holospaces_web.js",
+      "sha256": "b9f8a887de588c5193dc65ca9ce206a70c6df53595b848e0ce0299c2d88a5753",
+      "bytes": 127867,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/q/pkg/holospaces_web.js"
+    },
+    {
       "path": "studio/shell/q/pkg/holospaces_web_bg.wasm",
       "sha256": "9d90b4ea8bccee8c239073c7ec7dd5158c6d11f1f668487570d17475d79e661e",
       "bytes": 6469596,

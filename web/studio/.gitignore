@@ -1,7 +1,7 @@
 # Generated WASM & Vite bundles
-pkg/
-pkg-mvm/
-dist/
+/pkg/
+/pkg-mvm/
+/dist/
 foundry/studio/core/target/
 foundry/studio/runtime/node_modules/
 foundry/studio/vendor/prism/node_modules/
@@ -55,6 +55,7 @@ foundry/studio/shell/kernel/kernel.holo
 foundry/studio/shell/kernel/lean/lean-kernel.mjs.gz
 foundry/studio/shell/kernel/lean/lean-kernel.wasm.gz
 foundry/studio/shell/kernel/lean/library.ndjson.gz
+foundry/studio/shell/q/pkg/holospaces_web.js
 foundry/studio/shell/q/pkg/holospaces_web_bg.wasm
 foundry/studio/shell/wallpapers/alps.jpg
 foundry/studio/shell/wallpapers/aurora.jpg
