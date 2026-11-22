@@ -1,0 +1,215 @@
+/**
+ * Channel Definitions for Preload Script
+ *
+ * This file derives the list of valid IPC channels from contract definitions.
+ * It serves as the single source of truth for the preload script's channel whitelist.
+ *
+ * All channels are now derived from contracts - no legacy channels remain.
+ */
+
+import {
+  getInvokeChannels,
+  getReceiveChannels,
+  getSendChannels,
+  getStreamChannels,
+} from "../contracts/core";
+
+// Import all contracts
+import { settingsContracts } from "../types/settings";
+import { appContracts } from "../types/app";
+import { chatContracts, chatStreamContract } from "../types/chat";
+import { agentContracts, agentEvents } from "../types/agent";
+import { githubContracts, gitContracts, gitEvents } from "../types/github";
+import {
+  connectionFlowContracts,
+  connectionFlowEvents,
+} from "../types/connection_flow";
+import { mcpContracts } from "../types/mcp";
+import { vercelContracts } from "../types/vercel";
+import { coolifyContracts, coolifyEvents } from "../types/coolify";
+import {
+  coolifySetupContracts,
+  coolifySetupEvents,
+} from "../types/coolify_setup";
+import { supabaseContracts, supabaseEvents } from "../types/supabase";
+import { neonContracts } from "../types/neon";
+import { migrationContracts } from "../types/migration";
+import { systemContracts, systemEvents } from "../types/system";
+import { versionContracts, versionEvents } from "../types/version";
+import { languageModelContracts } from "../types/language-model";
+import { promptContracts } from "../types/prompts";
+import { templateContracts } from "../types/templates";
+import { proposalContracts } from "../types/proposals";
+import { importContracts } from "../types/import";
+import { helpContracts, helpStreamContract } from "../types/help";
+import { capacitorContracts } from "../types/capacitor";
+import { contextContracts } from "../types/context";
+import { upgradeContracts } from "../types/upgrade";
+import { visualEditingContracts } from "../types/visual-editing";
+import { securityContracts } from "../types/security";
+import { miscContracts, miscEvents } from "../types/misc";
+import { freeAgentQuotaContracts } from "../types/free_agent_quota";
+import { freeModelQuotaContracts } from "../types/free_model_quota";
+import { planEvents, planContracts } from "../types/plan";
+import { audioContracts } from "../types/audio";
+import { mediaContracts } from "../types/media";
+import {
+  imageGenerationContracts,
+  imageGenerationEvents,
+} from "../types/image_generation";
+import {
+  appBlueprintContracts,
+  appBlueprintEvents,
+} from "../types/app_blueprint";
+import { appCollectionContracts } from "../types/app_collections";
+import { terminalContracts } from "../types/terminal";
+import { testsContracts, testsEvents } from "../types/tests";
+import { recordingContracts, recordingEvents } from "../types/recording";
+import { userInputContracts, userInputEvents } from "../types/user_input";
+import { firstPromptSendContracts } from "../types/first_prompt";
+import {
+  previewViewContracts,
+  previewViewEvents,
+  previewViewSendContracts,
+} from "../types/preview_view";
+import {
+  windowInfrastructureContracts,
+  windowInfrastructureEvents,
+} from "../types/window_infrastructure";
+import {
+  distributedMachineContracts,
+  distributedMachineEvents,
+} from "../types/distributed_machines";
+
+// =============================================================================
+// Invoke Channels (derived from all contracts)
+// =============================================================================
+
+const CHAT_STREAM_CHANNELS = getStreamChannels(chatStreamContract);
+const HELP_STREAM_CHANNELS = getStreamChannels(helpStreamContract);
+
+// Test-only channels (handler only registered in E2E test builds, but channel always allowed)
+const TEST_INVOKE_CHANNELS = [
+  "test:simulateQuotaTimeElapsed",
+  "test:set-node-mock",
+  "test:set-needs-app-blueprint",
+  "test:get-app-process-id",
+  "test:set-neon-auth-fixture",
+] as const;
+
+/**
+ * All valid invoke channels derived from contracts.
+ * Used by preload.ts to whitelist IPC channels.
+ */
+export const VALID_INVOKE_CHANNELS = [
+  // Core domains
+  ...getInvokeChannels(settingsContracts),
+  ...getInvokeChannels(appContracts),
+  ...getInvokeChannels(chatContracts),
+  ...getInvokeChannels(agentContracts),
+
+  // Stream invoke channels
+  CHAT_STREAM_CHANNELS.invoke,
+  HELP_STREAM_CHANNELS.invoke,
+
+  // Integrations
+  ...getInvokeChannels(connectionFlowContracts),
+  ...getInvokeChannels(githubContracts),
+  ...getInvokeChannels(gitContracts),
+  ...getInvokeChannels(mcpContracts),
+  ...getInvokeChannels(vercelContracts),
+  ...getInvokeChannels(coolifyContracts),
+  ...getInvokeChannels(coolifySetupContracts),
+  ...getInvokeChannels(supabaseContracts),
+  ...getInvokeChannels(neonContracts),
+  ...getInvokeChannels(migrationContracts),
+
+  // Features
+  ...getInvokeChannels(systemContracts),
+  ...getInvokeChannels(versionContracts),
+  ...getInvokeChannels(languageModelContracts),
+  ...getInvokeChannels(promptContracts),
+  ...getInvokeChannels(templateContracts),
+  ...getInvokeChannels(proposalContracts),
+  ...getInvokeChannels(importContracts),
+  ...getInvokeChannels(helpContracts),
+  ...getInvokeChannels(capacitorContracts),
+  ...getInvokeChannels(contextContracts),
+  ...getInvokeChannels(upgradeContracts),
+  ...getInvokeChannels(visualEditingContracts),
+  ...getInvokeChannels(securityContracts),
+  ...getInvokeChannels(miscContracts),
+  ...getInvokeChannels(freeAgentQuotaContracts),
+  ...getInvokeChannels(freeModelQuotaContracts),
+  ...getInvokeChannels(planContracts),
+  ...getInvokeChannels(audioContracts),
+  ...getInvokeChannels(mediaContracts),
+  ...getInvokeChannels(appBlueprintContracts),
+  ...getInvokeChannels(appCollectionContracts),
+  ...getInvokeChannels(terminalContracts),
+  ...getInvokeChannels(testsContracts),
+  ...getInvokeChannels(recordingContracts),
+  ...getInvokeChannels(userInputContracts),
+  ...getInvokeChannels(windowInfrastructureContracts),
+  ...getInvokeChannels(distributedMachineContracts),
+  ...getInvokeChannels(imageGenerationContracts),
+  ...getInvokeChannels(previewViewContracts),
+
+  // Test-only channels
+  ...TEST_INVOKE_CHANNELS,
+] as const;
+
+// =============================================================================
+// Send Channels (one-way, renderer -> main, fire-and-forget)
+// =============================================================================
+
+/**
+ * All valid one-way send channels derived from send contracts.
+ * Used by preload.ts to whitelist fire-and-forget IPC channels.
+ */
+export const VALID_SEND_CHANNELS = [
+  ...getSendChannels(firstPromptSendContracts),
+  ...getSendChannels(previewViewSendContracts),
+] as const;
+
+// =============================================================================
+// Receive Channels (derived from all event contracts + stream events)
+// =============================================================================
+
+/**
+ * All valid receive channels derived from contracts.
+ * Used by preload.ts to whitelist IPC channels.
+ */
+export const VALID_RECEIVE_CHANNELS = [
+  // Stream receive channels
+  ...CHAT_STREAM_CHANNELS.receive,
+  ...HELP_STREAM_CHANNELS.receive,
+
+  // Event channels
+  ...getReceiveChannels(agentEvents),
+  ...getReceiveChannels(gitEvents),
+  ...getReceiveChannels(coolifyEvents),
+  ...getReceiveChannels(coolifySetupEvents),
+  ...getReceiveChannels(connectionFlowEvents),
+  ...getReceiveChannels(supabaseEvents),
+  ...getReceiveChannels(systemEvents),
+  ...getReceiveChannels(versionEvents),
+  ...getReceiveChannels(miscEvents),
+  ...getReceiveChannels(planEvents),
+  ...getReceiveChannels(appBlueprintEvents),
+  ...getReceiveChannels(testsEvents),
+  ...getReceiveChannels(userInputEvents),
+  ...getReceiveChannels(imageGenerationEvents),
+  ...getReceiveChannels(windowInfrastructureEvents),
+  ...getReceiveChannels(distributedMachineEvents),
+  ...getReceiveChannels(recordingEvents),
+  ...getReceiveChannels(previewViewEvents),
+] as const;
+
+// =============================================================================
+// Type Exports
+// =============================================================================
+
+export type ValidInvokeChannel = (typeof VALID_INVOKE_CHANNELS)[number];
+export type ValidSendChannel = (typeof VALID_SEND_CHANNELS)[number];
+export type ValidReceiveChannel = (typeof VALID_RECEIVE_CHANNELS)[number];

@@ -1,0 +1,8 @@
+app Workshop feedback
+form "New feedback"
+choice rating "Rating": "1", "2", "3", "4", "5"
+text comment "Comment" max 200
+table responses "Responses": rating, comment
+count responses "Responses"
+action "Add response": add to responses
+action "Clear all": clear responses

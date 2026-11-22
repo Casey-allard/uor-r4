@@ -1,0 +1,555 @@
+import { type Message } from "@/ipc/types";
+import {
+  PrismMarkdownParser,
+  VanillaMarkdownParser,
+} from "./PrismMarkdownParser";
+import { PrismAttachment, type AttachmentSize } from "./PrismAttachment";
+import { useStreamChat } from "@/hooks/useStreamChat";
+import { StreamingLoadingAnimation } from "./StreamingLoadingAnimation";
+import {
+  XCircle,
+  Clock,
+  GitCommit,
+  Copy,
+  Check,
+  Info,
+  Bot,
+  Ban,
+  Undo2,
+  Loader2,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { useVersions } from "@/hooks/useVersions";
+import { useAtomValue } from "jotai";
+import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { selectedChatIdAtom } from "@/atoms/chatAtoms";
+import { useChatStreamHasPreview } from "@/hooks/useChatStream";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
+import { unescapeXmlAttr } from "../../../shared/xmlEscape";
+import {
+  isCancelledResponseContent,
+  stripCancelledResponseNotice,
+} from "@/shared/chatCancellation";
+import { useVersionPreview } from "@/hooks/useVersionPreview";
+import { SubagentTeamCard } from "./SubagentTeamCard";
+import {
+  getVisibleMessageApprovalState,
+  shouldShowMessageFooter,
+} from "./messageApprovalStatus";
+import { ChatMessageAnnotationLayer } from "./ChatMessageAnnotationLayer";
+import { isChatMessageAnnotatable } from "./chatAnnotationEligibility";
+
+/** Extract <prism-attachment> tags from message content and return parsed attachment data. */
+function extractAttachments(content: string): {
+  name: string;
+  type: string;
+  url: string;
+  path: string;
+  attachmentType: string;
+}[] {
+  const tagRegex = /<prism-attachment\s+([^>]*)><\/prism-attachment>/g;
+  const attrRegex = /([\w-]+)="([^"]*)"/g;
+  const results: {
+    name: string;
+    type: string;
+    url: string;
+    path: string;
+    attachmentType: string;
+  }[] = [];
+
+  let match;
+  while ((match = tagRegex.exec(content)) !== null) {
+    const attrs: Record<string, string> = {};
+    attrRegex.lastIndex = 0;
+    let attrMatch;
+    while ((attrMatch = attrRegex.exec(match[1])) !== null) {
+      attrs[attrMatch[1]] = unescapeXmlAttr(attrMatch[2]);
+    }
+    results.push({
+      name: attrs.name || "",
+      type: attrs.type || "",
+      url: attrs.url || "",
+      path: attrs.path || "",
+      attachmentType: attrs["attachment-type"] || "chat-context",
+    });
+  }
+  return results;
+}
+
+/** Strip <prism-attachment> tags from user message content. */
+function stripAttachmentInfo(content: string): string {
+  return content
+    .replace(/<prism-attachment\s+[^>]*><\/prism-attachment>/g, "")
+    .trim();
+}
+
+interface ChatMessageProps {
+  message: Message;
+  isLastMessage: boolean;
+  isCancelledPrompt?: boolean;
+}
+
+const ChatMessage = ({
+  message,
+  isLastMessage,
+  isCancelledPrompt,
+}: ChatMessageProps) => {
+  const { isStreaming } = useStreamChat();
+  const appId = useAtomValue(selectedAppIdAtom);
+  const { versions: liveVersions } = useVersions(appId);
+  const {
+    state: previewState,
+    projection: previewProjection,
+    send: sendPreviewEvent,
+  } = useVersionPreview(appId);
+  const canRestoreToMessage = previewProjection.capabilities.canRestore;
+  const isRestoringToMessage = previewState.type === "restoring";
+  const assistantTextContent =
+    message.role === "assistant"
+      ? stripCancelledResponseNotice(message.content)
+      : "";
+  // Sidecar tool-input XML preview lives outside message.content. Subscribe
+  // to its equality-gated boolean so non-last messages only re-render on the
+  // empty/non-empty transition, not on every preview chunk.
+  const selectedChatId = useAtomValue(selectedChatIdAtom);
+  const hasPreviewForChat = useChatStreamHasPreview(selectedChatId);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const assistantContentRef = useRef<HTMLDivElement>(null);
+  const hasStreamingPreview =
+    message.role === "assistant" &&
+    isLastMessage &&
+    isStreaming &&
+    hasPreviewForChat;
+  const hasAssistantText =
+    message.role === "assistant" &&
+    (assistantTextContent.length > 0 || hasStreamingPreview);
+  const visibleApprovalState = getVisibleMessageApprovalState(
+    message.approvalState,
+  );
+  const showMessageFooter = shouldShowMessageFooter({
+    hasAssistantText,
+    isStreaming,
+    hasHistoricalAssistantModel:
+      message.role === "assistant" && !isLastMessage && Boolean(message.model),
+    visibleApprovalState,
+  });
+  //handle copy chat
+  const { copyMessageContent, copied } = useCopyToClipboard();
+  const handleCopyFormatted = async () => {
+    await copyMessageContent(
+      message.role === "assistant" ? assistantTextContent : message.content,
+    );
+  };
+  // Find the version that was active when this message was sent
+  const messageVersion = useMemo(() => {
+    if (
+      message.role === "assistant" &&
+      message.commitHash &&
+      liveVersions.length
+    ) {
+      return (
+        liveVersions.find(
+          (version) =>
+            message.commitHash &&
+            version.oid.slice(0, 7) === message.commitHash.slice(0, 7),
+        ) || null
+      );
+    }
+    return null;
+  }, [message.commitHash, message.role, liveVersions]);
+
+  // Calculate version number (sequential: oldest = 1, newest = liveVersions.length)
+  const versionNumber = useMemo(() => {
+    if (messageVersion && liveVersions.length) {
+      return liveVersions.length - liveVersions.indexOf(messageVersion);
+    }
+    return null;
+  }, [messageVersion, liveVersions]);
+
+  // handle copy request id
+  const [copiedRequestId, setCopiedRequestId] = useState(false);
+  const copiedRequestIdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    return () => {
+      if (copiedRequestIdTimeoutRef.current) {
+        clearTimeout(copiedRequestIdTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Format the message timestamp
+  const formatTimestamp = (timestamp: string | Date) => {
+    const now = new Date();
+    const messageTime = new Date(timestamp);
+    const diffInHours =
+      (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
+    if (diffInHours < 24) {
+      return formatDistanceToNow(messageTime, { addSuffix: true });
+    } else {
+      return format(messageTime, "MMM d, yyyy 'at' h:mm a");
+    }
+  };
+
+  const isCancelled =
+    isCancelledResponseContent(message.content) || !!isCancelledPrompt;
+  const userTextContent =
+    message.role === "user" ? stripAttachmentInfo(message.content) : "";
+  const attachments =
+    message.role === "user" ? extractAttachments(message.content) : [];
+  const hasUserText = userTextContent.length > 0;
+  const attachmentSize: AttachmentSize =
+    attachments.length === 1 ? "lg" : attachments.length <= 3 ? "md" : "sm";
+
+  // Exclude cancelled prompts: they render greyed out with a "Cancelled" label,
+  // and showing an undo arrow on a turn that never completed (and may have left
+  // partial file changes) is confusing.
+  // Attachment-only prompts (no text) are still accepted and can lead to code
+  // changes, so they get a restore arrow too — anchored to the attachment block
+  // below rather than the (absent) message box.
+  const showRestoreButton =
+    message.role === "user" &&
+    (hasUserText || attachments.length > 0) &&
+    !isCancelled;
+
+  const handleRestoreToMessage = (restoreCodebase: boolean) => {
+    if (appId == null || selectedChatId == null) {
+      return;
+    }
+    setShowRestoreConfirm(false);
+    sendPreviewEvent({
+      type: "RESTORE_TO_MESSAGE",
+      appId,
+      chatId: selectedChatId,
+      messageId: message.id,
+      restoreCodebase,
+    });
+  };
+
+  // The restore button + confirmation dialog, anchored absolutely to the
+  // top-right of its (relatively-positioned) container. Rendered inside the
+  // message box for text prompts, and next to the attachment block for
+  // attachment-only prompts (which have no message box).
+  const restoreButtonNode = showRestoreButton ? (
+    <>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              data-testid="restore-to-message-button"
+              onClick={() => setShowRestoreConfirm(true)}
+              disabled={!canRestoreToMessage}
+              aria-label="Restore to this point"
+              className="absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-(--background) text-gray-500 shadow-sm transition-colors duration-200 hover:text-gray-700 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:text-gray-200"
+            />
+          }
+        >
+          {isRestoringToMessage ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Undo2 className="h-3.5 w-3.5" />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>
+          Fork or restore to before this message in a new chat
+        </TooltipContent>
+      </Tooltip>
+      <AlertDialog
+        open={showRestoreConfirm}
+        onOpenChange={setShowRestoreConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore to this point?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A new chat will be created with the messages up to this point.
+              Your current chat is preserved and won't be changed. Choose
+              "Restore code & fork chat" to also roll the codebase back to how
+              it was before this message, or "Fork chat only" to leave your
+              files untouched.
+            </AlertDialogDescription>
+            {isStreaming && (
+              <p className="mt-2 text-sm font-medium text-amber-600 dark:text-amber-500">
+                A generation is in progress. "Restore code & fork chat" will
+                stop it first; "Fork chat only" leaves it running.
+              </p>
+            )}
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-col sm:justify-normal">
+            <AlertDialogAction
+              data-testid="confirm-restore-to-message-button"
+              className="w-full"
+              disabled={!canRestoreToMessage}
+              onClick={() => handleRestoreToMessage(true)}
+            >
+              Restore code & fork chat
+            </AlertDialogAction>
+            <AlertDialogAction
+              data-testid="fork-chat-button"
+              className={`${buttonVariants({ variant: "outline" })} w-full text-foreground`}
+              disabled={!canRestoreToMessage}
+              onClick={() => handleRestoreToMessage(false)}
+            >
+              Fork chat only
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  ) : null;
+
+  return (
+    <div
+      className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
+    >
+      <div
+        className={`mt-2 w-full max-w-3xl mx-auto group ${isCancelled ? "opacity-50" : ""}`}
+      >
+        {/* Show message box for assistant messages or user messages with text */}
+        {(message.role === "assistant" || hasUserText) && (
+          <div
+            className={`rounded-lg p-2 ${
+              message.role === "assistant"
+                ? ""
+                : "relative ml-24 bg-(--sidebar-accent)"
+            }`}
+          >
+            {/* Text prompts anchor the button to the message box; attachment-only
+                prompts render it next to the attachment block below instead. */}
+            {hasUserText && restoreButtonNode}
+            {message.role === "assistant" &&
+            !hasAssistantText &&
+            isStreaming &&
+            isLastMessage ? (
+              <StreamingLoadingAnimation variant="initial" />
+            ) : message.role === "assistant" &&
+              !hasAssistantText &&
+              isCancelled ? (
+              <div className="prose dark:prose-invert max-w-none text-[15px] italic text-muted-foreground">
+                Response cancelled before any content was generated.
+              </div>
+            ) : (
+              <div
+                ref={
+                  message.role === "assistant" ? assistantContentRef : undefined
+                }
+                className="prose dark:prose-invert prose-headings:mb-2 prose-p:my-1 prose-pre:my-0 max-w-none break-words text-[15px]"
+                suppressHydrationWarning
+              >
+                {message.role === "assistant" ? (
+                  <>
+                    <PrismMarkdownParser
+                      content={assistantTextContent}
+                      messageId={message.id}
+                      showStreamingPreview={isLastMessage && isStreaming}
+                    />
+                    {isLastMessage && isStreaming && (
+                      <StreamingLoadingAnimation variant="streaming" />
+                    )}
+                  </>
+                ) : (
+                  <VanillaMarkdownParser content={userTextContent} />
+                )}
+              </div>
+            )}
+            {selectedChatId != null &&
+              isChatMessageAnnotatable({
+                role: message.role,
+                isLastMessage,
+                isCancelled,
+                isStreaming,
+              }) && (
+                <ChatMessageAnnotationLayer
+                  containerRef={assistantContentRef}
+                  chatId={selectedChatId}
+                  messageId={message.id}
+                />
+              )}
+            {showMessageFooter ? (
+              <div
+                className={`mt-2 flex items-center ${
+                  hasAssistantText && !isStreaming ? "justify-between" : ""
+                } text-xs`}
+              >
+                {hasAssistantText && !isStreaming && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          data-testid="copy-message-button"
+                          onClick={handleCopyFormatted}
+                          aria-label="Copy"
+                          className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors duration-200 cursor-pointer"
+                        />
+                      }
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline"></span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {copied ? "Copied!" : "Copy"}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {visibleApprovalState && (
+                    <div className="flex items-center space-x-1">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      <span>Rejected</span>
+                    </div>
+                  )}
+                  {message.role === "assistant" && message.model && (
+                    <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 w-full sm:w-auto">
+                      <Bot className="h-4 w-4 flex-shrink-0" />
+                      <span>{message.model}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            {message.role === "assistant" && selectedChatId != null && (
+              <SubagentTeamCard
+                chatId={selectedChatId}
+                messageId={message.id}
+                rootIsStreaming={isLastMessage && isStreaming}
+                showReviewAction={isLastMessage}
+                hideInlineThreads={assistantTextContent.includes(
+                  "<prism-subagent",
+                )}
+              />
+            )}
+          </div>
+        )}
+        {/* Render attachments outside the message box */}
+        {attachments.length > 0 && (
+          <div className="relative mt-2 ml-24 flex flex-wrap gap-2 justify-end">
+            {/* Attachment-only prompts have no message box, so anchor the restore
+                button here instead. Text prompts render it above. */}
+            {!hasUserText && restoreButtonNode}
+            {attachments.map((att, i) => (
+              <PrismAttachment
+                key={i}
+                size={attachmentSize}
+                node={{
+                  properties: {
+                    name: att.name,
+                    type: att.type,
+                    url: att.url,
+                    path: att.path,
+                    attachmentType: att.attachmentType,
+                  },
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {/* Timestamp and commit info for assistant messages - only visible on hover */}
+        {message.role === "assistant" && message.createdAt && (
+          <div className="mt-1 flex flex-wrap items-center justify-start space-x-2 text-xs text-gray-500 dark:text-gray-400 ">
+            <div className="flex items-center space-x-1">
+              <Clock className="h-3 w-3" />
+              <span>{formatTimestamp(message.createdAt)}</span>
+            </div>
+            {messageVersion && messageVersion.message && versionNumber && (
+              <div className="flex items-center space-x-1">
+                <GitCommit className="h-3 w-3" />
+                <span className="font-medium">{`Version ${versionNumber}:`}</span>
+                <span
+                  className="max-w-50 truncate"
+                  title={messageVersion.message}
+                >
+                  {
+                    messageVersion.message
+                      .replace(/^\[prism\]\s*/i, "")
+                      .split("\n")[0]
+                  }
+                </span>
+              </div>
+            )}
+            {message.requestId && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      onClick={() => {
+                        if (!message.requestId) return;
+                        navigator.clipboard
+                          .writeText(message.requestId)
+                          .then(() => {
+                            setCopiedRequestId(true);
+                            if (copiedRequestIdTimeoutRef.current) {
+                              clearTimeout(copiedRequestIdTimeoutRef.current);
+                            }
+                            copiedRequestIdTimeoutRef.current = setTimeout(
+                              () => setCopiedRequestId(false),
+                              2000,
+                            );
+                          })
+                          .catch(() => {
+                            // noop
+                          });
+                      }}
+                      aria-label="Copy Request ID"
+                      className="flex items-center space-x-1 px-1 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors duration-200 cursor-pointer"
+                    />
+                  }
+                >
+                  {copiedRequestId ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  <span className="text-xs">
+                    {copiedRequestId ? "Copied" : "Request ID"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {copiedRequestId
+                    ? "Copied!"
+                    : `Copy Request ID: ${message.requestId.slice(0, 8)}...`}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {isLastMessage && message.totalTokens && (
+              <div
+                className="flex items-center space-x-1 px-1 py-0.5"
+                title={`Max tokens used: ${message.totalTokens.toLocaleString()}`}
+              >
+                <Info className="h-3 w-3" />
+              </div>
+            )}
+          </div>
+        )}
+        {isCancelled && (
+          <div className="mt-1 flex items-center justify-end gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <Ban className="h-3 w-3" />
+            <span>Cancelled</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ChatMessage;

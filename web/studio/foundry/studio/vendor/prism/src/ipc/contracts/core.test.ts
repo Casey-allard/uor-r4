@@ -1,0 +1,485 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import {
+  createClient,
+  createIpcErrorEnvelope,
+  createIpcSuccessEnvelope,
+  createStreamClient,
+  defineContract,
+  defineStream,
+  deserializeIpcError,
+  serializeIpcError,
+} from "./core";
+
+function setupStreamClient() {
+  const listeners = new Map<string, (data: unknown) => void>();
+  const invoke = vi.fn().mockResolvedValue(undefined);
+  (window as any).electron = {
+    ipcRenderer: {
+      invoke,
+      on: vi.fn((channel: string, listener: (data: unknown) => void) => {
+        listeners.set(channel, listener);
+        return vi.fn();
+      }),
+    },
+  };
+
+  const client = createStreamClient(
+    defineStream({
+      channel: "test:stream",
+      input: z.object({ chatId: z.number() }),
+      keyField: "chatId",
+      events: {
+        chunk: {
+          channel: "test:stream:chunk",
+          payload: z.object({
+            chatId: z.number(),
+            invocationRef: z
+              .object({
+                kind: z.string(),
+                entityKey: z.number(),
+                operationId: z.string(),
+              })
+              .optional(),
+            streamId: z.number().optional(),
+            value: z.string(),
+          }),
+        },
+        end: {
+          channel: "test:stream:end",
+          payload: z.object({
+            chatId: z.number(),
+            invocationRef: z
+              .object({
+                kind: z.string(),
+                entityKey: z.number(),
+                operationId: z.string(),
+              })
+              .optional(),
+            streamId: z.number().optional(),
+          }),
+        },
+        error: {
+          channel: "test:stream:error",
+          payload: z.object({
+            chatId: z.number(),
+            invocationRef: z
+              .object({
+                kind: z.string(),
+                entityKey: z.number(),
+                operationId: z.string(),
+              })
+              .optional(),
+            streamId: z.number().optional(),
+            error: z.string(),
+          }),
+        },
+      },
+    }),
+  );
+
+  return { client, invoke, listeners };
+}
+
+describe("IPC invoke envelopes", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (window as any).electron;
+  });
+
+  it("serializes and deserializes PrismError kind", () => {
+    const serialized = serializeIpcError(
+      new PrismError("Name already exists", PrismErrorKind.Conflict),
+    );
+
+    const deserialized = deserializeIpcError(serialized);
+
+    expect(deserialized).toBeInstanceOf(PrismError);
+    expect((deserialized as PrismError).kind).toBe(PrismErrorKind.Conflict);
+    expect(deserialized.message).toBe("Name already exists");
+  });
+
+  it("preserves custom PrismError names and codes through a round trip", () => {
+    const error = new PrismError(
+      "A rebase is already in progress",
+      PrismErrorKind.Precondition,
+    ) as PrismError & { code: string };
+    error.name = "GitStateError";
+    error.code = "REBASE_IN_PROGRESS";
+
+    const deserialized = deserializeIpcError(serializeIpcError(error));
+
+    expect(deserialized).toBeInstanceOf(PrismError);
+    expect(deserialized).toMatchObject({
+      name: "GitStateError",
+      code: "REBASE_IN_PROGRESS",
+      kind: PrismErrorKind.Precondition,
+      message: "A rebase is already in progress",
+    });
+  });
+
+  it("deserializes plain errors without treating them as PrismError", () => {
+    const deserialized = deserializeIpcError({
+      name: "TypeError",
+      message: "Boom",
+    });
+
+    expect(deserialized).toBeInstanceOf(Error);
+    expect(deserialized).not.toBeInstanceOf(PrismError);
+    expect(deserialized.name).toBe("TypeError");
+    expect(deserialized.message).toBe("Boom");
+  });
+
+  it("unwraps success envelopes in generated clients", async () => {
+    const invokeEnvelope = vi
+      .fn()
+      .mockResolvedValue(createIpcSuccessEnvelope({ value: 42 }));
+    (window as any).electron = { ipcRenderer: { invokeEnvelope } };
+
+    const client = createClient({
+      answer: defineContract({
+        channel: "answer",
+        input: z.object({}),
+        output: z.object({ value: z.number() }),
+      }),
+    });
+
+    await expect(client.answer({})).resolves.toEqual({ value: 42 });
+    expect(invokeEnvelope).toHaveBeenCalledWith("answer", {});
+  });
+
+  it("rethrows PrismError envelopes from generated clients", async () => {
+    const invokeEnvelope = vi
+      .fn()
+      .mockResolvedValue(
+        createIpcErrorEnvelope(
+          new PrismError("No matching app", PrismErrorKind.NotFound),
+        ),
+      );
+    (window as any).electron = { ipcRenderer: { invokeEnvelope } };
+
+    const client = createClient({
+      load: defineContract({
+        channel: "load",
+        input: z.object({}),
+        output: z.void(),
+      }),
+    });
+
+    await expect(client.load({})).rejects.toMatchObject({
+      name: "PrismError",
+      kind: PrismErrorKind.NotFound,
+      message: "No matching app",
+    });
+  });
+
+  it("accepts legacy non-envelope responses in generated clients", async () => {
+    const invokeEnvelope = vi.fn().mockResolvedValue("legacy");
+    (window as any).electron = { ipcRenderer: { invokeEnvelope } };
+
+    const client = createClient({
+      legacy: defineContract({
+        channel: "legacy",
+        input: z.object({}),
+        output: z.string(),
+      }),
+    });
+
+    await expect(client.legacy({})).resolves.toBe("legacy");
+  });
+});
+
+describe("IPC stream callback cleanup", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (window as any).electron;
+  });
+
+  it("preserves a same-key stream started synchronously from onEnd", () => {
+    const { client, listeners } = setupStreamClient();
+    const replacementOnChunk = vi.fn();
+
+    client.start(
+      { chatId: 1 },
+      {
+        onChunk: vi.fn(),
+        onEnd: () => {
+          client.start(
+            { chatId: 1 },
+            {
+              onChunk: replacementOnChunk,
+              onEnd: vi.fn(),
+              onError: vi.fn(),
+            },
+          );
+        },
+        onError: vi.fn(),
+      },
+    );
+
+    listeners.get("test:stream:end")?.({ chatId: 1 });
+    listeners.get("test:stream:chunk")?.({ chatId: 1, value: "next" });
+
+    expect(replacementOnChunk).toHaveBeenCalledWith({
+      chatId: 1,
+      value: "next",
+    });
+  });
+
+  it("preserves a same-key stream started synchronously from onError", () => {
+    const { client, listeners } = setupStreamClient();
+    const replacementOnChunk = vi.fn();
+
+    client.start(
+      { chatId: 1 },
+      {
+        onChunk: vi.fn(),
+        onEnd: vi.fn(),
+        onError: () => {
+          client.start(
+            { chatId: 1 },
+            {
+              onChunk: replacementOnChunk,
+              onEnd: vi.fn(),
+              onError: vi.fn(),
+            },
+          );
+        },
+      },
+    );
+
+    listeners.get("test:stream:error")?.({ chatId: 1, error: "failed" });
+    listeners.get("test:stream:chunk")?.({ chatId: 1, value: "next" });
+
+    expect(replacementOnChunk).toHaveBeenCalledWith({
+      chatId: 1,
+      value: "next",
+    });
+  });
+
+  it("preserves a same-key stream started after invoke rejects", async () => {
+    const { client, invoke, listeners } = setupStreamClient();
+    const replacementOnChunk = vi.fn();
+    invoke.mockRejectedValueOnce(new Error("invoke failed"));
+
+    client.start(
+      { chatId: 1 },
+      {
+        onChunk: vi.fn(),
+        onEnd: vi.fn(),
+        onError: () => {
+          client.start(
+            { chatId: 1 },
+            {
+              onChunk: replacementOnChunk,
+              onEnd: vi.fn(),
+              onError: vi.fn(),
+            },
+          );
+        },
+      },
+    );
+
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+    listeners.get("test:stream:chunk")?.({ chatId: 1, value: "next" });
+
+    expect(replacementOnChunk).toHaveBeenCalledWith({
+      chatId: 1,
+      value: "next",
+    });
+  });
+
+  it("routes matching generation events and keeps the absent-id fallback", () => {
+    const { client, listeners } = setupStreamClient();
+    const onChunk = vi.fn();
+    const streamId = client.start(
+      { chatId: 1 },
+      { onChunk, onEnd: vi.fn(), onError: vi.fn() },
+    );
+
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      streamId,
+      value: "matched",
+    });
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      value: "legacy",
+    });
+
+    expect(onChunk).toHaveBeenNthCalledWith(1, {
+      chatId: 1,
+      streamId,
+      value: "matched",
+    });
+    expect(onChunk).toHaveBeenNthCalledWith(2, {
+      chatId: 1,
+      value: "legacy",
+    });
+  });
+
+  it("drops stale events after a same-key stream is replaced", () => {
+    const { client, listeners } = setupStreamClient();
+    const staleCallbacks = {
+      onChunk: vi.fn(),
+      onEnd: vi.fn(),
+      onError: vi.fn(),
+    };
+    const currentCallbacks = {
+      onChunk: vi.fn(),
+      onEnd: vi.fn(),
+      onError: vi.fn(),
+    };
+    const staleStreamId = client.start({ chatId: 1 }, staleCallbacks);
+    const currentStreamId = client.start({ chatId: 1 }, currentCallbacks);
+
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      streamId: staleStreamId,
+      value: "stale",
+    });
+    listeners.get("test:stream:end")?.({
+      chatId: 1,
+      streamId: staleStreamId,
+    });
+    listeners.get("test:stream:error")?.({
+      chatId: 1,
+      streamId: staleStreamId,
+      error: "stale",
+    });
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      streamId: currentStreamId,
+      value: "current",
+    });
+
+    expect(staleCallbacks.onChunk).not.toHaveBeenCalled();
+    expect(staleCallbacks.onEnd).not.toHaveBeenCalled();
+    expect(staleCallbacks.onError).not.toHaveBeenCalled();
+    expect(currentCallbacks.onEnd).not.toHaveBeenCalled();
+    expect(currentCallbacks.onError).not.toHaveBeenCalled();
+    expect(currentCallbacks.onChunk).toHaveBeenCalledWith({
+      chatId: 1,
+      streamId: currentStreamId,
+      value: "current",
+    });
+  });
+
+  it("drops an old InvocationRef after a same-key owner is recreated", () => {
+    const { client, listeners } = setupStreamClient();
+    const oldRef = {
+      kind: "chat-stream",
+      entityKey: 1,
+      operationId: "chat-stream:old-lifetime",
+    };
+    const currentRef = {
+      kind: "chat-stream",
+      entityKey: 1,
+      operationId: "chat-stream:new-lifetime",
+    };
+    const currentCallbacks = {
+      onChunk: vi.fn(),
+      onEnd: vi.fn(),
+      onError: vi.fn(),
+    };
+
+    client.start(
+      { chatId: 1 },
+      { onChunk: vi.fn(), onEnd: vi.fn(), onError: vi.fn() },
+      { invocationRef: oldRef },
+    );
+    client.release(1, { invocationRef: oldRef });
+    client.start({ chatId: 1 }, currentCallbacks, {
+      invocationRef: currentRef,
+    });
+
+    listeners.get("test:stream:end")?.({
+      chatId: 1,
+      invocationRef: oldRef,
+    });
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      invocationRef: currentRef,
+      value: "current",
+    });
+
+    expect(currentCallbacks.onEnd).not.toHaveBeenCalled();
+    expect(currentCallbacks.onChunk).toHaveBeenCalledOnce();
+  });
+
+  it("keeps key-only legacy routing when a payload has no ref", () => {
+    const { client, listeners } = setupStreamClient();
+    const onEnd = vi.fn();
+    const currentRef = {
+      kind: "chat-stream",
+      entityKey: 1,
+      operationId: "chat-stream:current",
+    };
+
+    client.start(
+      { chatId: 1 },
+      { onChunk: vi.fn(), onEnd, onError: vi.fn() },
+      { invocationRef: currentRef, autoRelease: false },
+    );
+    listeners.get("test:stream:end")?.({ chatId: 1 });
+
+    expect(onEnd).toHaveBeenCalledWith({ chatId: 1 });
+  });
+
+  it("exposes peer chunks but drops chunks from a superseded local stream", () => {
+    const { client, listeners } = setupStreamClient();
+    const passive = vi.fn();
+    const local = vi.fn();
+    client.subscribeUnclaimedChunks(passive);
+    const oldRef = {
+      kind: "chat-stream",
+      entityKey: 1,
+      operationId: "old",
+    };
+
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      invocationRef: {
+        kind: "chat-stream",
+        entityKey: 1,
+        operationId: "peer",
+      },
+      value: "peer",
+    });
+    client.start(
+      { chatId: 1 },
+      { onChunk: vi.fn(), onEnd: vi.fn(), onError: vi.fn() },
+      { invocationRef: oldRef },
+    );
+    const currentRef = {
+      kind: "chat-stream",
+      entityKey: 1,
+      operationId: "current",
+    };
+    client.start(
+      { chatId: 1 },
+      { onChunk: local, onEnd: vi.fn(), onError: vi.fn() },
+      { invocationRef: currentRef },
+    );
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      invocationRef: oldRef,
+      value: "stale",
+    });
+    listeners.get("test:stream:chunk")?.({
+      chatId: 1,
+      invocationRef: currentRef,
+      value: "local",
+    });
+
+    expect(passive).toHaveBeenCalledOnce();
+    expect(passive).toHaveBeenCalledWith(
+      expect.objectContaining({ value: "peer" }),
+    );
+    expect(passive).not.toHaveBeenCalledWith(
+      expect.objectContaining({ value: "stale" }),
+    );
+    expect(local).toHaveBeenCalledOnce();
+  });
+});

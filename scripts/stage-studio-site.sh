@@ -51,7 +51,8 @@ fi
 src=$1
 dest=$2
 shift 2
-if [ "$typed" = 1 ]; then
+if [ "$typed" = 1 ] || [ -d "$src/dist" ]; then
+    typed=1
     src=$src/dist
 fi
 public_url=''
@@ -127,6 +128,11 @@ rm -f "$dest/models.json"
 
 node "$repo_root/scripts/studio/catalog.mjs" "$dest" "$public_url" "$public_label" "$trained_manifest" \
     "$repo_root/scripts/validate_served_forward_receipt.py"
+
+if [ -f "$dest/manifest.json" ] && [ -f "$repo_root/web/studio/foundry/studio/shell/sw.template.js" ]; then
+    node "$repo_root/scripts/studio/seal-shell-closure.mjs" "$dest" \
+        --template "$repo_root/web/studio/foundry/studio/shell/sw.template.js"
+fi
 
 if [ "$typed" = 1 ]; then
     "$repo_root/scripts/studio/runtime-files.sh" --verify "$dest" --typed

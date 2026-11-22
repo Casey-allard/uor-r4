@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-system-process"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "SystemProcess"
+
+[[form]]
+id = "arch-system-process"
+channel = "text"
+surface = "system process"
+canonical_source = true
+features = ["sentence-case", "singular"]

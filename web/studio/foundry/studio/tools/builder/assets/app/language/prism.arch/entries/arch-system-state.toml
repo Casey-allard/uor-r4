@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-system-state"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "SystemState"
+
+[[form]]
+id = "arch-system-state"
+channel = "text"
+surface = "system state"
+canonical_source = true
+features = ["sentence-case", "singular"]

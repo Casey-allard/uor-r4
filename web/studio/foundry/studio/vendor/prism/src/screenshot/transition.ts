@@ -1,0 +1,417 @@
+import { ignore, type TransitionResult } from "@/state_machines/types";
+import type {
+  ScreenshotCaptureSource,
+  ScreenshotCommand,
+  ScreenshotEvent,
+  ScreenshotIgnoreReason,
+  ScreenshotState,
+} from "./state";
+
+type Result = TransitionResult<
+  ScreenshotState,
+  ScreenshotCommand,
+  ScreenshotIgnoreReason
+>;
+
+function transitionTo(
+  state: ScreenshotState,
+  commands: readonly ScreenshotCommand[] = [],
+): Result {
+  return { kind: "applied", state, commands };
+}
+
+function startSettling(
+  state: ScreenshotState,
+  source: ScreenshotCaptureSource,
+  settleToken?: string,
+): Result {
+  return transitionTo(
+    {
+      ...state,
+      status: "settling",
+      source,
+      queuedSource: null,
+      settleToken,
+    },
+    [scheduleSettle(settleToken)],
+  );
+}
+
+function waitForIframe(
+  state: ScreenshotState,
+  source: ScreenshotCaptureSource,
+  settleToken?: string,
+): Result {
+  const iframeLoaded = state.iframeLoaded;
+  return transitionTo(
+    {
+      ...state,
+      status: iframeLoaded ? "waitingSelectorReady" : "pending",
+      source,
+      queuedSource: null,
+      settleToken: iframeLoaded ? settleToken : undefined,
+    },
+    iframeLoaded ? [scheduleSettle(settleToken)] : [],
+  );
+}
+
+function finishCapture(state: ScreenshotState, settleToken?: string): Result {
+  const source = state.queuedSource;
+  if (source !== null) {
+    return state.selectorReady
+      ? startSettling(state, source, settleToken)
+      : waitForIframe(state, source, settleToken);
+  }
+  return transitionTo({
+    status: "idle",
+    fallbackChecked: state.fallbackChecked,
+    iframeLoaded: state.iframeLoaded,
+    selectorReady: state.selectorReady,
+    queuedSource: null,
+  });
+}
+
+function captureRequested(
+  state: ScreenshotState,
+  source: ScreenshotCaptureSource,
+  settleToken?: string,
+): Result {
+  switch (state.status) {
+    case "idle":
+      return state.selectorReady
+        ? startSettling(state, source, settleToken)
+        : waitForIframe(state, source, settleToken);
+    case "pending":
+      if (
+        !state.selectorReady &&
+        state.source === source &&
+        state.queuedSource === null
+      ) {
+        return ignore(state, "request-already-current");
+      }
+      return state.selectorReady
+        ? startSettling(state, source, settleToken)
+        : waitForIframe(state, source, settleToken);
+    case "waitingSelectorReady":
+      if (state.source === source) {
+        return ignore(state, "request-already-current");
+      }
+      return transitionTo({ ...state, source });
+    case "settling":
+      if (state.source === source) {
+        return ignore(state, "request-already-current");
+      }
+      return transitionTo({ ...state, source });
+    case "resolvingCommit":
+    case "awaitingResponse":
+    case "saving":
+      if (state.queuedSource === source) {
+        return ignore(state, "request-already-current");
+      }
+      return transitionTo({ ...state, queuedSource: source });
+    default:
+      return assertNever(state);
+  }
+}
+
+function iframeLoaded(state: ScreenshotState, settleToken?: string): Result {
+  switch (state.status) {
+    case "idle":
+      if (state.iframeLoaded && !state.selectorReady) {
+        return ignore(state, "already-loaded");
+      }
+      return transitionTo({
+        ...state,
+        iframeLoaded: true,
+        selectorReady: false,
+      });
+    case "pending":
+      return transitionTo(
+        {
+          ...state,
+          status: "waitingSelectorReady",
+          iframeLoaded: true,
+          selectorReady: false,
+          settleToken,
+        },
+        [scheduleSettle(settleToken)],
+      );
+    case "waitingSelectorReady":
+      if (state.iframeLoaded && !state.selectorReady) {
+        return ignore(state, "already-loaded");
+      }
+      return transitionTo(
+        {
+          ...state,
+          status: "waitingSelectorReady",
+          iframeLoaded: true,
+          selectorReady: false,
+          settleToken,
+        },
+        [scheduleSettle(settleToken)],
+      );
+    case "settling":
+      return transitionTo(
+        {
+          ...state,
+          status: "waitingSelectorReady",
+          iframeLoaded: true,
+          selectorReady: false,
+          settleToken,
+        },
+        [scheduleSettle(settleToken)],
+      );
+    case "resolvingCommit":
+    case "awaitingResponse":
+      return transitionTo(
+        {
+          ...state,
+          status: "waitingSelectorReady",
+          source: state.queuedSource ?? state.source,
+          queuedSource: null,
+          iframeLoaded: true,
+          selectorReady: false,
+          settleToken,
+        },
+        [scheduleSettle(settleToken)],
+      );
+    case "saving":
+      if (state.iframeLoaded && !state.selectorReady) {
+        return ignore(state, "already-loaded");
+      }
+      return transitionTo({
+        ...state,
+        iframeLoaded: true,
+        selectorReady: false,
+      });
+    default:
+      return assertNever(state);
+  }
+}
+
+function selectorReady(state: ScreenshotState, settleToken?: string): Result {
+  switch (state.status) {
+    case "idle":
+      if (state.selectorReady && state.fallbackChecked) {
+        return ignore(state, "already-ready");
+      }
+      return transitionTo(
+        {
+          ...state,
+          iframeLoaded: true,
+          selectorReady: true,
+          fallbackChecked: true,
+        },
+        state.fallbackChecked ? [] : [{ type: "check-existing-screenshots" }],
+      );
+    case "pending":
+      return startSettling(
+        { ...state, iframeLoaded: true, selectorReady: true },
+        state.source,
+        settleToken,
+      );
+    case "waitingSelectorReady":
+      return transitionTo({
+        ...state,
+        status: "settling",
+        iframeLoaded: true,
+        selectorReady: true,
+      });
+    case "settling":
+    case "resolvingCommit":
+    case "awaitingResponse":
+    case "saving":
+      if (state.selectorReady) return ignore(state, "already-ready");
+      return transitionTo({
+        ...state,
+        iframeLoaded: true,
+        selectorReady: true,
+      });
+    default:
+      return assertNever(state);
+  }
+}
+
+function appHidden(state: ScreenshotState): Result {
+  switch (state.status) {
+    case "idle":
+      if (!state.iframeLoaded && !state.selectorReady) {
+        return ignore(state, "already-hidden");
+      }
+      return transitionTo({
+        ...state,
+        iframeLoaded: false,
+        selectorReady: false,
+      });
+    case "pending":
+      if (!state.iframeLoaded && !state.selectorReady) {
+        return ignore(state, "already-hidden");
+      }
+      return transitionTo({
+        ...state,
+        status: "pending",
+        iframeLoaded: false,
+        selectorReady: false,
+      });
+    case "waitingSelectorReady":
+      return transitionTo(
+        {
+          ...state,
+          status: "pending",
+          iframeLoaded: false,
+          selectorReady: false,
+        },
+        [{ type: "cancel-settle" }],
+      );
+    case "settling":
+      return transitionTo(
+        {
+          ...state,
+          status: "pending",
+          iframeLoaded: false,
+          selectorReady: false,
+        },
+        [{ type: "cancel-settle" }],
+      );
+    case "resolvingCommit":
+    case "awaitingResponse":
+      return transitionTo({
+        ...state,
+        status: "pending",
+        source: state.queuedSource ?? state.source,
+        queuedSource: null,
+        iframeLoaded: false,
+        selectorReady: false,
+      });
+    case "saving":
+      return transitionTo({
+        ...state,
+        iframeLoaded: false,
+        selectorReady: false,
+      });
+    default:
+      return assertNever(state);
+  }
+}
+
+export function transition(
+  state: ScreenshotState,
+  event: ScreenshotEvent,
+): Result {
+  switch (event.type) {
+    case "CAPTURE_REQUESTED":
+      return captureRequested(state, event.source, event.settleToken);
+    case "IFRAME_LOADED":
+      return iframeLoaded(state, event.settleToken);
+    case "SELECTOR_READY":
+      return selectorReady(state, event.settleToken);
+    case "APP_HIDDEN":
+      return appHidden(state);
+    case "SETTLE_ELAPSED":
+      if (
+        state.status !== "waitingSelectorReady" &&
+        state.status !== "settling"
+      ) {
+        return ignore(state, "capture-not-active");
+      }
+      if (
+        state.settleToken !== undefined &&
+        event.settleToken !== state.settleToken
+      ) {
+        return ignore(state, "stale-request");
+      }
+      return transitionTo(
+        {
+          ...state,
+          status: "resolvingCommit",
+          requestId: event.requestId,
+        },
+        [
+          {
+            type: "resolve-commit-hash",
+            requestId: event.requestId,
+          },
+        ],
+      );
+    case "COMMIT_RESOLVED":
+      if (
+        state.status !== "resolvingCommit" ||
+        event.requestId !== state.requestId
+      ) {
+        return ignore(state, "stale-request");
+      }
+      return transitionTo(
+        {
+          ...state,
+          status: "awaitingResponse",
+          requestId: event.requestId,
+          commitHash: event.hash,
+        },
+        [
+          {
+            type: "post-capture-request",
+            requestId: event.requestId,
+          },
+        ],
+      );
+    case "RESPONSE":
+      if (
+        state.status !== "awaitingResponse" ||
+        event.requestId !== state.requestId
+      ) {
+        return ignore(state, "stale-request");
+      }
+      if (!event.ok || !event.dataUrl) {
+        return finishCapture(state, event.settleToken);
+      }
+      return transitionTo(
+        {
+          ...state,
+          status: "saving",
+          dataUrl: event.dataUrl,
+        },
+        [
+          {
+            type: "save-screenshot",
+            commitHash: state.commitHash,
+            dataUrl: event.dataUrl,
+          },
+        ],
+      );
+    case "SAVED":
+      return state.status === "saving"
+        ? finishCapture(state, event.settleToken)
+        : ignore(state, "not-saving");
+    case "SAVE_FAILED":
+      if (event.requestId !== undefined) {
+        if (
+          (state.status !== "resolvingCommit" &&
+            state.status !== "awaitingResponse") ||
+          event.requestId !== state.requestId
+        ) {
+          return ignore(state, "stale-request");
+        }
+        return finishCapture(state, event.settleToken);
+      }
+      return state.status === "settling" ||
+        state.status === "resolvingCommit" ||
+        state.status === "awaitingResponse" ||
+        state.status === "saving"
+        ? finishCapture(state, event.settleToken)
+        : ignore(state, "capture-not-active");
+    default:
+      return assertNever(event);
+  }
+}
+
+function scheduleSettle(settleToken?: string): ScreenshotCommand {
+  return settleToken === undefined
+    ? { type: "schedule-settle" }
+    : { type: "schedule-settle", settleToken };
+}
+
+function assertNever(value: never): never {
+  throw new Error(
+    `Unexpected screenshot machine value: ${JSON.stringify(value)}`,
+  );
+}

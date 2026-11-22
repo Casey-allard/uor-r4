@@ -1,0 +1,59 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "holo": "https://hologram.os/ns#",
+    "dcterms": "http://purl.org/dc/terms/"
+  },
+  "@id": "holo:wallpaper/curated",
+  "@type": "prov:Collection",
+  "dcterms:title": "Curated default wallpapers (Unsplash, attributed)",
+  "dcterms:source": "https://unsplash.com",
+  "holo:license": "Unsplash License — free to use; attribution appreciated, required by API terms",
+  "prov:hadMember": [
+    {
+      "@id": "holo://sha256:36db23cfa2482590a256c8186c74e10aa2ca5225ef6471f175099541570febcc",
+      "@type": "prov:Entity",
+      "holo:name": "Crescent Earth",
+      "holo:file": "earth-nasa.jpg",
+      "dcterms:creator": "NASA",
+      "holo:attributionUrl": "https://unsplash.com/@nasa?utm_source=Hologram_OS&utm_medium=referral",
+      "holo:source": "https://unsplash.com/photos/juDC81LZlBI"
+    },
+    {
+      "@id": "holo://sha256:27be74593a1b8eaacfdd1ef1be749e785800bb50e70b6b9283a5215afb4020e4",
+      "@type": "prov:Entity",
+      "holo:name": "Galaxy",
+      "holo:file": "galaxy.jpg",
+      "dcterms:creator": "Tiago Ferreira",
+      "holo:attributionUrl": "https://unsplash.com/@tiago_f_ferreira?utm_source=Hologram_OS&utm_medium=referral",
+      "holo:source": "https://unsplash.com/photos/Yw35FMpMAtE"
+    },
+    {
+      "@id": "holo://sha256:369294facd7021333dfc0f0f2684db180f4729790ce21752cc0f45f8af38204f",
+      "@type": "prov:Entity",
+      "holo:name": "Aurora",
+      "holo:file": "aurora.jpg",
+      "dcterms:creator": "Lightscape",
+      "holo:attributionUrl": "https://unsplash.com/@lightscape?utm_source=Hologram_OS&utm_medium=referral",
+      "holo:source": "https://unsplash.com/photos/LtnPejWDSAY"
+    },
+    {
+      "@id": "holo://sha256:982388e003f2fb867ef5753a7dc7194a6e93bf7694d6ebece2a92aaebdfc0d56",
+      "@type": "prov:Entity",
+      "holo:name": "Lioness",
+      "holo:file": "lioness.jpg",
+      "dcterms:creator": "Jaliya Rasaputra",
+      "holo:attributionUrl": "https://unsplash.com/@jaliya?utm_source=Hologram_OS&utm_medium=referral",
+      "holo:source": "https://unsplash.com/photos/U_eZSoRUMQM"
+    },
+    {
+      "@id": "holo://sha256:5a0bac32c4f1cb95d8df2251584e9d1cc09adc87740ec78e1cc7b979f34883dc",
+      "@type": "prov:Entity",
+      "holo:name": "Mountain Lake",
+      "holo:file": "mountain-lake.jpg",
+      "dcterms:creator": "Luca Bravo",
+      "holo:attributionUrl": "https://unsplash.com/@lucabravo?utm_source=Hologram_OS&utm_medium=referral",
+      "holo:source": "https://unsplash.com/photos/ESkw2ayO2As"
+    }
+  ]
+}

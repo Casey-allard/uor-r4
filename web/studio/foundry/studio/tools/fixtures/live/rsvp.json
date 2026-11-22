@@ -1,0 +1,46 @@
+{
+  "name": "rsvp-seat",
+  "title": "RSVP seat decision",
+  "purpose": "Decide whether an RSVP holds a confirmed seat, joins the waitlist, or needs none.",
+  "view": {
+    "blocks": [
+      { "kind": "heading", "text": "You're invited" },
+      { "kind": "text", "text": "Tell us who is coming and we'll tell you where you stand." },
+      { "kind": "input", "field": "attending", "label": "Are you coming?" },
+      { "kind": "input", "field": "party", "label": "People in your party, you included" },
+      { "kind": "input", "field": "seats", "label": "Seats still open" },
+      { "kind": "answer", "label": "Your seat" },
+      { "kind": "rules" },
+      { "kind": "examples" }
+    ]
+  },
+  "fields": [
+    { "name": "attending", "kind": "choice", "values": ["yes", "no", "maybe"], "means": "whether the guest is coming" },
+    { "name": "party", "kind": "number", "min": 0, "max": 6, "means": "total people in the party, the guest included" },
+    { "name": "seats", "kind": "number", "min": 0, "max": 500, "means": "seats still open" }
+  ],
+  "outcomes": ["confirmed", "waitlist", "none"],
+  "meanings": {
+    "confirmed": "Your seats are held. See you there.",
+    "waitlist": "You're on the waitlist; we'll write if seats open.",
+    "none": "No seat is held for you."
+  },
+  "rules": [
+    { "when": [{ "field": "attending", "op": "is", "value": "no" }], "then": "none", "why": "a guest who declines needs no seat" },
+    { "when": [{ "field": "party", "op": "=", "value": 0 }], "then": "none", "why": "a party of nobody takes no seat" },
+    { "when": [{ "field": "party", "op": ">", "value": { "field": "seats" } }], "then": "waitlist", "why": "the party is larger than the seats left" }
+  ],
+  "otherwise": "confirmed",
+  "otherwiseWhy": "the whole party fits in the seats left",
+  "properties": [
+    { "kind": "never", "when": [{ "field": "attending", "op": "is", "value": "no" }], "then": "confirmed", "why": "a declined guest never holds a seat" },
+    { "kind": "never", "when": [{ "field": "party", "op": ">", "value": { "field": "seats" } }], "then": "confirmed", "why": "a seat is never promised that is not there" }
+  ],
+  "examples": [
+    { "request": "yes 2 5", "response": "confirmed" },
+    { "request": "yes 4 2", "response": "waitlist" },
+    { "request": "no 1 0", "response": "none" },
+    { "request": "maybe 1 0", "response": "waitlist" }
+  ],
+  "limits": ["Numbers are whole and not negative.", "The party counts everyone, the guest included.", "Seats left is read at the time of the RSVP."]
+}

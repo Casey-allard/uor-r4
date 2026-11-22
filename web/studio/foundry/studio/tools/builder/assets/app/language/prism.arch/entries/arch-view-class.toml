@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-view-class"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "ViewClass"
+
+[[form]]
+id = "arch-view-class"
+channel = "text"
+surface = "architecture view class"
+canonical_source = true
+features = ["sentence-case", "singular"]

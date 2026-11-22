@@ -1,0 +1,284 @@
+import { z } from "zod";
+
+declare const windowSessionIdBrand: unique symbol;
+declare const tabInstanceIdBrand: unique symbol;
+
+export type WindowSessionId = string & {
+  readonly [windowSessionIdBrand]: true;
+};
+
+// The first product window keeps one deterministic identity across launches so
+// its renderer-local presentation state remains addressable without requiring
+// main-process window-session persistence.
+export const PRIMARY_WINDOW_SESSION_ID =
+  "00000000-0000-4000-8000-000000000001" as WindowSessionId;
+
+export type TabInstanceId = string & {
+  readonly [tabInstanceIdBrand]: true;
+};
+
+export const WindowSessionIdSchema = z
+  .string()
+  .uuid()
+  .transform((value) => value as WindowSessionId);
+export const TabInstanceIdSchema = z
+  .string()
+  .uuid()
+  .transform((value) => value as TabInstanceId);
+
+export const ChatTabOwnershipSchema = z.object({
+  tabInstanceId: TabInstanceIdSchema,
+  chatId: z.number().int().positive(),
+});
+export type ChatTabOwnership = z.infer<typeof ChatTabOwnershipSchema>;
+
+export const ChatTabPresentationStateSchema = z.object({
+  draftInput: z.string().max(1_000_000),
+  scrollTop: z.number().finite().nonnegative(),
+  selectedFile: z
+    .object({
+      path: z.string().max(10_000),
+      line: z.number().int().positive().nullable().optional(),
+    })
+    .nullable(),
+  editorCursor: z
+    .object({
+      appId: z.number().int().nullable(),
+      path: z.string().max(10_000),
+      lineNumber: z.number().int().positive(),
+      column: z.number().int().positive(),
+    })
+    .nullable(),
+  stagedDiffFile: z.string().max(10_000).nullable(),
+  previewHistory: z.array(z.string().max(20_000)).max(100),
+  previewHistoryPosition: z.number().int().nonnegative(),
+  /**
+   * Who put the preview on the route being restored — see `PreviewRouteSource`.
+   *
+   * Optional because presentations persisted before this field existed carry no
+   * provenance; restoring those falls back to "app", the answer that costs a
+   * recording its start route rather than pinning one to a redirect
+   * destination.
+   */
+  previewRouteSource: z.enum(["none", "prism", "app"]).optional(),
+  previewMode: z.enum([
+    "preview",
+    "code",
+    "terminal",
+    "problems",
+    "configure",
+    "publish",
+    "security",
+    "tests",
+    "plan",
+  ]),
+  isPreviewOpen: z.boolean(),
+  isChatPanelHidden: z.boolean(),
+  terminalOpen: z.boolean(),
+  selectedComponents: z
+    .array(
+      z.object({
+        id: z.string().max(10_000),
+        name: z.string().max(10_000),
+        runtimeId: z.string().max(10_000).optional(),
+        relativePath: z.string().max(10_000),
+        lineNumber: z.number(),
+        columnNumber: z.number(),
+      }),
+    )
+    .max(100),
+});
+export type ChatTabPresentationState = z.infer<
+  typeof ChatTabPresentationStateSchema
+>;
+
+export const ChatTabTransferPayloadSchema = z.object({
+  tabInstanceId: TabInstanceIdSchema,
+  chatId: z.number().int().positive(),
+  appId: z.number().int().positive(),
+  presentation: ChatTabPresentationStateSchema,
+});
+export type ChatTabTransferPayload = z.infer<
+  typeof ChatTabTransferPayloadSchema
+>;
+
+export const AppVisibleEntitySchema = z.object({
+  kind: z.literal("app"),
+  id: z.number().int().positive(),
+});
+export type AppVisibleEntity = z.infer<typeof AppVisibleEntitySchema>;
+
+export const VisibleEntitySchema = z.discriminatedUnion("kind", [
+  AppVisibleEntitySchema,
+  z.object({ kind: z.literal("chat"), id: z.number().int().positive() }),
+]);
+export type VisibleEntity = z.infer<typeof VisibleEntitySchema>;
+
+export const PresentationEffectSchema = z.enum([
+  "operation-toast",
+  "navigation",
+  "inline-shared-error",
+  "user-input",
+  "important-completion",
+  "ordinary",
+]);
+export type PresentationEffect = z.infer<typeof PresentationEffectSchema>;
+
+export interface PresentationRouteRequest {
+  effect: PresentationEffect;
+  initiatorWindowSessionId?: WindowSessionId;
+  entity?: VisibleEntity;
+}
+
+export const ScreenshotCapabilitySchema = z.object({
+  kind: z.literal("screenshot"),
+  appId: z.number().int().positive(),
+  iframeEpoch: z.number().int().nonnegative(),
+});
+export type ScreenshotCapability = z.infer<typeof ScreenshotCapabilitySchema>;
+
+export type CapabilityLossPolicy = "retry" | "settle";
+
+export interface WindowCapabilityRequest {
+  kind: "screenshot";
+  appId: number;
+  lossPolicy: CapabilityLossPolicy;
+  preferredWindowSessionId?: WindowSessionId;
+}
+
+export type CapabilityLeaseLossReason =
+  | "window-destroyed"
+  | "iframe-epoch-changed"
+  | "capability-withdrawn";
+
+export interface WindowCapabilityLease {
+  leaseId: string;
+  kind: "screenshot";
+  appId: number;
+  holderWindowSessionId: WindowSessionId;
+  iframeEpoch: number;
+  lossPolicy: CapabilityLossPolicy;
+  isActive(): boolean;
+  lossReason(): CapabilityLeaseLossReason | null;
+  shouldRetry(): boolean;
+}
+
+export const QueryInvalidationScopeSchema = z.discriminatedUnion("family", [
+  z.object({ family: z.literal("apps") }),
+  z.object({ family: z.literal("chats") }),
+  z.object({ family: z.literal("app-collections") }),
+  z.object({ family: z.literal("media") }),
+  z.object({ family: z.literal("token-count") }),
+  z.object({ family: z.literal("user-budget") }),
+  z.object({ family: z.literal("free-agent-quota") }),
+  z.object({ family: z.literal("free-model-quota") }),
+  z.object({
+    family: z.literal("app"),
+    appId: z.number().int().positive(),
+  }),
+  z.object({
+    family: z.literal("versions"),
+    appId: z.number().int().positive().optional(),
+  }),
+  z.object({
+    family: z.literal("branches"),
+    appId: z.number().int().positive().optional(),
+  }),
+  z.object({
+    family: z.literal("problems"),
+    appId: z.number().int().positive().optional(),
+  }),
+  z.object({
+    family: z.literal("uncommitted-files"),
+    appId: z.number().int().positive().optional(),
+  }),
+  z.object({
+    family: z.literal("coolify"),
+    appId: z.number().int().positive().optional(),
+  }),
+  z.object({
+    family: z.literal("chat"),
+    chatId: z.number().int().positive(),
+  }),
+  z.object({
+    family: z.literal("provider-status"),
+    provider: z.enum(["github", "supabase", "neon"]),
+  }),
+  z.object({ family: z.literal("mcp-servers") }),
+  z.object({ family: z.literal("mcp-catalog") }),
+  z.object({
+    family: z.literal("mcp-tools"),
+    serverId: z.number().int().positive().optional(),
+  }),
+]);
+export type QueryInvalidationScope = z.infer<
+  typeof QueryInvalidationScopeSchema
+>;
+
+export const QueryInvalidationEventSchema = z.object({
+  epoch: z.number().int().positive(),
+  scopes: z.array(QueryInvalidationScopeSchema).min(1),
+  originWindowSessionId: WindowSessionIdSchema.optional(),
+  originHandledScopes: z.array(QueryInvalidationScopeSchema).optional(),
+});
+export type QueryInvalidationEvent = z.infer<
+  typeof QueryInvalidationEventSchema
+>;
+
+export const QueryInvalidationBatchSchema = z.object({
+  invalidations: z.array(QueryInvalidationEventSchema).min(1),
+  recoveryScopes: z.array(QueryInvalidationScopeSchema),
+});
+export type QueryInvalidationBatch = z.infer<
+  typeof QueryInvalidationBatchSchema
+>;
+
+export const WindowInterestSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("app-output"),
+    appId: z.number().int().positive(),
+  }),
+  z.object({
+    kind: z.literal("chat-chunk"),
+    chatId: z.number().int().positive(),
+  }),
+]);
+export type WindowInterest = z.infer<typeof WindowInterestSchema>;
+
+export const EntityDisposalEventSchema = z.object({
+  epoch: z.number().int().positive(),
+  entity: VisibleEntitySchema,
+});
+export type EntityDisposalEvent = z.infer<typeof EntityDisposalEventSchema>;
+
+export function visibleEntityKey(entity: VisibleEntity): string {
+  return `${entity.kind}:${entity.id}`;
+}
+
+export function windowInterestKey(interest: WindowInterest): string {
+  return interest.kind === "app-output"
+    ? `${interest.kind}:${interest.appId}`
+    : `${interest.kind}:${interest.chatId}`;
+}
+
+export function queryInvalidationScopeKey(
+  scope: QueryInvalidationScope,
+): string {
+  switch (scope.family) {
+    case "app":
+    case "versions":
+    case "branches":
+    case "problems":
+    case "uncommitted-files":
+    case "coolify":
+      return `${scope.family}:${scope.appId ?? "*"}`;
+    case "chat":
+      return `${scope.family}:${scope.chatId}`;
+    case "provider-status":
+      return `${scope.family}:${scope.provider}`;
+    case "mcp-tools":
+      return `${scope.family}:${scope.serverId ?? "*"}`;
+    default:
+      return scope.family;
+  }
+}

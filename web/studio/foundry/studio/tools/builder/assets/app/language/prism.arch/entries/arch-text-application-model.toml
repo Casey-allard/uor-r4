@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-text-application-model"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.View.Text.V1.Model"
+component = "TextApplication"
+
+[[form]]
+id = "arch-text-application-model"
+channel = "text"
+surface = "Text application model"
+canonical_source = true
+features = ["sentence-case", "singular"]

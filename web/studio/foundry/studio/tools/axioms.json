@@ -1,0 +1,444 @@
+{
+ "admitPage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "admitPage_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "admits": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "admits_nothing_without_grants": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "contentOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "createdOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "empty_project_preimage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeCompletion": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeCompletion_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeDelta": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeError": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeError_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeFinal": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeModels": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeModels_empty": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeOpenRouterRequest": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeOpenRouterRequest_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "encodeRole": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "entryKappa": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "entryLine": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "entryLines": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "entryPath": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "escapeBackslash": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "escapeJson": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "escapeNewline": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "escapeQuote": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "escapeReturn": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "fingerprintOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "grantEndpoint": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "headOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "holoPath": [
+  "propext"
+ ],
+ "holo_path_shape": [
+  "propext"
+ ],
+ "idOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "manifestRepo": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "manifestRevision": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "manifestSpec": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "maxTokensField": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "modelEntries": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "modelEntry": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "modelOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "networkDecision": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "no_head_without_refs": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objEntries": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objEntriesFrom": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objEntries_empty": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objEntry": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objEntry_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objKappa": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objKind": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "objLabel": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "optionalDecimal": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "orMessage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "orMessages": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "orMessages_empty": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "paramsCanonical": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "paramsCanonical_empty": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "paramsCanonical_full": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "preimages": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "previewPath": [
+  "propext"
+ ],
+ "preview_path_shape": [
+  "propext"
+ ],
+ "projectName": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "publishPreimage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "publish_preimage_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "receiptOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "refBranch": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "refKappa": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "refuses_without_grants": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "renderMessage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "renderMessage_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "renderPrompt": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "renderPrompt_singleUser": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "renderPrompt_twoTurns": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "roleOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "rootPreimage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "rootPreimage_shape": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "seedField": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "sha256Text": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardEntries": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardEntriesFrom": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardEntry": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardKappa": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardLabel": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardObjects": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "shardSha256": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "snapshotPreimage": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "sourceManifest": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "temperatureField": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "temperatureText": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "textOf": [
+  "Classical.choice",
+  "Quot.sound",
+  "propext"
+ ],
+ "warmup": [],
+ "warmup_noKey": [],
+ "warmup_notReadyKeyOnline": [],
+ "warmup_offline": [],
+ "warmup_ready": []
+}

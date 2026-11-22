@@ -1,0 +1,290 @@
+\begin{lexlean}{Foundation.Experience.V1.Model}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Arch}
+\title{Brand, design and context of use}
+\begin{semanticmodule}
+inductive{
+  name: BrandElementKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: name, fields: []},
+    {name: tagline, fields: []},
+    {name: promise, fields: []},
+    {name: positioning, fields: []},
+    {name: mission, fields: []},
+    {name: value, fields: []},
+    {name: steward, fields: []},
+    {name: callToAction, fields: []},
+    {name: mark, fields: []},
+    {name: palette, fields: []},
+    {name: typography, fields: []},
+    {name: productName, fields: []},
+    {name: productPromise, fields: []}
+  ]
+}
+
+inductive{
+  name: TokenType,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: color, fields: []},
+    {name: dimension, fields: []},
+    {name: number, fields: []},
+    {name: gradient, fields: []},
+    {name: fontFamily, fields: []}
+  ]
+}
+
+inductive{
+  name: ContrastCriterion,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: text, fields: []}, {name: nonText, fields: []}]
+}
+
+inductive{
+  name: EnvironmentKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: technical, fields: []},
+    {name: physical, fields: []},
+    {name: social, fields: []}
+  ]
+}
+
+inductive{
+  name: UsabilityOutcome,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: effectiveness, fields: []},
+    {name: efficiency, fields: []},
+    {name: satisfaction, fields: []}
+  ]
+}
+
+structure{
+  name: Authority,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: framework, type: String},
+    {name: repository, type: String},
+    {name: commit, type: String}
+  ]
+}
+
+structure{
+  name: BrandElement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: kind, type: BrandElementKind},
+    {name: text, type: String},
+    {name: source, type: Nat}
+  ]
+}
+
+structure{
+  name: DesignToken,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: type, type: TokenType},
+    {name: value, type: String},
+    {name: hex, type: String},
+    {name: source, type: Nat}
+  ]
+}
+
+structure{
+  name: ContrastPair,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: foreground, type: Nat},
+    {name: background, type: Nat},
+    {name: backgroundAlphaMilli, type: Nat},
+    {name: criterion, type: ContrastCriterion},
+    {name: observedMilli, type: Nat},
+    {name: requiredMilli, type: Nat},
+    {name: source, type: Nat}
+  ]
+}
+
+structure{
+  name: UserGroup,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: stakeholder, type: Foundation.Arch::Stakeholder},
+    {name: characteristics, type: String}
+  ]
+}
+
+structure{
+  name: Goal,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: user, type: Nat},
+    {name: journey, type: Foundation.Arch::Journey},
+    {name: outcome, type: String}
+  ]
+}
+
+structure{
+  name: Task,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: goal, type: Nat},
+    {name: order, type: Nat},
+    {name: feature, type: Foundation.Arch::Feature}
+  ]
+}
+
+structure{
+  name: Environment,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: kind, type: EnvironmentKind}, {name: component, type: Foundation.Arch::Component}]
+}
+
+structure{
+  name: UsabilityMeasure,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: goal, type: Nat},
+    {name: outcome, type: UsabilityOutcome},
+    {name: observed, type: (Option Nat)},
+    {name: method, type: String}
+  ]
+}
+
+definition{
+  name: shortfallUnder,
+  parameters: [required : Nat, observed : Nat],
+  result: Nat,
+  body: (prim subtract required observed : Nat)
+}
+
+theorem{
+  name: noShortfallIsMet,
+  parameters: [required : Nat, observed : Nat],
+  statement: (((shortfallUnder required observed) = 0) -> (required <= observed)),
+  proof: linear_arithmetic{definitions: [shortfallUnder]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: metHasNoShortfall,
+  parameters: [required : Nat, observed : Nat],
+  statement: ((required <= observed) -> ((shortfallUnder required observed) = 0)),
+  proof: linear_arithmetic{definitions: [shortfallUnder]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: shortfallFallsAsTheObservationRises,
+  parameters: [required : Nat, before : Nat, after : Nat],
+  statement: ((before <= after) -> ((shortfallUnder required after) <= (shortfallUnder required before))),
+  proof: linear_arithmetic{definitions: [shortfallUnder]},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: contrastsMet,
+  parameters: [items : (List ContrastPair)],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((shortfallUnder (project head requiredMilli) (project head observedMilli)) =? 0) && (contrastsMet rest))),
+  recursive_argument: items
+}
+
+definition{
+  name: contrastsWithin,
+  parameters: [items : (List ContrastPair), tokens : Nat, sources : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => ((((project head foreground) <? tokens) && (((project head background) <? tokens) && ((project head source) <? sources))) && (contrastsWithin rest tokens sources))),
+  recursive_argument: items
+}
+
+definition{
+  name: tokensSourced,
+  parameters: [items : (List DesignToken), sources : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((project head source) <? sources) && (tokensSourced rest sources))),
+  recursive_argument: items
+}
+
+definition{
+  name: elementsSourced,
+  parameters: [items : (List BrandElement), sources : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((project head source) <? sources) && (elementsSourced rest sources))),
+  recursive_argument: items
+}
+
+definition{
+  name: goalsOfGroups,
+  parameters: [items : (List Goal), groups : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((project head user) <? groups) && (goalsOfGroups rest groups))),
+  recursive_argument: items
+}
+
+definition{
+  name: tasksOfGoals,
+  parameters: [items : (List Task), goals : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((project head goal) <? goals) && (tasksOfGoals rest goals))),
+  recursive_argument: items
+}
+
+definition{
+  name: named,
+  parameters: [items : (List String)],
+  result: Bool,
+  body: (match items | List.nil => false | List.cons head rest => true)
+}
+
+definition{
+  name: tasksAccepted,
+  parameters: [items : (List Task)],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => ((named (project (project head feature) acceptance)) && (tasksAccepted rest))),
+  recursive_argument: items
+}
+
+definition{
+  name: measuresOfGoals,
+  parameters: [items : (List UsabilityMeasure), goals : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head rest => (((project head goal) <? goals) && (measuresOfGoals rest goals))),
+  recursive_argument: items
+}
+\end{semanticmodule}
+\end{lexlean}

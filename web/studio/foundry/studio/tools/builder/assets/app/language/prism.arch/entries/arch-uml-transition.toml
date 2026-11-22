@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-uml-transition"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "UmlTransition"
+
+[[form]]
+id = "arch-uml-transition"
+channel = "text"
+surface = "UML transition"
+canonical_source = true
+features = ["sentence-case", "singular"]

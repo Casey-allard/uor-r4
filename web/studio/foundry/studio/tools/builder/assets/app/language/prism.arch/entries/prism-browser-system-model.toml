@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "prism-browser-system-model"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Production.BrowserSystem"
+component = "SystemModel"
+
+[[form]]
+id = "prism-browser-system-model"
+channel = "text"
+surface = "Browser-resident system model"
+canonical_source = true
+features = ["sentence-case", "singular"]

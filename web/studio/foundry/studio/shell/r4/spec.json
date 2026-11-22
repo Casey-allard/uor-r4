@@ -1,0 +1,439 @@
+{
+  "name": "prism-r4",
+  "title": "Prism R4",
+  "purpose": "Decides whether one model answer may be shown in the Prism, so that wrong engine or weight bytes are refused, the three model modes (compiled with Prism, a model in Prism, models routed by R4) never mix, a routed answer needs a granted route, and nothing is shown without the Boundary's allow.",
+  "fields": [
+    {
+      "name": "mode",
+      "kind": "choice",
+      "values": [
+        "compiled",
+        "inprism",
+        "routed"
+      ],
+      "means": "which model mode produced the answer: a model compiled with Prism into the holo, a model running in the Prism from a fingerprinted parameter blob, or another model routed by R4"
+    },
+    {
+      "name": "engine",
+      "kind": "choice",
+      "values": [
+        "match",
+        "mismatch",
+        "missing"
+      ],
+      "means": "whether the fingerprint of the runtime bytes that answered (the holo guest, or the R4 wasm) equals the one in the lock"
+    },
+    {
+      "name": "weights",
+      "kind": "choice",
+      "values": [
+        "match",
+        "mismatch",
+        "missing",
+        "none"
+      ],
+      "means": "whether the fingerprint of the answering model's parameter blob, read back from the browser store, equals the one in the lock; none when the mode carries no blob"
+    },
+    {
+      "name": "route",
+      "kind": "choice",
+      "values": [
+        "none",
+        "granted",
+        "ungranted"
+      ],
+      "means": "whether R4 routed the request to another model, and whether that model's route is in the owner's grant"
+    },
+    {
+      "name": "boundary",
+      "kind": "choice",
+      "values": [
+        "allow",
+        "hashonly",
+        "ask",
+        "deny"
+      ],
+      "means": "what the Boundary answered for showing this answer in the browser"
+    }
+  ],
+  "outcomes": [
+    "answer",
+    "receipt",
+    "ask",
+    "refuse"
+  ],
+  "rules": [
+    {
+      "id": "REQ-001",
+      "when": [
+        {
+          "field": "engine",
+          "op": "is not",
+          "value": "match"
+        }
+      ],
+      "then": "refuse",
+      "says": "when engine is not match then refuse",
+      "why": "runtime bytes must match the lock"
+    },
+    {
+      "id": "REQ-002",
+      "when": [
+        {
+          "field": "weights",
+          "op": "is",
+          "value": "mismatch"
+        }
+      ],
+      "then": "refuse",
+      "says": "when weights is mismatch then refuse",
+      "why": "wrong weight bytes are refused"
+    },
+    {
+      "id": "REQ-003",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "compiled"
+        },
+        {
+          "field": "weights",
+          "op": "is not",
+          "value": "none"
+        }
+      ],
+      "then": "refuse",
+      "says": "when mode is compiled and weights is not none then refuse",
+      "why": "a compiled model carries no separate blob"
+    },
+    {
+      "id": "REQ-004",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "compiled"
+        },
+        {
+          "field": "route",
+          "op": "is not",
+          "value": "none"
+        }
+      ],
+      "then": "refuse",
+      "says": "when mode is compiled and route is not none then refuse",
+      "why": "a compiled answer is not routed"
+    },
+    {
+      "id": "REQ-005",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "inprism"
+        },
+        {
+          "field": "weights",
+          "op": "is not",
+          "value": "match"
+        }
+      ],
+      "then": "refuse",
+      "says": "when mode is inprism and weights is not match then refuse",
+      "why": "a model in Prism runs only from its fingerprinted blob"
+    },
+    {
+      "id": "REQ-006",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "inprism"
+        },
+        {
+          "field": "route",
+          "op": "is not",
+          "value": "none"
+        }
+      ],
+      "then": "refuse",
+      "says": "when mode is inprism and route is not none then refuse",
+      "why": "an in-Prism answer is not routed"
+    },
+    {
+      "id": "REQ-007",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "routed"
+        },
+        {
+          "field": "route",
+          "op": "is not",
+          "value": "granted"
+        }
+      ],
+      "then": "refuse",
+      "says": "when mode is routed and route is not granted then refuse",
+      "why": "the empty grant admits no route"
+    },
+    {
+      "id": "REQ-008",
+      "when": [
+        {
+          "field": "weights",
+          "op": "is",
+          "value": "missing"
+        }
+      ],
+      "then": "refuse",
+      "says": "when weights is missing then refuse",
+      "why": "a routed model with a blob must have it verified"
+    },
+    {
+      "id": "REQ-009",
+      "when": [
+        {
+          "field": "boundary",
+          "op": "is",
+          "value": "deny"
+        }
+      ],
+      "then": "refuse",
+      "says": "when boundary is deny then refuse",
+      "why": "the Boundary denied it"
+    },
+    {
+      "id": "REQ-010",
+      "when": [
+        {
+          "field": "boundary",
+          "op": "is",
+          "value": "ask"
+        }
+      ],
+      "then": "ask",
+      "says": "when boundary is ask then ask",
+      "why": "the Boundary asks the owner"
+    },
+    {
+      "id": "REQ-011",
+      "when": [
+        {
+          "field": "boundary",
+          "op": "is",
+          "value": "hashonly"
+        }
+      ],
+      "then": "receipt",
+      "says": "when boundary is hashonly then receipt",
+      "why": "the Boundary allows only a hash"
+    }
+  ],
+  "otherwise": "answer",
+  "properties": [
+    {
+      "id": "INV-001",
+      "kind": "never",
+      "when": [
+        {
+          "field": "weights",
+          "op": "is",
+          "value": "mismatch"
+        }
+      ],
+      "then": "answer",
+      "says": "never when weights is mismatch then answer",
+      "why": "tampered or wrong weights would answer as if they were the locked model"
+    },
+    {
+      "id": "INV-002",
+      "kind": "never",
+      "when": [
+        {
+          "field": "engine",
+          "op": "is not",
+          "value": "match"
+        }
+      ],
+      "then": "answer",
+      "says": "never when engine is not match then answer",
+      "why": "unverified runtime bytes could produce any answer"
+    },
+    {
+      "id": "INV-003",
+      "kind": "never",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "routed"
+        },
+        {
+          "field": "route",
+          "op": "is not",
+          "value": "granted"
+        }
+      ],
+      "then": "answer",
+      "says": "never when mode is routed and route is not granted then answer",
+      "why": "a request could leave for a model the owner never granted"
+    },
+    {
+      "id": "INV-004",
+      "kind": "never",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "compiled"
+        },
+        {
+          "field": "weights",
+          "op": "is not",
+          "value": "none"
+        }
+      ],
+      "then": "answer",
+      "says": "never when mode is compiled and weights is not none then answer",
+      "why": "a compiled model would be confused with a model run from a blob"
+    },
+    {
+      "id": "INV-005",
+      "kind": "never",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is",
+          "value": "inprism"
+        },
+        {
+          "field": "weights",
+          "op": "is not",
+          "value": "match"
+        }
+      ],
+      "then": "answer",
+      "says": "never when mode is inprism and weights is not match then answer",
+      "why": "a model in Prism would answer without its fingerprinted blob"
+    },
+    {
+      "id": "INV-006",
+      "kind": "never",
+      "when": [
+        {
+          "field": "mode",
+          "op": "is not",
+          "value": "routed"
+        },
+        {
+          "field": "route",
+          "op": "is not",
+          "value": "none"
+        }
+      ],
+      "then": "answer",
+      "says": "never when mode is not routed and route is not none then answer",
+      "why": "a routed answer would be credited to a model that did not produce it"
+    },
+    {
+      "id": "INV-007",
+      "kind": "never",
+      "when": [
+        {
+          "field": "boundary",
+          "op": "is not",
+          "value": "allow"
+        }
+      ],
+      "then": "answer",
+      "says": "never when boundary is not allow then answer",
+      "why": "a value would be shown without the Boundary's allow"
+    }
+  ],
+  "examples": [
+    {
+      "request": "inprism match match none allow",
+      "response": "answer"
+    },
+    {
+      "request": "inprism match mismatch none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "inprism match missing none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "inprism mismatch match none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "inprism missing match none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "inprism match match granted allow",
+      "response": "refuse"
+    },
+    {
+      "request": "inprism match match none hashonly",
+      "response": "receipt"
+    },
+    {
+      "request": "inprism match match none ask",
+      "response": "ask"
+    },
+    {
+      "request": "inprism match match none deny",
+      "response": "refuse"
+    },
+    {
+      "request": "compiled match none none allow",
+      "response": "answer"
+    },
+    {
+      "request": "compiled match match none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "compiled match none granted allow",
+      "response": "refuse"
+    },
+    {
+      "request": "routed match none granted allow",
+      "response": "answer"
+    },
+    {
+      "request": "routed match match granted allow",
+      "response": "answer"
+    },
+    {
+      "request": "routed match none ungranted allow",
+      "response": "refuse"
+    },
+    {
+      "request": "routed match none none allow",
+      "response": "refuse"
+    },
+    {
+      "request": "routed match missing granted allow",
+      "response": "refuse"
+    },
+    {
+      "request": "routed match mismatch granted allow",
+      "response": "refuse"
+    }
+  ],
+  "schema": "prism/spec/1",
+  "actors": [],
+  "meanings": {
+    "answer": "show the answer with its receipt",
+    "receipt": "show only the receipt, which carries the answer's hash",
+    "ask": "ask the owner before showing it",
+    "refuse": "show nothing but the reason"
+  },
+  "otherwiseWhy": "verified bytes, one mode, and the Boundary allows it"
+}

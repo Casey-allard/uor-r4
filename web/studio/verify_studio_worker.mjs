@@ -1218,58 +1218,35 @@ for (const forbidden of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource',
     assert(!workerSrc.includes(forbidden), `uor_model_worker.js contains forbidden network token: ${forbidden}`);
 }
 
-// 6a. The page's honest status contract: pre-alpha, M1 closed, 1 of 8 milestones.
-// These assertions fail if the honest chip is removed or the stale claims return.
-const indexHtml = readFileSync(resolve(__dirname, 'index.html'), 'utf8');
-assert(indexHtml.includes('id="projectStatus"'), 'index.html must carry the #projectStatus status chip');
-assert(/Pre-alpha[^<]*M1[^<]*1 of 8/.test(indexHtml), 'the status chip must state Pre-alpha, M1 closed and 1 of 8 milestones');
-assert(!indexHtml.includes('d36EngineStatusBanner'), 'the stale d36EngineStatusBanner banner must stay removed');
-assert(!indexHtml.includes('0/8') && !indexHtml.includes('P_succ = 35.1%'), 'the stale 0/8 and P_succ = 35.1% claims must stay removed');
-assert(!indexHtml.includes('35.1%</code> tok/s') && !indexHtml.includes('35.1% tok/s'), 'unsourced "35.1% tok/s" must not appear in index.html');
-assert(!indexHtml.includes('en.wikipedia.org/w/api.php'), 'live Wikipedia search fetch must be removed from index.html');
-assert(!indexHtml.includes('api.duckduckgo.com'), 'live DuckDuckGo search fetch must be removed from index.html');
+// 6a. Foundry Studio honest status and UOR-R4 integration contract.
+const projectShellSrc = readFileSync(resolve(__dirname, 'foundry/studio/core/src/bin/project_shell.rs'), 'utf8');
+const modelPickerSrc = readFileSync(resolve(__dirname, 'foundry/studio/vendor/prism/hologram.ModelPicker.tsx'), 'utf8');
+const r4RuntimeSrc = readFileSync(resolve(__dirname, 'foundry/studio/shell/uor-r4-runtime.mjs'), 'utf8');
+const r4PolicySrc = readFileSync(resolve(__dirname, 'foundry/studio/shell/r4.mjs'), 'utf8');
 
-// 6b. The page wires the model-source manager, the API module and this worker, and
-// marks itself ready for the model sources (data-studio-ready + uor-studio-ready).
-assert(indexHtml.includes('id="modelSourcesPanel"') && indexHtml.includes('id="modelSourceMount"'),
-    'index.html must carry the model-source panel ids (#modelSourcesPanel, #modelSourceMount)');
-assert(indexHtml.includes('id="btnOpenModelSources"'), 'index.html must carry the #btnOpenModelSources control');
-assert(indexHtml.includes('id="engineStatus"') && indexHtml.includes('id="modelStatus"'),
-    'index.html must carry the #engineStatus and #modelStatus chips');
-assert(indexHtml.includes("import { mountModelSources, ModelSources } from './assets/js/model_sources.js'"),
-    'index.html must import the model-source module');
-assert(indexHtml.includes("import { configFromSources, normalizeBaseUrl, streamChatCompletions } from './assets/js/studio_api.js'"),
-    'index.html must import the API module');
-assert(indexHtml.includes('./assets/js/uor_model_worker.js'), 'index.html must start the wasm model worker');
-assert(indexHtml.includes("document.documentElement.dataset.studioReady = '1'") && indexHtml.includes("new CustomEvent('uor-studio-ready')"),
-    'index.html must set document data-studio-ready = 1 and dispatch the uor-studio-ready event');
+assert(/Pre-alpha[^']*M1 complete[^']*1 of 8/.test(modelPickerSrc) && /Pre-alpha[^']*M1 complete[^']*1 of 8/.test(r4RuntimeSrc),
+    'Foundry UI and runtime must carry the honest Pre-alpha / M1 complete (1 of 8 milestones) label');
+assert(!projectShellSrc.includes('uor-foundation.github.io/template/frame/backdrops'),
+    'project_shell.rs must not default to an external backdrop URL');
+assert(!projectShellSrc.includes('en.wikipedia.org/w/api.php') && !projectShellSrc.includes('api.duckduckgo.com'),
+    'live Wikipedia/DuckDuckGo fetches must stay absent');
 
-// 6c. All four model-source options are offered by model_sources.js: the bundled
-// synthetic demo, a local file, a user-initiated URL and OpenAI-compatible APIs.
-const modelSourcesSrc = readFileSync(resolve(__dirname, 'assets/js/model_sources.js'), 'utf8');
-for (const marker of ["cardHeader('Demo'", "cardHeader('Local file'", "cardHeader('From URL'", "cardHeader('API'"]) {
-    assert(modelSourcesSrc.includes(marker), `model_sources.js must offer the ${marker.replace("cardHeader('", '').replace("'", '')} source`);
-}
-for (const marker of ['load-bundled', 'load-url', 'add-api', '[data-role="model-file"]']) {
-    assert(modelSourcesSrc.includes(marker), `model_sources.js must wire the ${marker} source control`);
-}
-assert(modelSourcesSrc.includes('./pkg/synthetic-stack.lut'),
-    'the bundled demo source must point at the build-produced ./pkg/synthetic-stack.lut');
-assert(modelSourcesSrc.includes('globalThis.UORModelSources = api'),
-    'model_sources.js must expose window.UORModelSources for the page');
-for (const method of ['loadLocalFile', 'loadFromUrl', 'apiConfig', 'save', 'testApi']) {
-    assert(modelSourcesSrc.includes(method), `window.UORModelSources must expose ${method}`);
-}
-assert(modelSourcesSrc.includes("uor-model-source-changed"),
-    'model_sources.js must dispatch the uor-model-source-changed event');
+// 6b. Foundry runtime wires uor_model_worker.js and supports bundled demo, M1 public release OPFS cache, and local .uorlut upload.
+assert(r4RuntimeSrc.includes('./uor/js/uor_model_worker.js'), 'uor-r4-runtime.mjs must start uor_model_worker.js');
+assert(r4RuntimeSrc.includes('./models.json'), 'uor-r4-runtime.mjs must read same-origin models.json');
+assert(r4RuntimeSrc.includes('loadLocalArtifact') && r4RuntimeSrc.includes('predictDiscrete'),
+    'uor-r4-runtime.mjs must expose loadLocalArtifact and predictDiscrete');
+assert(r4PolicySrc.includes('inprism'), 'r4.mjs must enforce the inprism policy rule for uor-r4');
+assert(modelPickerSrc.includes('uor-r4:load-local-file') && modelPickerSrc.includes('modelSelectionScope('),
+    'hologram.ModelPicker.tsx must wire local .uorlut/.d11 upload and canonical selection scope');
 assert(remoteRequests.length === 0, `expected 0 remote requests, got ${JSON.stringify(remoteRequests)}`);
 
 console.log(JSON.stringify({
     verdict: 'ALL STUDIO WORKER CHECKS PASSED',
     engine: runtimeMsg.engine,
     statusChip: 'pre-alpha / M1 complete / 1 of 8 milestones',
-    modelSourceOptions: ['bundled demo', 'local file', 'user-initiated URL', 'OpenAI-compatible API'],
-    studioReadyMarker: 'data-studio-ready + uor-studio-ready',
+    modelSourceOptions: ['bundled demo', 'local file', 'M1 OPFS cache', 'Foundry reader'],
+    studioReadyMarker: 'Foundry uor-r4-runtime + uor_model_worker',
     statusLabel: loadedMsg.capabilities.status_label,
     tokenizerLabel: loadedMsg.capabilities.tokenizer_label,
     weightsPerToken: loadedMsg.capabilities.weights_per_token,

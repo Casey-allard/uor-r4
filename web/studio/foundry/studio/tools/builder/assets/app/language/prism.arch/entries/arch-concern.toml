@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "arch-concern"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "Concern"
+
+[[form]]
+id = "arch-concern"
+channel = "text"
+surface = "architectural concern"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

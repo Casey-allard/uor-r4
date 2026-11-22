@@ -1,0 +1,1633 @@
+\begin{lexlean}{VerdantResonance}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Text application model}
+\begin{semanticmodule}
+definition{name: biomeMeadow, parameters: [], result: Nat, body: 0}
+
+definition{name: biomeGrove, parameters: [], result: Nat, body: 1}
+
+definition{name: biomeCrystal, parameters: [], result: Nat, body: 2}
+
+definition{name: biomeWetland, parameters: [], result: Nat, body: 3}
+
+definition{name: biomeSanctuary, parameters: [], result: Nat, body: 4}
+
+definition{name: plantChimeLily, parameters: [], result: Nat, body: 0}
+
+definition{name: plantPulseFern, parameters: [], result: Nat, body: 1}
+
+definition{name: plantEchoLotus, parameters: [], result: Nat, body: 2}
+
+definition{name: plantDroneMoss, parameters: [], result: Nat, body: 3}
+
+definition{name: plantStarOrchid, parameters: [], result: Nat, body: 4}
+
+definition{name: actionObserve, parameters: [], result: Nat, body: 0}
+
+definition{name: actionTouch, parameters: [], result: Nat, body: 1}
+
+definition{name: actionAttune, parameters: [], result: Nat, body: 2}
+
+definition{name: actionStroll, parameters: [], result: Nat, body: 3}
+
+definition{name: actionStillness, parameters: [], result: Nat, body: 4}
+
+definition{name: atmosphereDawn, parameters: [], result: Nat, body: 0}
+
+definition{name: atmosphereGolden, parameters: [], result: Nat, body: 1}
+
+definition{name: atmosphereTwilight, parameters: [], result: Nat, body: 2}
+
+definition{name: atmosphereStarlight, parameters: [], result: Nat, body: 3}
+
+definition{name: chorusDormant, parameters: [], result: Nat, body: 0}
+
+definition{name: chorusAwakened, parameters: [], result: Nat, body: 1}
+
+definition{name: answerSanctuaryChorus, parameters: [], result: Nat, body: 0}
+
+definition{name: answerSereneRest, parameters: [], result: Nat, body: 1}
+
+definition{name: answerNocturnalSymphony, parameters: [], result: Nat, body: 2}
+
+definition{name: answerDawnArpeggio, parameters: [], result: Nat, body: 3}
+
+definition{name: answerHarmonicBloom, parameters: [], result: Nat, body: 4}
+
+definition{name: answerCrystallineChoir, parameters: [], result: Nat, body: 5}
+
+definition{name: answerMelodicChime, parameters: [], result: Nat, body: 6}
+
+definition{name: answerRhythmicPulse, parameters: [], result: Nat, body: 7}
+
+definition{name: answerAmbientDrone, parameters: [], result: Nat, body: 8}
+
+definition{name: answerWindWhisper, parameters: [], result: Nat, body: 9}
+
+structure{
+  name: Request,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: biome, type: Nat},
+    {name: plant, type: Nat},
+    {name: action, type: Nat},
+    {name: atmosphere, type: Nat},
+    {name: chorus, type: Nat},
+    {name: proximity, type: Nat},
+    {name: velocity, type: Nat}
+  ]
+}
+
+definition{
+  name: inBounds,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30))
+}
+
+definition{
+  name: rule1,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request action) =? (actionStillness)) && ((project request velocity) =? 0)) && ((project request biome) =? (biomeSanctuary))) && ((project request proximity) <=? 45))
+}
+
+definition{
+  name: rule2,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((project request biome) =? (biomeSanctuary)) && ((project request chorus) =? (chorusAwakened))) && ((project request action) =? (actionAttune))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule3,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request chorus) =? (chorusAwakened)) && ((project request plant) =? (plantStarOrchid))) && ((project request atmosphere) =? (atmosphereStarlight))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule4,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeWetland))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionAttune))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule5,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request action) =? (actionAttune)) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule6,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeMeadow))) && ((project request plant) =? (plantChimeLily))) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule7,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request atmosphere) =? (atmosphereStarlight)) && ((project request action) =? (actionStillness))) && ((project request velocity) =? 0)) && ((project request proximity) <=? 30))
+}
+
+definition{
+  name: rule8,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request atmosphere) =? (atmosphereTwilight)) && ((project request plant) =? (plantEchoLotus))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule9,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request atmosphere) =? (atmosphereStarlight)) && ((project request plant) =? (plantDroneMoss))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule10,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request atmosphere) =? (atmosphereDawn)) && ((project request plant) =? (plantChimeLily))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule11,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request atmosphere) =? (atmosphereGolden)) && ((project request biome) =? (biomeMeadow))) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 20))
+}
+
+definition{
+  name: rule12,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((project request atmosphere) =? (atmosphereDawn)) && ((project request biome) =? (biomeGrove))) && ((project request plant) =? (plantPulseFern))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule13,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request biome) =? (biomeCrystal)) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 20))
+}
+
+definition{
+  name: rule14,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request plant) =? (plantStarOrchid)) && ((project request biome) =? (biomeSanctuary))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule15,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request plant) =? (plantChimeLily)) && ((project request proximity) <=? 30)) && ((project request velocity) <=? 20))
+}
+
+definition{
+  name: rule16,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request plant) =? (plantStarOrchid)) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 30))
+}
+
+definition{
+  name: rule17,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request plant) =? (plantPulseFern)) && ((project request proximity) <=? 30)) && (10 <=? (project request velocity))) && ((project request velocity) <=? 20))
+}
+
+definition{
+  name: rule18,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request plant) =? (plantEchoLotus)) && ((project request biome) =? (biomeWetland))) && ((project request proximity) <=? 30))
+}
+
+definition{
+  name: rule19,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((project request plant) =? (plantDroneMoss)) && ((project request proximity) <=? 30)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule20,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((project request biome) =? (biomeGrove)) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 30))
+}
+
+definition{
+  name: rule21,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((project request biome) =? (biomeCrystal)) && ((project request plant) =? (plantPulseFern))) && ((project request action) =? (actionStroll))) && ((project request proximity) <=? 30)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule22,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((project request atmosphere) =? (atmosphereGolden)) && ((project request plant) =? (plantDroneMoss))) && ((project request action) =? (actionStillness))) && ((project request velocity) =? 0)) && ((project request proximity) <=? 45))
+}
+
+definition{
+  name: rule23,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((project request chorus) =? (chorusAwakened)) && ((project request plant) =? (plantPulseFern))) && ((project request action) =? (actionTouch))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule24,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeCrystal))) && ((project request plant) =? (plantStarOrchid))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule25,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeSanctuary))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule26,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeGrove))) && ((project request plant) =? (plantPulseFern))) && ((project request atmosphere) =? (atmosphereGolden))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8))
+}
+
+definition{
+  name: rule27,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request biome) =? (biomeMeadow)) && ((project request plant) =? (plantEchoLotus))) && ((project request atmosphere) =? (atmosphereDawn))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule28,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeSanctuary))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionTouch))) && ((project request atmosphere) =? (atmosphereStarlight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule29,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeCrystal))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionObserve))) && ((project request atmosphere) =? (atmosphereStarlight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10))
+}
+
+definition{
+  name: rule30,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((project request biome) =? (biomeGrove)) && ((project request plant) =? (plantPulseFern))) && ((project request action) =? (actionStillness))) && ((project request atmosphere) =? (atmosphereDawn))) && ((project request velocity) =? 0)) && ((project request proximity) <=? 40))
+}
+
+definition{
+  name: rule31,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeWetland))) && ((project request plant) =? (plantPulseFern))) && ((project request action) =? (actionStroll))) && ((project request atmosphere) =? (atmosphereTwilight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8))
+}
+
+definition{
+  name: rule32,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeGrove))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionObserve))) && ((project request atmosphere) =? (atmosphereGolden))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8))
+}
+
+definition{
+  name: rule33,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeMeadow))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionTouch))) && ((project request atmosphere) =? (atmosphereDawn))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8))
+}
+
+definition{
+  name: rule34,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((project request chorus) =? (chorusAwakened)) && ((project request biome) =? (biomeCrystal))) && ((project request plant) =? (plantPulseFern))) && ((project request action) =? (actionObserve))) && ((project request atmosphere) =? (atmosphereTwilight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8))
+}
+
+definition{
+  name: rule35,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((project request velocity) <=? 10) && ((project request proximity) <=? 45))
+}
+
+definition{
+  name: judge,
+  parameters: [request : Request],
+  result: Nat,
+  body: (if (rule1 request) then (answerSereneRest) else (if (rule2 request) then (answerSanctuaryChorus) else (if (rule3 request) then (answerSanctuaryChorus) else (if (rule4 request) then (answerSanctuaryChorus) else (if (rule5 request) then (answerHarmonicBloom) else (if (rule6 request) then (answerHarmonicBloom) else (if (rule7 request) then (answerNocturnalSymphony) else (if (rule8 request) then (answerNocturnalSymphony) else (if (rule9 request) then (answerNocturnalSymphony) else (if (rule10 request) then (answerDawnArpeggio) else (if (rule11 request) then (answerDawnArpeggio) else (if (rule12 request) then (answerDawnArpeggio) else (if (rule13 request) then (answerCrystallineChoir) else (if (rule14 request) then (answerCrystallineChoir) else (if (rule15 request) then (answerMelodicChime) else (if (rule16 request) then (answerMelodicChime) else (if (rule17 request) then (answerRhythmicPulse) else (if (rule18 request) then (answerRhythmicPulse) else (if (rule19 request) then (answerAmbientDrone) else (if (rule20 request) then (answerMelodicChime) else (if (rule21 request) then (answerRhythmicPulse) else (if (rule22 request) then (answerSereneRest) else (if (rule23 request) then (answerHarmonicBloom) else (if (rule24 request) then (answerCrystallineChoir) else (if (rule25 request) then (answerSanctuaryChorus) else (if (rule26 request) then (answerHarmonicBloom) else (if (rule27 request) then (answerDawnArpeggio) else (if (rule28 request) then (answerSanctuaryChorus) else (if (rule29 request) then (answerCrystallineChoir) else (if (rule30 request) then (answerSereneRest) else (if (rule31 request) then (answerNocturnalSymphony) else (if (rule32 request) then (answerHarmonicBloom) else (if (rule33 request) then (answerDawnArpeggio) else (if (rule34 request) then (answerCrystallineChoir) else (if (rule35 request) then (answerAmbientDrone) else (answerWindWhisper))))))))))))))))))))))))))))))))))))
+}
+
+definition{
+  name: breaksInv001,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request action) =? (actionStillness))) && ((project request velocity) =? 0)) && ((project request biome) =? (biomeSanctuary))) && ((project request proximity) <=? 45)) && (not ((judge request) =? (answerSereneRest))))
+}
+
+theorem{
+  name: inv001Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv001 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv001,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv002,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request biome) =? (biomeSanctuary))) && ((project request chorus) =? (chorusAwakened))) && ((project request action) =? (actionAttune))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10)) && (not ((judge request) =? (answerSanctuaryChorus))))
+}
+
+theorem{
+  name: inv002Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv002 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv002,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv003,
+  parameters: [request : Request],
+  result: Bool,
+  body: (((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeWetland))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionAttune))) && ((project request proximity) <=? 20)) && ((project request velocity) <=? 10)) && (not ((judge request) =? (answerSanctuaryChorus))))
+}
+
+theorem{
+  name: inv003Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv003 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv003,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv004,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (45 <? (project request proximity))) && ((judge request) =? (answerSanctuaryChorus)))
+}
+
+theorem{
+  name: inv004Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv004 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv004,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv005,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (45 <? (project request proximity))) && ((judge request) =? (answerHarmonicBloom)))
+}
+
+theorem{
+  name: inv005Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv005 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv005,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv006,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (45 <? (project request proximity))) && ((judge request) =? (answerNocturnalSymphony)))
+}
+
+theorem{
+  name: inv006Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv006 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv006,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv007,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (45 <? (project request proximity))) && ((judge request) =? (answerCrystallineChoir)))
+}
+
+theorem{
+  name: inv007Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv007 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv007,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv008,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (45 <? (project request proximity))) && (not ((judge request) =? (answerWindWhisper))))
+}
+
+theorem{
+  name: inv008Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv008 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv008,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv009,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (20 <? (project request velocity))) && ((judge request) =? (answerSereneRest)))
+}
+
+theorem{
+  name: inv009Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv009 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv009,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv010,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && (20 <? (project request velocity))) && ((judge request) =? (answerSanctuaryChorus)))
+}
+
+theorem{
+  name: inv010Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv010 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv010,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv011,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeSanctuary))) && ((project request plant) =? (plantEchoLotus))) && ((project request atmosphere) =? (atmosphereGolden))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10)) && (not ((judge request) =? (answerSanctuaryChorus))))
+}
+
+theorem{
+  name: inv011Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv011 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv011,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv012,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeGrove))) && ((project request plant) =? (plantPulseFern))) && ((project request atmosphere) =? (atmosphereGolden))) && ((project request action) =? (actionObserve))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8)) && (not ((judge request) =? (answerHarmonicBloom))))
+}
+
+theorem{
+  name: inv012Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv012 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv012,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv013,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeSanctuary))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionTouch))) && ((project request atmosphere) =? (atmosphereStarlight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10)) && (not ((judge request) =? (answerSanctuaryChorus))))
+}
+
+theorem{
+  name: inv013Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv013 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv013,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv014,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeCrystal))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionObserve))) && ((project request atmosphere) =? (atmosphereStarlight))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 10)) && (not ((judge request) =? (answerCrystallineChoir))))
+}
+
+theorem{
+  name: inv014Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv014 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv014,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: breaksInv015,
+  parameters: [request : Request],
+  result: Bool,
+  body: ((((((((((((((((project request biome) <? 5) && ((project request plant) <? 5)) && ((project request action) <? 5)) && ((project request atmosphere) <? 4)) && ((project request chorus) <? 2)) && ((project request proximity) <=? 100)) && ((project request velocity) <=? 30)) && ((project request chorus) =? (chorusAwakened))) && ((project request biome) =? (biomeGrove))) && ((project request plant) =? (plantEchoLotus))) && ((project request action) =? (actionObserve))) && ((project request atmosphere) =? (atmosphereGolden))) && ((project request proximity) <=? 25)) && ((project request velocity) <=? 8)) && (not ((judge request) =? (answerHarmonicBloom))))
+}
+
+theorem{
+  name: inv015Holds,
+  parameters: [request : Request],
+  statement: ((breaksInv015 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      actionAttune,
+      actionObserve,
+      actionStillness,
+      actionStroll,
+      actionTouch,
+      answerAmbientDrone,
+      answerCrystallineChoir,
+      answerDawnArpeggio,
+      answerHarmonicBloom,
+      answerMelodicChime,
+      answerNocturnalSymphony,
+      answerRhythmicPulse,
+      answerSanctuaryChorus,
+      answerSereneRest,
+      answerWindWhisper,
+      atmosphereDawn,
+      atmosphereGolden,
+      atmosphereStarlight,
+      atmosphereTwilight,
+      biomeCrystal,
+      biomeGrove,
+      biomeMeadow,
+      biomeSanctuary,
+      biomeWetland,
+      breaksInv015,
+      chorusAwakened,
+      chorusDormant,
+      judge,
+      plantChimeLily,
+      plantDroneMoss,
+      plantEchoLotus,
+      plantPulseFern,
+      plantStarOrchid,
+      rule1,
+      rule10,
+      rule11,
+      rule12,
+      rule13,
+      rule14,
+      rule15,
+      rule16,
+      rule17,
+      rule18,
+      rule19,
+      rule2,
+      rule20,
+      rule21,
+      rule22,
+      rule23,
+      rule24,
+      rule25,
+      rule26,
+      rule27,
+      rule28,
+      rule29,
+      rule3,
+      rule30,
+      rule31,
+      rule32,
+      rule33,
+      rule34,
+      rule35,
+      rule4,
+      rule5,
+      rule6,
+      rule7,
+      rule8,
+      rule9
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

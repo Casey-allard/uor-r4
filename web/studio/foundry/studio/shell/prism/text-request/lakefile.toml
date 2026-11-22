@@ -1,0 +1,6 @@
+name = "PrismTextRequest"
+version = "0.1.0"
+defaultTargets = ["PrismTextRequest"]
+
+[[lean_lib]]
+name = "PrismTextRequest"

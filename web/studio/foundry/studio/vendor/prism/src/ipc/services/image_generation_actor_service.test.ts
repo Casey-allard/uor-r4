@@ -1,0 +1,218 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  ImageGenerationActorState,
+  ImageGenerationEvent,
+} from "@/image_generation/state";
+import { ImageGenerationActorService } from "./image_generation_actor_service";
+import type { RequestId } from "@/distributed_machines/request_identity";
+
+const service = vi.hoisted(() => ({
+  beginAppDeletion: vi.fn(),
+  endAppDeletion: vi.fn(),
+  cancelAndSettleApp: vi.fn(async () => undefined),
+  cancelAndSettleAll: vi.fn(async () => undefined),
+}));
+const presentation = vi.hoisted(() => ({
+  forgetApp: vi.fn(),
+}));
+const operations = vi.hoisted(() => ({
+  createPublisher: vi.fn(),
+  releaseApp: vi.fn(),
+  releaseActor: vi.fn(),
+  remoteContract: vi.fn(() => ({
+    prepare: vi.fn(() => undefined),
+    ignoredOutcome: vi.fn(),
+    receipt: vi.fn(),
+    releaseManager: vi.fn(),
+  })),
+  settleActor: vi.fn(),
+}));
+
+vi.mock("./image_generation_service", () => ({
+  imageGenerationService: service,
+}));
+vi.mock("./image_generation_presentation_service", () => ({
+  imageGenerationPresentationService: presentation,
+}));
+vi.mock("./image_generation_operation_service", () => ({
+  imageGenerationOperationService: operations,
+}));
+vi.mock("./distributed_machine_host", () => ({
+  remoteMachineHost: {},
+}));
+
+describe("ImageGenerationActorService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("settles and prunes matching jobs only after app deletion commits", async () => {
+    const state: ImageGenerationActorState = {
+      jobs: [
+        {
+          requestId: "request-1" as RequestId,
+          job: {
+            id: "job-1",
+            prompt: "A lighthouse",
+            themeMode: "plain",
+            targetAppId: 7,
+            targetAppName: "App",
+            startedAt: 1,
+            status: "pending",
+          },
+          activeInvocationRef: {
+            kind: "image-generation",
+            entityKey: "job-1",
+            operationId: "operation-1",
+          },
+        },
+      ],
+    };
+    const enqueue = vi.fn((_event: ImageGenerationEvent) => ({
+      settled: Promise.resolve({ kind: "applied" }),
+    }));
+    const fence = {
+      key: { collection: "default" },
+      generation: { ordinal: 1, identity: {} },
+      seal: vi.fn(async () => undefined),
+      commit: vi.fn(() => true),
+      abort: vi.fn(() => true),
+      release: vi.fn(() => true),
+    };
+    const host = {
+      peek: vi.fn(() => ({ getSnapshot: () => state, enqueue })),
+      disposeMachine: vi.fn(async () => undefined),
+      beginFence: vi.fn(() => fence),
+    };
+    const actorService = new ImageGenerationActorService(host as never);
+
+    const deletion = actorService.beginAppDeletion(7);
+    await actorService.prepareAppDeletion(deletion);
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "APP_DELETION_STARTED",
+      appId: 7,
+    });
+    await actorService.finishAppDeletion(deletion, true);
+
+    expect(service.beginAppDeletion).toHaveBeenCalledWith(7);
+    expect(presentation.forgetApp).toHaveBeenCalledWith(7, state);
+    expect(enqueue).toHaveBeenCalledWith({ type: "APP_DELETED", appId: 7 });
+    expect(service.cancelAndSettleApp).toHaveBeenCalledWith(7);
+    expect(enqueue.mock.invocationCallOrder[0]).toBeLessThan(
+      service.cancelAndSettleApp.mock.invocationCallOrder[0],
+    );
+    expect(service.cancelAndSettleApp.mock.invocationCallOrder[0]).toBeLessThan(
+      fence.seal.mock.invocationCallOrder[0],
+    );
+    expect(fence.release.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueue.mock.invocationCallOrder[1],
+    );
+    expect(fence.seal).toHaveBeenCalled();
+    expect(fence.commit).toHaveBeenCalled();
+    expect(operations.releaseApp).toHaveBeenCalledWith(7);
+    expect(fence.release).toHaveBeenCalled();
+    expect(service.endAppDeletion).toHaveBeenCalledWith(7);
+  });
+
+  it("reopens without removing jobs when deletion fails", async () => {
+    const fence = {
+      key: { collection: "default" },
+      generation: { ordinal: 1, identity: {} },
+      seal: vi.fn(async () => undefined),
+      commit: vi.fn(() => true),
+      abort: vi.fn(() => true),
+      release: vi.fn(() => true),
+    };
+    const enqueue = vi.fn();
+    const actorService = new ImageGenerationActorService({
+      peek: vi.fn(() => ({
+        getSnapshot: () => ({ jobs: [] }),
+        enqueue,
+      })),
+      disposeMachine: vi.fn(),
+      beginFence: vi.fn(() => fence),
+    } as never);
+
+    const deletion = actorService.beginAppDeletion(7);
+    await actorService.finishAppDeletion(deletion, false);
+
+    expect(fence.abort).toHaveBeenCalledOnce();
+    expect(fence.commit).not.toHaveBeenCalled();
+    expect(fence.release).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(presentation.forgetApp).not.toHaveBeenCalled();
+    expect(operations.releaseApp).not.toHaveBeenCalled();
+    expect(service.endAppDeletion).toHaveBeenCalledWith(7);
+  });
+
+  it("publishes the singleton collection fence for app deletion", () => {
+    const beginFence = vi.fn(() => ({
+      key: { collection: "default" },
+      generation: { ordinal: 1, identity: {} },
+      seal: vi.fn(),
+      commit: vi.fn(),
+      abort: vi.fn(),
+      release: vi.fn(),
+    }));
+    const actorService = new ImageGenerationActorService({
+      peek: vi.fn(),
+      disposeMachine: vi.fn(),
+      beginFence,
+    } as never);
+
+    actorService.beginAppDeletion(7);
+
+    expect(beginFence).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "image_generation" }),
+      expect.objectContaining({
+        key: { scope: "jobs" },
+      }),
+    );
+  });
+
+  it("documents precommit cancellation before an aborted delete", async () => {
+    const enqueue = vi.fn(() => ({
+      settled: Promise.resolve({ kind: "applied" }),
+    }));
+    const fence = {
+      key: { collection: "default" },
+      generation: { ordinal: 1, identity: {} },
+      seal: vi.fn(async () => undefined),
+      commit: vi.fn(() => true),
+      abort: vi.fn(() => true),
+      release: vi.fn(() => true),
+    };
+    const actorService = new ImageGenerationActorService({
+      peek: vi.fn(() => ({
+        getSnapshot: () => ({ jobs: [] }),
+        enqueue,
+      })),
+      disposeMachine: vi.fn(),
+      beginFence: vi.fn(() => fence),
+    } as never);
+
+    const deletion = actorService.beginAppDeletion(7);
+    await actorService.prepareAppDeletion(deletion);
+    await actorService.finishAppDeletion(deletion, false);
+
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "APP_DELETION_STARTED",
+      appId: 7,
+    });
+    expect(service.cancelAndSettleApp).toHaveBeenCalledWith(7);
+    expect(fence.abort).toHaveBeenCalledOnce();
+  });
+
+  it("disposes the actor before reset continues", async () => {
+    const disposeMachine = vi.fn(async () => undefined);
+    const actorService = new ImageGenerationActorService({
+      peek: vi.fn(),
+      disposeMachine,
+      beginFence: vi.fn(),
+    } as never);
+
+    await actorService.disposeAllApps();
+
+    expect(disposeMachine).toHaveBeenCalledWith("image_generation");
+  });
+});

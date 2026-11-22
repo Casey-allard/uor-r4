@@ -1,0 +1,240 @@
+import { createLoggedHandler } from "./safe_handle";
+import log from "electron-log";
+import { AppUpgrade } from "@/ipc/types";
+import { db } from "../../db";
+import { apps } from "../../db/schema";
+import { eq } from "drizzle-orm";
+import { getPrismAppPath } from "../../paths/paths";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import {
+  isComponentTaggerUpgradeNeeded,
+  applyComponentTagger,
+  simpleSpawnWithDeniedPnpmBuildSelfHeal,
+} from "../utils/app_upgrade_utils";
+import fs from "node:fs";
+import path from "node:path";
+import { gitAddAll, gitCommit } from "../utils/git_utils";
+import { simpleSpawn } from "../utils/simpleSpawn";
+import { PNPM_PM_ON_FAIL_IGNORE_ARG } from "../utils/socket_firewall";
+import {
+  applyPnpmVersionMigration,
+  getManagedPnpmMajorVersion,
+  isPnpmVersionMigrationNeeded,
+} from "../utils/pnpm_migration";
+import { queryInvalidationBus } from "@/window_infrastructure/main/query_invalidation_bus";
+
+export const logger = log.scope("app_upgrade_handlers");
+const handle = createLoggedHandler(logger);
+
+function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
+  const managedPnpmMajor = getManagedPnpmMajorVersion();
+  return [
+    {
+      id: "component-tagger",
+      title: "Enable select component to edit",
+      description:
+        "Installs the Prism component tagger Vite plugin and its dependencies.",
+      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/select-component",
+    },
+    {
+      id: "capacitor",
+      title: "Upgrade to hybrid mobile app with Capacitor",
+      description:
+        "Adds Capacitor to your app lets it run on iOS and Android in addition to the web.",
+      manualUpgradeUrl:
+        "https://dyad.sh/docs/guides/mobile-app#upgrade-your-app",
+    },
+    {
+      id: "pnpm-version-migration",
+      title: `Migrate to pnpm ${managedPnpmMajor}`,
+      description:
+        `This app has legacy pnpm metadata. Prism already runs pnpm ${managedPnpmMajor}, ` +
+        "which writes a lockfile format older pnpm versions can't read. This updates the " +
+        `packageManager pin and the lockfile together so everything matches pnpm ${managedPnpmMajor}.`,
+      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/pnpm-migration",
+    },
+  ];
+}
+
+async function getApp(appId: number) {
+  const app = await db.query.apps.findFirst({
+    where: eq(apps.id, appId),
+  });
+  if (!app) {
+    throw new PrismError(
+      `App with id ${appId} not found`,
+      PrismErrorKind.NotFound,
+    );
+  }
+  return app;
+}
+
+function isViteApp(appPath: string): boolean {
+  const viteConfigPathJs = path.join(appPath, "vite.config.js");
+  const viteConfigPathTs = path.join(appPath, "vite.config.ts");
+
+  return fs.existsSync(viteConfigPathTs) || fs.existsSync(viteConfigPathJs);
+}
+
+function isCapacitorUpgradeNeeded(appPath: string): boolean {
+  // Check if it's a Vite app first
+  if (!isViteApp(appPath)) {
+    return false;
+  }
+
+  // Check if Capacitor is already installed
+  const capacitorConfigJs = path.join(appPath, "capacitor.config.js");
+  const capacitorConfigTs = path.join(appPath, "capacitor.config.ts");
+  const capacitorConfigJson = path.join(appPath, "capacitor.config.json");
+
+  // If any Capacitor config exists, the upgrade is not needed
+  if (
+    fs.existsSync(capacitorConfigJs) ||
+    fs.existsSync(capacitorConfigTs) ||
+    fs.existsSync(capacitorConfigJson)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+async function applyCapacitor({
+  appName,
+  appPath,
+}: {
+  appName: string;
+  appPath: string;
+}) {
+  // Install Capacitor dependencies
+  try {
+    await simpleSpawnWithDeniedPnpmBuildSelfHeal({
+      command: `pnpm ${PNPM_PM_ON_FAIL_IGNORE_ARG} add --ignore-workspace-root-check @capacitor/core@7.4.4 @capacitor/cli@7.4.4 @capacitor/ios@7.4.4 @capacitor/android@7.4.4`,
+      cwd: appPath,
+      successMessage: "Capacitor dependencies installed successfully with pnpm",
+      errorPrefix: "Failed to install Capacitor dependencies via pnpm",
+    });
+  } catch (pnpmErr) {
+    logger.info("pnpm install failed, falling back to npm", pnpmErr);
+    await simpleSpawn({
+      command:
+        "npm install @capacitor/core@7.4.4 @capacitor/cli@7.4.4 @capacitor/ios@7.4.4 @capacitor/android@7.4.4 --legacy-peer-deps",
+      cwd: appPath,
+      successMessage: "Capacitor dependencies installed successfully with npm",
+      errorPrefix: "Failed to install Capacitor dependencies",
+    });
+  }
+
+  // Initialize Capacitor
+  await simpleSpawn({
+    command: `npx cap init "${appName}" "com.example.${appName.toLowerCase().replace(/[^a-z0-9]/g, "")}" --web-dir=dist`,
+    cwd: appPath,
+    successMessage: "Capacitor initialized successfully",
+    errorPrefix: "Failed to initialize Capacitor",
+  });
+
+  // Intentionally omit PNPM_INSTALL_POLICY_ARGS because:
+  // 1. confirmModulesPurge will almost never be needed for capacitor (i.e. user would need to switch from npm to pnpm and not triggered a rebuild).
+  // 2. strictBuildDeps should be kept true (default value) in case capacitor has native deps.
+  try {
+    await simpleSpawnWithDeniedPnpmBuildSelfHeal({
+      command: `pnpm ${PNPM_PM_ON_FAIL_IGNORE_ARG} install --prod=false`,
+      cwd: appPath,
+      successMessage:
+        "Development dependencies installed successfully with pnpm",
+      errorPrefix: "Failed to install development dependencies via pnpm",
+    });
+  } catch (pnpmErr) {
+    logger.info("pnpm install failed, falling back to npm", pnpmErr);
+    await simpleSpawn({
+      command: "npm install --include=dev --legacy-peer-deps",
+      cwd: appPath,
+      successMessage:
+        "Development dependencies installed successfully with npm",
+      errorPrefix: "Failed to install development dependencies",
+    });
+  }
+
+  // Add iOS and Android platforms
+  await simpleSpawn({
+    command: "npx cap add ios && npx cap add android",
+    cwd: appPath,
+    successMessage: "iOS and Android platforms added successfully",
+    errorPrefix: "Failed to add iOS and Android platforms",
+  });
+
+  // Commit changes
+  try {
+    logger.info("Staging and committing Capacitor changes");
+    await gitAddAll({ path: appPath });
+    await gitCommit({
+      path: appPath,
+      message: "add Capacitor for mobile app support",
+    });
+    logger.info("Successfully committed Capacitor changes");
+  } catch (err) {
+    logger.warn(
+      `Failed to commit changes. This may happen if the project is not in a git repository, or if there are no changes to commit.`,
+      err,
+    );
+    throw new Error(
+      "Failed to commit Capacitor changes. Please commit them manually. Error: " +
+        err,
+    );
+  }
+}
+
+export function registerAppUpgradeHandlers() {
+  handle(
+    "get-app-upgrades",
+    async (_, { appId }: { appId: number }): Promise<AppUpgrade[]> => {
+      const app = await getApp(appId);
+      const appPath = getPrismAppPath(app.path);
+
+      const upgradesWithStatus = getAvailableUpgrades().map((upgrade) => {
+        let isNeeded = false;
+        if (upgrade.id === "component-tagger") {
+          isNeeded = isComponentTaggerUpgradeNeeded(appPath);
+        } else if (upgrade.id === "capacitor") {
+          isNeeded = isCapacitorUpgradeNeeded(appPath);
+        } else if (upgrade.id === "pnpm-version-migration") {
+          isNeeded = isPnpmVersionMigrationNeeded(appPath);
+        }
+        return { ...upgrade, isNeeded };
+      });
+
+      return upgradesWithStatus;
+    },
+  );
+
+  handle(
+    "execute-app-upgrade",
+    async (
+      event,
+      { appId, upgradeId }: { appId: number; upgradeId: string },
+    ) => {
+      if (!upgradeId) {
+        throw new PrismError("upgradeId is required", PrismErrorKind.Validation);
+      }
+
+      const app = await getApp(appId);
+      const appPath = getPrismAppPath(app.path);
+
+      if (upgradeId === "component-tagger") {
+        await applyComponentTagger(appPath);
+      } else if (upgradeId === "capacitor") {
+        await applyCapacitor({ appName: app.name, appPath });
+      } else if (upgradeId === "pnpm-version-migration") {
+        await applyPnpmVersionMigration({ appPath });
+      } else {
+        throw new PrismError(
+          `Unknown upgrade id: ${upgradeId}`,
+          PrismErrorKind.External,
+        );
+      }
+      queryInvalidationBus.publish([{ family: "versions", appId }], {
+        originEndpoint: event.sender,
+      });
+    },
+  );
+}

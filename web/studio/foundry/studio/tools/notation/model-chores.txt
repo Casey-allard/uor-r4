@@ -1,0 +1,8 @@
+app Chore tracker
+form "Log a chore"
+text person "Who" max 40
+choice chore "Chore": "Dishes", "Vacuum", "Bins", "Bathroom", "Cooking", "Laundry"
+table done "Done this week": person, chore
+count done "Chores logged"
+action "Log chore": add to done
+action "Clear": clear done

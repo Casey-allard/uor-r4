@@ -1,0 +1,1972 @@
+import { db } from "../../db";
+import {
+  apps,
+  chats,
+  chatTurnIntents,
+  messages,
+  versions,
+} from "../../db/schema";
+import { desc, eq, and, gt, gte } from "drizzle-orm";
+import type { GitCommit } from "../git_types";
+import fs from "node:fs";
+import path from "node:path";
+import { getPrismAppPath } from "../../paths/paths";
+import {
+  appOperationCoordinator,
+  readAppResource,
+} from "../services/app_operation_coordinator";
+import log from "electron-log";
+import { createTypedHandler } from "./base";
+import { versionContracts } from "../types/version";
+import type {
+  CheckoutVersionParamsSchema,
+  RevertVersionParamsSchema,
+  RestoreToMessageParamsSchema,
+  VersionCommandResult,
+} from "../types/version";
+import type { z } from "zod";
+import type { SafeSender } from "../utils/safe_sender";
+
+import { deployAllSupabaseFunctions } from "../../supabase_admin/supabase_utils";
+import { readSettings } from "../../main/settings";
+import {
+  gitAddAll,
+  gitCheckout,
+  gitCommit,
+  getGitUncommittedFilesWithStatus,
+  gitStageToRevert,
+  getCurrentCommitHash,
+  gitCommitExists,
+  gitCurrentBranch,
+  gitLog,
+  inspectRepositoryHealth,
+  getChangedFilesForCommit,
+  getFileAtCommit,
+  getOldFileContent,
+} from "../utils/git_utils";
+
+import {
+  getNeonClient,
+  getNeonErrorMessage,
+  getRetentionWindowFromError,
+  isRetentionWindowError,
+} from "../../neon_admin/neon_management_client";
+import { getConnectionUri } from "../../neon_admin/neon_context";
+import {
+  updatePostgresUrlEnvVar,
+  updateDbPushEnvVar,
+} from "../utils/app_env_var_utils";
+import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
+import { retryOnLocked } from "../utils/retryOnLocked";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import { syncCloudSandboxSnapshot } from "../utils/cloud_sandbox_provider";
+import {
+  DIFF_BINARY_PLACEHOLDER,
+  DIFF_TOO_LARGE_PLACEHOLDER,
+} from "@/shared/diff_placeholders";
+import {
+  blockNewStreamsForApp,
+  blockNewStreamsForChat,
+  cancelActiveStreamsForApp,
+} from "./chat_stream_handlers";
+import {
+  beginAppChatActorMutation,
+  waitForAppChatActorsIdle,
+} from "@/ipc/services/chat_actor_service";
+import type { RestoreRecovery } from "@/version_preview/state";
+import { readStoredReferencedAppIds } from "../utils/mention_apps";
+import { blockRecordingStart } from "../services/recording_registry";
+import { isCancelledResponseContent } from "@/shared/chatCancellation";
+import type { ChatTurnTerminalOutcome } from "@/shared/chat_turn_outcome";
+
+const logger = log.scope("version_handlers");
+
+type RevertVersionParams = z.infer<typeof RevertVersionParamsSchema>;
+type CheckoutVersionParams = z.infer<typeof CheckoutVersionParamsSchema>;
+type RestoreToMessageParams = z.infer<typeof RestoreToMessageParamsSchema>;
+
+interface VersionPreviewHandlerBridge {
+  revertVersion?: (
+    params: RevertVersionParams,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) => Promise<VersionCommandResult>;
+  restoreToMessage?: (
+    params: RestoreToMessageParams,
+    sender?: SafeSender,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) => Promise<VersionCommandResult>;
+  checkoutVersion?: (
+    params: CheckoutVersionParams,
+  ) => Promise<VersionCommandResult>;
+}
+
+const versionPreviewHandlerBridge: VersionPreviewHandlerBridge = {};
+
+/**
+ * Main-owned version-preview actor bridge. These handlers are installed with
+ * the normal version handler registration so the actor and legacy integration
+ * tests execute exactly the same mutation cores during the atomic migration.
+ */
+export const versionPreviewHandlerService = {
+  revertVersion(
+    params: RevertVersionParams,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) {
+    if (!versionPreviewHandlerBridge.revertVersion) {
+      throw new Error("Version handlers are not registered");
+    }
+    return versionPreviewHandlerBridge.revertVersion(params, onRestoreProgress);
+  },
+  restoreToMessage(
+    params: RestoreToMessageParams,
+    sender?: SafeSender,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) {
+    if (!versionPreviewHandlerBridge.restoreToMessage) {
+      throw new Error("Version handlers are not registered");
+    }
+    return versionPreviewHandlerBridge.restoreToMessage(
+      params,
+      sender,
+      onRestoreProgress,
+    );
+  },
+  checkoutVersion(params: CheckoutVersionParams) {
+    if (!versionPreviewHandlerBridge.checkoutVersion) {
+      throw new Error("Version handlers are not registered");
+    }
+    return versionPreviewHandlerBridge.checkoutVersion(params);
+  },
+};
+
+// Guard against dumping binary blobs or huge files into the renderer's diff
+// editor. Binary files render as garbage and large files hurt performance.
+const MAX_DIFF_CONTENT_BYTES = 1_000_000; // ~1 MB
+
+function sanitizeDiffContent(content: string): string {
+  // Size guard first: content.length is an O(1) check that short-circuits
+  // oversized files before the O(N) NUL scan / byte-length traversal below.
+  // Fast-path: every UTF-8 character is at least 1 byte, so if the string
+  // length already exceeds the limit, the byte length must too — which lets us
+  // skip the Buffer.byteLength traversal for large files entirely.
+  if (
+    content.length > MAX_DIFF_CONTENT_BYTES ||
+    Buffer.byteLength(content, "utf-8") > MAX_DIFF_CONTENT_BYTES
+  ) {
+    return DIFF_TOO_LARGE_PLACEHOLDER;
+  }
+  // A NUL byte is a strong signal the file is binary.
+  if (/\u0000/.test(content)) {
+    return DIFF_BINARY_PLACEHOLDER;
+  }
+  return content;
+}
+
+/**
+ * Builds a user-facing warning for when the code was restored but the Neon
+ * database could not be. The retention-window case (the database snapshot is
+ * older than Neon keeps history for, e.g. 6 hours on the free plan) gets a
+ * dedicated explanation since it isn't an unexpected failure.
+ */
+function getDatabaseRestoreWarning(error: unknown): string {
+  if (isRetentionWindowError(error)) {
+    const window = getRetentionWindowFromError(error);
+    return (
+      "Restored your code to this version, but the database could not be restored: " +
+      `this version is older than your database's restore window${
+        window ? ` (${window})` : ""
+      }. ` +
+      "Neon's free plan only keeps a limited window of database history, so this " +
+      "snapshot has expired. Your current database was left unchanged."
+    );
+  }
+  return `Could not restore the database because of an error: ${getNeonErrorMessage(
+    error,
+  )}`;
+}
+
+function appendWarning(existing: string, addition: string): string {
+  return existing ? `${existing}\n${addition}` : addition;
+}
+
+const INTERRUPTED_GENERATION_WARNING =
+  "An in-progress generation was cancelled during this restore attempt. Re-submit its prompt to continue.";
+const INTERRUPTED_CHECKPOINT_NOTICE =
+  "Partial changes from the interrupted generation were saved as an [Interrupted] version in Version History.";
+
+function versionRuntimeAction(
+  app: typeof apps.$inferSelect,
+  changedCodebase: boolean,
+): "none" | "restart" {
+  if (!changedCodebase) return "none";
+  return readSettings().runtimeMode2 === "cloud" || app.neonProjectId
+    ? "restart"
+    : "none";
+}
+
+function versionCommandResult({
+  repositoryOutcome = "target-applied",
+  notification = null,
+  runtimeAction = "none",
+  affectedChatId = null,
+  createdChatId = null,
+}: {
+  repositoryOutcome?: "target-applied" | "unchanged";
+  notification?: {
+    kind: "success" | "warning";
+    message: string;
+  } | null;
+  runtimeAction?: "none" | "restart";
+  affectedChatId?: number | null;
+  createdChatId?: number | null;
+}) {
+  return {
+    repositoryOutcome,
+    notification,
+    runtimeAction,
+    affectedChatId,
+    createdChatId,
+  };
+}
+
+function appendInterruptedGenerationWarning(
+  warningMessage: string,
+  didCancelStreams: boolean,
+): string {
+  return didCancelStreams
+    ? appendWarning(warningMessage, INTERRUPTED_GENERATION_WARNING)
+    : warningMessage;
+}
+
+type RestoreMessageCommitMetadata = Pick<
+  typeof messages.$inferSelect,
+  "role" | "content" | "sourceCommitHash" | "commitHash" | "chatTurnIntentId"
+>;
+
+type RestoreTargetTurnOutcome = ChatTurnTerminalOutcome | "unknown";
+
+async function getRestoreTargetTurnOutcome({
+  chatMessages,
+  targetIndex,
+}: {
+  chatMessages: RestoreMessageCommitMetadata[];
+  targetIndex: number;
+}): Promise<RestoreTargetTurnOutcome> {
+  const target = chatMessages[targetIndex];
+  if (!target || target.role !== "user") return "unknown";
+
+  return getStoredTurnOutcome(target, chatMessages[targetIndex + 1]);
+}
+
+async function getStoredTurnOutcome(
+  target: RestoreMessageCommitMetadata,
+  nextMessage?: RestoreMessageCommitMetadata,
+): Promise<RestoreTargetTurnOutcome> {
+  if (target.chatTurnIntentId) {
+    const intent = await db.query.chatTurnIntents.findFirst({
+      columns: { terminalOutcome: true },
+      where: eq(chatTurnIntents.intentId, target.chatTurnIntentId),
+    });
+    if (intent?.terminalOutcome) return intent.terminalOutcome;
+  }
+
+  if (
+    nextMessage?.role === "assistant" &&
+    !nextMessage.commitHash &&
+    isCancelledResponseContent(nextMessage.content)
+  ) {
+    return "cancelled";
+  }
+
+  return "unknown";
+}
+
+async function getRestoreTargetTurnOutcomeForMessage({
+  chatId,
+  messageId,
+}: {
+  chatId: number;
+  messageId: number;
+}): Promise<RestoreTargetTurnOutcome> {
+  const columns = {
+    role: true,
+    content: true,
+    sourceCommitHash: true,
+    commitHash: true,
+    chatTurnIntentId: true,
+  } as const;
+  const target = await db.query.messages.findFirst({
+    columns,
+    where: and(eq(messages.chatId, chatId), eq(messages.id, messageId)),
+  });
+  if (!target || target.role !== "user") return "unknown";
+  const nextMessage = await db.query.messages.findFirst({
+    columns,
+    where: and(eq(messages.chatId, chatId), gt(messages.id, messageId)),
+    orderBy: (messages, { asc }) => [asc(messages.id)],
+  });
+  return getStoredTurnOutcome(target, nextMessage);
+}
+
+function resolveTargetCommitHash({
+  chatMessages,
+  targetIndex,
+  initialCommitHash,
+}: {
+  chatMessages: RestoreMessageCommitMetadata[];
+  targetIndex: number;
+  initialCommitHash: string | null;
+}): string | null {
+  // Primary signal: the assistant response stores the commit that was current
+  // when the target turn started.
+  for (let index = targetIndex + 1; index < chatMessages.length; index++) {
+    const message = chatMessages[index];
+    if (message.role === "assistant") {
+      if (message.sourceCommitHash) {
+        return message.sourceCommitHash;
+      }
+      break;
+    }
+  }
+
+  // Fallback: the preceding assistant's final commit is the state immediately
+  // before the target user message.
+  for (let index = targetIndex - 1; index >= 0; index--) {
+    const message = chatMessages[index];
+    if (message.role === "assistant" && message.commitHash) {
+      return message.commitHash;
+    }
+  }
+
+  return initialCommitHash;
+}
+
+async function resolveRestoreRef({
+  appPath,
+  targetBranchName,
+}: {
+  appPath: string;
+  targetBranchName?: string;
+}): Promise<{
+  currentBranch: string | null;
+  revertRef: string;
+  currentCommitHash: string;
+}> {
+  const currentBranch = await gitCurrentBranch({ path: appPath });
+  if (!currentBranch && !targetBranchName) {
+    throw new PrismError(
+      "Cannot restore while viewing a historical version. Close the version " +
+        "preview to return to your branch, then try again.",
+      PrismErrorKind.Conflict,
+    );
+  }
+  const revertRef = currentBranch ?? targetBranchName!;
+  const currentCommitHash = await getCurrentCommitHash({
+    path: appPath,
+    ref: revertRef,
+  });
+  return { currentBranch, revertRef, currentCommitHash };
+}
+
+async function syncCloudSandboxSnapshotBestEffort(appId: number) {
+  try {
+    await syncCloudSandboxSnapshot({ appId });
+  } catch (error) {
+    logger.warn(
+      `Cloud sandbox sync failed after version operation for app ${appId}:`,
+      error,
+    );
+  }
+}
+
+function normalizeVersionNote(note: string | null): string | null {
+  const trimmed = note?.trim();
+  return trimmed ? trimmed : null;
+}
+
+async function getVersionAppPath(appId: number): Promise<string> {
+  const app = await db.query.apps.findFirst({
+    where: eq(apps.id, appId),
+  });
+
+  if (!app) {
+    throw new PrismError("App not found", PrismErrorKind.NotFound);
+  }
+
+  const appPath = getPrismAppPath(app.path);
+  if (!fs.existsSync(path.join(appPath, ".git"))) {
+    throw new PrismError("Not a git repository", PrismErrorKind.External);
+  }
+
+  return appPath;
+}
+
+async function assertVersionExists({
+  appPath,
+  versionId,
+}: {
+  appPath: string;
+  versionId: string;
+}) {
+  const exists = await gitCommitExists({
+    path: appPath,
+    commitHash: versionId,
+  });
+  if (!exists) {
+    throw new PrismError("Version not found", PrismErrorKind.NotFound);
+  }
+}
+
+async function upsertVersionMetadata({
+  appId,
+  versionId,
+  isFavorite,
+  note,
+}: {
+  appId: number;
+  versionId: string;
+  isFavorite?: boolean;
+  note?: string | null;
+}) {
+  const appPath = await getVersionAppPath(appId);
+  await assertVersionExists({ appPath, versionId });
+
+  const normalizedNote =
+    note === undefined ? undefined : normalizeVersionNote(note);
+
+  const [versionMetadata] = await db
+    .insert(versions)
+    .values({
+      appId,
+      commitHash: versionId,
+      // Insert means this is the first metadata touch for the version. For an
+      // absent row, defaults for omitted fields preserve the intended baseline.
+      isFavorite: isFavorite ?? false,
+      note: normalizedNote ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [versions.appId, versions.commitHash],
+      set: {
+        ...(isFavorite === undefined ? {} : { isFavorite }),
+        ...(normalizedNote === undefined ? {} : { note: normalizedNote }),
+        updatedAt: new Date(),
+      },
+    })
+    .returning({
+      isFavorite: versions.isFavorite,
+      note: versions.note,
+    });
+
+  return {
+    oid: versionId,
+    isFavorite: versionMetadata.isFavorite,
+    note: versionMetadata.note,
+  };
+}
+
+async function restoreBranchForPreview({
+  appId,
+  dbTimestamp,
+  neonProjectId,
+  previewBranchId,
+  developmentBranchId,
+}: {
+  appId: number;
+  dbTimestamp: string;
+  neonProjectId: string;
+  previewBranchId: string;
+  developmentBranchId: string;
+}): Promise<void> {
+  const neonClient = await getNeonClient();
+  await retryOnLocked(
+    () =>
+      neonClient.restoreProjectBranch(neonProjectId, previewBranchId, {
+        source_branch_id: developmentBranchId,
+        source_timestamp: dbTimestamp,
+      }),
+    `Restore preview branch ${previewBranchId} for app ${appId}`,
+  );
+}
+
+/**
+ * Reverts the app's codebase (and Neon DB / Supabase functions / cloud sandbox)
+ * to the given version. This does NOT modify any chat messages or acquire app
+ * resources; callers coordinate repository, provider, and runtime config.
+ */
+async function revertCodebaseToVersion({
+  appId,
+  app,
+  appPath,
+  previousVersionId,
+  targetBranchName,
+  preserveDirtyTree = false,
+  onRestoreProgress,
+}: {
+  appId: number;
+  app: typeof apps.$inferSelect;
+  appPath: string;
+  previousVersionId: string;
+  targetBranchName?: string;
+  preserveDirtyTree?: boolean;
+  onRestoreProgress?: (progress: RestoreRecovery) => void;
+}): Promise<{
+  successMessage: string;
+  warningMessage: string;
+  restoreCompletion: Extract<
+    RestoreRecovery,
+    { repositoryOutcome: "target-applied" }
+  > & { nextStep: "chat-mutation" };
+  preservedInterruptedChanges: boolean;
+}> {
+  let successMessage = "Restored version";
+  let warningMessage = "";
+
+  const { currentBranch, revertRef, currentCommitHash } =
+    await resolveRestoreRef({
+      appPath,
+      targetBranchName,
+    });
+  const restoreFacts = {
+    preRestoreHead: currentCommitHash,
+    preRestoreBranch: targetBranchName ?? currentBranch,
+    targetHead: previousVersionId,
+  } as const;
+
+  // Restores rewrite the index and working tree. In particular, preserving an
+  // interrupted turn stages and commits the entire tree, which Git can treat as
+  // resolving conflicts or completing an unrelated merge/cherry-pick. Refuse
+  // every restore while Git owns the repository for another operation, before
+  // emitting progress or making any mutation.
+  const repositoryHealth = await inspectRepositoryHealth({ path: appPath });
+  if (repositoryHealth.unmergedFiles.length > 0) {
+    throw new PrismError(
+      "Cannot revert: repository has unresolved file conflicts.",
+      PrismErrorKind.Conflict,
+    );
+  }
+  if (repositoryHealth.operationInProgress) {
+    throw new PrismError(
+      `Cannot revert: a Git ${repositoryHealth.operationInProgress} is in progress. Finish or cancel it outside Prism, then try again.`,
+      PrismErrorKind.Conflict,
+    );
+  }
+
+  const checkpointGitStep = (
+    nextStep:
+      | "preparing"
+      | "preserve-dirty-tree"
+      | "checkout-branch"
+      | "hard-reset"
+      | "soft-reset"
+      | "commit",
+  ) => onRestoreProgress?.({ ...restoreFacts, nextStep });
+  // Detached HEAD (e.g. the Version pane has a historical version checked out)
+  // has no branch to anchor the revert commit to. Callers that legitimately
+  // operate while detached (the Version-pane restore) pass an explicit
+  // `targetBranchName` so the commit lands on the live branch. Without one, the
+  // revert commit would be created on the detached HEAD and then abandoned when
+  // the saved branch is checked out again, silently discarding the restore. Bail
+  // out with a clear message instead of doing the work only to throw it away.
+  // A cancelled stream may leave partial writes behind. Preserve that
+  // interrupted turn before reverting when the caller can prove the dirty tree
+  // belongs to a durably cancelled turn. Other restore and checkout paths keep
+  // their prior dirty-tree conflict behavior instead of silently committing
+  // manual edits.
+  let detachedCheckpointCommit: string | null = null;
+  let preservedInterruptedChanges = false;
+  if (preserveDirtyTree && !repositoryHealth.isClean) {
+    // Stage everything first so untracked files (e.g. a newly added
+    // pnpm-workspace.yaml) are included. With native git, `git commit` only
+    // commits staged changes, so without this the commit would fail with
+    // "nothing added to commit but untracked files present" and the revert
+    // would abort.
+    //
+    // We commit the whole dirty tree (rather than only stream-written files)
+    // because the interrupted turn's writes cannot be reliably distinguished
+    // from any pre-existing edits. This never loses work: the changes are
+    // captured in a recoverable checkpoint commit that stays in history between
+    // the target version and the revert commit, so the user can get back to it
+    // via the Version pane. Log exactly what was captured so the side effect is
+    // transparent rather than silent.
+    const preservedFiles = await getGitUncommittedFilesWithStatus({
+      path: appPath,
+    });
+    const preservedUserVisibleFiles = preservedFiles
+      .map((f) => `${f.status} ${f.path}`)
+      .join(", ");
+    logger.log(
+      `Preserving dirty tree in a checkpoint commit before restoring app ${appId}. ` +
+        `User-visible uncommitted file(s): ${preservedFiles.length}` +
+        (preservedUserVisibleFiles ? ` (${preservedUserVisibleFiles})` : "") +
+        ". Prism-managed runtime files may also be included in the checkpoint.",
+    );
+    checkpointGitStep("preserve-dirty-tree");
+    await gitAddAll({ path: appPath });
+    const checkpointCommit = await gitCommit({
+      path: appPath,
+      message:
+        "[Interrupted] Saved partial changes before restoring to an earlier version",
+    });
+    preservedInterruptedChanges = true;
+    if (!currentBranch) {
+      detachedCheckpointCommit = checkpointCommit;
+    }
+  }
+
+  if (!preserveDirtyTree) {
+    const userVisibleChanges = await getGitUncommittedFilesWithStatus({
+      path: appPath,
+    });
+    if (userVisibleChanges.length > 0) {
+      throw new PrismError(
+        "Cannot revert: working tree has uncommitted changes.",
+        PrismErrorKind.Conflict,
+      );
+    }
+  }
+
+  if (currentBranch !== revertRef) {
+    const [checkoutStartBranch, checkoutStartHead] = await Promise.all([
+      gitCurrentBranch({ path: appPath }),
+      getCurrentCommitHash({ path: appPath }),
+    ]);
+    checkpointGitStep("checkout-branch");
+    try {
+      await gitCheckout({
+        path: appPath,
+        ref: revertRef,
+      });
+    } catch (error) {
+      try {
+        const [branchAfterFailure, headAfterFailure] = await Promise.all([
+          gitCurrentBranch({ path: appPath }),
+          getCurrentCommitHash({ path: appPath }),
+        ]);
+        if (
+          !preservedInterruptedChanges &&
+          branchAfterFailure === checkoutStartBranch &&
+          headAfterFailure === checkoutStartHead
+        ) {
+          onRestoreProgress?.({
+            repositoryOutcome: "unchanged",
+            nextStep: "completed",
+          });
+        }
+      } catch (probeError) {
+        logger.warn(
+          `Could not inspect repository state after checkout failed for app ${appId}; preserving the original checkout error.`,
+          probeError,
+        );
+      }
+      throw error;
+    }
+  }
+
+  // When the interrupted writes were checkpointed from a detached historical
+  // preview, carry that exact tree onto the live branch before restoring. This
+  // keeps the checkpoint discoverable in Version History and avoids asking Git
+  // to checkout the branch over conflicting dirty files.
+  if (detachedCheckpointCommit) {
+    const hasStagedCheckpointChanges = await gitStageToRevert({
+      path: appPath,
+      targetOid: detachedCheckpointCommit,
+      onBeforeReset: ({ nextStep }) => checkpointGitStep(nextStep),
+    });
+    if (hasStagedCheckpointChanges) {
+      checkpointGitStep("commit");
+      await gitCommit({
+        path: appPath,
+        message:
+          "[Interrupted] Saved partial changes before restoring to an earlier version",
+      });
+    }
+  }
+
+  if (app.neonProjectId && app.neonDevelopmentBranchId) {
+    // We are going to add a new commit on top, so let's store
+    // the current timestamp at the current version.
+    await storeDbTimestampAtCurrentVersion({
+      appId,
+    });
+  }
+
+  const hasStagedRevertChanges = await gitStageToRevert({
+    path: appPath,
+    targetOid: previousVersionId,
+    onBeforeReset: ({ nextStep }) => checkpointGitStep(nextStep),
+  });
+  if (hasStagedRevertChanges) {
+    checkpointGitStep("commit");
+    await gitCommit({
+      path: appPath,
+      message: `Reverted all changes back to version ${previousVersionId}`,
+    });
+  }
+
+  if (app.neonProjectId && app.neonDevelopmentBranchId) {
+    const version = await db.query.versions.findFirst({
+      where: and(
+        eq(versions.appId, appId),
+        eq(versions.commitHash, previousVersionId),
+      ),
+    });
+    if (version && version.neonDbTimestamp) {
+      try {
+        const preserveBranchName = `preserve_${currentCommitHash}-${Date.now()}`;
+        const neonClient = await getNeonClient();
+        const response = await retryOnLocked(
+          () =>
+            neonClient.restoreProjectBranch(
+              app.neonProjectId!,
+              app.neonDevelopmentBranchId!,
+              {
+                source_branch_id: app.neonDevelopmentBranchId!,
+                source_timestamp: version.neonDbTimestamp!,
+                preserve_under_name: preserveBranchName,
+              },
+            ),
+          `Restore development branch ${app.neonDevelopmentBranchId} for app ${appId}`,
+        );
+        // Update all versions which have a newer DB timestamp than the version we're restoring to
+        // and remove their DB timestamp.
+        await db
+          .update(versions)
+          .set({ neonDbTimestamp: null })
+          .where(
+            and(
+              eq(versions.appId, appId),
+              gt(versions.neonDbTimestamp, version.neonDbTimestamp),
+            ),
+          );
+
+        const preserveBranchId = response.data.branch.parent_id;
+        if (!preserveBranchId) {
+          throw new PrismError(
+            "Preserve branch ID not found",
+            PrismErrorKind.NotFound,
+          );
+        }
+        logger.info(
+          `Deleting preserve branch ${preserveBranchId} for app ${appId}`,
+        );
+        // Intentionally do not await this because it's not
+        // critical for the restore operation, it's to clean up branches
+        // so the user doesn't hit the branch limit later. The error is
+        // handled via `.catch()` rather than a surrounding try/catch
+        // because, without an `await`, a try/catch would not catch the
+        // promise rejection and it would surface as an unhandled rejection.
+        retryOnLocked(
+          () =>
+            neonClient.deleteProjectBranch(
+              app.neonProjectId!,
+              preserveBranchId,
+            ),
+          `Delete preserve branch ${preserveBranchId} for app ${appId}`,
+          { retryBranchWithChildError: true },
+        ).catch((error) => {
+          const errorMessage = getNeonErrorMessage(error);
+          logger.error("Error in deleteProjectBranch:", errorMessage);
+        });
+        // Only claim the database was included when the restore actually
+        // succeeded. Setting this after the catch would wrongly report
+        // "(including database)" even when the Neon restore failed and
+        // `warningMessage` was set.
+        successMessage =
+          "Successfully restored to version (including database)";
+      } catch (error) {
+        logger.error(
+          "Error restoring Neon development branch during revert:",
+          getNeonErrorMessage(error),
+        );
+        // Use the shared helper so the retention-window case gets its
+        // user-friendly explanation instead of a raw error string.
+        warningMessage = getDatabaseRestoreWarning(error);
+        // Do not throw, so we can finish switching the postgres branch
+        // It might throw because they picked a timestamp that's too old.
+      }
+    }
+    try {
+      await switchPostgresToDevelopmentBranch({
+        neonProjectId: app.neonProjectId,
+        neonDevelopmentBranchId: app.neonDevelopmentBranchId,
+        appPath: app.path,
+      });
+    } catch (error) {
+      // The git revert has already been committed at this point, so throwing
+      // here would leave the code restored while the caller (revertVersion /
+      // restore-to-message) skips its chat-state updates and reports failure.
+      // Surface this as a warning so the restore still completes; only pointing
+      // the app at the development database failed.
+      logger.error(
+        "Error switching Postgres to the development branch after revert:",
+        getNeonErrorMessage(error),
+      );
+      warningMessage = appendWarning(
+        warningMessage,
+        "Restored your code to this version, but could not switch the app's " +
+          `database connection back to the development branch: ${getNeonErrorMessage(
+            error,
+          )}. Please check your app's database connection before relying on its data.`,
+      );
+    }
+  }
+  // Re-deploy all Supabase edge functions after reverting
+  if (app.supabaseProjectId) {
+    try {
+      logger.info(
+        `Re-deploying all Supabase edge functions for app ${appId} after revert`,
+      );
+      const settings = readSettings();
+      const deployErrors = await deployAllSupabaseFunctions({
+        appPath,
+        supabaseProjectId: app.supabaseProjectId,
+        supabaseOrganizationSlug: app.supabaseOrganizationSlug ?? null,
+        skipPruneEdgeFunctions: settings.skipPruneEdgeFunctions ?? false,
+      });
+
+      if (deployErrors.length > 0) {
+        warningMessage = appendWarning(
+          warningMessage,
+          `Some Supabase functions failed to deploy after revert: ${deployErrors.join(", ")}`,
+        );
+        logger.warn(warningMessage);
+        // Note: We don't fail the revert operation if function deployment fails
+        // The code has been successfully reverted, but functions may be out of sync
+      } else {
+        logger.info(
+          `Successfully re-deployed all Supabase edge functions for app ${appId}`,
+        );
+      }
+    } catch (error) {
+      warningMessage = appendWarning(
+        warningMessage,
+        `Error re-deploying Supabase edge functions after revert: ${error}`,
+      );
+      logger.warn(warningMessage);
+      // Continue with the revert operation even if function deployment fails
+    }
+  }
+  await syncCloudSandboxSnapshotBestEffort(appId);
+
+  const restoreCompletion = {
+    ...restoreFacts,
+    completedHead: await getCurrentCommitHash({ path: appPath }),
+    repositoryOutcome: "target-applied",
+    nextStep: "chat-mutation",
+  } as const;
+  onRestoreProgress?.(restoreCompletion);
+
+  return {
+    successMessage,
+    warningMessage,
+    restoreCompletion,
+    preservedInterruptedChanges,
+  };
+}
+
+export function registerVersionHandlers() {
+  createTypedHandler(versionContracts.listVersions, async (_, params) => {
+    const { appId, ref } = params;
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, appId),
+    });
+
+    if (!app) {
+      // The app might have just been deleted, so we return an empty array.
+      return [];
+    }
+
+    const appPath = getPrismAppPath(app.path);
+
+    // Just return an empty array if the app is not a git repo.
+    if (!fs.existsSync(path.join(appPath, ".git"))) {
+      return [];
+    }
+
+    const commits = await gitLog({
+      path: appPath,
+      depth: 100_000, // KEEP UP TO DATE WITH ChatHeader.tsx
+      ref,
+    });
+
+    // Get all stored version metadata for this app to match with commits.
+    const appVersionMetadata = await db.query.versions.findMany({
+      where: eq(versions.appId, appId),
+    });
+
+    // Create a map of commitHash -> version metadata for quick lookup.
+    const metadataMap = new Map<
+      string,
+      {
+        neonDbTimestamp: string | null;
+        isFavorite: boolean;
+        note: string | null;
+      }
+    >();
+    for (const metadata of appVersionMetadata) {
+      metadataMap.set(metadata.commitHash, {
+        neonDbTimestamp: metadata.neonDbTimestamp,
+        isFavorite: metadata.isFavorite,
+        note: metadata.note,
+      });
+    }
+
+    return commits.map((commit: GitCommit) => {
+      const metadata = metadataMap.get(commit.oid);
+      return {
+        oid: commit.oid,
+        message: commit.commit.message,
+        timestamp: commit.commit.author.timestamp,
+        dbTimestamp: metadata?.neonDbTimestamp,
+        isFavorite: metadata?.isFavorite ?? false,
+        note: metadata?.note ?? null,
+      };
+    });
+  });
+
+  createTypedHandler(versionContracts.setVersionFavorite, async (_, params) => {
+    const { appId, versionId, isFavorite } = params;
+    return upsertVersionMetadata({ appId, versionId, isFavorite });
+  });
+
+  createTypedHandler(versionContracts.setVersionNote, async (_, params) => {
+    const { appId, versionId, note } = params;
+    return upsertVersionMetadata({ appId, versionId, note });
+  });
+
+  createTypedHandler(versionContracts.getCurrentBranch, async (_, params) => {
+    const { appId } = params;
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, appId),
+    });
+
+    if (!app) {
+      throw new PrismError("App not found", PrismErrorKind.NotFound);
+    }
+
+    const appPath = getPrismAppPath(app.path);
+
+    // Return appropriate result if the app is not a git repo
+    if (!fs.existsSync(path.join(appPath, ".git"))) {
+      throw new PrismError("Not a git repository", PrismErrorKind.External);
+    }
+
+    try {
+      const currentBranch = await gitCurrentBranch({ path: appPath });
+
+      return {
+        branch: currentBranch || "<no-branch>",
+      };
+    } catch (error: any) {
+      logger.error(`Error getting current branch for app ${appId}:`, error);
+      throw new PrismError(
+        `Failed to get current branch: ${error.message}`,
+        PrismErrorKind.External,
+      );
+    }
+  });
+
+  createTypedHandler(versionContracts.getVersionChanges, async (_, params) => {
+    const { appId, versionId } = params;
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, appId),
+    });
+
+    if (!app) {
+      throw new PrismError("App not found", PrismErrorKind.NotFound);
+    }
+
+    const appPath = getPrismAppPath(app.path);
+
+    if (!fs.existsSync(path.join(appPath, ".git"))) {
+      throw new PrismError("Not a git repository", PrismErrorKind.External);
+    }
+
+    try {
+      const changedFiles = await getChangedFilesForCommit({
+        path: appPath,
+        commitHash: versionId,
+      });
+
+      const loadFileChange = async (file: (typeof changedFiles)[number]) => {
+        const newContent =
+          file.type === "deleted"
+            ? ""
+            : ((await getFileAtCommit({
+                path: appPath,
+                filePath: file.path,
+                commitHash: versionId,
+              })) ?? "");
+        const oldContent =
+          file.type === "added"
+            ? ""
+            : ((await getOldFileContent({
+                path: appPath,
+                filePath: file.path,
+                commitHash: versionId,
+              })) ?? "");
+        return {
+          path: file.path,
+          type: file.type,
+          oldContent: sanitizeDiffContent(oldContent),
+          newContent: sanitizeDiffContent(newContent),
+        };
+      };
+
+      // Each file may spawn up to two git child processes (native git). Bound
+      // the concurrency so commits touching many files (e.g. an initial commit
+      // of a generated app) don't exhaust file descriptors.
+      const CONCURRENCY = 10;
+      const results: Awaited<ReturnType<typeof loadFileChange>>[] = [];
+      for (let i = 0; i < changedFiles.length; i += CONCURRENCY) {
+        const batch = changedFiles.slice(i, i + CONCURRENCY);
+        results.push(...(await Promise.all(batch.map(loadFileChange))));
+      }
+      return results;
+    } catch (error: any) {
+      // Preserve the original error kind for PrismErrors thrown by inner
+      // functions; only wrap unexpected (non-Prism) failures as External.
+      if (error instanceof PrismError) {
+        throw error;
+      }
+      logger.error(
+        `Error getting version changes for app ${appId} version ${versionId}:`,
+        error,
+      );
+      throw new PrismError(
+        `Failed to get version changes: ${error.message}`,
+        PrismErrorKind.External,
+      );
+    }
+  });
+
+  const revertVersionHandler = async (
+    _: Electron.IpcMainInvokeEvent,
+    params: RevertVersionParams,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) => {
+    const {
+      appId,
+      previousVersionId,
+      expectedHeadOid,
+      currentChatMessageId,
+      targetBranchName,
+    } = params;
+    // A recording holds repository, provider and runtime-config for its whole
+    // session, so this would queue invisibly behind it for up to the 30-minute
+    // cap. It is also rewriting the tree the recording is capturing against.
+    return appOperationCoordinator.run(
+      {
+        appId,
+        operation: "revert-version",
+        resources: [
+          readAppResource("app-path"),
+          "chat-content",
+          "provider",
+          "repository",
+          "runtime-config",
+        ],
+        refuseWhenRecording: "undo to a previous version",
+      },
+      async () => {
+        const app = await db.query.apps.findFirst({
+          where: eq(apps.id, appId),
+        });
+
+        if (!app) {
+          throw new PrismError("App not found", PrismErrorKind.NotFound);
+        }
+
+        const appPath = getPrismAppPath(app.path);
+
+        if (expectedHeadOid) {
+          const currentHeadOid = await getCurrentCommitHash({
+            path: appPath,
+            ref: targetBranchName ?? "HEAD",
+          });
+          if (currentHeadOid !== expectedHeadOid) {
+            throw new PrismError(
+              "The app's history changed since you confirmed. Please retry the undo.",
+              PrismErrorKind.Conflict,
+            );
+          }
+        }
+
+        let preserveDirtyTree = false;
+        if (currentChatMessageId) {
+          const targetChat = await db.query.chats.findFirst({
+            columns: { appId: true },
+            where: eq(chats.id, currentChatMessageId.chatId),
+          });
+          preserveDirtyTree =
+            targetChat?.appId === appId &&
+            (await getRestoreTargetTurnOutcomeForMessage({
+              chatId: currentChatMessageId.chatId,
+              messageId: currentChatMessageId.messageId,
+            })) === "cancelled";
+        }
+
+        const revertResult = await revertCodebaseToVersion({
+          appId,
+          app,
+          appPath,
+          previousVersionId,
+          targetBranchName,
+          preserveDirtyTree,
+          onRestoreProgress,
+        });
+        let { successMessage, warningMessage, restoreCompletion } =
+          revertResult;
+        if (revertResult.preservedInterruptedChanges) {
+          successMessage = `${successMessage} ${INTERRUPTED_CHECKPOINT_NOTICE}`;
+          if (warningMessage) {
+            warningMessage = appendWarning(
+              warningMessage,
+              INTERRUPTED_CHECKPOINT_NOTICE,
+            );
+          }
+        }
+
+        let affectedChatId: number | null = null;
+
+        // Delete messages based on currentChatMessageId if provided, otherwise use commit hash lookup
+        if (currentChatMessageId) {
+          // Delete all messages including and after the specified message
+          const { chatId, messageId } = currentChatMessageId;
+          affectedChatId = chatId;
+
+          const messagesToDelete = await db.query.messages.findMany({
+            where: and(
+              eq(messages.chatId, chatId),
+              gte(messages.id, messageId),
+            ),
+            orderBy: desc(messages.id),
+          });
+
+          logger.log(
+            `Deleting ${messagesToDelete.length} messages (id >= ${messageId}) from chat ${chatId}`,
+          );
+
+          if (messagesToDelete.length > 0) {
+            await db
+              .delete(messages)
+              .where(
+                and(eq(messages.chatId, chatId), gte(messages.id, messageId)),
+              );
+          }
+        } else {
+          // Find the chat and message associated with the commit hash
+          const messageWithCommit = await db.query.messages.findFirst({
+            where: eq(messages.commitHash, previousVersionId),
+            with: {
+              chat: true,
+            },
+          });
+
+          // If we found a message with this commit hash, delete all subsequent messages (but keep this message)
+          if (messageWithCommit) {
+            const chatId = messageWithCommit.chatId;
+            affectedChatId = chatId;
+
+            // Find all messages in this chat with IDs > the one with our commit hash
+            const messagesToDelete = await db.query.messages.findMany({
+              where: and(
+                eq(messages.chatId, chatId),
+                gt(messages.id, messageWithCommit.id),
+              ),
+              orderBy: desc(messages.id),
+            });
+
+            logger.log(
+              `Deleting ${messagesToDelete.length} messages after commit ${previousVersionId} from chat ${chatId}`,
+            );
+
+            // Delete the messages
+            if (messagesToDelete.length > 0) {
+              await db
+                .delete(messages)
+                .where(
+                  and(
+                    eq(messages.chatId, chatId),
+                    gt(messages.id, messageWithCommit.id),
+                  ),
+                );
+            }
+          }
+        }
+
+        onRestoreProgress?.({
+          ...restoreCompletion,
+          nextStep: "completed",
+        });
+        return versionCommandResult({
+          notification: warningMessage
+            ? { kind: "warning", message: warningMessage }
+            : { kind: "success", message: successMessage },
+          runtimeAction: versionRuntimeAction(app, true),
+          affectedChatId,
+        });
+      },
+    );
+  };
+  versionPreviewHandlerBridge.revertVersion = (params, onRestoreProgress) =>
+    revertVersionHandler(
+      undefined as unknown as Electron.IpcMainInvokeEvent,
+      params,
+      onRestoreProgress,
+    );
+
+  const restoreToMessageHandler = async (
+    event: Electron.IpcMainInvokeEvent,
+    params: RestoreToMessageParams,
+    onRestoreProgress?: (progress: RestoreRecovery) => void,
+  ) => {
+    const {
+      appId,
+      chatId,
+      messageId,
+      restoreCodebase = true,
+      targetBranchName,
+    } = params;
+
+    // Phase 1: validate the request and resolve the restore target under the
+    // app lock WITHOUT cancelling any streams. Chat/message deletion endpoints
+    // take this same lock, so the snapshot we validate against stays
+    // consistent, and bailing out here for an invalid request never aborts
+    // unrelated in-flight generations for a restore that cannot succeed.
+    const prepared = await appOperationCoordinator.run(
+      {
+        appId,
+        operation: "prepare-restore-to-message",
+        resources: [
+          readAppResource("app-path"),
+          readAppResource("chat-content"),
+          readAppResource("repository"),
+        ],
+        // Phase 1 already conflicts with the recording's repository claim.
+        // Refuse as part of admission so an active or reserving session cannot
+        // leave Restore spinning behind its whole-lifetime claim.
+        refuseWhenRecording: "restore this version",
+      },
+      async () => {
+        const app = await db.query.apps.findFirst({
+          where: eq(apps.id, appId),
+        });
+        if (!app) {
+          throw new PrismError("App not found", PrismErrorKind.NotFound);
+        }
+        const appPath = getPrismAppPath(app.path);
+        if (restoreCodebase) {
+          // Validate the branch anchor before cancelling any streams. The same
+          // check runs again during the mutation to protect against a ref change
+          // in the cancellation window.
+          await resolveRestoreRef({ appPath, targetBranchName });
+        }
+
+        const chat = await db.query.chats.findFirst({
+          where: eq(chats.id, chatId),
+          with: {
+            messages: {
+              orderBy: (messages, { asc }) => [asc(messages.id)],
+            },
+          },
+        });
+        if (!chat) {
+          throw new PrismError("Chat not found", PrismErrorKind.NotFound);
+        }
+        // Defense in depth: make sure the chat actually belongs to this app so
+        // a mismatched (appId, chatId) from the renderer can't create a chat
+        // under the wrong app or revert to a commit from another app's repo.
+        if (chat.appId !== appId) {
+          throw new PrismError(
+            "Chat does not belong to this app",
+            PrismErrorKind.Validation,
+          );
+        }
+
+        const targetIndex = chat.messages.findIndex((m) => m.id === messageId);
+        if (targetIndex === -1) {
+          throw new PrismError("Message not found", PrismErrorKind.NotFound);
+        }
+
+        const messagesBefore = chat.messages
+          .slice(0, targetIndex)
+          .filter(
+            (message) =>
+              !(message.isCompactionSummary && message.id > messageId),
+          );
+
+        // Restoring to the very first message is allowed: "version 1" is the
+        // commit that existed before the first message's changes were applied,
+        // so we restore to that version and fork an empty chat (no prior
+        // messages to copy). The empty chat starts from the restored version.
+
+        const targetCommitHash = resolveTargetCommitHash({
+          chatMessages: chat.messages,
+          targetIndex,
+          initialCommitHash: chat.initialCommitHash,
+        });
+
+        if (restoreCodebase) {
+          if (!targetCommitHash) {
+            // No version could be determined, so we don't create a new chat.
+            // Omit `newChatId` so the renderer stays on the current chat instead
+            // of "navigating" to the same one (which would look like a no-op).
+            return {
+              status: "warn" as const,
+              warningMessage:
+                "Could not determine a version to restore to for this message.",
+            };
+          }
+          // The hash was resolved from stored DB fields, so a garbage-collected
+          // or stale value would otherwise surface as an opaque git error from
+          // `gitStageToRevert`. Validate it exists before cancelling any streams
+          // (mirroring the `revertVersion` flow) so an invalid target returns a
+          // user-friendly warning instead of aborting in-flight generations for
+          // a restore that cannot proceed.
+          try {
+            await assertVersionExists({
+              appPath,
+              versionId: targetCommitHash,
+            });
+          } catch (error) {
+            if (
+              error instanceof PrismError &&
+              error.kind === PrismErrorKind.NotFound
+            ) {
+              return {
+                status: "warn" as const,
+                warningMessage:
+                  "Could not restore the codebase because the target version no longer exists in the repository.",
+              };
+            }
+            throw error;
+          }
+        }
+
+        return {
+          status: "ready" as const,
+          app,
+          appPath,
+          chat,
+          messagesBefore,
+          targetCommitHash,
+        };
+      },
+    );
+
+    // A validated request that cannot proceed returns a warning without ever
+    // cancelling streams (see phase 1 above).
+    if (prepared.status === "warn") {
+      return versionCommandResult({
+        repositoryOutcome: "unchanged",
+        notification: {
+          kind: "warning",
+          message: prepared.warningMessage,
+        },
+      });
+    }
+    // Install the stream admission block that keeps new turns out while we
+    // cancel and mutate. Only the codebase-restoring path mutates git/the
+    // filesystem, so it needs an app-wide block to keep new turns in any chat
+    // from writing into the tree mid-revert. The fork-only path just inserts a
+    // new chat via an atomic DB transaction; blocking every chat in the app
+    // would be unnecessarily aggressive, so scope its block to the source
+    // chat.
+    const releaseActorAdmissionBlock = restoreCodebase
+      ? await beginAppChatActorMutation(appId)
+      : undefined;
+    let releaseStreamAdmissionBlock: (() => void) | undefined;
+    let releaseRecordingBlock: (() => void) | undefined;
+
+    // Wrap phases 2 and 3 in a single try/finally so the admission block is
+    // always released, even if `withLock` were to throw synchronously before
+    // returning its promise (which would skip a `.finally()` attached to that
+    // promise). Leaking the block would permanently stall new streams for the
+    // app/chat until the process restarts.
+    try {
+      // Taken BEFORE phase 2 cancels anything. Phase 1's atomic admission
+      // refuses a recording that already exists, but it releases before this
+      // cancellation window. A recording starting there used to be caught only
+      // after the user's in-flight generations were already gone, so they lost
+      // the generation and got the refusal. Holding the app first means the
+      // refusal costs nothing.
+      releaseRecordingBlock =
+        blockRecordingStart(appId, "restore a version") ?? undefined;
+      if (!releaseRecordingBlock) {
+        throw new PrismError(
+          "Stop the recording session before you restore this version — it's holding this app while it records.",
+          PrismErrorKind.Precondition,
+        );
+      }
+
+      releaseStreamAdmissionBlock = restoreCodebase
+        ? blockNewStreamsForApp(appId)
+        : blockNewStreamsForChat(chatId);
+      // Phase 2: cancel in-flight streams for this app OUTSIDE the lock. The
+      // actor drain first closes the pre-transport `admitting` window, then
+      // the transport cancellation helper aborts legacy/renderer-owned
+      // streams and awaits their handler unwinding. Those handlers can take
+      // the same app lock for their own writes (e.g. the copy_file tool).
+      // Awaiting completion while holding the app lock would deadlock, so
+      // cancellation must run before we re-acquire it.
+      const didCancelActor =
+        restoreCodebase &&
+        (await waitForAppChatActorsIdle(appId, { cancelActive: true }));
+      const didCancelTransport = restoreCodebase
+        ? await cancelActiveStreamsForApp(appId, event.sender)
+        : false;
+      const preservedByActiveCancellation =
+        didCancelActor || didCancelTransport;
+
+      // No recording recheck here: the block taken above is what rules one out
+      // for the rest of this operation, and it was taken while a refusal was
+      // still free. A recheck at this point would be reporting a race that can
+      // no longer happen — after the cost it exists to avoid.
+
+      // Phase 3: perform the codebase revert and create the forked chat under
+      // the lock. Holding it across the whole mutation serializes the revert
+      // against other version/deletion operations. The stream admission block
+      // above also prevents new turns from entering through file tools that do
+      // not take this lock. `gitStageToRevert` additionally refuses to run —
+      // or commits a recoverable checkpoint when preserving an interrupted
+      // turn — if the work tree is dirty, so a stray write can't be silently
+      // clobbered.
+      return await appOperationCoordinator.run(
+        {
+          appId,
+          operation: "restore-to-message",
+          resources: restoreCodebase
+            ? [
+                readAppResource("app-path"),
+                "chat-content",
+                "chat-membership",
+                "provider",
+                "repository",
+                "runtime-config",
+              ]
+            : [
+                readAppResource("app-path"),
+                "chat-content",
+                "chat-membership",
+                readAppResource("repository"),
+              ],
+        },
+        async () => {
+          const latestApp = await db.query.apps.findFirst({
+            where: eq(apps.id, appId),
+          });
+          if (!latestApp) {
+            throw new PrismError("App not found", PrismErrorKind.NotFound);
+          }
+          // The app directory can be renamed while phase 2 awaits stream
+          // cancellation without holding the app lock. Re-resolve it from the
+          // row fetched after reacquiring the lock so every phase-3 filesystem
+          // operation targets the current directory.
+          const latestAppPath = getPrismAppPath(latestApp.path);
+
+          const latestChat = await db.query.chats.findFirst({
+            where: eq(chats.id, chatId),
+            with: {
+              messages: {
+                orderBy: (messages, { asc }) => [asc(messages.id)],
+              },
+            },
+          });
+          if (!latestChat) {
+            throw new PrismError("Chat not found", PrismErrorKind.NotFound);
+          }
+          if (latestChat.appId !== appId) {
+            throw new PrismError(
+              "Chat does not belong to this app",
+              PrismErrorKind.Validation,
+            );
+          }
+
+          const latestTargetIndex = latestChat.messages.findIndex(
+            (m) => m.id === messageId,
+          );
+          if (latestTargetIndex === -1) {
+            throw new PrismError("Message not found", PrismErrorKind.NotFound);
+          }
+
+          const latestTargetTurnOutcome = await getRestoreTargetTurnOutcome({
+            chatMessages: latestChat.messages,
+            targetIndex: latestTargetIndex,
+          });
+          const preserveDirtyTree =
+            preservedByActiveCancellation ||
+            latestTargetTurnOutcome === "cancelled";
+          logger.info(
+            `Restore-to-message dirty-tree preservation for app ${appId}: ${
+              preservedByActiveCancellation
+                ? "active-cancel"
+                : latestTargetTurnOutcome === "cancelled"
+                  ? "durable-cancelled-turn"
+                  : "none"
+            }`,
+          );
+
+          const latestMessagesBefore = latestChat.messages
+            .slice(0, latestTargetIndex)
+            .filter(
+              (message) =>
+                !(message.isCompactionSummary && message.id > messageId),
+            );
+
+          const latestTargetCommitHash = resolveTargetCommitHash({
+            chatMessages: latestChat.messages,
+            targetIndex: latestTargetIndex,
+            initialCommitHash: latestChat.initialCommitHash,
+          });
+
+          if (restoreCodebase && !latestTargetCommitHash) {
+            return versionCommandResult({
+              repositoryOutcome: "unchanged",
+              notification: {
+                kind: "warning",
+                message: appendInterruptedGenerationWarning(
+                  "Could not determine a version to restore to for this message.",
+                  preservedByActiveCancellation,
+                ),
+              },
+            });
+          }
+          if (restoreCodebase && latestTargetCommitHash) {
+            try {
+              await assertVersionExists({
+                appPath: latestAppPath,
+                versionId: latestTargetCommitHash,
+              });
+            } catch (error) {
+              if (
+                error instanceof PrismError &&
+                error.kind === PrismErrorKind.NotFound
+              ) {
+                return versionCommandResult({
+                  repositoryOutcome: "unchanged",
+                  notification: {
+                    kind: "warning",
+                    message: appendInterruptedGenerationWarning(
+                      "Could not restore the codebase because the target version no longer exists in the repository.",
+                      preservedByActiveCancellation,
+                    ),
+                  },
+                });
+              }
+              throw error;
+            }
+          }
+
+          // When the user chose to also restore the codebase, we need a concrete
+          // version to revert to. Revert the codebase first: if this throws (e.g.
+          // a Git or Neon error), we bail out before touching the database so we
+          // don't leave an orphaned, partially-created chat behind. A
+          // `warningMessage` still means the codebase was reverted (only a
+          // secondary step failed), so we go on to create the new chat in that
+          // case. When the user only forks the chat, we skip the revert entirely.
+          let successMessage = "Forked the chat into a new chat.";
+          let warningMessage = "";
+
+          let restoreCompletion:
+            | (Extract<
+                RestoreRecovery,
+                { repositoryOutcome: "target-applied" }
+              > & { nextStep: "chat-mutation" })
+            | undefined;
+          if (restoreCodebase && latestTargetCommitHash) {
+            const result = await revertCodebaseToVersion({
+              appId,
+              app: latestApp,
+              appPath: latestAppPath,
+              previousVersionId: latestTargetCommitHash,
+              targetBranchName,
+              preserveDirtyTree,
+              onRestoreProgress,
+            });
+            successMessage = result.successMessage;
+            warningMessage = result.warningMessage;
+            if (result.preservedInterruptedChanges) {
+              successMessage = `${successMessage} ${INTERRUPTED_CHECKPOINT_NOTICE}`;
+              if (warningMessage) {
+                warningMessage = appendWarning(
+                  warningMessage,
+                  INTERRUPTED_CHECKPOINT_NOTICE,
+                );
+              }
+            }
+            restoreCompletion = result.restoreCompletion;
+          }
+
+          // Carry over the original chat's title so the forked chat is tied to
+          // the conversation it came from without storing an English-only suffix
+          // in the database. If the original is untitled, keep the fork untitled
+          // and let the renderer's localized fallback title handle display.
+          const restoredTitle = latestChat.title;
+
+          // Keep `null` (rather than `[]`) when there is nothing to carry over so
+          // forked chats match the shape of freshly created ones.
+          const storedReferencedAppIds = readStoredReferencedAppIds(
+            latestChat.referencedAppIds,
+          );
+          const forkReferencedAppIds =
+            storedReferencedAppIds.length > 0 ? storedReferencedAppIds : null;
+
+          // Anchor the forked chat to the version it actually starts from. When we
+          // restored the codebase, that's the target version. When we only forked
+          // the chat (codebase left untouched), the new chat starts from the
+          // live branch's current commit, so use that instead of the historical
+          // target. If the Version pane has a detached historical preview checked
+          // out, `targetBranchName` points at the branch the pane will restore on
+          // close; anchoring to that branch avoids leaving the fork attached to an
+          // abandoned preview commit.
+          const forkInitialCommitHash = restoreCodebase
+            ? latestTargetCommitHash
+            : await (async () => {
+                const currentBranch = await gitCurrentBranch({
+                  path: latestAppPath,
+                }).catch(() => null);
+                const forkRef = currentBranch || targetBranchName || "HEAD";
+                return getCurrentCommitHash({
+                  path: latestAppPath,
+                  ref: forkRef,
+                });
+              })().catch(
+                () => latestChat.initialCommitHash ?? latestTargetCommitHash,
+              );
+
+          // Compile-time guard so a new column added to the `messages` schema in
+          // db/schema.ts isn't silently dropped when copying messages into the
+          // forked chat. Every column must be classified below as either copied
+          // (in the `.map` further down) or intentionally excluded; adding a
+          // column to the schema without listing it here becomes a type error.
+          type CopiedMessageColumn =
+            | "role"
+            | "content"
+            | "approvalState"
+            | "sourceCommitHash"
+            | "commitHash"
+            | "requestId"
+            | "maxTokensUsed"
+            | "model"
+            | "aiMessagesJson"
+            | "isCompactionSummary"
+            | "createdAt";
+          // Deliberately not copied from the source message:
+          //  - `id`: autoIncrement primary key, generated per inserted row.
+          //  - `chatId`: set to the newly created chat below.
+          //  - `usingFreeAgentModeQuota`: reset to false (see note below).
+          //  - `userInputRequestId` / `chatTurnIntentId`: live delivery dedupe
+          //    keys, not message data.
+          type ExcludedMessageColumn =
+            | "id"
+            | "chatId"
+            | "usingFreeAgentModeQuota"
+            | "userInputRequestId"
+            | "chatTurnIntentId";
+          // If a column is neither copied nor excluded, this `Exclude` is no
+          // longer `never` and the assignment fails to compile, flagging the
+          // unclassified column.
+          const _assertAllMessageColumnsHandled: Exclude<
+            keyof typeof messages.$inferSelect,
+            CopiedMessageColumn | ExcludedMessageColumn
+          > extends never
+            ? true
+            : never = true;
+          void _assertAllMessageColumnsHandled;
+
+          const messagesBeforeInInsertOrder = [...latestMessagesBefore].sort(
+            (a, b) => a.id - b.id,
+          );
+
+          // Create the new chat pointing at that version and copy over the earlier
+          // messages atomically. We insert directly (instead of using the
+          // createChat handler) so `initialCommitHash` is the intended version
+          // rather than whatever the createChat handler would capture. Wrapping
+          // both inserts in a transaction ensures we never leave behind an
+          // orphaned, empty forked chat if the messages insert fails after
+          // the chat insert. better-sqlite3 transactions are synchronous, so the
+          // callback uses the sync query API (`.get()`/`.run()`) rather than
+          // `await`.
+          if (!restoreCodebase) {
+            onRestoreProgress?.({
+              repositoryOutcome: "unchanged",
+              nextStep: "chat-mutation",
+            });
+          }
+          const newChat = db.transaction((tx) => {
+            const createdChat = tx
+              .insert(chats)
+              .values({
+                appId,
+                title: restoredTitle,
+                chatMode: latestChat.chatMode,
+                modelSelection: latestChat.modelSelection,
+                initialCommitHash: forkInitialCommitHash,
+                // Carry over the sticky referenced apps. The fork copies the
+                // history containing the `@app:` mentions, so dropping these
+                // would leave the mention visible while the next agent turn
+                // silently lost read access to that app. We copy the whole set
+                // rather than re-deriving it from the copied messages: these ids
+                // exist precisely because message text is not a reliable source
+                // (compaction rewrites history), and the fork's chip row shows
+                // every carried-over app with a way to detach it.
+                referencedAppIds: forkReferencedAppIds,
+              })
+              .returning()
+              .get();
+
+            // Copy all messages that came before the target message into the new
+            // chat, preserving display ordering via `createdAt` while inserting
+            // in original ID order. Compaction summaries are deliberately
+            // backdated for display but must keep their identity boundary after
+            // the user turn that triggered them.
+            if (messagesBeforeInInsertOrder.length > 0) {
+              tx.insert(messages)
+                .values(
+                  // IMPORTANT: keep this field list in sync with the `messages`
+                  // table schema in db/schema.ts. New columns are NOT copied
+                  // automatically — add them here (or make a conscious decision to
+                  // omit them, like `usingFreeAgentModeQuota` below) when the
+                  // schema changes. The `_assertAllMessageColumnsHandled` guard
+                  // above enforces this classification at compile time.
+                  messagesBeforeInInsertOrder.map((m) => ({
+                    chatId: createdChat.id,
+                    role: m.role,
+                    content: m.content,
+                    approvalState: m.approvalState,
+                    sourceCommitHash: m.sourceCommitHash,
+                    commitHash: m.commitHash,
+                    requestId: m.requestId,
+                    maxTokensUsed: m.maxTokensUsed,
+                    model: m.model,
+                    aiMessagesJson: m.aiMessagesJson,
+                    // Don't carry over the free-agent quota flag. The copied
+                    // messages represent already-completed turns; preserving the
+                    // flag would make getFreeAgentQuotaStatus (which counts every
+                    // row globally) double-count those past requests and could
+                    // exhaust a non-Pro user's quota without any new model call.
+                    usingFreeAgentModeQuota: false,
+                    isCompactionSummary: m.isCompactionSummary,
+                    createdAt: m.createdAt,
+                  })),
+                )
+                .run();
+            }
+
+            return createdChat;
+          });
+
+          onRestoreProgress?.(
+            restoreCompletion
+              ? { ...restoreCompletion, nextStep: "completed" }
+              : {
+                  repositoryOutcome: "unchanged",
+                  nextStep: "completed",
+                },
+          );
+          return versionCommandResult({
+            repositoryOutcome: restoreCodebase ? "target-applied" : "unchanged",
+            notification: warningMessage
+              ? {
+                  kind: "warning",
+                  message: restoreCodebase
+                    ? `Code restored, but: ${warningMessage}`
+                    : warningMessage,
+                }
+              : { kind: "success", message: successMessage },
+            runtimeAction: versionRuntimeAction(latestApp, restoreCodebase),
+            createdChatId: newChat.id,
+          });
+        },
+      );
+    } finally {
+      releaseStreamAdmissionBlock?.();
+      releaseActorAdmissionBlock?.();
+      releaseRecordingBlock?.();
+    }
+  };
+  versionPreviewHandlerBridge.restoreToMessage = (
+    params,
+    sender,
+    onRestoreProgress,
+  ) =>
+    restoreToMessageHandler(
+      { sender } as unknown as Electron.IpcMainInvokeEvent,
+      params,
+      onRestoreProgress,
+    );
+
+  const checkoutVersionHandler = async (
+    _: Electron.IpcMainInvokeEvent,
+    params: CheckoutVersionParams,
+  ) => {
+    const { appId } = params;
+    const gitRef =
+      params.purpose === "preview" ? params.versionId : params.branch;
+    return appOperationCoordinator.run(
+      {
+        appId,
+        operation: `checkout-version:${params.purpose}`,
+        resources: [
+          readAppResource("app-path"),
+          "provider",
+          "repository",
+          "runtime-config",
+        ],
+        refuseWhenRecording: "check out this version",
+      },
+      async () => {
+        let warningMessage = "";
+        const app = await db.query.apps.findFirst({
+          where: eq(apps.id, appId),
+        });
+
+        if (!app) {
+          throw new PrismError("App not found", PrismErrorKind.NotFound);
+        }
+
+        if (
+          app.neonProjectId &&
+          app.neonDevelopmentBranchId &&
+          app.neonPreviewBranchId
+        ) {
+          if (params.purpose === "return") {
+            logger.info(
+              `Switching Postgres to development branch for app ${appId}`,
+            );
+            await switchPostgresToDevelopmentBranch({
+              neonProjectId: app.neonProjectId,
+              neonDevelopmentBranchId: app.neonDevelopmentBranchId,
+              appPath: app.path,
+            });
+          } else {
+            logger.info(
+              `Switching Postgres to preview branch for app ${appId}`,
+            );
+
+            // Regardless of whether we have a timestamp or not, we want to disable DB push
+            // while we're checking out an earlier version
+            await updateDbPushEnvVar({
+              appPath: app.path,
+              disabled: true,
+            });
+
+            const version = await db.query.versions.findFirst({
+              where: and(
+                eq(versions.appId, appId),
+                eq(versions.commitHash, gitRef),
+              ),
+            });
+
+            if (version && version.neonDbTimestamp) {
+              try {
+                // SWITCH the env var for POSTGRES_URL to the preview branch
+                const connectionUri = await getConnectionUri({
+                  projectId: app.neonProjectId,
+                  branchId: app.neonPreviewBranchId,
+                });
+
+                await restoreBranchForPreview({
+                  appId,
+                  dbTimestamp: version.neonDbTimestamp,
+                  neonProjectId: app.neonProjectId,
+                  previewBranchId: app.neonPreviewBranchId,
+                  developmentBranchId: app.neonDevelopmentBranchId,
+                });
+
+                await updatePostgresUrlEnvVar({
+                  appPath: app.path,
+                  connectionUri,
+                });
+                logger.info(
+                  `Switched Postgres to preview branch for app ${appId} commit ${version.commitHash} dbTimestamp=${version.neonDbTimestamp}`,
+                );
+              } catch (error) {
+                logger.error(
+                  "Error restoring Neon preview branch during checkout:",
+                  getNeonErrorMessage(error),
+                );
+                // Do not throw: we still want to check out the code below. This
+                // commonly happens when the picked version is older than Neon's
+                // retention window, so the database snapshot has expired.
+                warningMessage = getDatabaseRestoreWarning(error);
+                // Keep the app pointed at the live development database so the
+                // checked-out code still has a database to run against. This is
+                // best-effort and must never block the code checkout.
+                try {
+                  await updatePostgresUrlEnvVar({
+                    appPath: app.path,
+                    connectionUri: await getConnectionUri({
+                      projectId: app.neonProjectId,
+                      branchId: app.neonDevelopmentBranchId,
+                    }),
+                  });
+                } catch (fallbackError) {
+                  logger.error(
+                    "Failed to point Postgres at the development branch after a failed preview restore:",
+                    getNeonErrorMessage(fallbackError),
+                  );
+                  // The fallback failed too, so we could not explicitly re-point
+                  // the app at the development branch. The env file is left at its
+                  // previous value, which is usually still the development branch
+                  // but may be a stale preview branch from an earlier checkout.
+                  // Overwrite the warning so the user knows the DB branch is
+                  // uncertain.
+                  warningMessage =
+                    "Restored your code to this version, but the database could not be " +
+                    "switched and we were unable to confirm which database branch your app " +
+                    `is connected to: ${getNeonErrorMessage(fallbackError)}. Please check ` +
+                    "your app's database connection before relying on its data.";
+                }
+              }
+            }
+          }
+        }
+        const fullAppPath = getPrismAppPath(app.path);
+        await gitCheckout({
+          path: fullAppPath,
+          ref: gitRef,
+        });
+        await syncCloudSandboxSnapshotBestEffort(appId);
+        return versionCommandResult({
+          notification: warningMessage
+            ? { kind: "warning", message: warningMessage }
+            : null,
+          runtimeAction: versionRuntimeAction(app, true),
+        });
+      },
+    );
+  };
+  versionPreviewHandlerBridge.checkoutVersion = (params) =>
+    checkoutVersionHandler(
+      undefined as unknown as Electron.IpcMainInvokeEvent,
+      params,
+    );
+}
+
+async function switchPostgresToDevelopmentBranch({
+  neonProjectId,
+  neonDevelopmentBranchId,
+  appPath,
+}: {
+  neonProjectId: string;
+  neonDevelopmentBranchId: string;
+  appPath: string;
+}) {
+  // SWITCH the env var for POSTGRES_URL to the development branch
+  const connectionUri = await getConnectionUri({
+    projectId: neonProjectId,
+    branchId: neonDevelopmentBranchId,
+  });
+
+  await updatePostgresUrlEnvVar({
+    appPath,
+    connectionUri,
+  });
+
+  await updateDbPushEnvVar({
+    appPath,
+    disabled: false,
+  });
+}

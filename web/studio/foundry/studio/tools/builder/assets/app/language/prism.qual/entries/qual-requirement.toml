@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "qual-requirement"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Qual"
+component = "QualityRequirement"
+
+[[form]]
+id = "qual-requirement"
+channel = "text"
+surface = "quality requirement"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

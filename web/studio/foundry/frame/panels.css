@@ -1,0 +1,448 @@
+/* Every panel the bar opens: the shield's checks, sharing, the address bar's
+ * suggestions and the theme (its modes, the Unsplash search and the photos).
+ * Loaded with frame/panels.mjs after the visitor's first move, never with the
+ * page; a panel opened before then waits for them. */
+/* The popovers' common surface and titles. */
+.theme-panel, .trust-panel, .share-panel {
+  position: fixed;
+  margin: 0;
+  overflow: auto;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-overlay);
+  transition: opacity var(--duration) var(--ease), transform var(--duration) var(--ease), overlay var(--duration) allow-discrete, display var(--duration) allow-discrete;
+}
+.theme-panel:not(:popover-open), .trust-panel:not(:popover-open), .share-panel:not(:popover-open) { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+:host([dark]) :is(.theme-panel, .trust-panel, .share-panel, .account-panel) { box-shadow: none; border-color: var(--border-strong); }
+/* The theme panel: three modes side by side, then three photos to set
+ * behind the page, then the photographer's credit. It opens under the theme
+ * button (the script sets --theme-top and --theme-right) as share does. */
+.theme-panel {
+  inset: var(--theme-top, 3rem) var(--theme-right, 1rem) auto auto;
+  width: min(20rem, 100vw - 2rem);
+  max-height: calc(100vh - var(--theme-top, 3rem) - 1rem);
+  padding: var(--space-3);
+  font-size: var(--text-14);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  transform-origin: top right;
+}
+.theme-title, .share-title, .trust-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-16); letter-spacing: var(--tracking-display); }
+.theme-title {
+  margin: 0 0 var(--space-3);
+  padding: 0 var(--space-1);
+}
+/* The modes: one slim segmented switch, as a system setting draws it. The
+ * mode in use is a raised chip inside a sunken track; small, fine icons. */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border: var(--border-width) solid var(--border);
+  border-radius: calc(var(--radius-control) + 2px);
+  background: color-mix(in oklab, var(--muted), var(--background) 40%);
+}
+.mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 1.875rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+.mode svg { width: 0.875rem; height: 0.875rem; stroke-width: 1.6; }
+.mode:hover { background: transparent; color: var(--foreground); }
+.mode[aria-pressed="true"] {
+  background: var(--popover);
+  color: var(--foreground);
+  box-shadow: 0 0 0 var(--border-width) var(--border), 0 1px 2px rgb(0 0 0 / 0.12);
+}
+:host([dark]) .mode[aria-pressed="true"] { background: color-mix(in oklab, var(--popover), var(--foreground) 9%); box-shadow: 0 1px 2px rgb(0 0 0 / 0.4); }
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.375rem; margin-top: var(--space-2); }
+.photo-pick {
+  position: relative;
+  aspect-ratio: 8 / 5;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--muted);
+}
+/* Each tile shows the photo's own colour at once and the photo fades in
+ * over it, so a page of results arrives as colour, then detail. */
+.photo-pick img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 240ms var(--ease), transform var(--duration) var(--ease);
+}
+.photo-pick.ready img { opacity: 1; }
+.photo-pick:hover img { transform: scale(1.04); }
+/* While Unsplash answers: nine quiet tiles, breathing. */
+.photo-pick.blank { display: block; animation: breathe 1.2s var(--ease) infinite alternate; }
+.photo-pick.blank::after { display: none; }
+
+/* Search: a quiet field under the modes, the busy mark at its end. */
+.find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 2rem;
+  margin-top: var(--space-3);
+  padding: 0 var(--space-2) 0 0.625rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  background: color-mix(in oklab, var(--muted), var(--background) 40%);
+  color: var(--muted-foreground);
+  transition: border-color var(--duration) var(--ease), background var(--duration) var(--ease);
+}
+.find:focus-within { border-color: var(--ring); background: var(--popover); color: var(--foreground); }
+.find svg { width: 0.875rem; height: 0.875rem; stroke-width: 1.6; }
+.find input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+.find input::placeholder { color: var(--muted-foreground); }
+.find input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.find-busy {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid color-mix(in oklab, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+.find.busy .find-busy { opacity: 1; animation: spin 0.7s linear infinite; }
+.photos-note { margin: var(--space-2) 0 0; padding: 0 var(--space-1); color: var(--muted-foreground); font-size: 0.75rem; }
+.photos-more {
+  display: block;
+  width: 100%;
+  min-height: 1.875rem;
+  margin-top: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.photos-more:hover { background: var(--accent); color: var(--foreground); }
+/* The photo in use, ringed; ringed in the accent only while it is shown. */
+.photo-pick::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--border-width) color-mix(in oklab, var(--foreground) 12%, transparent);
+  pointer-events: none;
+}
+.photo-pick[aria-pressed="true"]::after { box-shadow: inset 0 0 0 2px var(--muted-foreground); }
+:host([immersive]) .photo-pick[aria-pressed="true"]::after { box-shadow: inset 0 0 0 2px var(--ring); }
+.credit { margin: var(--space-3) 0 0; padding: 0 var(--space-1); color: var(--muted-foreground); font-size: 0.75rem; }
+.credit a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 40%, transparent); text-underline-offset: 0.15em; }
+.credit a:hover { color: var(--foreground); }
+/* The suggestions: one card under the pill, the chosen row tinted. */
+.omnibox-list {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-height: min(26rem, 70vh);
+  margin: 0;
+  padding: var(--space-1);
+  overflow: auto;
+  list-style: none;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-overlay);
+  white-space: normal;
+  cursor: default;
+}
+:host([dark]) .omnibox-list { box-shadow: none; border-color: var(--border-strong); }
+/* A suggestion: one row, read left to right. The app's icon, its name, its
+ * address or short fingerprint, and on the right what it is. Every row is
+ * the same height; anything too long ends in an ellipsis. */
+.opt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.5rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  font-size: var(--text-14);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.opt[aria-selected="true"] { background: var(--accent); }
+.opt-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--muted-foreground);
+}
+.opt-icon img { display: block; width: 1.5rem; height: 1.5rem; border-radius: 0.375rem; object-fit: cover; }
+.opt-icon svg { width: 1rem; height: 1rem; }
+/* The tile: the name's first letter on the app's own hue. */
+.opt-tile {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  background: oklch(0.6 0.11 var(--tile-hue, 250));
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+:host([dark]) .opt-tile { background: oklch(0.52 0.1 var(--tile-hue, 250)); }
+.opt-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground); }
+.opt-title b { font-weight: 600; color: var(--foreground); }
+.opt-sub { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted-foreground); }
+/* Owner and stars sit on the right: quiet, one line. A row says what it is
+ * to a screen reader; on screen, this app is the first row, chosen. */
+.opt-fill { flex: 1 1 0; min-width: 0; }
+.opt-owner { flex: none; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; font-size: 0.8125rem; color: var(--muted-foreground); }
+.opt-stars { flex: none; display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.25rem; min-width: 3.25rem; font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+/* A count not known yet keeps its place, so owners stay in line. */
+.opt-stars.unknown { visibility: hidden; }
+.opt-stars svg.star { width: 0.75rem; height: 0.75rem; fill: #e3b341; stroke: none; }
+.opt-stars svg.gh { width: 0.8125rem; height: 0.8125rem; margin-inline-end: 0.125rem; color: var(--muted-foreground); }
+.opt-note { padding: var(--space-2) var(--space-3); font-size: var(--text-14); color: var(--muted-foreground); }
+
+/* The panel: what a browser's page information is to a page, for an app.
+ * A headline and one line under it, then the three checks, each with its
+ * mark, its name and what was found, then the page's full details. It
+ * opens under the shield (the script sets --trust-top and --trust-left),
+ * lifts in over one beat and closes on Escape or a click outside. */
+.trust-panel {
+  inset: var(--trust-top, 3rem) auto auto var(--trust-left, 1rem);
+  width: min(22rem, 100vw - 2rem);
+  max-height: calc(100vh - var(--trust-top, 3rem) - 1rem);
+  padding: var(--space-2);
+  font-size: var(--text-14);
+  line-height: 1.45;
+  transform-origin: top left;
+}
+.trust-panel p { margin: 0; }
+
+.trust-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--border);
+}
+.trust-words { min-width: 0; }
+.check { display: flex; gap: var(--space-3); padding: var(--space-2); }
+.check .mark { flex: none; display: grid; place-items: center; width: 1.25rem; height: 1.3125rem; }
+.check .mark svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.75; }
+.check .ok, .check .bad { display: none; }
+.check.good .ok, .check.bad .bad { display: inline; }
+.check.good .wait, .check.bad .wait { display: none; }
+.check.good .mark { color: var(--success); }
+.check.bad .mark { color: var(--destructive); }
+.check.wait .mark { color: var(--muted-foreground); }
+.check-words { min-width: 0; display: grid; gap: 0.125rem; }
+.check-title { font-weight: 600; }
+.check-detail { color: var(--muted-foreground); overflow-wrap: anywhere; }
+#check-proved .check-detail { color: var(--foreground); }
+.check-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); color: var(--muted-foreground); font-size: 0.8125rem; }
+.check-meta code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--foreground); }
+
+/* Small text actions in the panel: Copy, Attestation. */
+.trust-panel .text {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.trust-panel .text:hover { background: none; text-decoration-color: currentColor; }
+
+/* The page's full verification details, one row at the foot. */
+.trust-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.5rem;
+  padding: 0 var(--space-2);
+  border-top: var(--border-width) solid var(--border);
+  border-radius: 0 0 calc(var(--radius) - var(--space-2)) calc(var(--radius) - var(--space-2));
+  color: var(--foreground);
+  font-weight: 500;
+  text-decoration: none;
+}
+.trust-details:hover { background: var(--accent); }
+.trust-details svg { width: 1rem; height: 1rem; color: var(--muted-foreground); }
+
+/* The share panel: the card the platforms will show, the link to copy, and
+ * one tap to each platform. It opens under the share button (the script sets
+ * --share-top and --share-right), lifts in over one beat, closes on Escape or
+ * a click outside, and gives focus back to the button. Light ground: the
+ * overlay shadow; dark ground: no shadow, a stronger hairline. */
+.share-panel {
+  inset: var(--share-top, 4rem) var(--share-right, 1rem) auto auto;
+  width: min(23rem, 100vw - 2rem);
+  max-height: calc(100vh - var(--share-top, 4rem) - 1rem);
+  padding: var(--space-4);
+  transform-origin: top right;
+}
+.share-title {
+  margin: 0 0 var(--space-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The card, exactly as the platforms will show it. */
+.share-image {
+  aspect-ratio: 1200 / 630;
+  margin: 0 0 var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--muted);
+}
+.share-image img { display: block; width: 100%; height: 100%; }
+/* The link and its copy button, one field. */
+.share-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--input);
+  border-radius: var(--radius-control);
+  background: var(--background);
+}
+/* The platforms: a round glyph each, its name below. */
+.share-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: auto;
+  padding: var(--space-1) 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: var(--text-14);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-target:hover { background: transparent; color: var(--foreground); }
+.share-target:hover .share-glyph { background: var(--accent); }
+.share-target:active .share-glyph { transform: scale(0.94); }
+
+/* The account dialog: centred over the app, which dims and blurs behind it,
+ * so the one thing to do is the only thing in view. Its proportions follow
+ * the golden ratio (1.618): the width is 1.618 x 16rem, the padding 1.618rem,
+ * the title 1.618 x the body text, the gaps 0.618, 1 and 1.618rem, and the
+ * backdrop dims by 0.382. Outside, Escape or the close button dismisses it. */
+.account-panel { position: fixed; inset: 0; width: min(25.888rem, 100vw - 2rem); height: fit-content; max-height: calc(100dvh - 2rem); margin: auto; padding: 1.618rem; overflow: auto; border: var(--border-width) solid var(--border); border-radius: calc(var(--radius) * 1.618); background: var(--popover); color: var(--popover-foreground); box-shadow: var(--shadow-overlay); font-size: var(--text-14); line-height: 1.5; transition: opacity var(--duration) var(--ease), transform var(--duration) var(--ease), overlay var(--duration) allow-discrete, display var(--duration) allow-discrete; }
+.account-panel:not(:popover-open) { opacity: 0; transform: scale(0.98); }
+@starting-style {
+  .account-panel:popover-open { opacity: 0; transform: scale(0.98); }
+}
+.account-panel::backdrop {
+  background: rgb(0 0 0 / 0.382);
+  -webkit-backdrop-filter: blur(1rem);
+  backdrop-filter: blur(1rem);
+}
+.account-panel p, .account-panel h2 { margin: 0; }
+.account-close { position: absolute; top: 1rem; right: 1rem; display: grid; place-items: center; width: 2rem; height: 2rem; min-height: 0; padding: 0; border: 0; border-radius: var(--radius-control); background: none; color: var(--muted-foreground); cursor: pointer; }
+.account-close:hover { background: var(--accent); color: var(--foreground); }
+.account-close svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.account-title { padding-right: 2.618rem; font-family: var(--font-display); font-weight: 600; font-size: 1.382rem; line-height: 1.236; letter-spacing: var(--tracking-display); }
+.account-sub { margin: 0.382rem 0 1rem !important; color: var(--muted-foreground); font-size: var(--text-14); }
+.account-in { display: grid; gap: 0.382rem; }
+.account-id { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: 0.618rem !important; padding: 0.618rem 1rem; border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--background); }
+.account-id code { font-family: var(--font-mono); color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-qr { display: block; width: min(100%, 14rem); aspect-ratio: 1; margin: 0 auto 0.618rem; background: #fff; border-radius: var(--radius-control); }
+.account-qr path { fill: #000; }
+.account-panel .text { padding: 0; border: 0; background: none; color: var(--foreground); font-weight: 500; text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 0.2em; cursor: pointer; }
+/* The id itself, then the one thing worth doing now, then every choice grouped by why you would make it:
+ * each row says what it does, and in a muted line, why. Icons are outlines at the text colour. */
+.account-panel .glyph { flex: none; width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.account-card { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: var(--border-width) solid var(--border); border-radius: calc(var(--radius) * 1.236); background: var(--background); }
+.account-panel .account-avatar { width: 2.5rem; height: 2.5rem; padding: 0.5rem; border-radius: 50%; background: var(--accent); stroke-width: 1.5; }
+.account-who { display: grid; flex: 1; min-width: 0; gap: 0.125rem; }
+.account-who code { font-family: var(--font-mono); font-size: var(--text-14); color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-panel small { display: flex; align-items: center; gap: 0.25rem; color: var(--muted-foreground); font-size: 0.75rem; line-height: 1.4; }
+.account-who small .glyph { width: 0.75rem; height: 0.75rem; }
+.account-icon { display: grid; place-items: center; width: 2rem; height: 2rem; min-height: 0; padding: 0; border: 0; border-radius: var(--radius-control); background: none; color: var(--muted-foreground); cursor: pointer; }
+.account-icon:hover { background: var(--accent); color: var(--foreground); }
+.account-kit { display: flex; gap: 0.75rem; margin-top: 0.382rem; padding: 0.875rem; border: var(--border-width) solid var(--border-strong); border-radius: calc(var(--radius) * 1.236); }
+.account-kit > span { display: grid; gap: 0.25rem; flex: 1; }
+.account-kit small { display: block; margin-bottom: 0.5rem; }
+.account-kit .primary { min-height: 2.25rem; font-size: var(--text-14); }
+.account-group { margin: 1rem 0 0.125rem !important; padding: 0 0.625rem; color: var(--muted-foreground); font-size: 0.75rem; font-weight: 500; }
+.account-panel .row { display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; width: 100%; min-height: 2.618rem; padding: 0.5rem 0.625rem; border: 0; border-radius: var(--radius-control); background: none; color: var(--foreground); font: inherit; text-align: start; cursor: pointer; transition: background var(--duration) var(--ease); }
+.account-panel .row > span { display: grid; flex: 1; min-width: 0; }
+.account-panel .row b { font-weight: 500; }
+.account-panel .row > .glyph:first-child { color: var(--muted-foreground); }
+.account-panel .row .chevron { width: 1rem; height: 1rem; color: var(--muted-foreground); opacity: 0.618; }
+.account-panel .row:hover { background: var(--accent); }
+.account-panel .row:focus-visible, .account-panel .text:focus-visible, .account-close:focus-visible, .account-icon:focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+.account-panel .primary { width: 100%; min-height: 2.618rem; font-size: 1rem; }
+.account-panel .account-in > p { margin-bottom: 0.618rem; color: var(--muted-foreground); }
+.account-panel .account-in > p b { color: var(--foreground); font-weight: 600; }
+.account-panel input:not([type="file"]) { width: 100%; min-height: 2.618rem; padding: 0 1rem; border: var(--border-width) solid var(--border); border-radius: var(--radius-control); background: var(--background); color: var(--foreground); font: inherit; font-size: 1rem; }
+.account-panel #account-code { margin-top: 0.382rem; font-family: var(--font-mono); letter-spacing: 0.2em; }
+.account-panel label { display: grid; color: var(--muted-foreground); }
+.account-panel input:focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+.account-code { margin-top: 0.618rem !important; color: var(--foreground); font-size: 1rem; }
+.account-devices { display: grid; gap: 0.382rem; margin: 0; padding: 0; list-style: none; }
+.account-devices li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 2.618rem; padding: 0 1rem; border: var(--border-width) solid var(--border); border-radius: var(--radius-control); }
+.account-devices code { font-family: var(--font-mono); color: var(--muted-foreground); }
+.account-error { margin-top: 1rem !important; color: var(--destructive, #c2410c); }
+.account-panel.busy > :not(.account-close) { opacity: 0.618; pointer-events: none; }
+@media (pointer: coarse) {
+  .account-panel .row, .account-panel .primary, .account-panel input:not([type="file"]) { min-height: var(--touch); }
+  .account-close { top: 0.618rem; right: 0.618rem; width: var(--touch); height: var(--touch); min-height: var(--touch); }
+}
+@media (prefers-reduced-transparency: reduce) { .account-panel::backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(0 0 0 / 0.618); } }

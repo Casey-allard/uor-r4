@@ -1,0 +1,8 @@
+app Reading list
+form "New book"
+text title "Title" max 80
+choice read "Read?": "Read", "Not read yet"
+table books "Reading list": title, read
+count books "Books"
+action "Add": add to books
+action "Clear": clear books

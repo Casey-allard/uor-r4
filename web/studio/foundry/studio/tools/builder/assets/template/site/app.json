@@ -1,0 +1,78 @@
+{
+  "name": "Template contract",
+  "shortName": "Contract",
+  "live": "https://uor-foundation.github.io/template/",
+  "purpose": "Checks each universal policy file of a UOR template repository against its locked digest. Send the six expected and observed digests; it answers conformant, or names every file that drifted, and invalid request for anything else.",
+  "inputLabel": "Expected and observed digests",
+  "placeholder": "hex: followed by 384 bytes",
+  "submitLabel": "Check",
+  "outputLabel": "Verdict",
+  "answers": {
+    "positive": [
+      "conformant"
+    ],
+    "negative": [
+      "drift:*"
+    ],
+    "refusal": "invalid request"
+  },
+  "promise": {
+    "headline": "Says conformant exactly when every policy file matches its lock.",
+    "detail": "Each of the six universal policy files is compared with the digest the lock records, and any file that drifted is named."
+  },
+  "claim": "TC-01: the checker answers conformant exactly when every universal policy file's observed digest equals its locked digest.",
+  "proposition": {
+    "name": "Conformant",
+    "text": "Conformant observation :=\n  SameDigest devcontainer.expected devcontainer.observed\n  /\\ SameDigest bootstrap.expected bootstrap.observed\n  /\\ SameDigest agents.expected agents.observed\n  /\\ SameDigest verification.expected verification.observed\n  /\\ SameDigest prismpmLock.expected prismpmLock.observed\n  /\\ SameDigest templateContract.expected templateContract.observed\n\nSameDigest left right :=\n  left.w0 = right.w0 /\\ left.w1 = right.w1 /\\ left.w2 = right.w2 /\\ left.w3 = right.w3",
+    "plain": "Every one of the six universal policy files has the digest the lock says it has."
+  },
+  "theorems": [
+    {
+      "name": "conformant_decides",
+      "statement": "conformant observation = true ↔ Conformant observation, for every observation",
+      "how": "Proved by simplification over the record fields, checked by the Lean kernel by prismpm verify in CI",
+      "where": "app/src/Contract.lex.tex"
+    }
+  ],
+  "pinned": [
+    {
+      "name": "contract_tc_01",
+      "what": "The theorem's statement and axioms, the six files the proposition names against template-contract.json, that a drifted file is named in the verdict, and that the verdict is decided by conformant. A string-matching test, not a theorem: a planted defect fails it.",
+      "where": "crates/conformance/tests/contract.rs"
+    }
+  ],
+  "trusted": [
+    {
+      "name": "SDK image",
+      "value": "the digest prismpm.lock pins; see the bootstrap workflow's log"
+    },
+    {
+      "name": "Lean toolchain",
+      "value": "leanprover/lean4:v4.32.1"
+    },
+    {
+      "name": "LexLean compiler semantics",
+      "value": "5262e5b4c8b5668ae7066ad686757a6bb7f80c941d515fb9d586894fbc7de69a"
+    },
+    {
+      "name": "prism-code runtime, vendored",
+      "value": "0.2.0, see try/vendor/prism-code/VENDOR.md"
+    },
+    {
+      "name": "Your browser",
+      "value": "runs the WebAssembly guest and this page"
+    }
+  ],
+  "attestations": {
+    "proof": {
+      "id": "not recorded for the template's own app; an instance records the UOR MCP server's attestation here",
+      "url": "https://github.com/UOR-Foundation/template/actions/workflows/bootstrap.yml"
+    },
+    "build": {
+      "id": "printed by prismpm verify in every pages run; an instance records it here",
+      "url": "https://github.com/UOR-Foundation/template/actions/workflows/pages.yml"
+    }
+  },
+  "repository": "https://github.com/UOR-Foundation/template",
+  "report": "https://github.com/UOR-Foundation/template/blob/main/TEMPLATE-VERIFICATION.md"
+}

@@ -1,0 +1,168 @@
+{
+  "spec": {
+    "name": "parking-fee",
+    "title": "Parking fee calculator",
+    "purpose": "Decide the parking fee tier from hours parked and vehicle type.",
+    "fields": [
+      {
+        "name": "hours",
+        "kind": "number",
+        "min": 0,
+        "max": 24,
+        "means": "hours parked"
+      },
+      {
+        "name": "vehicle",
+        "kind": "choice",
+        "values": [
+          "car",
+          "motorcycle",
+          "truck"
+        ],
+        "means": "vehicle type"
+      }
+    ],
+    "outcomes": [
+      "free",
+      "standard",
+      "premium"
+    ],
+    "rules": [
+      {
+        "when": [
+          {
+            "field": "hours",
+            "op": "=",
+            "value": 0
+          }
+        ],
+        "then": "free",
+        "why": "nothing was parked"
+      },
+      {
+        "when": [
+          {
+            "field": "vehicle",
+            "op": "is",
+            "value": "motorcycle"
+          }
+        ],
+        "then": "free",
+        "why": "motorcycles always park free"
+      },
+      {
+        "when": [
+          {
+            "field": "vehicle",
+            "op": "is",
+            "value": "truck"
+          }
+        ],
+        "then": "premium",
+        "why": "trucks pay the premium rate"
+      },
+      {
+        "when": [
+          {
+            "field": "hours",
+            "op": ">",
+            "value": 8
+          }
+        ],
+        "then": "premium",
+        "why": "stays longer than eight hours pay premium"
+      }
+    ],
+    "otherwise": "standard",
+    "otherwiseWhy": "a car or motorcycle parked eight hours or less pays the standard rate",
+    "properties": [
+      {
+        "kind": "never",
+        "when": [
+          {
+            "field": "vehicle",
+            "op": "is",
+            "value": "motorcycle"
+          }
+        ],
+        "then": "premium",
+        "why": "motorcycles always park free"
+      },
+      {
+        "kind": "never",
+        "when": [
+          {
+            "field": "hours",
+            "op": "=",
+            "value": 0
+          }
+        ],
+        "then": "premium",
+        "why": "no one pays for zero hours"
+      },
+      {
+        "kind": "always",
+        "when": [
+          {
+            "field": "hours",
+            "op": "=",
+            "value": 0
+          }
+        ],
+        "then": "free",
+        "why": "zero hours is always free"
+      },
+      {
+        "kind": "always",
+        "when": [
+          {
+            "field": "hours",
+            "op": ">",
+            "value": 8
+          },
+          {
+            "field": "vehicle",
+            "op": "is not",
+            "value": "motorcycle"
+          }
+        ],
+        "then": "premium",
+        "why": "stays over eight hours pay premium unless it is a motorcycle"
+      }
+    ],
+    "examples": [
+      {
+        "request": "0 car",
+        "response": "free"
+      },
+      {
+        "request": "6 motorcycle",
+        "response": "free"
+      },
+      {
+        "request": "5 car",
+        "response": "standard"
+      },
+      {
+        "request": "8 car",
+        "response": "standard"
+      },
+      {
+        "request": "9 car",
+        "response": "premium"
+      },
+      {
+        "request": "3 truck",
+        "response": "premium"
+      },
+      {
+        "request": "12 motorcycle",
+        "response": "free"
+      }
+    ],
+    "limits": [
+      "Hours are whole numbers from 0 to 24; values outside the field ranges return invalid."
+    ]
+  },
+  "axioms": {}
+}

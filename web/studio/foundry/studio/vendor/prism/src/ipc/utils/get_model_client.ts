@@ -1,0 +1,818 @@
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI as createGoogle } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createXai } from "@ai-sdk/xai";
+import { createVertex as createGoogleVertex } from "@ai-sdk/google-vertex";
+import { createAzure } from "@ai-sdk/azure";
+import type { LanguageModel } from "ai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
+import type { FetchFunction } from "@ai-sdk/provider-utils";
+import type {
+  LargeLanguageModel,
+  ModelSelection,
+  UserSettings,
+  VertexProviderSetting,
+  AzureProviderSetting,
+} from "../../lib/schemas";
+import { getEnvVar } from "./read_env";
+import { getMaxTokens, getTemperature } from "./token_utils";
+import log from "electron-log";
+import { FREE_OPENROUTER_MODEL_NAMES } from "../shared/language_model_constants";
+import { getLanguageModelProviders } from "../shared/language_model_helpers";
+import { resolveBuiltinModelAlias } from "../shared/remote_language_model_catalog";
+import { LanguageModelProvider } from "@/ipc/types";
+import {
+  createPrismEngine,
+  type PrismEngineProvider,
+} from "./llm_engine_provider";
+
+import { getLmStudioBaseUrl } from "./lm_studio_utils";
+import { createOllamaProvider } from "./ollama_provider";
+import { getOllamaApiUrl } from "../handlers/local_model_ollama_handler";
+import { createFallback } from "./fallback_ai_model";
+import { getPrismEngineBaseUrl } from "./prism_engine_url";
+import { getTestFetchOption } from "./test_fetch_override";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import {
+  findInvalidProviderApiKeyCharacter,
+  formatInvalidProviderApiKeyMessage,
+  normalizeProviderApiKeyInput,
+} from "@/lib/providerApiKey";
+import { FREE_PRO_MODEL_NAME, isFreeProModel } from "@/lib/freeProModel";
+import { getOpenRouterAppAttributionHeaders } from "./openrouter_attribution";
+import { resolveModelSelection } from "./model_effort";
+import { getModelPreferenceKey } from "@/lib/modelEffort";
+import { getAutoSidekickRuntimeModel } from "@/lib/autoSidekick";
+import { usesOpenAIResponsesApi } from "./openai_responses_utils";
+
+// The test-only fetch seam lives in ./test_fetch_override (dependency-free,
+// so secondary factories can use it without import cycles). Re-exported here
+// for existing importers.
+export { setModelClientFetchForTesting } from "./test_fetch_override";
+
+function getModelClientFetchOption(): { fetch?: FetchFunction } {
+  return getTestFetchOption();
+}
+
+const AUTO_PRISM_PRO_MODEL_ALIASES = [
+  "prism/auto/openai",
+  "prism/auto/anthropic",
+  "prism/auto/google",
+] as const;
+
+const AUTO_MODEL_ALIASES = [
+  ...AUTO_PRISM_PRO_MODEL_ALIASES,
+  "prism/auto/openrouter",
+] as const;
+
+const OPENROUTER_FREE_MODEL_NAME = "openrouter/free";
+const AUTO_BALANCED_MODEL_NAME = "balanced";
+const AUTO_BALANCED_ALIAS = "prism/auto/balanced";
+
+export interface ModelClient {
+  model: LanguageModel;
+  builtinProviderId?: string;
+  reasoningEffortProviderId?: string;
+}
+
+export interface ModelClientResult {
+  modelClient: ModelClient;
+  runtimeModel: LargeLanguageModel;
+  isEngineEnabled?: boolean;
+  isSmartContextEnabled?: boolean;
+}
+
+type ResolvedAliasModel = NonNullable<
+  Awaited<ReturnType<typeof resolveBuiltinModelAlias>>
+>;
+
+function createPrismEngineAliasModel({
+  provider,
+  resolvedModel,
+  modelId,
+}: {
+  provider: PrismEngineProvider;
+  resolvedModel: ResolvedAliasModel;
+  modelId: string;
+}): LanguageModel {
+  if (resolvedModel.apiProtocol === "responses") {
+    return provider.responses(modelId, {
+      providerId: resolvedModel.providerId,
+    });
+  }
+  if (resolvedModel.apiProtocol === "messages") {
+    return provider.anthropic(modelId, {
+      providerId: resolvedModel.providerId,
+    });
+  }
+  if (resolvedModel.apiProtocol === "chat-completions") {
+    return provider(modelId, { providerId: resolvedModel.providerId });
+  }
+
+  // Preserve the established transport for aliases that predate apiProtocol.
+  if (resolvedModel.providerId === "openai") {
+    return provider.responses(modelId, {
+      providerId: resolvedModel.providerId,
+    });
+  }
+  if (resolvedModel.providerId === "anthropic") {
+    return provider.anthropic(modelId, {
+      providerId: resolvedModel.providerId,
+    });
+  }
+  return provider(modelId, { providerId: resolvedModel.providerId });
+}
+
+const logger = log.scope("getModelClient");
+export async function getModelClient(
+  selectedModel: LargeLanguageModel,
+  settings: UserSettings,
+  modelSelectionOverride?: ModelSelection,
+  // files?: File[],
+): Promise<ModelClientResult> {
+  const selectedModelSelection =
+    modelSelectionOverride ??
+    (await resolveModelSelection({
+      model: selectedModel,
+      preferredEffortLevel:
+        settings.modelEffortPreferences?.[getModelPreferenceKey(selectedModel)],
+    }));
+  const model = getAutoSidekickRuntimeModel(selectedModel);
+  const modelSelection = getAutoSidekickRuntimeModel(selectedModelSelection);
+  const allProviders = await getLanguageModelProviders();
+
+  const prismApiKey = settings.enablePrismPro
+    ? getProviderApiKeyForRequest(
+        settings.providerSettings?.auto?.apiKey?.value,
+        "Prism",
+      )
+    : undefined;
+  const isPrismProEnabledForRequest = Boolean(
+    prismApiKey && settings.enablePrismPro,
+  );
+
+  if (
+    model.provider === "auto" &&
+    model.name === AUTO_BALANCED_MODEL_NAME &&
+    !isPrismProEnabledForRequest
+  ) {
+    throw new PrismError(
+      "Auto (balanced) requires Prism Pro. Switch to another model or enable Prism Pro.",
+      PrismErrorKind.Auth,
+    );
+  }
+
+  // --- Handle specific provider ---
+  const providerConfig = allProviders.find((p) => p.id === model.provider);
+
+  if (!providerConfig) {
+    throw new PrismError(
+      `Configuration not found for provider: ${model.provider}`,
+      PrismErrorKind.NotFound,
+    );
+  }
+
+  if (isFreeProModel(model) && (!settings.enablePrismPro || !prismApiKey)) {
+    throw new PrismError(
+      "Prism Free requires an active Prism Pro API key. Switch to another model or enable Prism Pro.",
+      PrismErrorKind.Auth,
+    );
+  }
+
+  // Handle Prism Pro override
+  if (isPrismProEnabledForRequest) {
+    const prismEngineUrl = process.env.PRISM_ENGINE_URL;
+    // Check if the selected provider supports Prism Pro (has a gateway prefix) OR
+    // we're using local engine.
+    // IMPORTANT: some providers like OpenAI have an empty string gateway prefix,
+    // so we do a nullish and not a truthy check here.
+    if (providerConfig.gatewayPrefix != null || prismEngineUrl) {
+      // Native tool-backed modes select and edit files themselves. Retired
+      // engine-side Build options remain in stored settings only for backwards
+      // compatibility and must not affect requests.
+      const enableSmartFilesContext = false;
+      const provider = createPrismEngine({
+        apiKey: prismApiKey,
+        baseURL: getPrismEngineBaseUrl(),
+        ...getModelClientFetchOption(),
+        prismOptions: {
+          enableLazyEdits: false,
+          enableSmartFilesContext,
+          enableWebSearch: false,
+        },
+        settings,
+        modelSelection,
+      });
+
+      logger.debug(
+        `\x1b[1;97;44m Using Prism Pro API key for model: ${model.name} \x1b[0m`,
+      );
+
+      logger.debug(
+        `\x1b[1;30;42m Using Prism Pro engine: ${prismEngineUrl ?? "<prod>"} \x1b[0m`,
+      );
+
+      // Do not use free variant (for openrouter).
+      const modelName = model.name.split(":free")[0];
+      const proModelClient = await getProModelClient({
+        model,
+        settings,
+        provider,
+        modelId: `${providerConfig.gatewayPrefix || ""}${modelName}`,
+      });
+
+      return {
+        modelClient: proModelClient,
+        runtimeModel: model,
+        isEngineEnabled: true,
+        isSmartContextEnabled: enableSmartFilesContext,
+      };
+    } else {
+      logger.warn(
+        `Prism Pro enabled, but provider ${model.provider} does not have a gateway prefix defined. Falling back to direct provider connection.`,
+      );
+      // Fall through to regular provider logic if gateway prefix is missing
+    }
+  }
+  // Handle 'auto' provider by trying each model in AUTO_MODELS until one works
+  if (model.provider === "auto") {
+    if (model.name === "free") {
+      const openRouterProvider = allProviders.find(
+        (p) => p.id === "openrouter",
+      );
+      if (!openRouterProvider) {
+        throw new PrismError(
+          "OpenRouter provider not found",
+          PrismErrorKind.NotFound,
+        );
+      }
+      return {
+        modelClient: {
+          model: createFallback({
+            models: FREE_OPENROUTER_MODEL_NAMES.map(
+              (name: string) =>
+                getRegularModelClient(
+                  { provider: "openrouter", name },
+                  settings,
+                  openRouterProvider,
+                ).modelClient.model,
+            ),
+          }),
+          builtinProviderId: "openrouter",
+        },
+        runtimeModel: model,
+        isEngineEnabled: false,
+      };
+    }
+    for (const autoModelAlias of AUTO_MODEL_ALIASES) {
+      const resolvedModel = await resolveBuiltinModelAlias(autoModelAlias);
+      if (!resolvedModel) {
+        continue;
+      }
+
+      const providerInfo = allProviders.find(
+        (p) => p.id === resolvedModel.providerId,
+      );
+      const envVarName = providerInfo?.envVarName;
+
+      const apiKey = getProviderApiKeyForRequest(
+        settings.providerSettings?.[resolvedModel.providerId]?.apiKey?.value ||
+          (envVarName ? getEnvVar(envVarName) : undefined),
+        providerInfo?.name ?? resolvedModel.providerId,
+      );
+
+      if (apiKey) {
+        logger.log(
+          `Using provider: ${resolvedModel.providerId} model: ${resolvedModel.apiName}`,
+        );
+        if (
+          resolvedModel.providerId === "openrouter" &&
+          !isPrismProEnabledForRequest &&
+          providerInfo
+        ) {
+          return {
+            modelClient: getOpenRouterAutoFallbackModelClient({
+              primaryModelName: resolvedModel.apiName,
+              settings,
+              providerConfig: providerInfo,
+            }),
+            runtimeModel: {
+              provider: resolvedModel.providerId,
+              name: resolvedModel.apiName,
+            },
+            isEngineEnabled: false,
+          };
+        }
+        // Recursively call with the specific model found
+        return await getModelClient(
+          {
+            provider: resolvedModel.providerId,
+            name: resolvedModel.apiName,
+          },
+          settings,
+        );
+      }
+    }
+    // If no models have API keys, throw an error
+    throw new Error(
+      "No API keys available for any model supported by the 'auto' provider.",
+    );
+  }
+  return {
+    ...getRegularModelClient(model, settings, providerConfig),
+    runtimeModel: model,
+  };
+}
+
+function getOpenRouterAutoFallbackModelClient({
+  primaryModelName,
+  settings,
+  providerConfig,
+}: {
+  primaryModelName: string;
+  settings: UserSettings;
+  providerConfig: LanguageModelProvider;
+}): ModelClient {
+  const modelNames = Array.from(
+    new Set([primaryModelName, OPENROUTER_FREE_MODEL_NAME]),
+  );
+
+  return {
+    model: createFallback({
+      models: modelNames.map(
+        (name) =>
+          getRegularModelClient(
+            { provider: "openrouter", name },
+            settings,
+            providerConfig,
+          ).modelClient.model,
+      ),
+    }),
+    builtinProviderId: "openrouter",
+  };
+}
+
+async function getProModelClient({
+  model,
+  settings,
+  provider,
+  modelId,
+}: {
+  model: LargeLanguageModel;
+  settings: UserSettings;
+  provider: PrismEngineProvider;
+  modelId: string;
+}): Promise<ModelClient> {
+  if (isFreeProModel(model)) {
+    return {
+      model: provider.freeChatModel(FREE_PRO_MODEL_NAME, {
+        providerId: model.provider,
+      }),
+      builtinProviderId: model.provider,
+    };
+  }
+
+  if (model.provider === "auto" && model.name === AUTO_BALANCED_MODEL_NAME) {
+    const resolvedModel = await resolveBuiltinModelAlias(AUTO_BALANCED_ALIAS);
+    if (!resolvedModel) {
+      throw new PrismError(
+        "Auto (balanced) could not be resolved from the model catalog",
+        PrismErrorKind.External,
+      );
+    }
+
+    const providers = await getLanguageModelProviders();
+    const resolvedProvider = providers.find(
+      (providerInfo) => providerInfo.id === resolvedModel.providerId,
+    );
+    if (!resolvedProvider) {
+      throw new PrismError(
+        `Configuration not found for provider: ${resolvedModel.providerId}`,
+        PrismErrorKind.NotFound,
+      );
+    }
+
+    if (resolvedModel.apiProtocol !== "responses") {
+      throw new PrismError(
+        "Auto (balanced) must use the Responses API according to the model catalog",
+        PrismErrorKind.External,
+      );
+    }
+
+    const resolvedModelId = `${resolvedProvider.gatewayPrefix || ""}${resolvedModel.apiName}`;
+
+    return {
+      model: createPrismEngineAliasModel({
+        provider,
+        resolvedModel,
+        modelId: resolvedModelId,
+      }),
+      builtinProviderId: resolvedModel.providerId,
+    };
+  }
+
+  if (
+    settings.selectedChatMode === "local-agent" &&
+    model.provider === "auto" &&
+    model.name === "auto"
+  ) {
+    const providers = await getLanguageModelProviders();
+    const fallbackEntries = await Promise.all(
+      AUTO_PRISM_PRO_MODEL_ALIASES.map(async (aliasId) => {
+        const resolvedModel = await resolveBuiltinModelAlias(aliasId);
+        if (!resolvedModel || resolvedModel.apiName.endsWith(":free")) {
+          return null;
+        }
+
+        const resolvedProvider = providers.find(
+          (providerInfo) => providerInfo.id === resolvedModel.providerId,
+        );
+        const resolvedModelId = `${
+          resolvedProvider?.gatewayPrefix || ""
+        }${resolvedModel.apiName}`;
+
+        const instance = createPrismEngineAliasModel({
+          provider,
+          resolvedModel,
+          modelId: resolvedModelId,
+        });
+
+        // The stream's call options are computed for the PRIMARY selection, so
+        // give each chain entry the options it would have received had IT been
+        // selected: its own temperature and output cap from the catalog.
+        // Provider-family thinking options are already injected by the Prism
+        // Engine fetch wrapper from this entry's providerId; adding e.g.
+        // providerOptions.google here would be ignored because these AI SDK
+        // model instances read the prism-engine provider-options key.
+        const chainModelSelection = {
+          provider: resolvedModel.providerId,
+          name: resolvedModel.apiName,
+        };
+        const [temperature, maxOutputTokens] = await Promise.all([
+          getTemperature(chainModelSelection),
+          getMaxTokens(chainModelSelection),
+        ]);
+        return {
+          model: instance,
+          callOptions: {
+            temperature,
+            maxOutputTokens,
+          },
+        };
+      }),
+    );
+
+    const validEntries = fallbackEntries.filter((entry) => entry !== null);
+    if (validEntries.length === 0) {
+      throw new PrismError(
+        "No auto-mode models could be resolved from the catalog",
+        PrismErrorKind.External,
+      );
+    }
+
+    return {
+      // We need to do the fallback here (and not server-side)
+      // because GPT-5* models need to use responses API to get
+      // full functionality (e.g. thinking summaries).
+      model: createFallback({
+        models: validEntries.map((entry) => entry.model),
+        modelCallOptions: validEntries.map((entry) => entry.callOptions),
+      }),
+      // Using openAI as the default provider.
+      // TODO: we should remove this and rely on the provider id passed into the provider().
+      builtinProviderId: "openai",
+    };
+  }
+  if (usesOpenAIResponsesApi(model)) {
+    return {
+      model: provider.responses(modelId, {
+        providerId: "openai",
+      }),
+      builtinProviderId: model.provider,
+    };
+  }
+  if (model.provider === "anthropic") {
+    return {
+      model: provider.anthropic(modelId, { providerId: model.provider }),
+      builtinProviderId: model.provider,
+    };
+  }
+  return {
+    model: provider(modelId, { providerId: model.provider }),
+    builtinProviderId: model.provider,
+  };
+}
+
+function getRegularModelClient(
+  model: LargeLanguageModel,
+  settings: UserSettings,
+  providerConfig: LanguageModelProvider,
+): {
+  modelClient: ModelClient;
+  backupModelClients: ModelClient[];
+} {
+  const providerId = providerConfig.id;
+  // Get API key for the specific provider. Azure is handled in its own branch
+  // because it has additional config and test-mode bypass behavior.
+  const apiKey =
+    providerId === "azure"
+      ? undefined
+      : getProviderApiKeyForRequest(
+          settings.providerSettings?.[model.provider]?.apiKey?.value ||
+            (providerConfig.envVarName
+              ? getEnvVar(providerConfig.envVarName)
+              : undefined),
+          providerConfig.name ?? providerConfig.id,
+        );
+  // Create client based on provider ID or type
+  switch (providerId) {
+    case "openai": {
+      const provider = createOpenAI({
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider.responses(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "anthropic": {
+      const provider = createAnthropic({
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "xai": {
+      const provider = createXai({
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "google": {
+      const provider = createGoogle({
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "vertex": {
+      // Vertex uses Google service account credentials with project/location
+      const vertexSettings = settings.providerSettings?.[
+        model.provider
+      ] as VertexProviderSetting;
+      const project = vertexSettings?.projectId;
+      const location = vertexSettings?.location;
+      const serviceAccountKey = vertexSettings?.serviceAccountKey?.value;
+
+      // Use a baseURL that does NOT pin to publishers/google so that
+      // full publisher model IDs (e.g. publishers/deepseek-ai/models/...) work.
+      const regionHost = `${location === "global" ? "" : `${location}-`}aiplatform.googleapis.com`;
+      const baseURL = `https://${regionHost}/v1/projects/${project}/locations/${location}`;
+      const provider = createGoogleVertex({
+        project,
+        location,
+        baseURL,
+        ...getModelClientFetchOption(),
+        googleAuthOptions: serviceAccountKey
+          ? {
+              // Expecting the user to paste the full JSON of the service account key
+              credentials: JSON.parse(serviceAccountKey),
+            }
+          : undefined,
+      });
+      return {
+        modelClient: {
+          // For built-in Google models on Vertex, the path must include
+          // publishers/google/models/<model>. For partner MaaS models the
+          // full publisher path is already included.
+          model: provider(
+            model.name.includes("/")
+              ? model.name
+              : `publishers/google/models/${model.name}`,
+          ),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "openrouter": {
+      const provider = createOpenAICompatible({
+        name: "openrouter",
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey,
+        headers: getOpenRouterAppAttributionHeaders(),
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "azure": {
+      // Check if we're in e2e testing mode
+      const testAzureBaseUrl = getEnvVar("TEST_AZURE_BASE_URL");
+
+      if (testAzureBaseUrl) {
+        // Use fake server for e2e testing
+        logger.info(`Using test Azure base URL: ${testAzureBaseUrl}`);
+        const provider = createOpenAICompatible({
+          name: "azure-test",
+          baseURL: testAzureBaseUrl,
+          apiKey: "fake-api-key-for-testing",
+          ...getModelClientFetchOption(),
+        });
+        return {
+          modelClient: {
+            model: provider(model.name),
+            builtinProviderId: providerId,
+          },
+          backupModelClients: [],
+        };
+      }
+
+      const azureSettings = settings.providerSettings?.azure as
+        | AzureProviderSetting
+        | undefined;
+      const azureApiKeyFromSettings = normalizeProviderApiKeyInput(
+        azureSettings?.apiKey?.value,
+      );
+      const azureResourceNameFromSettings = (
+        azureSettings?.resourceName ?? ""
+      ).trim();
+      const envResourceName = (getEnvVar("AZURE_RESOURCE_NAME") ?? "").trim();
+      const envAzureApiKey = normalizeProviderApiKeyInput(
+        getEnvVar("AZURE_API_KEY"),
+      );
+
+      const resourceName = azureResourceNameFromSettings || envResourceName;
+      const azureApiKey = getProviderApiKeyForRequest(
+        azureApiKeyFromSettings || envAzureApiKey,
+        providerConfig.name ?? providerConfig.id,
+      );
+
+      if (!resourceName) {
+        throw new Error(
+          "Azure OpenAI resource name is required. Provide it in Settings or set the AZURE_RESOURCE_NAME environment variable.",
+        );
+      }
+
+      if (!azureApiKey) {
+        throw new Error(
+          "Azure OpenAI API key is required. Provide it in Settings or set the AZURE_API_KEY environment variable.",
+        );
+      }
+
+      const provider = createAzure({
+        resourceName,
+        apiKey: azureApiKey,
+        ...getModelClientFetchOption(),
+      });
+
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+          reasoningEffortProviderId: "azure",
+        },
+        backupModelClients: [],
+      };
+    }
+    case "ollama": {
+      const provider = createOllamaProvider({
+        baseURL: getOllamaApiUrl(),
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+          reasoningEffortProviderId: "ollama",
+        },
+        backupModelClients: [],
+      };
+    }
+    case "lmstudio": {
+      // LM Studio uses OpenAI compatible API
+      const baseURL = providerConfig.apiBaseUrl || getLmStudioBaseUrl() + "/v1";
+      const provider = createOpenAICompatible({
+        name: "lmstudio",
+        baseURL,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+          reasoningEffortProviderId: "lmstudio",
+        },
+        backupModelClients: [],
+      };
+    }
+    case "bedrock": {
+      // AWS Bedrock supports API key authentication using AWS_BEARER_TOKEN_BEDROCK
+      // See: https://sdk.vercel.ai/providers/ai-sdk-providers/amazon-bedrock#api-key-authentication
+      const provider = createAmazonBedrock({
+        apiKey: apiKey,
+        region: getEnvVar("AWS_REGION") || "us-east-1",
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "minimax": {
+      const provider = createOpenAICompatible({
+        name: "minimax",
+        baseURL: "https://api.minimax.io/v1",
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    default: {
+      // Handle custom providers
+      if (providerConfig.type === "custom") {
+        if (!providerConfig.apiBaseUrl) {
+          throw new Error(
+            `Custom provider ${model.provider} is missing the API Base URL.`,
+          );
+        }
+        // Assume custom providers are OpenAI compatible for now
+        const provider = createOpenAICompatible({
+          name: providerConfig.id,
+          baseURL: providerConfig.apiBaseUrl,
+          apiKey,
+          ...getModelClientFetchOption(),
+        });
+        return {
+          modelClient: {
+            model: provider(model.name),
+            builtinProviderId: providerConfig.id,
+            reasoningEffortProviderId: providerConfig.id,
+          },
+          backupModelClients: [],
+        };
+      }
+      // If it's not a known ID and not type 'custom', it's unsupported
+      throw new PrismError(
+        `Unsupported model provider: ${model.provider}`,
+        PrismErrorKind.Validation,
+      );
+    }
+  }
+}
+
+function getProviderApiKeyForRequest(
+  value: string | null | undefined,
+  providerDisplayName: string,
+): string | undefined {
+  const normalizedValue = normalizeProviderApiKeyInput(value);
+  if (!normalizedValue) {
+    return undefined;
+  }
+  const invalidCharacter = findInvalidProviderApiKeyCharacter(normalizedValue);
+  if (invalidCharacter) {
+    throw new PrismError(
+      formatInvalidProviderApiKeyMessage(providerDisplayName, invalidCharacter),
+      PrismErrorKind.Validation,
+    );
+  }
+  return normalizedValue;
+}

@@ -1,0 +1,845 @@
+import { sql } from "drizzle-orm";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  unique,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
+import type { ModelMessage } from "ai";
+import type { ModelSelection, StoredChatMode } from "@/lib/schemas";
+import type { SerializableChatTurnIntent } from "@/chat_stream/transport";
+import {
+  CHAT_TURN_TERMINAL_OUTCOMES,
+  type ChatTurnTerminalOutcome,
+} from "@/shared/chat_turn_outcome";
+
+export const AI_MESSAGES_SDK_VERSION = "ai@v6" as const;
+
+export type AiMessagesJsonV6 = {
+  messages: ModelMessage[];
+  sdkVersion: typeof AI_MESSAGES_SDK_VERSION;
+};
+
+export const prompts = sqliteTable(
+  "prompts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title").notNull(),
+    description: text("description"),
+    content: text("content").notNull(),
+    slug: text("slug"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [unique("prompts_slug_unique").on(table.slug)],
+);
+
+export const appCollections = sqliteTable(
+  "app_collections",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [unique("app_collections_name_unique").on(table.name)],
+);
+
+export const apps = sqliteTable("apps", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  path: text("path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  githubOrg: text("github_org"),
+  githubRepo: text("github_repo"),
+  githubBranch: text("github_branch"),
+  supabaseProjectId: text("supabase_project_id"),
+  // If supabaseProjectId is a branch, then the parent project id set.
+  // This is because there's no way to retrieve ALL the branches for ALL projects
+  // in a single API call
+  // This is only used for display purposes but is NOT used for any actual
+  // supabase management logic.
+  supabaseParentProjectId: text("supabase_parent_project_id"),
+  // Supabase organization slug for credential lookup
+  supabaseOrganizationSlug: text("supabase_organization_slug"),
+  // In-flight ephemeral test-user id for isolated e2e runs against Supabase.
+  // Supabase's free tier has no DB branching, so instead of a throwaway branch
+  // we create a dedicated throwaway auth user (via the Auth Admin API, stamped
+  // app_metadata.prism_test=true) and run the tests authenticated as it. Set
+  // while a test session holds that user, cleared on teardown. Persisted so a
+  // crash mid-session can be reconciled (orphan user deleted) on the next
+  // launch. See ipc/utils/supabase_test_user.ts.
+  supabaseTestUserId: text("supabase_test_user_id"),
+  neonProjectId: text("neon_project_id"),
+  neonDevelopmentBranchId: text("neon_development_branch_id"),
+  neonPreviewBranchId: text("neon_preview_branch_id"),
+  neonActiveBranchId: text("neon_active_branch_id"),
+  // In-flight ephemeral test branch for isolated e2e test runs. Set while a
+  // test session holds a throwaway copy-on-write branch, cleared on teardown.
+  // Persisted so a crash mid-session can be reconciled (orphan branch deleted)
+  // on the next launch. See ipc/utils/neon_test_branch.ts.
+  neonTestBranchId: text("neon_test_branch_id"),
+  neonProductionAuthCookieSecret: text("neon_production_auth_cookie_secret"),
+  neonDevelopmentAuthCookieSecret: text("neon_development_auth_cookie_secret"),
+  // Which Neon branch the unified database section is set to deploy/sync
+  // against ("production" | "development"). Null is interpreted differently by
+  // each consumer: the backend sync (getSelectedDeployBranchType) treats null
+  // as production, while the DatabaseSection UI treats null as "not yet chosen"
+  // and shows the branch picker until the user selects one.
+  // Read by the main process when syncing env vars + trusted domains to Vercel.
+  selectedDatabaseBranchType: text("selected_database_branch_type").$type<
+    "production" | "development"
+  >(),
+  vercelProjectId: text("vercel_project_id"),
+  vercelProjectName: text("vercel_project_name"),
+  vercelTeamId: text("vercel_team_id"),
+  vercelDeploymentUrl: text("vercel_deployment_url"),
+  installCommand: text("install_command"),
+  startCommand: text("start_command"),
+  chatContext: text("chat_context", { mode: "json" }),
+  isFavorite: integer("is_favorite", { mode: "boolean" })
+    .notNull()
+    .default(sql`0`),
+  // Theme ID for design system theming (null means "no theme")
+  themeId: text("theme_id"),
+  needsAppBlueprint: integer("needs_app_blueprint", { mode: "boolean" })
+    .notNull()
+    .default(sql`0`),
+  // Per-app opt-in for the experimental AI E2E testing feature. Off by default:
+  // running tests can mutate the app's real data, so the Tests panel gates all
+  // run/generate controls behind this flag until the user explicitly enables it
+  // (after acknowledging the data-backup warning). See TestsPanel.tsx.
+  testingEnabled: integer("testing_enabled", { mode: "boolean" })
+    .notNull()
+    .default(sql`0`),
+  collectionId: integer("collection_id").references(() => appCollections.id, {
+    onDelete: "set null",
+  }),
+});
+
+export const chats = sqliteTable("chats", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  appId: integer("app_id")
+    .notNull()
+    .references(() => apps.id, { onDelete: "cascade" }),
+  title: text("title"),
+  initialCommitHash: text("initial_commit_hash"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  // Context compaction fields
+  compactedAt: integer("compacted_at", { mode: "timestamp" }),
+  compactionBackupPath: text("compaction_backup_path"),
+  pendingCompaction: integer("pending_compaction", { mode: "boolean" }),
+  chatMode: text("chat_mode").$type<StoredChatMode | null>(),
+  modelSelection: text("model_selection", {
+    mode: "json",
+  }).$type<ModelSelection | null>(),
+  // App ids referenced via `@app:Name` that stay available for the rest of the
+  // chat (agent-backed modes only). Stored on the chat rather than derived from
+  // message history so references survive compaction, which rewrites history.
+  // Ids, not paths: apps can be renamed or moved, so paths are resolved per turn.
+  referencedAppIds: text("referenced_app_ids", { mode: "json" }).$type<
+    number[] | null
+  >(),
+  isFavorite: integer("is_favorite", { mode: "boolean" })
+    .notNull()
+    .default(sql`0`),
+});
+
+export const messages = sqliteTable(
+  "messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    chatId: integer("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["user", "assistant"] }).notNull(),
+    content: text("content").notNull(),
+    approvalState: text("approval_state", {
+      enum: ["approved", "rejected"],
+    }),
+    // The commit hash of the codebase at the time the message was created
+    sourceCommitHash: text("source_commit_hash"),
+    // The commit hash of the codebase at the time the message was sent
+    commitHash: text("commit_hash"),
+    requestId: text("request_id"),
+    userInputRequestId: text("user_input_request_id"),
+    // Stable idempotency identity for main-owned chat turn admission. Unlike
+    // userInputRequestId, ordinary queued turns also carry this identity.
+    chatTurnIntentId: text("chat_turn_intent_id"),
+    // Max tokens used for this message (only for assistant messages)
+    maxTokensUsed: integer("max_tokens_used"),
+    // Model name used for this message (only for assistant messages)
+    model: text("model"),
+    // AI SDK messages (v5 envelope) for preserving tool calls/results in agent mode
+    aiMessagesJson: text("ai_messages_json", {
+      mode: "json",
+    }).$type<AiMessagesJsonV6 | null>(),
+    // Track if this message used the free agent quota (for non-Pro users)
+    usingFreeAgentModeQuota: integer("using_free_agent_mode_quota", {
+      mode: "boolean",
+    }),
+    // Indicates this message is a compaction summary
+    isCompactionSummary: integer("is_compaction_summary", { mode: "boolean" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    uniqueIndex("messages_chat_user_input_request_unique").on(
+      table.chatId,
+      table.userInputRequestId,
+    ),
+    uniqueIndex("messages_chat_turn_intent_unique").on(
+      table.chatId,
+      table.chatTurnIntentId,
+    ),
+  ],
+);
+
+export const chatTurnIntents = sqliteTable(
+  "chat_turn_intents",
+  {
+    intentId: text("intent_id").primaryKey(),
+    chatId: integer("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    payloadHash: text("payload_hash").notNull(),
+    intent: text("intent", {
+      mode: "json",
+    }).$type<SerializableChatTurnIntent | null>(),
+    acceptance: text("acceptance", {
+      enum: ["queued", "message-accepted", "rejected"],
+    })
+      .notNull()
+      .default("queued"),
+    recovery: text("recovery", {
+      enum: ["not-started", "started", "terminal"],
+    })
+      .notNull()
+      .default("not-started"),
+    terminalOutcome: text("terminal_outcome", {
+      enum: CHAT_TURN_TERMINAL_OUTCOMES,
+    }).$type<ChatTurnTerminalOutcome | null>(),
+    acceptedMessageId: integer("accepted_message_id"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [index("chat_turn_intents_chat_idx").on(table.chatId)],
+);
+
+export const chatQueueStates = sqliteTable("chat_queue_states", {
+  chatId: integer("chat_id")
+    .primaryKey()
+    .references(() => chats.id, { onDelete: "cascade" }),
+  revision: integer("revision").notNull().default(0),
+  paused: integer("paused", { mode: "boolean" }).notNull().default(false),
+  pauseReason: text("pause_reason", {
+    enum: ["stop", "manual", "step-limit"],
+  }),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const chatQueueEntries = sqliteTable("chat_queue_entries", {
+  intentId: text("intent_id")
+    .primaryKey()
+    .references(() => chatTurnIntents.intentId, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  status: text("status", { enum: ["queued", "claimed"] })
+    .notNull()
+    .default("queued"),
+});
+
+export const agentThreads = sqliteTable(
+  "agent_threads",
+  {
+    // Stable UUID for the sub-agent thread.
+    id: text("id").primaryKey(),
+    // Chat that owns and displays this thread.
+    chatId: integer("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    // Specialized role assigned to the sub-agent.
+    persona: text("persona", {
+      enum: ["explorer", "reviewer", "implementer"],
+    }).notNull(),
+    // Short user-visible name for the task.
+    taskName: text("task_name").notNull(),
+    // Full assignment originally given to the sub-agent.
+    assignment: text("assignment").notNull(),
+    // Current lifecycle state of the thread.
+    status: text("status", {
+      enum: [
+        "queued",
+        "running",
+        "stopping",
+        "waiting_for_writer",
+        "auto_fix_countdown",
+        "fixing_findings",
+        "completed",
+        "partial",
+        "review_outdated",
+        "cancelled",
+        "entitlement_revoked",
+        "interrupted_by_restart",
+        "failed",
+      ],
+    })
+      .notNull()
+      .default("queued"),
+    // Provider used to run the sub-agent model.
+    provider: text("provider").notNull(),
+    // Provider model identifier used by the sub-agent.
+    model: text("model").notNull(),
+    // Provider-specific reasoning effort value.
+    reasoningEffort: text("reasoning_effort").notNull(),
+    // Durable invocation context such as scope and source message.
+    contextJson: text("context_json", { mode: "json" }).$type<Record<
+      string,
+      unknown
+    > | null>(),
+    // Structured terminal result produced by the sub-agent.
+    resultJson: text("result_json", { mode: "json" }).$type<Record<
+      string,
+      unknown
+    > | null>(),
+    // Base commit used to construct a review target.
+    reviewBaseCommit: text("review_base_commit"),
+    // Target commit used to construct a review target.
+    reviewTargetCommit: text("review_target_commit"),
+    // Hash identifying the exact diff reviewed.
+    reviewDiffHash: text("review_diff_hash"),
+    // User or system path that created this thread.
+    invocationSource: text("invocation_source", {
+      enum: ["model", "review_button", "auto_review", "followup"],
+    }).notNull(),
+    // Action that initiated review remediation.
+    remediationSource: text("remediation_source", {
+      enum: ["fix_button", "auto_fix", "queued_message_override"],
+    }),
+    // Scheduled time at which automatic fixes begin.
+    autoFixAt: integer("auto_fix_at", { mode: "timestamp" }),
+    // User-visible terminal error, when the thread fails.
+    error: text("error"),
+    // Cumulative model input tokens used by the thread.
+    inputTokens: integer("input_tokens").notNull().default(0),
+    // Cumulative model output tokens used by the thread.
+    outputTokens: integer("output_tokens").notNull().default(0),
+    // Cumulative number of child tool calls.
+    toolCallCount: integer("tool_call_count").notNull().default(0),
+    // Time at which the thread was created.
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    // Time at which execution first started.
+    startedAt: integer("started_at", { mode: "timestamp" }),
+    // Time at which execution reached a terminal state.
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    // Time of the latest durable thread update.
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [index("agent_threads_chat_id_idx").on(table.chatId)],
+);
+
+export const agentMessages = sqliteTable(
+  "agent_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => agentThreads.id, { onDelete: "cascade" }),
+    sequence: integer("sequence").notNull(),
+    messageId: text("message_id").notNull(),
+    role: text("role", {
+      enum: ["root", "assistant", "system"],
+    }).notNull(),
+    content: text("content").notNull(),
+    consumed: integer("consumed", { mode: "boolean" })
+      .notNull()
+      .default(sql`0`),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    unique("agent_messages_thread_sequence_unique").on(
+      table.threadId,
+      table.sequence,
+    ),
+    unique("agent_messages_thread_message_unique").on(
+      table.threadId,
+      table.messageId,
+    ),
+  ],
+);
+
+export const agentActivities = sqliteTable(
+  "agent_activities",
+  {
+    // Local row identifier for the activity snapshot.
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Sub-agent thread that owns this activity.
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => agentThreads.id, { onDelete: "cascade" }),
+    // Stable first-seen order within the thread.
+    sequence: integer("sequence").notNull(),
+    // AI SDK call identifier used to update this activity.
+    toolCallId: text("tool_call_id").notNull(),
+    // Registered name of the invoked tool.
+    toolName: text("tool_name").notNull(),
+    // Current execution state of the tool invocation.
+    status: text("status", {
+      enum: ["pending", "completed", "error", "aborted"],
+    }).notNull(),
+    // Existing Prism XML used to render the activity.
+    presentationXml: text("presentation_xml").notNull(),
+    // Validated tool arguments retained for grounded report reconstruction.
+    inputJson: text("input_json", { mode: "json" }).$type<Record<
+      string,
+      unknown
+    > | null>(),
+    // Bounded model-visible tool result retained for grounded reports.
+    outputText: text("output_text"),
+    // User-visible tool error when execution fails.
+    error: text("error"),
+    // Time at which the tool invocation first appeared.
+    startedAt: integer("started_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    // Time at which the invocation reached a terminal state.
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    unique("agent_activities_thread_tool_call_unique").on(
+      table.threadId,
+      table.toolCallId,
+    ),
+    unique("agent_activities_thread_sequence_unique").on(
+      table.threadId,
+      table.sequence,
+    ),
+  ],
+);
+
+export const versions = sqliteTable(
+  "versions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    appId: integer("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+    commitHash: text("commit_hash").notNull(),
+    neonDbTimestamp: text("neon_db_timestamp"),
+    isFavorite: integer("is_favorite", { mode: "boolean" })
+      .notNull()
+      .default(sql`0`),
+    note: text("note"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    // Unique constraint to prevent duplicate versions
+    unique("versions_app_commit_unique").on(table.appId, table.commitHash),
+  ],
+);
+
+export const security_fix_chats = sqliteTable(
+  "security_fix_chats",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    appId: integer("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+    reviewChatId: integer("review_chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    // Hash of the normalized finding(s) the fix chat was created for
+    findingKey: text("finding_key").notNull(),
+    fixChatId: integer("fix_chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    unique("security_fix_chats_unique").on(
+      table.appId,
+      table.reviewChatId,
+      table.findingKey,
+    ),
+    index("security_fix_chats_review_chat_id_idx").on(table.reviewChatId),
+    index("security_fix_chats_fix_chat_id_idx").on(table.fixChatId),
+  ],
+);
+
+/**
+ * Where an app deploys to on a Coolify instance.
+ *
+ * A table rather than columns on `apps` because these are set together and
+ * mean nothing apart: a server without a project names nowhere, and an
+ * application id without either belongs to no instance. The row existing is
+ * what "connected" means, so disconnecting deletes it rather than nulling
+ * every field and hoping each writer nulls the same ones.
+ *
+ * One row is one deployment. The target columns are NOT NULL because the
+ * database will not hold a half-configured connection; the rest fill in as a
+ * deploy progresses. The API token is instance-wide and lives in settings.
+ */
+export const coolifyAppConnections = sqliteTable(
+  "coolify_app_connections",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    appId: integer("app_id")
+      .notNull()
+      .references(() => apps.id, { onDelete: "cascade" }),
+
+    /**
+     * Where the deployment goes. Coolify addresses a resource by all three:
+     * the machine, the grouping, and the lane within it — an app can have a
+     * production and a staging copy in one project on one server.
+     *
+     * The Coolify instance is deliberately not here. Its only handle is the
+     * URL, which changes without the instance changing (http to https once a
+     * certificate lands, an IP becoming a domain), so keying on it would make
+     * every app look moved. These are UUIDs, so they do not collide across
+     * instances anyway.
+     */
+    serverUuid: text("server_uuid").notNull(),
+    projectUuid: text("project_uuid").notNull(),
+    environmentName: text("environment_name").notNull().default("production"),
+
+    applicationUuid: text("application_uuid"),
+    /**
+     * What the user asked for, not where the app ended up — that is app_url.
+     * Null means no custom domain, so the address is whatever the deploy is
+     * entitled to generate. Never write a generated address back here, or the
+     * user's "no preference" becomes a stored preference they cannot undo.
+     */
+    domain: text("domain"),
+    appUrl: text("app_url"),
+    lastDeployedAt: integer("last_deployed_at", { mode: "timestamp" }),
+  },
+  (table) => [
+    // One row per target rather than per app. Only one is written today, kept
+    // that way by the writer rather than by this index, because widening a
+    // unique index later is not something this schema's migrations do.
+    unique("coolify_app_connections_target_unique").on(
+      table.appId,
+      table.serverUuid,
+      table.projectUuid,
+      table.environmentName,
+    ),
+  ],
+);
+
+// Define relations
+export const appsRelations = relations(apps, ({ many, one }) => ({
+  chats: many(chats),
+  versions: many(versions),
+  securityFixChats: many(security_fix_chats),
+  collection: one(appCollections, {
+    fields: [apps.collectionId],
+    references: [appCollections.id],
+  }),
+}));
+
+export const appCollectionsRelations = relations(
+  appCollections,
+  ({ many }) => ({
+    apps: many(apps),
+  }),
+);
+
+export const chatsRelations = relations(chats, ({ many, one }) => ({
+  messages: many(messages),
+  securityFixReviewMappings: many(security_fix_chats, {
+    relationName: "securityFixReviewChat",
+  }),
+  securityFixChatMappings: many(security_fix_chats, {
+    relationName: "securityFixChat",
+  }),
+  agentThreads: many(agentThreads),
+  app: one(apps, {
+    fields: [chats.appId],
+    references: [apps.id],
+  }),
+}));
+
+export const agentThreadsRelations = relations(
+  agentThreads,
+  ({ many, one }) => ({
+    chat: one(chats, {
+      fields: [agentThreads.chatId],
+      references: [chats.id],
+    }),
+    messages: many(agentMessages),
+    activities: many(agentActivities),
+  }),
+);
+
+export const agentMessagesRelations = relations(agentMessages, ({ one }) => ({
+  thread: one(agentThreads, {
+    fields: [agentMessages.threadId],
+    references: [agentThreads.id],
+  }),
+}));
+
+export const agentActivitiesRelations = relations(
+  agentActivities,
+  ({ one }) => ({
+    thread: one(agentThreads, {
+      fields: [agentActivities.threadId],
+      references: [agentThreads.id],
+    }),
+  }),
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  chat: one(chats, {
+    fields: [messages.chatId],
+    references: [chats.id],
+  }),
+}));
+
+export const securityFixChatsRelations = relations(
+  security_fix_chats,
+  ({ one }) => ({
+    app: one(apps, {
+      fields: [security_fix_chats.appId],
+      references: [apps.id],
+    }),
+    reviewChat: one(chats, {
+      fields: [security_fix_chats.reviewChatId],
+      references: [chats.id],
+      relationName: "securityFixReviewChat",
+    }),
+    fixChat: one(chats, {
+      fields: [security_fix_chats.fixChatId],
+      references: [chats.id],
+      relationName: "securityFixChat",
+    }),
+  }),
+);
+
+export const language_model_providers = sqliteTable(
+  "language_model_providers",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    api_base_url: text("api_base_url").notNull(),
+    env_var_name: text("env_var_name"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+);
+
+export const language_models = sqliteTable("language_models", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  displayName: text("display_name").notNull(),
+  apiName: text("api_name").notNull(),
+  builtinProviderId: text("builtin_provider_id"),
+  customProviderId: text("custom_provider_id").references(
+    () => language_model_providers.id,
+    {
+      onDelete: "cascade",
+    },
+  ),
+  description: text("description"),
+  max_output_tokens: integer("max_output_tokens"),
+  context_window: integer("context_window"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// Define relations for new tables
+export const languageModelProvidersRelations = relations(
+  language_model_providers,
+  ({ many }) => ({
+    languageModels: many(language_models),
+  }),
+);
+
+export const languageModelsRelations = relations(
+  language_models,
+  ({ one }) => ({
+    provider: one(language_model_providers, {
+      fields: [language_models.customProviderId],
+      references: [language_model_providers.id],
+    }),
+  }),
+);
+
+export const versionsRelations = relations(versions, ({ one }) => ({
+  app: one(apps, {
+    fields: [versions.appId],
+    references: [apps.id],
+  }),
+}));
+
+// --- MCP (Model Context Protocol) tables ---
+export const mcpServers = sqliteTable(
+  "mcp_servers",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    transport: text("transport").notNull(),
+    command: text("command"),
+    // Store typed JSON for args and environment variables
+    args: text("args", { mode: "json" }).$type<string[] | null>(),
+    // Legacy plaintext env vars and headers. These remain for unedited
+    // rows so older builds can still use their existing configuration;
+    // new writes and secret edits clear them in favor of the encrypted
+    // columns below, which are what this build reads.
+    envJson: text("env_json", { mode: "json" }).$type<Record<
+      string,
+      string
+    > | null>(),
+    headersJson: text("headers_json", { mode: "json" }).$type<Record<
+      string,
+      string
+    > | null>(),
+    // Env vars and headers encrypted via Electron `safeStorage`, or
+    // base64 plaintext where no keyring is available (see
+    // encryptSecretMap). Both hold a JSON object of strings.
+    envEncrypted: text("env_encrypted"),
+    headersEncrypted: text("headers_encrypted"),
+    url: text("url"),
+    enabled: integer("enabled", { mode: "boolean" })
+      .notNull()
+      .default(sql`0`),
+    // Whether this server requires OAuth. When true, the MCP manager wires
+    // an `OAuthClientProvider` into the streamable HTTP transport so the
+    // Vercel `@ai-sdk/mcp` `auth()` flow can drive PKCE + refresh.
+    oauthEnabled: integer("oauth_enabled", { mode: "boolean" })
+      .notNull()
+      .default(sql`0`),
+    // OAuth state (tokens, expiry, client info). Encrypted via Electron
+    // `safeStorage`, or base64 plaintext where no keyring is available
+    // (see encryptToString). Read/written only by PrismOAuthClientProvider.
+    oauthState: text("oauth_state"),
+    // Optional pre-registered OAuth client_id for servers that don't
+    // support dynamic client registration (RFC 7591). User-supplied via
+    // the add-server UI; left blank for servers that support DCR.
+    oauthClientId: text("oauth_client_id"),
+    // Optional pre-registered OAuth client_secret for confidential
+    // clients. Encrypted via `safeStorage` (base64 plaintext fallback
+    // where no keyring exists). Never sent to the renderer.
+    oauthClientSecret: text("oauth_client_secret"),
+    // Space-separated OAuth scopes requested at the authorize endpoint.
+    // Server-defined values; check provider docs. Blank means omit the
+    // `scope` parameter entirely so the server applies its own default
+    // (rather than us guessing a value that fits a minority of providers).
+    oauthScope: text("oauth_scope"),
+    // Per-server callback port. Manual (non-DCR) flows pre-register a
+    // redirect URI that includes the port, so it must stay stable for
+    // those rows. Null falls back to DEFAULT_OAUTH_CALLBACK_PORT.
+    oauthCallbackPort: integer("oauth_callback_port"),
+    // Slug of the curated catalog entry this server was added from.
+    // Null for manually configured servers.
+    catalogSlug: text("catalog_slug"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    // Provenance/dedupe key for catalog adds. SQLite allows multiple
+    // NULLs, so manually-configured servers are unaffected.
+    uniqueIndex("uniq_mcp_catalog_slug").on(table.catalogSlug),
+  ],
+);
+
+export const mcpToolConsents = sqliteTable(
+  "mcp_tool_consents",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => mcpServers.id, { onDelete: "cascade" }),
+    toolName: text("tool_name").notNull(),
+    consent: text("consent").notNull().default("ask"), // ask | always | denied
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [unique("uniq_mcp_consent").on(table.serverId, table.toolName)],
+);
+
+// --- Chat search (FTS5) support tables ---
+// Dirty queues for the chat_search_fts index (created in a custom migration —
+// drizzle cannot model FTS5 virtual tables). Rows are enqueued by SQLite
+// triggers when source rows change and drained by ChatSearchIndexer, which
+// builds the searchable text projection in TypeScript. No foreign keys:
+// triggers own the row lifecycle, including cleanup on delete.
+export const chatSearchDirtyMessages = sqliteTable(
+  "chat_search_dirty_messages",
+  {
+    messageId: integer("message_id").primaryKey(),
+  },
+);
+
+export const chatSearchDirtyChats = sqliteTable("chat_search_dirty_chats", {
+  chatId: integer("chat_id").primaryKey(),
+});
+
+// Key/value metadata for the chat-search index (e.g. projection version so a
+// policy change can trigger a background rebuild).
+export const chatSearchMeta = sqliteTable("chat_search_meta", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+// --- Custom Themes table ---
+export const customThemes = sqliteTable("custom_themes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  description: text("description"),
+  prompt: text("prompt").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

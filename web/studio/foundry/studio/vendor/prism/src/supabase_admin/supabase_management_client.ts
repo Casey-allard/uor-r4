@@ -1,0 +1,1516 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { z } from "zod";
+import { withLock } from "../ipc/utils/lock_utils";
+import { readSettings, writeSettings } from "../main/settings";
+import {
+  SupabaseManagementAPI,
+  SupabaseManagementAPIError,
+} from "@dyad-sh/supabase-management-js";
+import log from "electron-log";
+import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
+import { SUPABASE_PROJECT_CREATED_BUT_UNLINKED } from "../ipc/types/supabase";
+import type { SupabaseOrganizationCredentials } from "../lib/schemas";
+import {
+  fetchWithRetry,
+  RateLimitError,
+  retryWithRateLimit,
+} from "../ipc/utils/retryWithRateLimit";
+import { PrismError, PrismErrorKind, isPrismError } from "@/errors/prism_error";
+import { enqueueSupabaseDeploy } from "./supabase_deploy_queue";
+
+const fsPromises = fs.promises;
+
+const logger = log.scope("supabase_management_client");
+
+// Supabase can briefly reject a newly issued OAuth token while it propagates
+// to the Management API. Keep this retry window short and limited to 401s.
+const ORGANIZATION_AUTH_RETRY_DELAYS_MS = [250, 500, 1_000, 2_000] as const;
+
+// ─────────────────────────────────────────────────────────────────────
+// Interfaces for file collection and caching
+// ─────────────────────────────────────────────────────────────────────
+
+interface ZipFileEntry {
+  relativePath: string;
+  content: Buffer;
+  date: Date;
+}
+
+export interface FileStatEntry {
+  absolutePath: string;
+  relativePath: string;
+  mtimeMs: number;
+  size: number;
+}
+
+interface CachedSharedFiles {
+  signature: string;
+  files: ZipFileEntry[];
+}
+
+interface FunctionFilesResult {
+  files: ZipFileEntry[];
+  signature: string;
+  entrypointPath: string;
+  cacheKey: string;
+}
+
+export interface DeployedFunctionResponse {
+  id: string;
+  slug: string;
+  name: string;
+  status: "ACTIVE" | "REMOVED" | "THROTTLED";
+  version: number;
+  created_at?: number;
+  updated_at?: number;
+  verify_jwt?: boolean;
+  import_map?: boolean;
+  entrypoint_path?: string;
+  import_map_path?: string;
+  ezbr_sha256?: string;
+}
+
+export interface SupabaseProjectLog {
+  timestamp: number;
+  event_message: string;
+  level: "info" | "warn" | "error";
+}
+
+export interface SupabaseProjectLogsResponse {
+  result: SupabaseProjectLog[];
+  error?: unknown;
+}
+
+const SupabaseProjectLogApiSchema = z.object({
+  timestamp: z.union([z.string(), z.number()]),
+  event_message: z.string(),
+  severity_text: z.string().nullish(),
+});
+
+const SupabaseProjectLogsApiResponseSchema = z.object({
+  result: z.array(SupabaseProjectLogApiSchema).optional(),
+  error: z.unknown().optional(),
+});
+
+function parseSupabaseLogTimestamp(timestamp: string | number): number {
+  if (typeof timestamp === "number") {
+    return timestamp;
+  }
+
+  // ClickHouse returns UTC DateTime64 values without always including a zone.
+  // Date.parse treats a zone-less timestamp as local time, so make UTC explicit.
+  const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(timestamp);
+  return Date.parse(hasTimeZone ? timestamp : `${timestamp}Z`);
+}
+
+function normalizeSupabaseLogLevel(
+  severityText: string | null | undefined,
+): SupabaseProjectLog["level"] {
+  switch (severityText?.toLowerCase()) {
+    case "warn":
+    case "warning":
+      return "warn";
+    case "alert":
+    case "critical":
+    case "emergency":
+    case "error":
+    case "fatal":
+    case "panic":
+      return "error";
+    default:
+      return "info";
+  }
+}
+
+export interface SupabaseProjectBranch {
+  id: string;
+  name: string;
+  is_default: boolean;
+  project_ref: string;
+  parent_project_ref: string;
+}
+
+// Caches for shared files to avoid re-reading unchanged files
+const sharedFilesCache = new Map<string, CachedSharedFiles>();
+
+/**
+ * Checks if the Supabase access token is expired or about to expire
+ * Returns true if token needs to be refreshed
+ */
+function isTokenExpired(expiresIn?: number): boolean {
+  if (!expiresIn) return true;
+
+  // Get when the token was saved (expiresIn is stored at the time of token receipt)
+  const settings = readSettings();
+  const tokenTimestamp = settings.supabase?.tokenTimestamp || 0;
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  // Check if the token is expired or about to expire (within 5 minutes)
+  return currentTime >= tokenTimestamp + expiresIn - 300;
+}
+
+/**
+ * Refreshes the Supabase access token using the refresh token
+ * Updates settings with new tokens and expiration time
+ */
+let refreshSupabaseTokenPromise: Promise<void> | null = null;
+
+async function refreshSupabaseTokenOnce(): Promise<void> {
+  const settings = readSettings();
+  const refreshToken = settings.supabase?.refreshToken?.value;
+
+  if (!isTokenExpired(settings.supabase?.expiresIn)) {
+    return;
+  }
+
+  if (!refreshToken) {
+    throw new PrismError(
+      "Supabase refresh token not found. Please authenticate first.",
+      PrismErrorKind.Auth,
+    );
+  }
+
+  try {
+    // Make request to Supabase refresh endpoint
+    const response = await fetch(
+      "https://supabase-oauth.dyad.sh/api/connect-supabase/refresh",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new PrismError(
+        `Supabase token refresh failed. Try going to Settings to disconnect Supabase and then reconnect to Supabase. Error status: ${response.statusText}`,
+        PrismErrorKind.External,
+      );
+    }
+
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      expiresIn,
+    } = await response.json();
+
+    // Re-read settings right before writing to get latest state
+    const freshSettings = readSettings();
+    // Update settings with new tokens, preserving existing fields (e.g. organizations map)
+    writeSettings({
+      supabase: {
+        ...freshSettings.supabase,
+        accessToken: {
+          value: accessToken,
+        },
+        refreshToken: {
+          value: newRefreshToken,
+        },
+        expiresIn,
+        tokenTimestamp: Math.floor(Date.now() / 1000), // Store current timestamp
+      },
+    });
+  } catch (error) {
+    logger.error("Error refreshing Supabase token:", error);
+    throw error;
+  }
+}
+
+export function refreshSupabaseToken(): Promise<void> {
+  if (!refreshSupabaseTokenPromise) {
+    refreshSupabaseTokenPromise = refreshSupabaseTokenOnce().finally(() => {
+      refreshSupabaseTokenPromise = null;
+    });
+  }
+  return refreshSupabaseTokenPromise;
+}
+
+// Function to get the Supabase Management API client
+export async function getSupabaseClient({
+  organizationSlug,
+}: { organizationSlug?: string | null } = {}): Promise<SupabaseManagementAPI> {
+  // If organizationSlug provided, use organization-specific credentials
+  if (organizationSlug) {
+    return getSupabaseClientForOrganization(organizationSlug);
+  }
+
+  // Otherwise fall back to legacy single-account credentials
+  const settings = readSettings();
+
+  // Check if Supabase token exists in settings
+  const supabaseAccessToken = settings.supabase?.accessToken?.value;
+  const expiresIn = settings.supabase?.expiresIn;
+
+  if (!supabaseAccessToken) {
+    throw new PrismError(
+      "Supabase access token not found. Please authenticate first.",
+      PrismErrorKind.Auth,
+    );
+  }
+
+  // Check if token needs refreshing
+  if (isTokenExpired(expiresIn)) {
+    await withLock("refresh-supabase-token", refreshSupabaseToken);
+    // Get updated settings after refresh
+    const updatedSettings = readSettings();
+    const newAccessToken = updatedSettings.supabase?.accessToken?.value;
+
+    if (!newAccessToken) {
+      throw new PrismError(
+        "Failed to refresh Supabase access token",
+        PrismErrorKind.Auth,
+      );
+    }
+
+    return new SupabaseManagementAPI({
+      accessToken: newAccessToken,
+    });
+  }
+
+  return new SupabaseManagementAPI({
+    accessToken: supabaseAccessToken,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Multi-organization support
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Checks if an organization's token is expired or about to expire.
+ */
+function isOrganizationTokenExpired(
+  org: SupabaseOrganizationCredentials,
+): boolean {
+  if (!org.expiresIn || !org.tokenTimestamp) return true;
+
+  const currentTime = Math.floor(Date.now() / 1000);
+  // Check if the token is expired or about to expire (within 5 minutes)
+  return currentTime >= org.tokenTimestamp + org.expiresIn - 300;
+}
+
+/**
+ * Refreshes the Supabase access token for a specific organization.
+ */
+async function refreshSupabaseTokenForOrganization(
+  organizationSlug: string,
+): Promise<void> {
+  const settings = readSettings();
+  const org = settings.supabase?.organizations?.[organizationSlug];
+
+  if (!org) {
+    throw new PrismError(
+      `Supabase organization ${organizationSlug} not found. Please authenticate first.`,
+      PrismErrorKind.Auth,
+    );
+  }
+
+  if (!isOrganizationTokenExpired(org)) {
+    return;
+  }
+
+  const refreshToken = org.refreshToken?.value;
+  if (!refreshToken) {
+    throw new PrismError(
+      "Supabase refresh token not found. Please authenticate first.",
+      PrismErrorKind.Auth,
+    );
+  }
+
+  try {
+    const response = await fetch(
+      "https://supabase-oauth.dyad.sh/api/connect-supabase/refresh",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new PrismError(
+        `Supabase token refresh failed. Try going to Settings to disconnect Supabase and then reconnect. Error status: ${response.statusText}`,
+        PrismErrorKind.External,
+      );
+    }
+
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      expiresIn,
+    } = await response.json();
+
+    // Re-read settings right before writing to avoid stale-read race conditions.
+    // The async fetch above may take time, during which other org credentials
+    // could be written. Reading here ensures we merge into the latest state.
+    const freshSettings = readSettings();
+    const existingOrgs = freshSettings.supabase?.organizations ?? {};
+    writeSettings({
+      supabase: {
+        ...freshSettings.supabase,
+        organizations: {
+          ...existingOrgs,
+          [organizationSlug]: {
+            ...existingOrgs[organizationSlug],
+            accessToken: {
+              value: accessToken,
+            },
+            refreshToken: {
+              value: newRefreshToken,
+            },
+            expiresIn,
+            tokenTimestamp: Math.floor(Date.now() / 1000),
+          },
+        },
+      },
+    });
+  } catch (error) {
+    logger.error(
+      `Error refreshing Supabase token for organization ${organizationSlug}:`,
+      error,
+    );
+    throw error;
+  }
+}
+
+/**
+ * Gets a Supabase Management API client for a specific organization.
+ */
+export async function getSupabaseClientForOrganization(
+  organizationSlug: string,
+): Promise<SupabaseManagementAPI> {
+  const settings = readSettings();
+  const org = settings.supabase?.organizations?.[organizationSlug];
+
+  if (!org) {
+    throw new PrismError(
+      `Supabase organization ${organizationSlug} not found. Please authenticate first.`,
+      PrismErrorKind.Auth,
+    );
+  }
+
+  const accessToken = org.accessToken?.value;
+  if (!accessToken) {
+    throw new PrismError(
+      `Supabase access token not found for organization ${organizationSlug}. Please authenticate first.`,
+      PrismErrorKind.Auth,
+    );
+  }
+
+  // Check if token needs refreshing
+  if (isOrganizationTokenExpired(org)) {
+    await withLock(`refresh-supabase-token-${organizationSlug}`, () =>
+      refreshSupabaseTokenForOrganization(organizationSlug),
+    );
+    // Get updated settings after refresh
+    const updatedSettings = readSettings();
+    const updatedOrg =
+      updatedSettings.supabase?.organizations?.[organizationSlug];
+    const newAccessToken = updatedOrg?.accessToken?.value;
+
+    if (!newAccessToken) {
+      throw new PrismError(
+        `Failed to refresh Supabase access token for organization ${organizationSlug}`,
+        PrismErrorKind.Auth,
+      );
+    }
+
+    return new SupabaseManagementAPI({
+      accessToken: newAccessToken,
+    });
+  }
+
+  return new SupabaseManagementAPI({
+    accessToken,
+  });
+}
+
+/**
+ * Lists organizations for a given access token.
+ */
+export async function listSupabaseOrganizations(
+  accessToken: string,
+): Promise<SupabaseOrganizationDetails[]> {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetchWithRetry(
+      "https://api.supabase.com/v1/organizations",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+      "List Supabase organizations",
+    );
+
+    if (response.status === 200) {
+      const organizations: SupabaseOrganizationDetails[] =
+        await response.json();
+      return organizations;
+    }
+
+    const errorText = await response.text();
+    const retryDelay = ORGANIZATION_AUTH_RETRY_DELAYS_MS[attempt];
+    if (response.status === 401 && retryDelay !== undefined) {
+      logger.warn(
+        `Supabase organizations request was unauthorized; retrying in ${retryDelay}ms (attempt ${attempt + 2}/${ORGANIZATION_AUTH_RETRY_DELAYS_MS.length + 1})`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      continue;
+    }
+
+    logger.error(
+      `Failed to fetch organizations (${response.status}): ${errorText}`,
+    );
+    throw new SupabaseManagementAPIError(
+      `Failed to fetch organizations: ${response.statusText}`,
+      response,
+    );
+  }
+}
+
+export interface SupabaseOrganizationMember {
+  userId: string;
+  email: string;
+  role: string; // "Owner" | "Member" | etc.
+  username?: string;
+}
+
+interface SupabaseRawMember {
+  user_id: string;
+  primary_email?: string;
+  email: string;
+  role_name: string;
+  username?: string;
+}
+
+/**
+ * Gets members of a Supabase organization.
+ */
+export async function getOrganizationMembers(
+  organizationSlug: string,
+): Promise<SupabaseOrganizationMember[]> {
+  if (IS_TEST_BUILD) {
+    return [
+      {
+        userId: "fake-user-id",
+        email: "owner@example.com",
+        role: "Owner",
+        username: "owner",
+      },
+    ];
+  }
+
+  const client = await getSupabaseClientForOrganization(organizationSlug);
+  const accessToken = (client as any).options.accessToken;
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/organizations/${organizationSlug}/members`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    `Get organization members for ${organizationSlug}`,
+  );
+
+  if (response.status !== 200) {
+    const errorText = await response.text();
+    logger.error(
+      `Failed to fetch organization members (${response.status}): ${errorText}`,
+    );
+    throw new SupabaseManagementAPIError(
+      `Failed to fetch organization members: ${response.statusText}`,
+      response,
+    );
+  }
+
+  const members: SupabaseRawMember[] = await response.json();
+  return members.map((m) => ({
+    userId: m.user_id,
+    email: m.primary_email || m.email,
+    role: m.role_name,
+    username: m.username,
+  }));
+}
+
+export interface SupabaseOrganizationDetails {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+/**
+ * Gets details about a Supabase organization.
+ */
+export async function getOrganizationDetails(
+  organizationSlug: string,
+): Promise<SupabaseOrganizationDetails> {
+  if (IS_TEST_BUILD) {
+    return {
+      id: organizationSlug,
+      name: "Fake Organization",
+      slug: "fake-org",
+    };
+  }
+
+  const client = await getSupabaseClientForOrganization(organizationSlug);
+  const accessToken = (client as any).options.accessToken;
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/organizations/${organizationSlug}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    `Get organization details for ${organizationSlug}`,
+  );
+
+  if (response.status !== 200) {
+    const errorText = await response.text();
+    logger.error(
+      `Failed to fetch organization details (${response.status}): ${errorText}`,
+    );
+    throw new SupabaseManagementAPIError(
+      `Failed to fetch organization details: ${response.statusText}`,
+      response,
+    );
+  }
+
+  const org = await response.json();
+  return {
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+  };
+}
+
+export async function getSupabaseProjectName(
+  projectId: string,
+  organizationSlug?: string,
+): Promise<string> {
+  if (IS_TEST_BUILD) {
+    return "Fake Supabase Project";
+  }
+
+  const supabase = await getSupabaseClient({ organizationSlug });
+  const projects = await retryWithRateLimit(
+    () => supabase.getProjects(),
+    `Get Supabase projects for ${projectId}`,
+  );
+  const project = projects?.find((p) => p.id === projectId);
+  return project?.name || `<project not found for: ${projectId}>`;
+}
+
+/**
+ * A project API key as returned by the Management API. A project can carry both
+ * the new-format keys (`publishable` / `secret`) and the legacy JWT pair
+ * (`anon` / `service_role`, typed `legacy`) — and Supabase keeps listing the
+ * legacy pair after it's been disabled in the dashboard, so presence here says
+ * nothing about whether a key still works.
+ */
+export interface SupabaseApiKey {
+  name: string;
+  /**
+   * Absent or null for a secret key fetched without `reveal` — Supabase lists
+   * the entry but withholds its value. Every consumer has to guard before using
+   * it; a redacted entry is a key that exists, not a key you can authenticate
+   * with.
+   */
+  api_key?: string | null;
+  type?: "publishable" | "secret" | "legacy" | null;
+}
+
+/**
+ * Validated at the boundary rather than asserted, because this response decides
+ * which key the app authenticates with and which key admin calls use. A 200
+ * carrying something other than an array (an error envelope, a paginated
+ * wrapper) would otherwise surface as an unclassified `TypeError` from
+ * `keys.find` — and inside `detectLegacyAppKey`, which swallows failures, it
+ * would silently suppress the very warning this exists to raise.
+ *
+ * Loose on purpose: only `name` is required, unknown `type` values pass through
+ * as-is (Supabase may add more), and `api_key` may be absent or null — that is
+ * exactly what a secret key looks like on the common no-reveal path, and
+ * rejecting it would fail key loading for a response that is perfectly valid.
+ * Consumers already guard the value before use.
+ */
+const SupabaseApiKeySchema = z.object({
+  name: z.string(),
+  api_key: z.string().nullish(),
+  type: z.string().nullish(),
+});
+const SupabaseApiKeysSchema = z.array(SupabaseApiKeySchema);
+
+/**
+ * Fetch a project's API keys.
+ *
+ * Deliberately not `SupabaseManagementAPI.getProjectApiKeys()`: that helper
+ * can't send `reveal`, and without it Supabase redacts the VALUE of every
+ * `secret` key while returning the legacy `service_role` JWT in full — so the
+ * new-format admin key comes back unusable.
+ *
+ * `reveal` is opt-in: revealing exposes every secret key on the project and is
+ * recorded in the organization's audit log, so only pass it where an admin key
+ * is genuinely needed.
+ */
+export async function getProjectApiKeys({
+  projectId,
+  organizationSlug,
+  reveal = false,
+}: {
+  projectId: string;
+  organizationSlug: string | null;
+  reveal?: boolean;
+}): Promise<SupabaseApiKey[]> {
+  const supabase = await getSupabaseClient({ organizationSlug });
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(
+      projectId,
+    )}/api-keys${reveal ? "?reveal=true" : ""}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+      },
+    },
+    `Get API keys for ${projectId}`,
+  );
+
+  if (response.status !== 200) {
+    throw await createResponseError(response, "get project api keys");
+  }
+
+  const parsed = SupabaseApiKeysSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    throw new PrismError(
+      `Supabase returned an unexpected API-keys response for project ${projectId}: ${parsed.error.message}`,
+      PrismErrorKind.External,
+    );
+  }
+  return parsed.data as SupabaseApiKey[];
+}
+
+export async function getSupabaseProjectLogs(
+  projectId: string,
+  timestampStart?: number,
+  organizationSlug?: string,
+): Promise<SupabaseProjectLogsResponse> {
+  const supabase = await getSupabaseClient({ organizationSlug });
+
+  // The unified endpoint is ClickHouse-backed. The time range is applied by
+  // the API parameters below, while the SQL scopes the unified stream to Edge
+  // Function runtime logs.
+  const sqlQuery = `
+SELECT 
+  timestamp,
+  event_message,
+  severity_text
+FROM logs
+WHERE source = 'function_logs'
+ORDER BY timestamp ASC
+LIMIT 1000`;
+
+  // Calculate time range for API parameters
+  const now = new Date();
+  const isoTimestampEnd = now.toISOString();
+  // Default to last 10 minutes if no start timestamp provided
+  const isoTimestampStart = timestampStart
+    ? new Date(timestampStart).toISOString()
+    : new Date(now.getTime() - 10 * 60 * 1000).toISOString();
+
+  // Encode SQL query for URL
+  const encodedSql = encodeURIComponent(sqlQuery);
+
+  const url = `https://api.supabase.com/v1/projects/${projectId}/analytics/endpoints/logs?sql=${encodedSql}&iso_timestamp_start=${isoTimestampStart}&iso_timestamp_end=${isoTimestampEnd}`;
+
+  logger.info(`Fetching logs from: ${url}`);
+
+  const response = await fetchWithRetry(
+    url,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+      },
+    },
+    `Get Supabase project logs for ${projectId}`,
+  );
+
+  if (response.status !== 200) {
+    const errorText = await response.text();
+    logger.error(`Failed to fetch logs (${response.status}): ${errorText}`);
+    throw new SupabaseManagementAPIError(
+      `Failed to fetch logs: ${response.statusText} (${response.status}) - ${errorText}`,
+      response,
+    );
+  }
+
+  const parsed = SupabaseProjectLogsApiResponseSchema.safeParse(
+    await response.json(),
+  );
+  if (!parsed.success) {
+    throw new PrismError(
+      `Supabase returned an unexpected logs response for project ${projectId}: ${parsed.error.message}`,
+      PrismErrorKind.External,
+    );
+  }
+
+  const result = (parsed.data.result ?? []).map((logEntry) => {
+    const timestamp = parseSupabaseLogTimestamp(logEntry.timestamp);
+    if (!Number.isFinite(timestamp)) {
+      throw new PrismError(
+        `Supabase returned an invalid log timestamp for project ${projectId}`,
+        PrismErrorKind.External,
+      );
+    }
+
+    return {
+      timestamp,
+      event_message: logEntry.event_message,
+      level: normalizeSupabaseLogLevel(logEntry.severity_text),
+    };
+  });
+
+  logger.info(`Received ${result.length} logs`);
+
+  return { result, error: parsed.data.error };
+}
+
+export async function executeSupabaseSql({
+  supabaseProjectId,
+  query,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  query: string;
+  organizationSlug: string | null;
+}): Promise<string> {
+  if (IS_TEST_BUILD) {
+    return "{}";
+  }
+
+  const supabase = await getSupabaseClient({ organizationSlug });
+  const result = await retryWithRateLimit(
+    () => supabase.runQuery(supabaseProjectId, query),
+    `Execute SQL on ${supabaseProjectId}`,
+  );
+  return JSON.stringify(result);
+}
+
+export async function deleteSupabaseFunction({
+  supabaseProjectId,
+  functionName,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  functionName: string;
+  organizationSlug: string | null;
+}): Promise<void> {
+  logger.info(
+    `Deleting Supabase function: ${functionName} from project: ${supabaseProjectId}`,
+  );
+  const supabase = await getSupabaseClient({ organizationSlug });
+  await retryWithRateLimit(
+    () => supabase.deleteFunction(supabaseProjectId, functionName),
+    `Delete function ${functionName}`,
+  );
+  logger.info(
+    `Deleted Supabase function: ${functionName} from project: ${supabaseProjectId}`,
+  );
+}
+
+export async function listSupabaseFunctions({
+  supabaseProjectId,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  organizationSlug: string | null;
+}): Promise<DeployedFunctionResponse[]> {
+  if (IS_TEST_BUILD) {
+    return [];
+  }
+
+  logger.info(`Listing Supabase functions for project: ${supabaseProjectId}`);
+  const supabase = await getSupabaseClient({ organizationSlug });
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/projects/${supabaseProjectId}/functions`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+      },
+    },
+    `List Supabase functions for ${supabaseProjectId}`,
+  );
+
+  if (response.status !== 200) {
+    throw await createResponseError(response, "list functions");
+  }
+
+  const functions: DeployedFunctionResponse[] = await response.json();
+  logger.info(
+    `Found ${functions.length} functions for project: ${supabaseProjectId}`,
+  );
+  return functions;
+}
+
+export interface CreatedSupabaseProjectResponse {
+  id: string;
+  name: string;
+  region: string;
+  organizationSlug: string;
+  status: string | null;
+}
+
+/**
+ * Generated and deliberately never surfaced or stored: Prism reaches projects
+ * through the Management API and their API keys, so nothing needs it, and
+ * holding a Postgres superuser password would be a liability. Users reset it
+ * from the Supabase dashboard for direct access.
+ */
+function generateDatabasePassword(): string {
+  // Base64url of 24 random bytes: 32 chars, no characters Supabase's connection
+  // strings would need escaped.
+  return crypto.randomBytes(24).toString("base64url");
+}
+
+/**
+ * Creates a project in a connected organization. It comes back `COMING_UP` and
+ * its database refuses connections for a minute or two, so the returned status
+ * is worth logging even though nothing gates on it yet.
+ */
+export async function createSupabaseProject({
+  name,
+  organizationSlug,
+  region,
+}: {
+  name: string;
+  organizationSlug: string;
+  region: string;
+}): Promise<CreatedSupabaseProjectResponse> {
+  // Every outbound call in this module is guarded the same way: a test build
+  // installs real-looking credentials, so without this the create form would
+  // POST to the live API from CI. No E2E drives it yet, which is why the fake
+  // id is distinct from the one the project list and connect flow return.
+  if (IS_TEST_BUILD) {
+    return {
+      id: "fake-created-project-id",
+      name,
+      region,
+      organizationSlug,
+      status: "ACTIVE_HEALTHY",
+    };
+  }
+
+  logger.info(
+    `Creating Supabase project "${name}" in organization ${organizationSlug} (${region})`,
+  );
+  const supabase = await getSupabaseClientForOrganization(organizationSlug);
+
+  const response = await fetchWithRetry(
+    "https://api.supabase.com/v1/projects",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        organization_id: organizationSlug,
+        region,
+        db_pass: generateDatabasePassword(),
+      }),
+    },
+    `Create Supabase project ${name}`,
+  );
+
+  // Not `SupabaseManagementAPI.createProject()`: it discards the response body
+  // on failure, and the body is where Supabase explains the failures users
+  // actually hit — project limit reached, quota exhausted, name rejected.
+  if (response.status !== 201 && response.status !== 200) {
+    throw await createResponseError(response, "create project");
+  }
+
+  // A 2xx says Supabase accepted the create, so a real project probably exists
+  // whether the body is unreadable or merely missing the ref. Both are marked
+  // like the link failure, so callers warn the user rather than inviting them
+  // to create another.
+  let project:
+    | { id?: string; name?: string; region?: string; status?: string }
+    | undefined;
+  try {
+    project = await response.json();
+  } catch (error) {
+    project = undefined;
+    logger.error("Supabase returned an unreadable create response", error);
+  }
+  if (!project?.id) {
+    const unnamed = new PrismError(
+      `Supabase created a project but returned no project ref: ${JSON.stringify(project)}`,
+      PrismErrorKind.External,
+    );
+    (unnamed as PrismError & { code: string }).code =
+      SUPABASE_PROJECT_CREATED_BUT_UNLINKED;
+    throw unnamed;
+  }
+
+  logger.info(`Created Supabase project ${project.id} ("${project.name}")`);
+  return {
+    id: project.id,
+    name: project.name ?? name,
+    region: project.region ?? region,
+    // The slug we sent, not the one echoed back under `organization_id`.
+    // Credentials are keyed by slug, so storing a canonical id would make every
+    // later call fail with "organization not found" at an authenticated user.
+    organizationSlug,
+    status: project.status ?? null,
+  };
+}
+
+export async function listSupabaseBranches({
+  supabaseProjectId,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  organizationSlug: string | null;
+}): Promise<SupabaseProjectBranch[]> {
+  if (IS_TEST_BUILD) {
+    return [
+      {
+        id: "default-branch-id",
+        name: "Default Branch",
+        is_default: true,
+        project_ref: "fake-project-id",
+        parent_project_ref: "fake-project-id",
+      },
+
+      {
+        id: "test-branch-id",
+        name: "Test Branch",
+        is_default: false,
+        project_ref: "test-branch-project-id",
+        parent_project_ref: "fake-project-id",
+      },
+    ];
+  }
+
+  logger.info(`Listing Supabase branches for project: ${supabaseProjectId}`);
+  const supabase = await getSupabaseClient({ organizationSlug });
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/projects/${supabaseProjectId}/branches`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+      },
+    },
+    `List Supabase branches for ${supabaseProjectId}`,
+  );
+
+  if (response.status === 403) {
+    // 403 Forbidden means the user doesn't have access to branches (e.g., free tier)
+    logger.info(
+      `Branches not available for project ${supabaseProjectId} (403 Forbidden - likely free tier)`,
+    );
+    throw new PrismError(
+      "Branches are only supported for Supabase paid customers",
+      PrismErrorKind.Precondition,
+    );
+  }
+
+  if (response.status !== 200) {
+    throw await createResponseError(response, "list branches");
+  }
+
+  logger.info(`Listed Supabase branches for project: ${supabaseProjectId}`);
+  const jsonResponse: SupabaseProjectBranch[] = await response.json();
+  return jsonResponse;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Deploy Supabase Functions with shared module support
+// ─────────────────────────────────────────────────────────────────────
+
+export async function deploySupabaseFunction({
+  supabaseProjectId,
+  functionName,
+  appPath,
+  bundleOnly = false,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  functionName: string;
+  appPath: string;
+  bundleOnly?: boolean;
+  organizationSlug: string | null;
+}): Promise<DeployedFunctionResponse> {
+  return enqueueSupabaseDeploy(supabaseProjectId, bundleOnly, () =>
+    deploySupabaseFunctionUnqueued({
+      supabaseProjectId,
+      functionName,
+      appPath,
+      bundleOnly,
+      organizationSlug,
+    }),
+  );
+}
+
+async function deploySupabaseFunctionUnqueued({
+  supabaseProjectId,
+  functionName,
+  appPath,
+  bundleOnly = false,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  functionName: string;
+  appPath: string;
+  bundleOnly?: boolean;
+  organizationSlug: string | null;
+}): Promise<DeployedFunctionResponse> {
+  logger.info(
+    `Deploying Supabase function: ${functionName} to project: ${supabaseProjectId}`,
+  );
+
+  const functionPath = path.join(
+    appPath,
+    "supabase",
+    "functions",
+    functionName,
+  );
+
+  // 1) Collect function files
+  const functionFiles = await collectFunctionFiles({
+    functionPath,
+    functionName,
+  });
+
+  // 2) Collect shared files (from supabase/functions/_shared/)
+  const sharedFiles = await getSharedFiles(appPath);
+
+  // 3) Combine all files
+  const filesToUpload = [...functionFiles.files, ...sharedFiles.files];
+
+  // 4) Create an import map next to the function entrypoint
+  const entrypointPath = functionFiles.entrypointPath;
+  const entryDir = path.posix.dirname(entrypointPath);
+  const importMapRelPath = path.posix.join(entryDir, "import_map.json");
+
+  const importMapObject = {
+    imports: {},
+  };
+
+  // Add the import map file into the upload list
+  filesToUpload.push({
+    relativePath: importMapRelPath,
+    content: Buffer.from(JSON.stringify(importMapObject, null, 2)),
+    date: new Date(),
+  });
+
+  if (IS_TEST_BUILD) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return {
+      id: `fake-${functionName}`,
+      slug: functionName,
+      name: functionName,
+      status: "ACTIVE",
+      version: 1,
+      entrypoint_path: entrypointPath,
+      import_map_path: importMapRelPath,
+    };
+  }
+
+  // 5) Prepare multipart form-data
+  const supabase = await getSupabaseClient({ organizationSlug });
+  function buildFormData() {
+    const formData = new FormData();
+
+    const metadata = {
+      entrypoint_path: entrypointPath,
+      name: functionName,
+      verify_jwt: false,
+      import_map_path: importMapRelPath,
+    };
+
+    formData.append("metadata", JSON.stringify(metadata));
+
+    for (const f of filesToUpload) {
+      const buf: Buffer = f.content;
+      const mime = guessMimeType(f.relativePath);
+      const blob = new Blob([new Uint8Array(buf)], { type: mime });
+      formData.append("file", blob, f.relativePath);
+    }
+
+    return formData;
+  }
+
+  // 6) Perform the deploy request
+  const deployUrl = `https://api.supabase.com/v1/projects/${encodeURIComponent(
+    supabaseProjectId,
+  )}/functions/deploy?slug=${encodeURIComponent(functionName)}${bundleOnly ? "&bundleOnly=true" : ""}`;
+
+  const response = await retryWithRateLimit(async () => {
+    const res = await fetch(deployUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+      },
+      // Safer to rebuild form data each time.
+      body: buildFormData(),
+    });
+    if (res.status === 429) {
+      throw new RateLimitError(`Rate limited (429): ${res.statusText}`, res);
+    }
+    return res;
+  }, `Deploy Supabase function ${functionName}`);
+
+  if (response.status !== 201) {
+    throw await createResponseError(response, "create function");
+  }
+
+  const result = (await response.json()) as DeployedFunctionResponse;
+
+  logger.info(
+    `Deployed Supabase function: ${functionName} to project: ${supabaseProjectId}${bundleOnly ? " (bundle only)" : ""}`,
+  );
+
+  return result;
+}
+
+export async function bulkUpdateFunctions({
+  supabaseProjectId,
+  functions,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  functions: DeployedFunctionResponse[];
+  organizationSlug: string | null;
+}): Promise<void> {
+  return enqueueSupabaseDeploy(supabaseProjectId, false, () =>
+    bulkUpdateFunctionsUnqueued({
+      supabaseProjectId,
+      functions,
+      organizationSlug,
+    }),
+  );
+}
+
+async function bulkUpdateFunctionsUnqueued({
+  supabaseProjectId,
+  functions,
+  organizationSlug,
+}: {
+  supabaseProjectId: string;
+  functions: DeployedFunctionResponse[];
+  organizationSlug: string | null;
+}): Promise<void> {
+  logger.info(
+    `Bulk updating ${functions.length} functions for project: ${supabaseProjectId}`,
+  );
+
+  if (IS_TEST_BUILD) {
+    logger.info(
+      `Skipped bulk updating ${functions.length} functions for project: ${supabaseProjectId} during test build`,
+    );
+    return;
+  }
+
+  const supabase = await getSupabaseClient({ organizationSlug });
+
+  const response = await fetchWithRetry(
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(supabaseProjectId)}/functions`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(functions),
+    },
+    `Bulk update functions for ${supabaseProjectId}`,
+  );
+
+  if (response.status !== 200) {
+    throw await createResponseError(response, "bulk update functions");
+  }
+
+  logger.info(
+    `Successfully bulk updated ${functions.length} functions for project: ${supabaseProjectId}`,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// File collection helpers
+// ─────────────────────────────────────────────────────────────────────
+
+async function collectFunctionFiles({
+  functionPath,
+  functionName,
+}: {
+  functionPath: string;
+  functionName: string;
+}): Promise<FunctionFilesResult> {
+  const normalizedFunctionPath = path.resolve(functionPath);
+  const stats = await fsPromises.stat(normalizedFunctionPath);
+
+  let functionDirectory: string | null = null;
+
+  if (stats.isDirectory()) {
+    functionDirectory = normalizedFunctionPath;
+  }
+
+  if (!functionDirectory) {
+    throw new PrismError(
+      `Unable to locate directory for Supabase function ${functionName}`,
+      PrismErrorKind.NotFound,
+    );
+  }
+
+  const indexPath = path.join(functionDirectory, "index.ts");
+
+  try {
+    await fsPromises.access(indexPath);
+  } catch {
+    throw new PrismError(
+      `Supabase function ${functionName} is missing an index.ts entrypoint`,
+      PrismErrorKind.Validation,
+    );
+  }
+
+  // Prefix function files with functionName so the directory structure allows
+  // relative imports like "../_shared/" to resolve correctly
+  const statEntries = await listFilesWithStats(functionDirectory, functionName);
+  const signature = buildSignature(statEntries);
+  const files = await loadZipEntries(statEntries);
+
+  return {
+    files,
+    signature,
+    entrypointPath: path.posix.join(
+      functionName,
+      toPosixPath(path.relative(functionDirectory, indexPath)),
+    ),
+    cacheKey: functionDirectory,
+  };
+}
+
+async function getSharedFiles(appPath: string): Promise<CachedSharedFiles> {
+  const sharedDirectory = path.join(
+    appPath,
+    "supabase",
+    "functions",
+    "_shared",
+  );
+
+  try {
+    const sharedStats = await fsPromises.stat(sharedDirectory);
+    if (!sharedStats.isDirectory()) {
+      return { signature: "", files: [] };
+    }
+  } catch (error: any) {
+    if (error && error.code === "ENOENT") {
+      return { signature: "", files: [] };
+    }
+    throw error;
+  }
+
+  const statEntries = await listFilesWithStats(sharedDirectory, "_shared");
+  const signature = buildSignature(statEntries);
+
+  const cached = sharedFilesCache.get(sharedDirectory);
+  if (cached && cached.signature === signature) {
+    return cached;
+  }
+
+  const files = await loadZipEntries(statEntries);
+  const result = { signature, files };
+  sharedFilesCache.set(sharedDirectory, result);
+  return result;
+}
+
+export async function listFilesWithStats(
+  directory: string,
+  prefix: string,
+): Promise<FileStatEntry[]> {
+  const dirents = await fsPromises.readdir(directory, { withFileTypes: true });
+  dirents.sort((a, b) => a.name.localeCompare(b.name));
+  const entries: FileStatEntry[] = [];
+
+  for (const dirent of dirents) {
+    const absolutePath = path.join(directory, dirent.name);
+    const relativePath = path.posix.join(prefix, dirent.name);
+
+    if (dirent.isDirectory()) {
+      const nestedEntries = await listFilesWithStats(
+        absolutePath,
+        relativePath,
+      );
+      entries.push(...nestedEntries);
+    } else if (dirent.isFile() || dirent.isSymbolicLink()) {
+      const stat = await fsPromises.stat(absolutePath);
+      entries.push({
+        absolutePath,
+        relativePath,
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+      });
+    }
+  }
+
+  return entries;
+}
+
+export function buildSignature(entries: FileStatEntry[]): string {
+  return entries
+    .map(
+      (entry) =>
+        `${entry.relativePath}:${entry.mtimeMs.toString(16)}:${entry.size.toString(16)}`,
+    )
+    .sort()
+    .join("|");
+}
+
+async function loadZipEntries(
+  entries: FileStatEntry[],
+): Promise<ZipFileEntry[]> {
+  const files: ZipFileEntry[] = [];
+
+  for (const entry of entries) {
+    const content = await fsPromises.readFile(entry.absolutePath);
+    files.push({
+      relativePath: toPosixPath(entry.relativePath),
+      content,
+      date: new Date(entry.mtimeMs),
+    });
+  }
+
+  return files;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Path helpers (exported for testing)
+// ─────────────────────────────────────────────────────────────────────
+
+export function toPosixPath(filePath: string): string {
+  return filePath.split(path.sep).join(path.posix.sep);
+}
+
+export function stripSupabaseFunctionsPrefix(
+  relativePath: string,
+  functionName: string,
+): string {
+  const normalized = toPosixPath(relativePath).replace(/^\//, "");
+  const slugPrefix = `supabase/functions/${functionName}/`;
+
+  if (normalized.startsWith(slugPrefix)) {
+    const remainder = normalized.slice(slugPrefix.length);
+    return remainder || "index.ts";
+  }
+
+  const slugFilePrefix = `supabase/functions/${functionName}`;
+
+  if (normalized.startsWith(slugFilePrefix)) {
+    const remainder = normalized.slice(slugFilePrefix.length);
+    if (remainder.startsWith("/")) {
+      const trimmed = remainder.slice(1);
+      return trimmed || "index.ts";
+    }
+    const combined = `${functionName}${remainder}`;
+    return combined || "index.ts";
+  }
+
+  const basePrefix = "supabase/functions/";
+  if (normalized.startsWith(basePrefix)) {
+    const withoutBase = normalized.slice(basePrefix.length);
+    return withoutBase || path.posix.basename(normalized);
+  }
+
+  return normalized || path.posix.basename(relativePath);
+}
+
+function guessMimeType(filePath: string): string {
+  if (filePath.endsWith(".json")) return "application/json";
+  if (filePath.endsWith(".ts")) return "application/typescript";
+  if (filePath.endsWith(".mjs")) return "application/javascript";
+  if (filePath.endsWith(".js")) return "application/javascript";
+  if (filePath.endsWith(".wasm")) return "application/wasm";
+  if (filePath.endsWith(".map")) return "application/json";
+  return "application/octet-stream";
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Error handling helpers
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Classify a Management API failure before it crosses the IPC boundary.
+ *
+ * Existing `PrismError`s pass through with their kind intact. A 401/403 means the
+ * organization's token was revoked or no longer has access to the project — an
+ * auth/setup problem the user fixes by reconnecting, so it must reach the
+ * renderer as `Auth` rather than as an unclassified product exception (see
+ * `rules/prism-errors.md`).
+ */
+export function classifyManagementApiError(
+  error: unknown,
+  action: string,
+): unknown {
+  if (isPrismError(error)) {
+    return error;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    error instanceof SupabaseManagementAPIError &&
+    (error.response.status === 401 || error.response.status === 403)
+  ) {
+    return new PrismError(
+      `Supabase would not authorize Prism to ${action}. Reconnect your Supabase account in Settings, or check that this organization still has access to the project. Original error: ${message}`,
+      PrismErrorKind.Auth,
+    );
+  }
+  return error;
+}
+
+async function createResponseError(response: Response, action: string) {
+  const errorBody = await safeParseErrorResponseBody(response);
+
+  return new SupabaseManagementAPIError(
+    `Failed to ${action}: ${response.statusText} (${response.status})${
+      errorBody ? `: ${errorBody.message}` : ""
+    }`,
+    response,
+  );
+}
+
+async function safeParseErrorResponseBody(
+  response: Response,
+): Promise<{ message: string } | undefined> {
+  try {
+    const body = await response.json();
+
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "message" in body &&
+      typeof body.message === "string"
+    ) {
+      return { message: body.message };
+    }
+  } catch {
+    return;
+  }
+}

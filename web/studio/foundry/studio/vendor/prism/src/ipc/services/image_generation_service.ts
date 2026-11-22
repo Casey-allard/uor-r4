@@ -1,0 +1,436 @@
+import {
+  ImageGenerationApiResponseSchema,
+  type ImageThemeMode,
+} from "../types/image_generation";
+import { db } from "../../db";
+import { apps } from "../../db/schema";
+import { getPrismAppPath } from "../../paths/paths";
+import { PRISM_MEDIA_DIR_NAME } from "../utils/media_path_utils";
+import { safeJoin } from "../utils/path_utils";
+import {
+  appOperationCoordinator,
+  readAppResource,
+} from "./app_operation_coordinator";
+import { assertNoActiveRecording } from "./recording_registry";
+import { readSettings } from "../../main/settings";
+import { eq } from "drizzle-orm";
+import fs from "node:fs";
+import path from "node:path";
+import log from "electron-log";
+import { PrismError, PrismErrorKind, isPrismError } from "@/errors/prism_error";
+import { getPrismEngineBaseUrl } from "../utils/prism_engine_url";
+import { ensurePrismGitignored } from "../handlers/gitignoreUtils";
+
+const logger = log.scope("image_generation_service");
+
+const IMAGE_GENERATION_TIMEOUT_MS = 120_000;
+/** Named once: the early refusal and the save-time refusal must read alike. */
+const IMAGE_SAVE_ACTION = "save a generated image";
+const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+export interface GenerateImageInput {
+  requestId: string;
+  prompt: string;
+  themeMode: ImageThemeMode;
+  targetAppId: number;
+}
+
+interface ActiveGeneration {
+  controller: AbortController;
+  targetAppId: number;
+  settlement: Promise<unknown>;
+}
+
+function throwIfGenerationCancelled(signal: AbortSignal): void {
+  if (signal.aborted) {
+    throw new PrismError(
+      "Image generation cancelled.",
+      PrismErrorKind.UserCancelled,
+    );
+  }
+}
+
+function getHttpErrorKind(status: number): PrismErrorKind {
+  if (status === 401 || status === 403) {
+    return PrismErrorKind.Auth;
+  }
+  if (status === 429) {
+    return PrismErrorKind.RateLimited;
+  }
+  return PrismErrorKind.External;
+}
+
+const THEME_SYSTEM_PROMPTS: Record<ImageThemeMode, string | null> = {
+  plain: null,
+  "3d-clay":
+    "Render in a breathtaking 3D claymorphism style with cinematic quality. All subjects must look hand-sculpted from luxuriously smooth, matte clay with a beautiful subsurface-scattering glow that makes surfaces feel warm and alive. Use dramatic yet soft three-point studio lighting — a warm key light, cool fill light, and gentle rim light — to create depth and dimension with delicate ambient occlusion and velvety contact shadows. Edges should be perfectly rounded and beveled with satisfying, pillowy softness; proportions slightly inflated and charmingly stylized. Apply a curated palette of 4–6 rich, harmonious tones with subtle color variation across surfaces — gentle hue shifts, soft specular highlights, and warm-to-cool gradients that give each piece visual interest. Add micro-details: tiny imperfections in the clay texture, soft fingerprint-like dimples, and delicate catchlights in glossy areas. Backgrounds should use a beautiful soft gradient with atmospheric depth and a subtle ground-plane reflection. The final render should feel like an award-winning Blender/Cinema 4D hero shot: irresistibly tactile, miniature-world charming, and gallery-worthy.",
+  "real-photography":
+    "Produce a jaw-droppingly photorealistic image that rivals the work of world-class photographers. Simulate masterful lighting — whether golden-hour warmth, dramatic chiaroscuro, or pristine studio setups — with physically accurate specular highlights, luminous soft falloff, and rich, natural shadows with subtle color in the shadow tones. Render hyper-detailed material textures: visible skin pores with natural translucency, intricate fabric weave catching the light, polished metal with environment reflections, and surfaces that beg to be touched. Apply cinematic depth of field (f/1.4–f/2.8) with creamy, circular bokeh that transforms background lights into dreamy orbs. Compose using the rule of thirds with leading lines and intentional framing that draws the eye. Color grade with a refined, editorial look — rich mid-tones, lifted shadows with subtle color casts, and controlled highlights that feel magazine-cover worthy. Include atmospheric details: volumetric light rays, natural lens flares, gentle vignetting, and film-like grain at ISO 100–400. The image should feel like it was captured on a medium-format Hasselblad with a Zeiss prime lens — breathtaking clarity, extraordinary dynamic range, and an unmistakable sense of artistry.",
+  "isometric-illustration":
+    "Create a stunning isometric illustration at a true 30° isometric projection angle with extraordinary attention to detail and visual richness. Use a refined vector style with vibrant, carefully chosen colors that feel premium and modern. Apply a sophisticated color palette (5–8 colors) with beautiful gradients, subtle lighting effects, and gentle color transitions that give depth and dimension — avoid flat, lifeless fills. Add layered soft shadows and ambient occlusion beneath and between objects to create a sense of depth and realism while maintaining the illustrative style. Include micro-details: tiny highlights, subtle textures (gentle noise, fine patterns), and delicate light reflections on surfaces to make the scene feel alive and crafted. Compose the scene with visual storytelling — arrange elements with intentional hierarchy, negative space, and a sense of narrative. Use a soft, complementary background with a subtle gradient or atmospheric glow that enhances the focal objects. The overall aesthetic should feel like a premium Dribbble or Behance showcase piece: elegant, whimsical yet polished, with a warm inviting atmosphere suitable for high-end SaaS product marketing or editorial illustration.",
+};
+
+export class ImageGenerationService {
+  private readonly active = new Map<string, ActiveGeneration>();
+  private readonly cancellationTombstones = new Set<string>();
+  private readonly deletionFences = new Map<number, number>();
+  private resetFenceCount = 0;
+
+  generate(params: GenerateImageInput) {
+    this.assertAcceptingGenerations(params.targetAppId);
+    // Before the recording refusal below: a cancellation that arrived first is
+    // what happened to this request, and reporting it as blocked by a recording
+    // would both misname it and leave its tombstone behind until eviction.
+    if (this.cancellationTombstones.delete(params.requestId)) {
+      throw new PrismError(
+        "Image generation cancelled.",
+        PrismErrorKind.UserCancelled,
+      );
+    }
+    // Refuse before the generation, not just before the save: the save runs
+    // behind a recording's session-long `repository` claim, and the user would
+    // otherwise pay for and wait through a full generation to be told so.
+    // The coordinator repeats this check atomically for a recording that
+    // starts mid-generation; this one is only the early exit.
+    assertNoActiveRecording(params.targetAppId, IMAGE_SAVE_ACTION);
+    if (this.active.has(params.requestId)) {
+      throw new PrismError(
+        "Image generation invocation is already active",
+        PrismErrorKind.Conflict,
+      );
+    }
+    const controller = new AbortController();
+    const settlement = this.execute(params, controller).finally(() => {
+      if (this.active.get(params.requestId)?.settlement === settlement) {
+        this.active.delete(params.requestId);
+      }
+    });
+    this.active.set(params.requestId, {
+      controller,
+      targetAppId: params.targetAppId,
+      settlement,
+    });
+    return settlement;
+  }
+
+  beginAppDeletion(appId: number): void {
+    this.deletionFences.set(appId, (this.deletionFences.get(appId) ?? 0) + 1);
+  }
+
+  endAppDeletion(appId: number): void {
+    const remaining = (this.deletionFences.get(appId) ?? 1) - 1;
+    if (remaining > 0) this.deletionFences.set(appId, remaining);
+    else this.deletionFences.delete(appId);
+  }
+
+  beginReset(): void {
+    this.resetFenceCount += 1;
+  }
+
+  endReset(): void {
+    this.resetFenceCount = Math.max(0, this.resetFenceCount - 1);
+  }
+
+  assertAcceptingGenerations(appId: number): void {
+    if (this.resetFenceCount > 0 || this.deletionFences.has(appId)) {
+      throw new PrismError(
+        "The app is being deleted",
+        PrismErrorKind.Precondition,
+      );
+    }
+  }
+
+  private async execute(
+    params: GenerateImageInput,
+    controller: AbortController,
+  ) {
+    const settings = readSettings();
+    const apiKey = settings.providerSettings?.auto?.apiKey?.value;
+
+    if (!apiKey) {
+      throw new PrismError(
+        "Prism Pro API key is required for image generation",
+        PrismErrorKind.Auth,
+      );
+    }
+
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, params.targetAppId),
+    });
+    if (!app) {
+      throw new PrismError("Target app not found", PrismErrorKind.NotFound);
+    }
+
+    const systemPrompt = THEME_SYSTEM_PROMPTS[params.themeMode];
+    const fullPrompt = systemPrompt
+      ? `${systemPrompt}\n\n${params.prompt}`
+      : params.prompt;
+
+    const requestId = params.requestId;
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      IMAGE_GENERATION_TIMEOUT_MS,
+    );
+
+    let response: Response;
+    try {
+      response = await fetch(`${getPrismEngineBaseUrl()}/images/generations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "X-Prism-Request-Id": requestId,
+        },
+        body: JSON.stringify({
+          prompt: fullPrompt,
+          model: "prism/image-gen",
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new PrismError(
+          "Image generation cancelled or timed out.",
+          PrismErrorKind.UserCancelled,
+        );
+      }
+      throw new PrismError(
+        "Failed to connect to image generation service.",
+        PrismErrorKind.External,
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      // Only log status code and request ID — never log response body
+      // as it may echo back request details including credentials
+      logger.error(
+        `Image generation API error: HTTP ${response.status} (request: ${requestId})`,
+      );
+      throw new PrismError(
+        `Image generation failed (HTTP ${response.status}). Please try again.`,
+        getHttpErrorKind(response.status),
+      );
+    }
+
+    const rawData = await response.json();
+    const parsed = ImageGenerationApiResponseSchema.safeParse(rawData);
+    if (!parsed.success) {
+      logger.error("Invalid image generation response:", parsed.error);
+      throw new PrismError(
+        "Invalid response from image generation service",
+        PrismErrorKind.External,
+      );
+    }
+
+    const imageData = parsed.data.data[0];
+    if (!imageData?.b64_json && !imageData?.url) {
+      throw new PrismError(
+        "No image data returned from generation service",
+        PrismErrorKind.External,
+      );
+    }
+
+    // Prepare image data before acquiring lock (network I/O outside lock)
+    let imageBuffer: Buffer;
+    if (imageData.b64_json) {
+      imageBuffer = Buffer.from(imageData.b64_json, "base64");
+      if (imageBuffer.byteLength > MAX_IMAGE_SIZE) {
+        throw new PrismError(
+          "Decoded image exceeds maximum allowed size",
+          PrismErrorKind.Validation,
+        );
+      }
+    } else if (imageData.url) {
+      const imageUrl = new URL(imageData.url);
+      if (imageUrl.protocol !== "https:") {
+        throw new PrismError("Image URL must use HTTPS", PrismErrorKind.External);
+      }
+      const downloadTimeoutSignal = AbortSignal.timeout(
+        IMAGE_GENERATION_TIMEOUT_MS,
+      );
+      try {
+        const imgResponse = await fetch(imageData.url, {
+          signal: AbortSignal.any([controller.signal, downloadTimeoutSignal]),
+        });
+        if (!imgResponse.ok) {
+          throw new PrismError(
+            `Failed to download image: ${imgResponse.status} ${imgResponse.statusText}`,
+            getHttpErrorKind(imgResponse.status),
+          );
+        }
+        const arrayBuffer = await imgResponse.arrayBuffer();
+        if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
+          throw new PrismError(
+            "Downloaded image exceeds maximum allowed size",
+            PrismErrorKind.Validation,
+          );
+        }
+        imageBuffer = Buffer.from(arrayBuffer);
+      } catch (dlError) {
+        throwIfGenerationCancelled(controller.signal);
+        if (downloadTimeoutSignal.aborted) {
+          throw new PrismError(
+            "Image download timed out. Please try again.",
+            PrismErrorKind.External,
+            { cause: dlError },
+          );
+        }
+        if (isPrismError(dlError)) {
+          throw dlError;
+        }
+        throw new PrismError(
+          "Failed to download generated image.",
+          PrismErrorKind.External,
+          { cause: dlError },
+        );
+      }
+    } else {
+      throw new PrismError(
+        "Unexpected image response format",
+        PrismErrorKind.External,
+      );
+    }
+
+    throwIfGenerationCancelled(controller.signal);
+
+    // Save to app's media folder under lock (consistent with media CRUD handlers)
+    const savedImage = await appOperationCoordinator.run(
+      {
+        appId: params.targetAppId,
+        operation: "save-generated-image",
+        resources: [readAppResource("app-path"), "media", "repository"],
+        // `repository` is a recording's for the whole session, so saving the
+        // image would sit behind it with only a spinner to show for it.
+        refuseWhenRecording: IMAGE_SAVE_ACTION,
+      },
+      async () => {
+        this.assertAcceptingGenerations(params.targetAppId);
+        throwIfGenerationCancelled(controller.signal);
+        const currentApp = await db.query.apps.findFirst({
+          where: eq(apps.id, params.targetAppId),
+        });
+        if (!currentApp) {
+          throw new PrismError("Target app not found", PrismErrorKind.NotFound);
+        }
+        const resolvedAppPath = getPrismAppPath(currentApp.path);
+        await ensurePrismGitignored(resolvedAppPath);
+        const mediaDir = path.join(resolvedAppPath, PRISM_MEDIA_DIR_NAME);
+        await fs.promises.mkdir(mediaDir, { recursive: true });
+
+        const timestamp = Date.now();
+        const sanitizedPrompt =
+          params.prompt
+            .slice(0, 30)
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_|_$/g, "")
+            .toLowerCase() || "image";
+        const fileName = `generated_${sanitizedPrompt}_${timestamp}.png`;
+        const filePath = safeJoin(mediaDir, fileName);
+        const tempFilePath = safeJoin(mediaDir, `.${fileName}.tmp`);
+
+        throwIfGenerationCancelled(controller.signal);
+        let finalized = false;
+        try {
+          await fs.promises.writeFile(tempFilePath, imageBuffer, {
+            signal: controller.signal,
+          });
+          throwIfGenerationCancelled(controller.signal);
+          await fs.promises.rename(tempFilePath, filePath);
+          finalized = true;
+          throwIfGenerationCancelled(controller.signal);
+        } catch (error) {
+          const cleanupOperations = [
+            fs.promises.rm(tempFilePath, { force: true }),
+          ];
+          if (finalized && controller.signal.aborted) {
+            cleanupOperations.push(fs.promises.rm(filePath, { force: true }));
+          }
+          await Promise.allSettled(cleanupOperations);
+          throwIfGenerationCancelled(controller.signal);
+          throw error;
+        }
+
+        logger.log(`Generated image saved: ${filePath}`);
+        return {
+          fileName,
+          filePath,
+          appPath: currentApp.path,
+          appId: currentApp.id,
+          appName: currentApp.name,
+        };
+      },
+    );
+
+    return savedImage;
+  }
+
+  cancel(
+    requestId: string,
+    options: { readonly retainIfMissing?: boolean } = {},
+  ): boolean {
+    const active = this.active.get(requestId);
+    if (!active) {
+      if (!options.retainIfMissing) return false;
+      if (this.cancellationTombstones.size >= 128) {
+        const oldest = this.cancellationTombstones.values().next().value;
+        if (oldest) this.cancellationTombstones.delete(oldest);
+      }
+      this.cancellationTombstones.add(requestId);
+      return true;
+    }
+    active.controller.abort();
+    logger.log(`Image generation cancellation requested: ${requestId}`);
+    return true;
+  }
+
+  async cancelAndSettleApp(appId: number, timeoutMs = 1_000): Promise<void> {
+    const matching = [...this.active.entries()].filter(
+      ([, active]) => active.targetAppId === appId,
+    );
+    for (const [, active] of matching) active.controller.abort();
+    await boundedSettle(
+      matching.map(([, active]) => active.settlement),
+      timeoutMs,
+    );
+  }
+
+  async cancelAndSettleAll(timeoutMs = 1_000): Promise<void> {
+    const active = [...this.active.values()];
+    for (const entry of active) entry.controller.abort();
+    await boundedSettle(
+      active.map((entry) => entry.settlement),
+      timeoutMs,
+    );
+    this.cancellationTombstones.clear();
+  }
+
+  inspectOwnedResources(): {
+    readonly active: number;
+    readonly cancellationTombstones: number;
+  } {
+    return {
+      active: this.active.size,
+      cancellationTombstones: this.cancellationTombstones.size,
+    };
+  }
+}
+
+async function boundedSettle(
+  settlements: readonly Promise<unknown>[],
+  timeoutMs: number,
+): Promise<void> {
+  if (settlements.length === 0) return;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    Promise.allSettled(settlements),
+    new Promise<void>((resolve) => {
+      timeout = setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+  if (timeout) clearTimeout(timeout);
+}
+
+export const imageGenerationService = new ImageGenerationService();

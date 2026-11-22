@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "holo-flat-validation-input"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Holo"
+component = "FlatValidationInput"
+
+[[form]]
+id = "holo-flat-validation-input"
+channel = "text"
+surface = "flat validation input"
+canonical_source = true
+features = ["sentence-case", "singular"]

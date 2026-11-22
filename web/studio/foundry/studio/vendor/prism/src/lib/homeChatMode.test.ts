@@ -1,0 +1,32 @@
+import { describe, expect, it } from "vitest";
+import type { UserSettings } from "./schemas";
+import { getHomeDefaultChatMode } from "./homeChatMode";
+
+describe("getHomeDefaultChatMode", () => {
+  it("uses local agent after Prism Pro setup", () => {
+    const settings = {
+      enablePrismPro: true,
+      enableAutoUpdate: true,
+      providerSettings: { auto: { apiKey: { value: "prism-pro-key" } } },
+      releaseChannel: "stable",
+      selectedModel: { provider: "auto", name: "auto" },
+      selectedTemplateId: "react",
+    } as UserSettings;
+
+    expect(getHomeDefaultChatMode(settings, {})).toBe("local-agent");
+  });
+
+  it("preserves a Basic Agent default for free users", () => {
+    const settings = {
+      defaultChatMode: "local-agent",
+      enablePrismPro: false,
+      enableAutoUpdate: true,
+      providerSettings: {},
+      releaseChannel: "stable",
+      selectedModel: { provider: "anthropic", name: "claude" },
+      selectedTemplateId: "react",
+    } as UserSettings;
+
+    expect(getHomeDefaultChatMode(settings, {})).toBe("local-agent");
+  });
+});

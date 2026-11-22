@@ -1,0 +1,8 @@
+app Guest list
+form "New guest"
+text name "Name" max 40
+choice meal "Meal": "Meat", "Fish", "Vegetarian"
+table guests "Guests": name, meal
+count guests "Coming"
+action "Add": add to guests
+action "Clear": clear guests

@@ -1,0 +1,180 @@
+import { toast } from "sonner";
+import { PostHog } from "posthog-js";
+import React from "react";
+import { CustomErrorToast } from "../components/CustomErrorToast";
+import { InputRequestToast } from "../components/InputRequestToast";
+
+const toastGenerations = new Map<string | number, number>();
+
+/**
+ * Toast utility functions for consistent notifications across the app
+ */
+
+/**
+ * Show a success toast
+ * @param message The message to display
+ */
+export const showSuccess = (message: string) => {
+  toast.success(message);
+};
+
+/**
+ * Show an error toast
+ * @param message The error message to display
+ */
+export const showError = (
+  message: any,
+  options?: {
+    persist?: boolean;
+    toastId?: string | number;
+    action?: {
+      label: string;
+      onClick: () => void;
+    };
+  },
+) => {
+  const errorMessage = message.toString();
+  console.error(message);
+  const explicitToastId = options?.toastId;
+  const generation =
+    explicitToastId === undefined
+      ? undefined
+      : (toastGenerations.get(explicitToastId) ?? 0) + 1;
+  if (explicitToastId !== undefined && generation !== undefined) {
+    toastGenerations.set(explicitToastId, generation);
+  }
+
+  const onCopy = (toastId: string | number) => {
+    navigator.clipboard.writeText(errorMessage);
+
+    // Update the toast to show the 'copied' state
+    toast.custom(
+      (t) => (
+        <CustomErrorToast
+          message={errorMessage}
+          toastId={t}
+          copied={true}
+          onCopy={() => onCopy(t)}
+          action={options?.action}
+        />
+      ),
+      { id: toastId, duration: Infinity },
+    );
+
+    // After 2 seconds, revert the toast back to the original state
+    setTimeout(() => {
+      if (
+        explicitToastId !== undefined &&
+        toastGenerations.get(explicitToastId) !== generation
+      ) {
+        return;
+      }
+      toast.custom(
+        (t) => (
+          <CustomErrorToast
+            message={errorMessage}
+            toastId={t}
+            copied={false}
+            onCopy={() => onCopy(t)}
+            action={options?.action}
+          />
+        ),
+        { id: toastId, duration: Infinity },
+      );
+    }, 2000);
+  };
+
+  // Use custom error toast with enhanced features
+  const toastId = toast.custom(
+    (t) => (
+      <CustomErrorToast
+        message={errorMessage}
+        toastId={t}
+        onCopy={() => onCopy(t)}
+        action={options?.action}
+      />
+    ),
+    {
+      duration: options?.action || options?.persist ? Infinity : 8_000,
+      ...(options?.toastId === undefined ? {} : { id: options.toastId }),
+    },
+  );
+
+  return toastId;
+};
+
+export const dismissToast = (toastId: string | number) => {
+  toastGenerations.set(toastId, (toastGenerations.get(toastId) ?? 0) + 1);
+  toast.dismiss(toastId);
+};
+
+/**
+ * Show a warning toast
+ * @param message The warning message to display
+ */
+export const showWarning = (message: string) => {
+  toast.warning(message);
+  console.warn(message);
+};
+
+/**
+ * Show an info toast
+ * @param message The info message to display
+ */
+export const showInfo = (message: string) => {
+  toast.info(message);
+};
+
+/**
+ * Show an input request toast for interactive prompts (y/n)
+ * @param message The prompt message to display
+ * @param onResponse Callback function called when user responds
+ */
+export const showInputRequest = (
+  message: string,
+  onResponse: (response: "y" | "n") => void,
+) => {
+  const toastId = toast.custom(
+    (t) => (
+      <InputRequestToast
+        message={message}
+        toastId={t}
+        onResponse={onResponse}
+      />
+    ),
+    { duration: Infinity }, // Don't auto-close
+  );
+
+  return toastId;
+};
+
+export const showExtraFilesToast = ({
+  files,
+  error,
+  posthog,
+}: {
+  files: string[];
+  error?: string;
+  posthog: PostHog;
+}) => {
+  if (error) {
+    showError(
+      `Error committing files ${files.join(", ")} changed outside of Prism: ${error}`,
+    );
+    posthog.capture("extra-files:error", {
+      files: files,
+      error,
+    });
+  } else {
+    showWarning(
+      `Files changed outside of Prism have automatically been committed:
+    \n\n${files.join("\n")}`,
+    );
+    posthog.capture("extra-files:warning", {
+      files: files,
+    });
+  }
+};
+
+// Re-export for direct use
+export { toast };

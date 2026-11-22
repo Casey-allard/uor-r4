@@ -1,87 +1,90 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 typed=0
 source_root=''
 
-list_files() {
-    if [ "$typed" = 1 ]; then
-        printf '%s\n' 'index.html' 'models.json'
-        if [ -d "$source_root/assets" ]; then
-            (
-                cd "$source_root"
-                find assets -type f | sort | while IFS= read -r rel; do
-                    case "$rel" in
-                        assets/*.js|assets/*.css|assets/*.wasm) printf '%s\n' "$rel" ;;
-                    esac
-                done
-            )
-        fi
-        printf '%s\n' \
-            'pkg/uor_r4_integer.js' \
-            'pkg/uor_r4_integer_bg.wasm' \
-            'pkg/synthetic-stack.lut' \
-            'pkg/tokenizer.json'
-        return
+resolve_source_root() {
+    local candidate="${1:-}"
+    if [ -z "$candidate" ]; then
+        candidate="$repo_root/web/studio/dist"
     fi
-    printf '%s\n' \
+    if [ ! -f "$candidate/host.bundle.js" ] && [ -f "$candidate/dist/host.bundle.js" ]; then
+        candidate="$candidate/dist"
+    fi
+    printf '%s' "$candidate"
+}
+
+list_files() {
+    local root="${source_root:-$repo_root/web/studio/dist}"
+    if [ ! -d "$root" ]; then
+        return 1
+    fi
+    (
+        cd "$root"
+        find . -type f ! -path '*/node_modules/*' ! -name 'sw.template.js' ! -name '*.test.*' ! -name '*.map' ! -name 'warmup.json' ! -name 'README.md' ! -name '*.d.ts' ! -path './pkg/package.json' ! -path './pkg-mvm/package.json' | sed 's|^\./||' | sort
+    )
+}
+
+verify_required_files() {
+    local root="$1"
+    for req in \
         'index.html' \
-        'index.css' \
-        'geometric_prime_router_webapp.html' \
-        'coi-serviceworker.js' \
-        'r4_worker.js' \
+        '404.html' \
+        'holo.html' \
+        'manifest.json' \
+        'sw.js' \
         'models.json' \
-        'assets/css/router_demo_offline.css' \
-        'assets/css/uor_offline_fonts.css' \
-        'assets/js/composer_input.js' \
-        'assets/js/desktop_actions.js' \
-        'assets/js/desktop_openai.js' \
-        'assets/js/desktop_origin.js' \
-        'assets/js/image_input.js' \
-        'assets/js/mcp_client.js' \
-        'assets/js/model_sources.js' \
-        'assets/js/stream_metrics.js' \
-        'assets/js/studio_api.js' \
-        'assets/js/studio_files.js' \
-        'assets/js/studio_ui.js' \
-        'assets/js/uor_model_worker.js' \
-        'assets/js/uor_offline_vendor.js' \
-        'assets/js/uor_tokenizer_artifact.js' \
-        'assets/js/typed_entry.js' \
+        'host.bundle.js' \
+        'core.wasm' \
+        'assets/index.js' \
+        'assets/index.css' \
+        'kernel/kernel.holo' \
         'pkg/uor_r4_integer.js' \
         'pkg/uor_r4_integer_bg.wasm' \
         'pkg/synthetic-stack.lut' \
-        'pkg/tokenizer.json'
+        'pkg/tokenizer.json' \
+        'pkg-mvm/uor_r4_mvm.js' \
+        'pkg-mvm/uor_r4_mvm_bg.wasm' \
+        'uor/js/uor_model_worker.js' \
+        'uor/js/uor_tokenizer_artifact.js'; do
+        if [ ! -f "$root/$req" ]; then
+            printf 'Required Foundry runtime file is missing: %s\n' "$root/$req" >&2
+            exit 1
+        fi
+    done
 }
 
 case "${1:-}" in
     --list)
         if [ "${2:-}" = '--typed' ]; then
             typed=1
-            source_root=${3:-$PWD}
+            source_root=$(resolve_source_root "${3:-}")
+        else
+            source_root=$(resolve_source_root "${2:-}")
         fi
         list_files
         ;;
     copy)
         [ "$#" -ge 3 ] || { printf 'usage: runtime-files.sh copy <source> <dest> [--allow-generated-missing|--typed]\n' >&2; exit 2; }
-        src=$2
+        src=$(resolve_source_root "$2")
         dest=$3
         allow_missing=${4:-}
         if [ "$allow_missing" = '--typed' ]; then
             typed=1
-            source_root=$src
         fi
+        source_root=$src
         [ -d "$src" ] || { printf 'Studio source is unavailable: %s\n' "$src" >&2; exit 1; }
         case "$dest" in ''|'/'|'.') printf 'Refusing unsafe destination: %s\n' "$dest" >&2; exit 1 ;; esac
+        if [ "$allow_missing" != '--allow-generated-missing' ]; then
+            verify_required_files "$src"
+        fi
         rm -rf "$dest"
+        mkdir -p "$dest"
         while IFS= read -r rel; do
-            if [ -f "$src/$rel" ]; then
-                mkdir -p "$(dirname "$dest/$rel")"
-                cp "$src/$rel" "$dest/$rel"
-            elif [ "$allow_missing" != '--allow-generated-missing' ]; then
-                printf 'Required runtime file is missing: %s\n' "$src/$rel" >&2
-                exit 1
-            fi
+            mkdir -p "$(dirname "$dest/$rel")"
+            cp "$src/$rel" "$dest/$rel"
         done < <(list_files)
         ;;
     --verify)
@@ -89,29 +92,24 @@ case "${1:-}" in
         dest=$2
         if [ "${3:-}" = '--typed' ]; then
             typed=1
-            source_root=$dest
         fi
+        source_root=$dest
         symlink=$(find "$dest" -type l -print -quit)
         if [ -n "$symlink" ]; then
             printf 'Runtime symlinks are refused: %s\n' "$symlink" >&2
             exit 1
         fi
-        while IFS= read -r rel; do
-            [ -f "$dest/$rel" ] || { printf 'Runtime file is missing: %s\n' "$dest/$rel" >&2; exit 1; }
-        done < <(list_files)
-        while IFS= read -r -d '' path; do
-            rel=${path#"$dest"/}
-            [ "$rel" = 'SHA256SUMS' ] && continue
-            case "$rel" in
-                models/*.uorlut|models/*.tokenizer.json|models/*.uorlut.audit.json)
-                    continue
-                    ;;
-            esac
-            if ! list_files | grep -Fx "$rel" >/dev/null; then
-                printf 'Unexpected runtime file: %s\n' "$path" >&2
+        for forbidden_name in warmup.json sw.template.js; do
+            if find "$dest" -name "$forbidden_name" -print -quit | grep -q .; then
+                printf 'Forbidden staged file in %s: %s\n' "$dest" "$forbidden_name" >&2
                 exit 1
             fi
-        done < <(find "$dest" -type f -print0)
+        done
+        if find "$dest" -name '*.map' -o -name '*.test.*' -print -quit | grep -q .; then
+            printf 'Dev/test artifact leaked into %s\n' "$dest" >&2
+            exit 1
+        fi
+        verify_required_files "$dest"
         node - "$dest" <<'NODE'
 const { createHash } = require('node:crypto');
 const { existsSync, lstatSync, readFileSync, readdirSync } = require('node:fs');
@@ -174,12 +172,28 @@ for (const [file, expected] of declared) {
     throw new Error('Model artifact hash mismatch: ' + file);
   }
 }
-console.log('Catalog-bound model artifacts verified: ' + declared.size);
+
+// Verify Foundry shell closure manifest matches staged files.
+const shellManifest = JSON.parse(readFileSync(resolve(dest, 'manifest.json'), 'utf8'));
+if (shellManifest.spec !== 'hologram-forge/shell/1' || !Array.isArray(shellManifest.files)) {
+  throw new Error('Invalid Foundry shell manifest.json');
+}
+for (const row of shellManifest.files) {
+  const p = resolve(dest, row.path);
+  if (!existsSync(p) || !lstatSync(p).isFile()) {
+    throw new Error('Shell manifest file missing from staged dir: ' + row.path);
+  }
+  const actual = createHash('sha256').update(readFileSync(p)).digest('hex');
+  if (actual !== row.sha256) {
+    throw new Error('Shell manifest digest mismatch for ' + row.path);
+  }
+}
+console.log('Foundry runtime + ' + declared.size + ' model artifacts + ' + shellManifest.files.length + ' closure files verified');
 NODE
         printf 'Runtime allowlist verified: %s\n' "$dest"
         ;;
     *)
-        printf 'usage: runtime-files.sh --list | copy <source> <dest> [--allow-generated-missing] | --verify <dest>\n' >&2
+        printf 'usage: runtime-files.sh --list [--typed] [dir] | copy <source> <dest> [--allow-generated-missing|--typed] | --verify <dest> [--typed]\n' >&2
         exit 2
         ;;
 esac

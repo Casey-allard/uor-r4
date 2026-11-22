@@ -1,0 +1,269 @@
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentType,
+  type PropsWithChildren,
+} from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
+import { EntityDisposalRegistry, type EntityDisposer } from "./entity_disposal";
+import type { KeyedController } from "./keyed_host";
+
+export interface DisposableManager {
+  start?(): void;
+  stop?(): void;
+  dispose(): void;
+}
+
+type MachineProviderProps<M, OwnedProps extends object> = PropsWithChildren<
+  | ({ manager: M } & Partial<OwnedProps>)
+  | ({ manager?: undefined } & OwnedProps)
+>;
+
+export function createMachineProvider<
+  M extends DisposableManager,
+  OwnedProps extends object = object,
+>(options: {
+  name: string;
+  useOwnedManager: (props: OwnedProps) => M;
+  useOnMount?: (manager: M) => void;
+}): {
+  Provider: ComponentType<MachineProviderProps<M, OwnedProps>>;
+  useManager: () => M;
+} {
+  const ManagerContext = createContext<M | null>(null);
+  const useOwnedManager = options.useOwnedManager;
+  const useOnMount = options.useOnMount ?? (() => undefined);
+
+  function ManagerBoundary({
+    manager,
+    children,
+  }: PropsWithChildren<{ manager: M }>) {
+    useManagerLifecycle(manager);
+    useOnMount(manager);
+    return createElement(ManagerContext.Provider, { value: manager }, children);
+  }
+
+  function OwnedManagerBoundary({
+    ownedProps,
+    children,
+  }: PropsWithChildren<{ ownedProps: OwnedProps }>) {
+    const manager = useOwnedManager(ownedProps);
+    return createElement(ManagerBoundary, { manager }, children);
+  }
+
+  function Provider(props: MachineProviderProps<M, OwnedProps>) {
+    if (props.manager) {
+      return createElement(
+        ManagerBoundary,
+        { manager: props.manager },
+        props.children,
+      );
+    }
+    return createElement(
+      OwnedManagerBoundary,
+      { ownedProps: props as OwnedProps },
+      props.children,
+    );
+  }
+
+  function useManager(): M {
+    const manager = useContext(ManagerContext);
+    if (!manager) {
+      throw new Error(
+        `use${options.name}Manager requires ${options.name}Provider`,
+      );
+    }
+    return manager;
+  }
+
+  return { Provider, useManager };
+}
+
+const EntityDisposalContext = createContext<EntityDisposalRegistry | null>(
+  null,
+);
+
+export function EntityDisposalProvider({ children }: PropsWithChildren) {
+  const [registry] = useState(() => new EntityDisposalRegistry());
+  return createElement(
+    EntityDisposalContext.Provider,
+    { value: registry },
+    children,
+  );
+}
+
+export function useEntityDisposal(): EntityDisposalRegistry {
+  const registry = useContext(EntityDisposalContext);
+  if (!registry) {
+    throw new Error("useEntityDisposal requires EntityDisposalProvider");
+  }
+  return registry;
+}
+
+export function useRegisterEntityDisposer(
+  scope: "app" | "chat",
+  dispose: EntityDisposer,
+): void {
+  const registry = useContext(EntityDisposalContext);
+  useEffect(() => {
+    if (!registry) return;
+    return scope === "app"
+      ? registry.onAppDeleted(dispose)
+      : registry.onChatDeleted(dispose);
+  }, [dispose, registry, scope]);
+}
+
+/**
+ * Starts a manager after commit and disposes it after its final unmount.
+ *
+ * React StrictMode immediately replays effects without recreating hook state,
+ * so irreversible disposal is deferred until a replayed setup has had a
+ * chance to claim the same manager. A genuinely replaced manager is still
+ * disposed even though the new manager's effect has already started.
+ */
+export function useManagerLifecycle(manager: DisposableManager): void {
+  const lifecycle = useRef({
+    generations: new Map<DisposableManager, number>(),
+  });
+
+  useEffect(() => {
+    const generation = (lifecycle.current.generations.get(manager) ?? 0) + 1;
+    lifecycle.current.generations.set(manager, generation);
+    manager.start?.();
+
+    return () => {
+      manager.stop?.();
+      queueMicrotask(() => {
+        const current = lifecycle.current;
+        if (current.generations.get(manager) === generation) {
+          current.generations.delete(manager);
+          manager.dispose();
+        }
+      });
+    };
+  }, [manager]);
+}
+
+function usePagehideTeardown(teardown: () => void): void {
+  useEffect(() => {
+    const handlePagehide = (event: PageTransitionEvent) => {
+      if (!event.persisted) teardown();
+    };
+    window.addEventListener("pagehide", handlePagehide);
+    return () => window.removeEventListener("pagehide", handlePagehide);
+  }, [teardown]);
+}
+
+/**
+ * Disposes a renderer-owned manager before document teardown. Main-hosted
+ * managers must use useMainHostedSubscriptionPagehideRelease instead.
+ */
+export function useManagerPagehideDisposal(manager: DisposableManager): void {
+  const dispose = useCallback(() => manager.dispose(), [manager]);
+  usePagehideTeardown(dispose);
+}
+
+/**
+ * Releases this renderer's subscription to main-hosted state without
+ * disposing the authoritative main actor.
+ */
+export function useMainHostedSubscriptionPagehideRelease(
+  releaseSubscription: () => void,
+): void {
+  usePagehideTeardown(releaseSubscription);
+}
+
+export interface KeyedSnapshotSource<K, Snapshot> {
+  subscribeKey(key: K, listener: () => void): () => void;
+  getSnapshot(key: K): Snapshot;
+}
+
+export interface ProjectionSource<Snapshot> {
+  subscribe(listener: () => void): () => void;
+  getSnapshot(): Snapshot;
+}
+
+type EqualityFn<Value> = (previous: Value, next: Value) => boolean;
+
+/** Selects a reference-stable view from one machine controller. */
+export function useMachineSelector<Snapshot, Selection>(
+  controller: ProjectionSource<Snapshot>,
+  selector: (snapshot: Snapshot) => Selection,
+  isEqual?: EqualityFn<Selection>,
+): Selection {
+  return useSyncExternalStoreWithSelector(
+    controller.subscribe,
+    controller.getSnapshot,
+    undefined,
+    selector,
+    isEqual,
+  );
+}
+
+/** Selects a view from one key without subscribing to unrelated keys. */
+export function useKeyedMachineSelector<K, Snapshot, Selection>(
+  source: KeyedSnapshotSource<K, Snapshot>,
+  key: K,
+  selector: (snapshot: Snapshot) => Selection,
+  isEqual?: EqualityFn<Selection>,
+): Selection {
+  const subscribe = useCallback(
+    (listener: () => void) => source.subscribeKey(key, listener),
+    [source, key],
+  );
+  const getSnapshot = useCallback(() => source.getSnapshot(key), [source, key]);
+  return useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    undefined,
+    selector,
+    isEqual,
+  );
+}
+
+/** Subscribes to a reference-stable projection snapshot without Jotai. */
+export function useProjectionSource<Snapshot>(
+  source: ProjectionSource<Snapshot>,
+): Snapshot {
+  return useSyncExternalStore(source.subscribe, source.getSnapshot);
+}
+
+function defaultSelectSnapshot<K, Snapshot>(
+  source: KeyedSnapshotSource<K, Snapshot>,
+  key: K,
+): Snapshot {
+  return source.getSnapshot(key);
+}
+
+export function useKeyedController<K, Snapshot>(
+  source: KeyedSnapshotSource<K, Snapshot>,
+  key: K,
+  selectSnapshot: (
+    source: KeyedSnapshotSource<K, Snapshot>,
+    key: K,
+  ) => Snapshot = defaultSelectSnapshot,
+): Snapshot {
+  return useSyncExternalStore(
+    useCallback(
+      (listener) => source.subscribeKey(key, listener),
+      [source, key],
+    ),
+    useCallback(
+      () => selectSnapshot(source, key),
+      [source, key, selectSnapshot],
+    ),
+  );
+}
+
+/** React binding for a controller that does not need keyed host selection. */
+export function useControllerSnapshot<Snapshot>(
+  controller: KeyedController<Snapshot>,
+): Snapshot {
+  return useProjectionSource(controller);
+}

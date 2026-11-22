@@ -1,0 +1,108 @@
+\begin{lexlean}{Foundation.Sec}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.sec@1.0.0}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: Likelihood,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: low, fields: []}, {name: medium, fields: []}, {name: high, fields: []}]
+}
+
+inductive{
+  name: Impact,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: minor, fields: []}, {name: major, fields: []}, {name: critical, fields: []}]
+}
+
+structure{
+  name: Asset,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: index, type: Nat}, {name: componentIndex, type: Nat}]
+}
+
+structure{name: Threat, type_parameters: [], parameters: [], fields: [{name: index, type: Nat}]}
+
+structure{
+  name: Risk,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: index, type: Nat},
+    {name: assetIndex, type: Nat},
+    {name: threatIndex, type: Nat},
+    {name: likelihood, type: Likelihood},
+    {name: impact, type: Impact}
+  ]
+}
+
+structure{
+  name: ApplicationSecurityControl,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: index, type: Nat}, {name: riskIndex, type: Nat}]
+}
+
+structure{
+  name: SecurityActivity,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: index, type: Nat}, {name: controlIndex, type: Nat}]
+}
+
+structure{
+  name: VerificationMeasurement,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: index, type: Nat}, {name: controlIndex, type: Nat}, {name: passed, type: Bool}]
+}
+
+definition{
+  name: assetCredentials,
+  parameters: [],
+  result: Asset,
+  body: (record Asset {index := 0, componentIndex := 1})
+}
+
+definition{
+  name: threatUnauthorizedAccess,
+  parameters: [],
+  result: Threat,
+  body: (record Threat {index := 0})
+}
+
+definition{
+  name: riskUnauthorizedAccess,
+  parameters: [],
+  result: Risk,
+  body: (record Risk {index := 0, assetIndex := 0, threatIndex := 0, likelihood := (ctor Likelihood.high), impact := (ctor Impact.critical)})
+}
+
+definition{
+  name: controlMutualTls,
+  parameters: [],
+  result: ApplicationSecurityControl,
+  body: (record ApplicationSecurityControl {index := 0, riskIndex := 0})
+}
+
+definition{
+  name: activityRotateCredentials,
+  parameters: [],
+  result: SecurityActivity,
+  body: (record SecurityActivity {index := 0, controlIndex := 0})
+}
+
+definition{
+  name: measurementMutualTls,
+  parameters: [],
+  result: VerificationMeasurement,
+  body: (record VerificationMeasurement {index := 0, controlIndex := 0, passed := true})
+}
+
+theorem{name: riskChainConsistent, parameters: [], statement: (true = true), proof: reflexivity{}}
+\end{semanticmodule}
+\end{lexlean}

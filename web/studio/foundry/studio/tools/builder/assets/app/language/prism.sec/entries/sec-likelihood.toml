@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "sec-likelihood"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "Likelihood"
+
+[[form]]
+id = "sec-likelihood"
+channel = "text"
+surface = "security likelihood"
+canonical_source = true
+features = ["sentence-case", "singular"]

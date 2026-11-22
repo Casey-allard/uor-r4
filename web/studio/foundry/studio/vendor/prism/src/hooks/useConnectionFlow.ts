@@ -1,0 +1,247 @@
+/**
+ * Renderer projection of the main process' connection flow state machine.
+ *
+ * Main is authoritative: it pushes `connection-flow:state-changed` events on
+ * every transition and this module keeps a per-provider snapshot that
+ * components bind to via `useSyncExternalStore`. There is no renderer-side
+ * flow state to get out of sync — remounting a connector re-projects the
+ * current flow (e.g. a GitHub device poll that succeeded while the component
+ * was unmounted).
+ */
+
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { ipc } from "@/ipc/types";
+import {
+  CONNECTION_FLOW_PROVIDERS,
+  DISCONNECTED_FLOW_STATE,
+  isActiveFlowState,
+  type ConnectionFlowInvocationRef,
+  type ConnectionFlowProvider,
+  type ConnectionFlowState,
+} from "@/connection_flow/state";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+
+type FlowSnapshot = Record<ConnectionFlowProvider, ConnectionFlowState>;
+
+let snapshot: FlowSnapshot = {
+  github: DISCONNECTED_FLOW_STATE,
+  supabase: DISCONNECTED_FLOW_STATE,
+  neon: DISCONNECTED_FLOW_STATE,
+};
+
+const listeners = new Set<() => void>();
+const unsolicitedReturnListeners = new Set<{
+  provider: ConnectionFlowProvider;
+  handler: () => void;
+}>();
+
+// An unsolicited return that arrived while no connector for the provider was
+// mounted is remembered here and consumed by the next connector that mounts
+// (mirroring the old lastDeepLink/clearLastDeepLink semantics), so the
+// connection-state refresh is never lost.
+const pendingUnsolicitedReturns = new Set<ConnectionFlowProvider>();
+
+// Providers that already received a pushed state; the initial getStates()
+// fetch must not clobber fresher event-driven state with a stale snapshot.
+const pushedProviders = new Set<ConnectionFlowProvider>();
+
+let subscribedToIpc = false;
+let hydrationPromise: Promise<void> | undefined;
+
+function emit(): void {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+export function mergeConnectionFlowSnapshots(
+  current: FlowSnapshot,
+  incoming: FlowSnapshot,
+): FlowSnapshot {
+  const next = { ...current };
+  for (const provider of CONNECTION_FLOW_PROVIDERS) {
+    if (incoming[provider].revision >= current[provider].revision) {
+      next[provider] = incoming[provider];
+    }
+  }
+  return next;
+}
+
+function mergeSnapshot(states: FlowSnapshot): void {
+  const next = mergeConnectionFlowSnapshots(snapshot, states);
+  if (
+    CONNECTION_FLOW_PROVIDERS.some(
+      (provider) => next[provider] !== snapshot[provider],
+    )
+  ) {
+    snapshot = next;
+    emit();
+  }
+}
+
+function isRevisionConflict(error: unknown): boolean {
+  return error instanceof PrismError && error.kind === PrismErrorKind.Conflict;
+}
+
+async function refreshSnapshot(): Promise<void> {
+  mergeSnapshot(await ipc.connectionFlow.getStates());
+}
+
+function ensureIpcSubscription(): void {
+  if (subscribedToIpc) {
+    return;
+  }
+  subscribedToIpc = true;
+
+  ipc.events.connectionFlow.onStateChanged(({ provider, state }) => {
+    pushedProviders.add(provider);
+    if (state.revision >= snapshot[provider].revision) {
+      snapshot = { ...snapshot, [provider]: state };
+      emit();
+    }
+  });
+
+  ipc.events.connectionFlow.onUnsolicitedReturn(({ provider }) => {
+    let delivered = false;
+    for (const entry of unsolicitedReturnListeners) {
+      if (entry.provider === provider) {
+        entry.handler();
+        delivered = true;
+      }
+    }
+    if (!delivered) {
+      pendingUnsolicitedReturns.add(provider);
+    }
+  });
+
+  // Hydrate with the current main-process state (covers flows that were
+  // already running before this renderer/store loaded).
+  hydrationPromise = ipc.connectionFlow
+    .getStates()
+    .then((states) => {
+      const next = { ...snapshot };
+      for (const provider of Object.keys(states) as ConnectionFlowProvider[]) {
+        if (!pushedProviders.has(provider)) {
+          next[provider] = states[provider];
+        }
+      }
+      mergeSnapshot(next);
+    })
+    .catch((error) => {
+      console.error("Failed to load connection flow states:", error);
+    });
+}
+
+function subscribe(listener: () => void): () => void {
+  ensureIpcSubscription();
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * Start a flow for a provider. Returns `started: false` when a flow is
+ * already active (double-clicking Connect is a no-op — the existing flow's
+ * invocation reference is returned).
+ */
+export async function startConnectionFlow(
+  provider: ConnectionFlowProvider,
+  args?: { appId?: number | null },
+): Promise<{
+  invocationRef: ConnectionFlowInvocationRef;
+  started: boolean;
+}> {
+  ensureIpcSubscription();
+  await hydrationPromise;
+  const invoke = () =>
+    ipc.connectionFlow.start({
+      provider,
+      appId: args?.appId ?? null,
+      expectedRevision: snapshot[provider].revision,
+    });
+  let result: Awaited<ReturnType<typeof invoke>>;
+  try {
+    result = await invoke();
+  } catch (error) {
+    if (!isRevisionConflict(error)) throw error;
+    await refreshSnapshot();
+    result = await invoke();
+  }
+  return {
+    invocationRef: result.invocationRef,
+    started: result.started,
+  };
+}
+
+/** Cancel exactly the invocation the caller observed. */
+export async function cancelConnectionFlow(
+  provider: ConnectionFlowProvider,
+  invocationRef: ConnectionFlowInvocationRef,
+): Promise<void> {
+  await ipc.connectionFlow.cancel({ provider, invocationRef });
+}
+
+/** Acknowledge a terminal flow state, resetting the provider to idle. */
+export async function acknowledgeConnectionFlow(
+  provider: ConnectionFlowProvider,
+  invocationRef: ConnectionFlowInvocationRef,
+): Promise<void> {
+  try {
+    await ipc.connectionFlow.acknowledge({
+      provider,
+      invocationRef,
+      expectedRevision: snapshot[provider].revision,
+    });
+  } catch (error) {
+    if (!isRevisionConflict(error)) throw error;
+    // Another window acknowledged first. Consume the authoritative snapshot
+    // so this passive renderer converges without an unhandled rejection.
+    await refreshSnapshot();
+  }
+}
+
+/**
+ * The provider's current connection flow state, pushed from main. This hook
+ * never fabricates state locally.
+ */
+export function useConnectionFlow(provider: ConnectionFlowProvider): {
+  flowState: ConnectionFlowState;
+  isFlowActive: boolean;
+} {
+  const flowState = useSyncExternalStore(
+    subscribe,
+    () => snapshot[provider],
+    () => snapshot[provider],
+  );
+
+  return { flowState, isFlowActive: isActiveFlowState(flowState) };
+}
+
+/**
+ * Runs `handler` whenever main processed an OAuth return for `provider` with
+ * no matching active flow (cold-start deep link, app restarted mid-flow, or
+ * a return that lost the race against a timeout). Tokens are already
+ * written; the handler should refresh connection state — no flow transitions
+ * are involved. The latest handler is always invoked (no stale closures).
+ */
+export function useUnsolicitedConnectionReturn(
+  provider: ConnectionFlowProvider,
+  handler: () => void,
+): void {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+
+  useEffect(() => {
+    ensureIpcSubscription();
+    const entry = { provider, handler: () => handlerRef.current() };
+    unsolicitedReturnListeners.add(entry);
+    // Deliver a return that arrived while no connector was mounted.
+    if (pendingUnsolicitedReturns.delete(provider)) {
+      entry.handler();
+    }
+    return () => {
+      unsolicitedReturnListeners.delete(entry);
+    };
+  }, [provider]);
+}

@@ -1,0 +1,382 @@
+{
+  "profile": "foundry/imported-chat-contracts/1",
+  "compiler": "0.25.9",
+  "generatorSha256": "2b0ca5b087be5f19f9a6f8392aab28f2bc5c1d9c744f7bc641335d25ab495063",
+  "packageLockSha256": "3f61dda872ff814cad85bbcde71f01f686d9abc4646eb784f149cbca42a07b8d",
+  "licenseSha256": "3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8",
+  "inputs": [
+    {
+      "path": "node_modules/zod/index.js",
+      "sha256": "c733a1897d6b4b30dad6998597f6896b265b094a65534359ada34b08ecf8932c"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/checks.js",
+      "sha256": "78a162d29e06001b4d919e1ed08f6e7d0d665bba0ef983201373745410d7b354"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/coerce.js",
+      "sha256": "fb2efe3b6eacc475c77cbb571b5fb8650d92a10f316dc869e49b722973d83c3c"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/compat.js",
+      "sha256": "0e948b101771cc0e7b753e54b3f5b486929d3db9bd4c09d98fe4ce86271bcf7b"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/errors.js",
+      "sha256": "fd807f79ded4f88928ab8205de1922901a4d3a8c9b93d072e1ab8c0a44a95df5"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/external.js",
+      "sha256": "179a03ace3d1d77895cc5b3c54a3fcbf2b7f8bad44d6f030092491c10e5d9097"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/from-json-schema.js",
+      "sha256": "826d3386506f0e92b77c9917c04c67b8349c67815e002ac1f712b0e68d7538a7"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/iso.js",
+      "sha256": "3cc5e6b4da086b8ffc7ee3188c69e4d3c945b368092e78d2299b5321182752c5"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/parse.js",
+      "sha256": "14cbcc416ab9169abc2cde97af77da54ca769684eac1e03a3753c16ea4a7cd95"
+    },
+    {
+      "path": "node_modules/zod/v4/classic/schemas.js",
+      "sha256": "74f7043b7de6f35661a86c378e7b0f9198b6170336dfb85b30e6c8d1a43f8ef7"
+    },
+    {
+      "path": "node_modules/zod/v4/core/api.js",
+      "sha256": "b0249f67024345bab7b455b0363eccf40dd58c326f492d0321bf825888a71c9a"
+    },
+    {
+      "path": "node_modules/zod/v4/core/checks.js",
+      "sha256": "5a33a20dcad372b4d18ead8d1e58b1950454f136a2216e62f247e0e5601ac838"
+    },
+    {
+      "path": "node_modules/zod/v4/core/core.js",
+      "sha256": "3a988a40d75ea5729a6ffcb2c94619e244ba0341ff1ed981d5a1725229952442"
+    },
+    {
+      "path": "node_modules/zod/v4/core/doc.js",
+      "sha256": "e084bbcc536746a8942fd33b08afe4db345554b3a0383114f1dca95261c958d9"
+    },
+    {
+      "path": "node_modules/zod/v4/core/errors.js",
+      "sha256": "c920e5549c1abcb8fc95824678beabb43023407d6a92020a3ac4a223af0a7a4b"
+    },
+    {
+      "path": "node_modules/zod/v4/core/index.js",
+      "sha256": "f9698820ee8371215e8d015cfa060230c62e65428397dce83f78e6538976301c"
+    },
+    {
+      "path": "node_modules/zod/v4/core/json-schema-generator.js",
+      "sha256": "9cc884cdb535a9c87b85b66e61a593ff6b686222f038834f81c5e92552cd6e23"
+    },
+    {
+      "path": "node_modules/zod/v4/core/json-schema-processors.js",
+      "sha256": "1872537015ed25ea43461fa109491c70ddccf43dc4995329354fb80a8971d22e"
+    },
+    {
+      "path": "node_modules/zod/v4/core/json-schema.js",
+      "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+    },
+    {
+      "path": "node_modules/zod/v4/core/parse.js",
+      "sha256": "a58b9c7be78e29d71f969f01807fe5f9be1f68d222a0f60c25e32e24f3b6639c"
+    },
+    {
+      "path": "node_modules/zod/v4/core/regexes.js",
+      "sha256": "a89562e9bea575edbbf5da84b7762fed64e20c4ff6c105dca318dfc60915706a"
+    },
+    {
+      "path": "node_modules/zod/v4/core/registries.js",
+      "sha256": "620ea1a715ccc4e6e605a271343bf47942dccae90885dc71f137b1f08a972e50"
+    },
+    {
+      "path": "node_modules/zod/v4/core/schemas.js",
+      "sha256": "8f25b8fe962d889812763c51e1a10b439996ef59c65b3ee7c46df911f82c4b59"
+    },
+    {
+      "path": "node_modules/zod/v4/core/to-json-schema.js",
+      "sha256": "7224e53b6d3110925b67d7abd1b61389e5a359f6cca6a982e27c8271b27ea19e"
+    },
+    {
+      "path": "node_modules/zod/v4/core/util.js",
+      "sha256": "e41f9e774b96a9fe2b04c08f5aad32e6db2f6aa090671d2a375e7062b4f178aa"
+    },
+    {
+      "path": "node_modules/zod/v4/core/versions.js",
+      "sha256": "070e8cb9b31440b1bf0ae0de74a5fd7e8d410217a08df8a927c3d620477cc01e"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ar.js",
+      "sha256": "220ca3ca8cf67e4ccc05d789eeed2692d970269fe0cd82f05db8fd899b661b9e"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/az.js",
+      "sha256": "4725ffef0b2f2df947194f9698c792b69f52a8c3a5a1e1bdfabbf62259a1dd46"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/be.js",
+      "sha256": "da4bda7fbc940dd9f50efdd914caa9397243be779a505b82bd4be5395d3b795e"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/bg.js",
+      "sha256": "48511ad2f86043f0eea6e7673d5e2b848a3295a26c9c4650e96b3884d640196d"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ca.js",
+      "sha256": "796f9ba7dcd53648171aa0132c50271ef358936765cec0a44a642c41d05b3e8c"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/cs.js",
+      "sha256": "670a75fe1db1104db090c95aabb01e4eb6decd451fe77fd830c2e4dafc79b49a"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/da.js",
+      "sha256": "cdaad7a1fa370abda1943fe9c2caba961e7896b9808d51275daf33f964af49cc"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/de.js",
+      "sha256": "521a4ed29fcaf3f781163875dc282cfb5262047773aa2b70a852996b1d8a51b9"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/en.js",
+      "sha256": "3e2c03ebed517345ad73a247a8134577e5986622c22e7b6c760b8b9af5827442"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/eo.js",
+      "sha256": "ebe08048aa3ee9871ce9fe1271e254cb672b1968ec40ac253066d08d176e8a65"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/es.js",
+      "sha256": "4edd9302e9724c408b024220e99092fbd2f90100ac3c6407a94543b79843610c"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/fa.js",
+      "sha256": "2dc1bee1e984e8a15191fb3c69aaecaa26c922e12a0d4486ac005a0372b78565"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/fi.js",
+      "sha256": "3911184979f01d2ae580ce611710ee40597eff97a410d0fa823ab6ea27cee88c"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/fr-CA.js",
+      "sha256": "f8716c2baaccdfd1d958743bbc5250c9bdef5152d0801470e9b9a380d618f4ab"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/fr.js",
+      "sha256": "af85482fed4a3e4c97565ef849b4a14193b979b88b385844633d6af9b2e5ae30"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/he.js",
+      "sha256": "290512e43d2907700211da09dc3959fd98d120bfb89f8836e6e3f83a472e26fe"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/hu.js",
+      "sha256": "913ee94a253db79b31463ae23a337060b6fe28be73dfc7657d8a83a4942bd8a8"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/hy.js",
+      "sha256": "0d3bbb96c0f8bc74468a2dfc7d066e838bb56fab64fd5ec03ce9c4d89eccbe99"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/id.js",
+      "sha256": "cd2c19b5c30dade3ed91ffcff3deb0b068713be24f02248e7e46b87b2b9553ee"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/index.js",
+      "sha256": "8b23cfb530a5af9375303c0ffbec9ee260fff97ac59a1f780171f288b6e2f2da"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/is.js",
+      "sha256": "ead5b14eac892229f915fe38ec94ab3b1e676f8aa2df2a8450848ba9ca9a1612"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/it.js",
+      "sha256": "1409d5c02a8d5922f21577f1d0f892aa141f56f3a3b49a13fe4802395ddaa0ac"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ja.js",
+      "sha256": "43ee10378cac22b0b8aee912a66c3f36a834d5b4c76e9748f88a784044f248fd"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ka.js",
+      "sha256": "b25387ebafa764efb3b1142eda956a24ed3bba8ea523d97a8ace4dc2973f0e38"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/kh.js",
+      "sha256": "78c3d1991041bb8c8fc0f7c5d745aae422d4c2e4e8f30bae44f3fef4765900a8"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/km.js",
+      "sha256": "dbdabda94dd93d4a1827e6c809505c79fa6aa7abefec91dc50fa0871382c99cc"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ko.js",
+      "sha256": "d2efe22ac069d9b32b0109fa07713ac0695ac1c1357afc4e4277056466f2e196"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/lt.js",
+      "sha256": "dad886e52c56a1329d22e072f8b08dc8730f69c3dc5e5acf8267cac18df1ab28"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/mk.js",
+      "sha256": "9eb4af0392fc5b9c438cdc6ceea446acc541b59e221dba918f7b80800d9da3d1"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ms.js",
+      "sha256": "c550a9185d997e8fcd17311951aa1e29793a50b8e825e18310efd5a46c641795"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/nl.js",
+      "sha256": "acba414579c5bbd7f83dc6661fa1a12d65f1822f9b0f5035549ac60f46d93763"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/no.js",
+      "sha256": "1854483c7cf158b8f97f0faf6fd799eb1f762009018b5fde893ca33f2fb0b313"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ota.js",
+      "sha256": "34ae496104bc17fea7d30c3d45c94cfe3d1d569b5d39a6ca51de6c177690c556"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/pl.js",
+      "sha256": "18eab58f395e30b906e8e3fddc5f212eb19f2c4362410889a5c5e0141ebe2144"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ps.js",
+      "sha256": "f977b5141fa8fb6a8459372e0b2895d74b381c9f2ff4899141f7ee3e639a4513"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/pt.js",
+      "sha256": "df172afc585544dee7c063c484f5a07b5ed103e2c1072a782c763ad8ceb08e17"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ru.js",
+      "sha256": "c397a473e94d7d189a9c09c7890fe379c4f6f46d9556d52a040a90ffa56f7b93"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/sl.js",
+      "sha256": "ee2ff3a19b62cd2f89b54b165088773b937de15df7253df220bef07d9adf2d80"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/sv.js",
+      "sha256": "97d6718fb643e05d6fe30fa4f9f09b8d9a3eda4a3a350b57dfb2944943d19502"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ta.js",
+      "sha256": "04bbde9766251f9047e786fdd77632f2ecd53aec2eb060eb2fc85bf576ad729d"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/th.js",
+      "sha256": "aea70c9ac2b399fe4749e19ba3aa99c3efb4dfb50eadfb62b0b2a6e005748f3d"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/tr.js",
+      "sha256": "4449f41d22c6f15ede5066f79d840a52ec45a6b694c859e16f9121062b6fad2f"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ua.js",
+      "sha256": "9391169ffbc72f777a83230b6ffcc3f4cf46ab5945ec540de9ef4609dca1f4cc"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/uk.js",
+      "sha256": "77136a2a60eef62f7cc803a0f9971aebbc641403af77c1b41fd5ce59abfa5de3"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/ur.js",
+      "sha256": "858f4f38d651073e7a3fbec7ed356692578b3ad1fae1b453cb3d85312a4f39d2"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/uz.js",
+      "sha256": "287481257de95c9d99b91e070773ade607fb5c68cf5fb74df311376950d507b6"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/vi.js",
+      "sha256": "2c61bd3f4a733f3cbb1ad85e75a053cb15a8ebeb83ab56dc21f2948b1138e12f"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/yo.js",
+      "sha256": "98b9cbf31bf00c8b2c00de62725a9dd7cb718ac72d6e8fd4e0a1a7c49723e0f4"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/zh-CN.js",
+      "sha256": "99a4b16af598834a0b11607fcdebd1c6de026386ff1d6a5a306b364c154c5899"
+    },
+    {
+      "path": "node_modules/zod/v4/locales/zh-TW.js",
+      "sha256": "37dcae620e1553e9174a4b9434bbcc4e465150a627e80c9c17fd01de8baaf59a"
+    },
+    {
+      "path": "src/app_run/state.ts",
+      "sha256": "2438e861385ffe3f66622aee7426ed46621f8929b7899ad7c40a02f70d001dfe"
+    },
+    {
+      "path": "src/app_run/transport.ts",
+      "sha256": "5083477ef1fd698047678f9abc0d844722c13963b0b3f00b4aec94eee9aa8008"
+    },
+    {
+      "path": "src/chat_stream/intent_payload.ts",
+      "sha256": "abdf94eb162b56f66f4cc59b1fc06da3caab99ddd4181b370d2dd4555847e2af"
+    },
+    {
+      "path": "src/chat_stream/transport.ts",
+      "sha256": "01dd0863fd0887f89d19e091e56cdebebe1d188388e676ebf116dd06f48283f0"
+    },
+    {
+      "path": "src/distributed_machines/remote_protocol.ts",
+      "sha256": "33e1ede98b0ccf50376e57d210d165b467b3ad750f44ea9694789e79f2cdd5d4"
+    },
+    {
+      "path": "src/errors/prism_error.ts",
+      "sha256": "1a8164331443132dcfc4f318c8bf89a8a72c52bf3ad483e4fee70279601052ad"
+    },
+    {
+      "path": "src/ipc/contracts/core.ts",
+      "sha256": "23118cba79c7949ccada1f3336e0ef0f50627b1c0f5fdf33da888d60cc8d5579"
+    },
+    {
+      "path": "src/ipc/shared/language_model_constants.ts",
+      "sha256": "f2960dc5c3693d5bde23b50188cdd55d9537f8c90c6e4020229f3a755d389da9"
+    },
+    {
+      "path": "src/ipc/types/chat.ts",
+      "sha256": "3bafcfaa299aa458475a81329ea5ef40a7a85cd0a4aa0f369e1eb4ad74b969e3"
+    },
+    {
+      "path": "src/lib/providerUtils.ts",
+      "sha256": "f517a7118d52219f8955db95a7efada8c83b31a6f9cbdc10d1f8ab10ac65e0bc"
+    },
+    {
+      "path": "src/lib/schemas.ts",
+      "sha256": "4f58662d48439a27c9f4ec37a5b1e8b305e3eadf4d4a338e0e83380809c337c3"
+    },
+    {
+      "path": "src/shared/chatAttachmentLimits.ts",
+      "sha256": "d077de8eb08c705d06c9deda23dccca254a10473594abdb90ae565cf52c0ae54"
+    },
+    {
+      "path": "src/shared/git_refs.ts",
+      "sha256": "11868d12812fda756c0631af1795c87874a91f5a8a040cfe9ad6586ee763cda4"
+    },
+    {
+      "path": "src/state_machines/invocation_ref.ts",
+      "sha256": "357eca84319c14761f15a5334b4eb2864d1b8220354c0f8d0441f4b068517ef9"
+    },
+    {
+      "path": "src/version_preview/transport.ts",
+      "sha256": "97c73efac96a0a4d92ead069ae1eebef85b14a91be83f2ecba97c2321e27d20b"
+    },
+    {
+      "path": "src/window_infrastructure/types.ts",
+      "sha256": "6b03bd28e8eb489d2633d230f82d5eae5ff168f34038b7a13952650e5101ad1b"
+    }
+  ],
+  "output": {
+    "path": "chat-contracts.mjs",
+    "sha256": "c5f0c8ce7977dbde04248f5fd0255d4307310ca8db537158450d6b9a70399e4b",
+    "bytes": 359074
+  }
+}

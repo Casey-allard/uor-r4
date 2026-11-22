@@ -1,0 +1,324 @@
+import { describe, expect, it } from "vitest";
+import {
+  advanceParser,
+  getParserBlocks,
+  initialParserState,
+  parseFullMessage,
+  type Block,
+} from "@/lib/streamingMessageParser";
+
+function blocksToShape(blocks: Block[]) {
+  return blocks.map((b) => {
+    if (b.kind === "markdown") {
+      return { kind: "markdown", content: b.content, complete: b.complete };
+    }
+    return {
+      kind: "custom-tag",
+      tag: b.tag,
+      attributes: b.attributes,
+      content: b.content,
+      complete: b.complete,
+      inProgress: b.inProgress,
+    };
+  });
+}
+
+function feedAll(content: string, splits: number[]) {
+  let state = initialParserState();
+  let prev = 0;
+  for (const at of splits) {
+    state = advanceParser(state, content.slice(0, at));
+    prev = at;
+  }
+  if (prev < content.length) {
+    state = advanceParser(state, content);
+  }
+  return state;
+}
+
+describe("streamingMessageParser", () => {
+  it("parses pure markdown as a single block", () => {
+    const content = "Hello **world**\n\nSecond paragraph";
+    const { blocks } = parseFullMessage(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      kind: "markdown",
+      content,
+    });
+  });
+
+  it("parses a single prism-write tag", () => {
+    const content =
+      'Before\n<prism-write path="src/foo.ts" description="foo">code here</prism-write>\nAfter';
+    const { blocks } = parseFullMessage(content);
+    expect(blocksToShape(blocks)).toEqual([
+      { kind: "markdown", content: "Before\n", complete: true },
+      {
+        kind: "custom-tag",
+        tag: "prism-write",
+        attributes: { path: "src/foo.ts", description: "foo" },
+        content: "code here",
+        complete: true,
+        inProgress: false,
+      },
+      { kind: "markdown", content: "\nAfter", complete: false },
+    ]);
+  });
+
+  it("parses an inline sub-agent mount point", () => {
+    const content =
+      '<prism-subagent chat-id="7" thread-id="explorer-1" persona="explorer" task-name="Trace auth"></prism-subagent>';
+    const { blocks } = parseFullMessage(content);
+
+    expect(blocksToShape(blocks)).toEqual([
+      {
+        kind: "custom-tag",
+        tag: "prism-subagent",
+        attributes: {
+          "chat-id": "7",
+          "thread-id": "explorer-1",
+          persona: "explorer",
+          "task-name": "Trace auth",
+        },
+        content: "",
+        complete: true,
+        inProgress: false,
+      },
+    ]);
+  });
+
+  it("handles xml-escaped attribute and content values", () => {
+    const content =
+      '<prism-write path="a.ts" description="A &amp; B">if (a &lt; b) {}</prism-write>';
+    const { blocks } = parseFullMessage(content);
+    expect(blocks).toHaveLength(1);
+    const tag = blocks[0];
+    if (tag.kind !== "custom-tag") throw new Error("expected custom-tag");
+    expect(tag.attributes.description).toBe("A & B");
+    expect(tag.content).toBe("if (a < b) {}");
+  });
+
+  it("treats unclosed opening tag as in-progress", () => {
+    const content = '<prism-write path="x.ts">partial';
+    const { blocks } = parseFullMessage(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      kind: "custom-tag",
+      tag: "prism-write",
+      content: "partial",
+      complete: false,
+      inProgress: true,
+    });
+  });
+
+  it("surfaces partial closing-tag bytes in the open block content", () => {
+    // Stream stops mid-closing-tag. The buffered "</prism-wri" bytes must
+    // appear in the visible content so they stream and aren't lost.
+    const cases = [
+      { suffix: "<", expected: "content<" },
+      { suffix: "</", expected: "content</" },
+      { suffix: "</prism-wri", expected: "content</prism-wri" },
+    ];
+    for (const { suffix, expected } of cases) {
+      const content = `<prism-write path="x.ts">content${suffix}`;
+      const { blocks } = parseFullMessage(content);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toMatchObject({
+        kind: "custom-tag",
+        tag: "prism-write",
+        content: expected,
+        complete: false,
+        inProgress: true,
+      });
+    }
+  });
+
+  it("treats non-prism < as text", () => {
+    const content = "use <html>tag</html> in markdown";
+    const { blocks } = parseFullMessage(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      kind: "markdown",
+      content,
+    });
+  });
+
+  it("incremental parse equals full parse for any split sequence", () => {
+    const content = `Intro line.
+
+<prism-write path="src/foo.ts" description="foo &amp; bar">
+const x = 1;
+if (a &lt; b) { console.log("&amp;"); }
+</prism-write>
+
+Some prose between blocks.
+
+<think>step by step</think>
+
+<prism-add-dependency packages="react"></prism-add-dependency>
+
+Final words.`;
+
+    const fullBlocks = parseFullMessage(content).blocks;
+
+    // Try every single-split point.
+    for (let i = 0; i <= content.length; i++) {
+      let state = initialParserState();
+      state = advanceParser(state, content.slice(0, i));
+      state = advanceParser(state, content);
+      const incBlocks = getParserBlocks(state);
+      expect(blocksToShape(incBlocks)).toEqual(blocksToShape(fullBlocks));
+    }
+
+    // Try a handful of multi-split sequences (deterministic).
+    const multiSplits = [
+      [10, 25, 60, 120, 200],
+      [1, 2, 3, 4, 5, 50, 100, 150],
+      [content.length - 1],
+      [5, 5, 5, 50, 50],
+    ];
+    for (const splits of multiSplits) {
+      const state = feedAll(
+        content,
+        splits.filter((s) => s <= content.length),
+      );
+      const incBlocks = getParserBlocks(state);
+      expect(blocksToShape(incBlocks)).toEqual(blocksToShape(fullBlocks));
+    }
+  });
+
+  it("preserves committed block refs across updates", () => {
+    const part1 =
+      'Before\n<prism-write path="x.ts">done</prism-write>\n<prism-write path="y.ts">in';
+    const part2 = part1 + "progress";
+    let state = initialParserState();
+    state = advanceParser(state, part1);
+    const blocks1 = getParserBlocks(state);
+    state = advanceParser(state, part2);
+    const blocks2 = getParserBlocks(state);
+    // Completed prism-write for x.ts should keep its identity.
+    const xBefore = blocks1.find(
+      (b) => b.kind === "custom-tag" && b.attributes.path === "x.ts",
+    );
+    const xAfter = blocks2.find(
+      (b) => b.kind === "custom-tag" && b.attributes.path === "x.ts",
+    );
+    expect(xBefore).toBeDefined();
+    expect(xBefore).toBe(xAfter);
+
+    // The open in-progress block must get a new ref because its content grew —
+    // that's how React.memo on ref equality knows to re-render only it.
+    const yBefore = blocks1.find(
+      (b) => b.kind === "custom-tag" && b.attributes.path === "y.ts",
+    );
+    const yAfter = blocks2.find(
+      (b) => b.kind === "custom-tag" && b.attributes.path === "y.ts",
+    );
+    expect(yBefore).toBeDefined();
+    expect(yAfter).toBeDefined();
+    expect(yBefore).not.toBe(yAfter);
+  });
+
+  it("only the open block changes ref across many small chunks (O(chunk) renderer guarantee)", () => {
+    // 50 completed prism-write blocks followed by one open block.
+    const completedSegments: string[] = [];
+    for (let i = 0; i < 50; i++) {
+      completedSegments.push(
+        `<prism-write path="f${i}.ts">content ${i}</prism-write>`,
+      );
+    }
+    const baseContent =
+      completedSegments.join("\n") + '\n<prism-write path="open.ts">';
+
+    let state = initialParserState();
+    state = advanceParser(state, baseContent);
+    const completedRefs = getParserBlocks(state)
+      .filter(
+        (b) => b.kind === "custom-tag" && b.attributes.path?.startsWith("f"),
+      )
+      .map((b) => b);
+    expect(completedRefs).toHaveLength(50);
+
+    let content = baseContent;
+    for (let chunk = 0; chunk < 20; chunk++) {
+      content += `chunk-${chunk}-payload `;
+      state = advanceParser(state, content);
+      const after = getParserBlocks(state);
+      // All 50 completed blocks must keep the SAME ref. If even one changes,
+      // React.memo would mis-trigger and the per-chunk render cost balloons
+      // past the open block.
+      for (let i = 0; i < 50; i++) {
+        const a = completedRefs[i];
+        const b = after.find(
+          (x) => x.kind === "custom-tag" && x.attributes.path === `f${i}.ts`,
+        );
+        expect(b).toBe(a);
+      }
+    }
+  });
+
+  it("handles a closing-tag that doesn't match the open tag as content", () => {
+    const content = '<prism-write path="a.ts">foo</prism-edit>still</prism-write>';
+    const { blocks } = parseFullMessage(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      kind: "custom-tag",
+      tag: "prism-write",
+      content: "foo</prism-edit>still",
+      complete: true,
+    });
+  });
+
+  it("random-split fuzz: incremental matches full parse for many seeds", () => {
+    const content = `Hello.
+<prism-write path="a.ts" description="x">code &lt;tag&gt; here</prism-write>
+mid prose
+<prism-add-dependency packages="react vue"></prism-add-dependency>
+<think>analysis &amp; plan</think>
+<prism-write path="b.ts">b body
+multi-line
+content</prism-write>
+trailing`;
+
+    const fullBlocks = blocksToShape(parseFullMessage(content).blocks);
+
+    // Deterministic LCG.
+    let seed = 12345;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+
+    for (let trial = 0; trial < 50; trial++) {
+      const splitCount = 3 + Math.floor(rand() * 12);
+      const splits = new Set<number>();
+      for (let k = 0; k < splitCount; k++) {
+        splits.add(Math.floor(rand() * content.length));
+      }
+      const sorted = [...splits].sort((a, b) => a - b);
+      let state = initialParserState();
+      for (const s of sorted) {
+        state = advanceParser(state, content.slice(0, s));
+      }
+      state = advanceParser(state, content);
+      expect(blocksToShape(getParserBlocks(state))).toEqual(fullBlocks);
+    }
+  });
+
+  it("resets when content shrinks (resync)", () => {
+    let state = initialParserState();
+    state = advanceParser(state, '<prism-write path="a.ts">old</prism-write>');
+    expect(getParserBlocks(state)).toHaveLength(1);
+    state = advanceParser(state, "<prism-write");
+    // Resync caused full reparse — synthesized markdown for partial tag.
+    const blocks = getParserBlocks(state);
+    expect(blocks.length).toBeGreaterThanOrEqual(0);
+    state = advanceParser(state, '<prism-write path="b.ts">new</prism-write>');
+    const finalBlocks = getParserBlocks(state);
+    expect(finalBlocks).toHaveLength(1);
+    if (finalBlocks[0].kind !== "custom-tag")
+      throw new Error("expected custom-tag");
+    expect(finalBlocks[0].attributes.path).toBe("b.ts");
+    expect(finalBlocks[0].content).toBe("new");
+  });
+});

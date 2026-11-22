@@ -1,0 +1,30 @@
+{
+  // hologram-forge (ours, see VENDORED.md): the renderer typechecked as the shell builds it, with every ui
+  // component the kit has read from the vendored shadcn/ui new-york-v4 registry (hologram.ui.mjs).
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.hologram.tsbuildinfo",
+    "paths": {
+      "*": ["./*"],
+      // The kit's files sit outside this tree; their packages are the renderer's.
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "radix-ui": ["./node_modules/radix-ui"],
+      "lucide-react": ["./node_modules/lucide-react"],
+      "class-variance-authority": ["./node_modules/class-variance-authority"],
+      "clsx": ["./node_modules/clsx"],
+      "tailwind-merge": ["./node_modules/tailwind-merge"],
+      "cmdk": ["./node_modules/cmdk"],
+      "sonner": ["./node_modules/sonner"],
+      "@/components/ui/*": ["../shadcn-ui/registry/new-york-v4/ui/*", "./src/components/ui/*"],
+      "@/registry/new-york-v4/*": ["../shadcn-ui/registry/new-york-v4/*"],
+      "@/*": ["./src/*"],
+      "pg-schema-classifier": ["./packages/pg-schema-classifier/src/index.ts"],
+      "pg-schema-classifier/*": ["./packages/pg-schema-classifier/src/*"],
+      "ts-pg-schema-diff": ["./packages/ts-pg-schema-diff/src/index.ts"],
+      "ts-pg-schema-diff/*": ["./packages/ts-pg-schema-diff/src/*"]
+    }
+  },
+  "include": ["src", "shared", "hologram.*.tsx", "hologram.env.d.ts", "packages/ts-pg-schema-diff/src", "packages/pg-schema-classifier/src"],
+  "exclude": ["src/__tests__", "src/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.stories.tsx", "src/components/ui/*.tsx"]
+}

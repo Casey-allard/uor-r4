@@ -41,7 +41,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 
 target=''
-typed=0
+typed=1
 push=0
 yes=0
 build=1
@@ -135,47 +135,39 @@ say "Studio build and publish"
 say "  repo:    $root"
 say "  target:  $target ($([ "$push" = 1 ] && echo 'PUSH (confirmed)' || echo 'dry run, nothing pushed'))"
 say "  branch:  ${branch:-detached}"
-if [ "$typed" = 1 ]; then
-    say "  mode:    typed Vite dist"
-else
-    say "  mode:    legacy Studio source"
-fi
+say "  mode:    Foundry Studio + UOR-R4 WASM + RV64IMAC MVM (dist)"
 say "  cargo:   $cargo_bin ($("$cargo_bin" --version))"
 say "  wasm:    $wasm_pack ($("$wasm_pack" --version))"
 say "  node:    $node_bin ($("$node_bin" --version))"
 
 
 # ---------------------------------------------------------------------------
-# 1. Build the wasm engine, the synthetic demo stack and its tokenizer.
+# 1. Build Foundry Studio, UOR-R4 integer WASM, synthetic stack, tokenizer, and MVM WASM.
 pkg=web/studio/pkg
+pkg_mvm=web/studio/pkg-mvm
 if [ "$build" = 1 ]; then
     say ""
-    say "== build: wasm (crates/uor-r4-integer --features serving-wasm, wasm-pack 0.13.1 recipe)"
-    rm -rf "$pkg"
-    ( export PATH="$HOME/.cargo/bin:$PATH"
-      RUSTFLAGS='-C target-feature=-simd128' "$wasm_pack" build crates/uor-r4-integer \
-        --target web --no-opt --out-dir ../../web/studio/pkg -- --locked --features serving-wasm )
-    say "== build: synthetic demo stack (seed 5) and stack-bound tokenizer"
-    "$cargo_bin" run -q --locked -p uor-r4-integer --features serving-wasm \
-        --bin mk-synthetic-stack -- 5 "$pkg/synthetic-stack.lut"
-    "$node_bin" web/studio/tools/make_tokenizer.mjs "$pkg/synthetic-stack.lut" --out "$pkg/tokenizer.json"
-    "$node_bin" web/studio/tools/make_tokenizer.mjs "$pkg/synthetic-stack.lut" --check "$pkg/tokenizer.json"
+    say "== build: Foundry Studio + uor-r4-integer WASM + uor-r4-mvm WASM =="
+    bash web/studio/build_foundry_studio.sh
 else
     [ -f "$pkg/uor_r4_integer_bg.wasm" ] || die "--no-build but $pkg/uor_r4_integer_bg.wasm is missing"
+    [ -f "$pkg_mvm/uor_r4_mvm_bg.wasm" ] || die "--no-build but $pkg_mvm/uor_r4_mvm_bg.wasm is missing"
+    [ -f "web/studio/dist/index.html" ] || die "--no-build but web/studio/dist/index.html is missing"
 fi
 for f in uor_r4_integer.js uor_r4_integer_bg.wasm synthetic-stack.lut tokenizer.json; do
     [ -f "$pkg/$f" ] || die "missing build output $pkg/$f"
 done
-ls -lh "$pkg"
+for f in uor_r4_mvm.js uor_r4_mvm_bg.wasm; do
+    [ -f "$pkg_mvm/$f" ] || die "missing build output $pkg_mvm/$f"
+done
+ls -lh "$pkg" "$pkg_mvm"
 
 # ---------------------------------------------------------------------------
-# 2. Verify the page against the built bundle (the same bars the publish workflow should run).
+# 2. Verify the Foundry Studio & WASM workers against the built bundle.
 if [ "$verify" = 1 ]; then
     say ""
-    say "== verify: worker engine traps"
+    say "== verify: worker engine traps =="
     "$node_bin" web/studio/verify_studio_worker.mjs
-    say "== verify: static page-load references (zero external)"
-    "$node_bin" web/studio/verify_studio_page.mjs --strict-router
     chrome=${CHROME:-}
     if [ -z "$chrome" ]; then
         for c in \
@@ -186,23 +178,16 @@ if [ "$verify" = 1 ]; then
         done
     fi
     if [ -n "$chrome" ]; then
-        say "== verify: runtime page-load trap in $chrome (zero external)"
-        "$node_bin" web/studio/verify_studio_page_load.mjs --strict-router
+        say "== verify: Foundry Studio Chrome CDP E2E in $chrome =="
+        CHROME="$chrome" "$node_bin" web/studio/verify_foundry_studio.mjs web/studio/dist
     else
-        say "== verify: runtime page-load trap SKIPPED (no Chrome/Chromium found; set CHROME=...);"
-        say "   the static scan above still ran. This is the one bar a headless browser is needed for."
+        say "== verify: Foundry Studio Chrome CDP E2E SKIPPED (no Chrome/Chromium found; set CHROME=...)"
     fi
-    say "== verify: wasm instruction audit (D11 serving classes)"
+    say "== verify: wasm instruction audit (D11 serving classes) =="
     python3 scripts/audit_zero_matmul_wasm.py "$pkg/uor_r4_integer_bg.wasm" \
         --serving --call-graph --tap --build-commit "$(git rev-parse HEAD)"
 else
     say "== verify skipped (--skip-verify)"
-fi
-
-if [ "$typed" = 1 ]; then
-    say ""
-    say "== build: typed Vite application"
-    ( cd web/studio && npm ci && npm run build )
 fi
 
 # ---------------------------------------------------------------------------
@@ -262,8 +247,11 @@ mkdir -p "$site_wt/studio"
 cp -R "$staging/studio/." "$site_wt/studio/"
 
 # The staged page is what ships: prove the browser's files are there and stale ones are gone.
-for f in index.html models.json pkg/uor_r4_integer.js pkg/uor_r4_integer_bg.wasm \
-         pkg/synthetic-stack.lut pkg/tokenizer.json; do
+for f in index.html 404.html holo.html manifest.json sw.js models.json host.bundle.js core.wasm \
+         assets/index.js assets/index.css kernel/kernel.holo \
+         pkg/uor_r4_integer.js pkg/uor_r4_integer_bg.wasm pkg/synthetic-stack.lut pkg/tokenizer.json \
+         pkg-mvm/uor_r4_mvm.js pkg-mvm/uor_r4_mvm_bg.wasm \
+         uor/js/uor_model_worker.js uor/js/uor_tokenizer_artifact.js; do
     [ -f "$site_wt/studio/$f" ] || die "staged $site_wt/studio/$f is missing"
 done
 if [ -e "$site_wt/studio/pkg/uor_r4_wasm_router_bg.wasm" ]; then

@@ -1,0 +1,42 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ipc } from "@/ipc/types";
+import type { CreateAppParams, CreateAppResult } from "@/ipc/types";
+import { showError } from "@/lib/toast";
+import { queryKeys } from "@/lib/queryKeys";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+
+export function useCreateApp() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation<CreateAppResult, Error, CreateAppParams>({
+    mutationFn: async (params: CreateAppParams) => {
+      if (!params.name.trim()) {
+        throw new PrismError("App name is required", PrismErrorKind.Validation);
+      }
+
+      return ipc.app.createApp(params);
+    },
+    onSuccess: () => {
+      // Invalidate apps list to trigger refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.apps.all });
+      // Creating an app also creates the first chat, so refresh the chat list
+      // so ChatTabs can see it immediately.
+      queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
+    },
+    onError: (error) => {
+      showError(error);
+    },
+  });
+
+  const createApp = async (
+    params: CreateAppParams,
+  ): Promise<CreateAppResult> => {
+    return mutation.mutateAsync(params);
+  };
+
+  return {
+    createApp,
+    isCreating: mutation.isPending,
+    error: mutation.error,
+  };
+}

@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "prism-unicode-text-codec"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Utf8"
+component = "encode"
+
+[[form]]
+id = "prism-unicode-text-codec"
+channel = "text"
+surface = "Unicode text codec"
+canonical_source = true
+features = ["sentence-case", "singular"]

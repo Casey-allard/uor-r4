@@ -1,0 +1,393 @@
+import { ipc } from "@/ipc/types";
+import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
+import { useFreeModelQuota } from "@/hooks/useFreeModelQuota";
+import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
+import { AI_STREAMING_ERROR_MESSAGE_PREFIX } from "@/shared/texts";
+import {
+  X,
+  ExternalLink as ExternalLinkIcon,
+  CircleArrowUp,
+  MessageSquarePlus,
+  ArrowRight,
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+
+export function ChatErrorBox({
+  onDismiss,
+  error,
+  isPrismProEnabled,
+  onStartNewChat,
+  onSwitchToBuildMode,
+}: {
+  onDismiss: () => void;
+  error: string;
+  isPrismProEnabled: boolean;
+  onStartNewChat?: () => void;
+  onSwitchToBuildMode?: () => void;
+}) {
+  const fallbackPrefix = "Fallbacks=[{";
+  const normalizedError = error.includes(fallbackPrefix)
+    ? error.split(fallbackPrefix)[0]
+    : error;
+  const freeAgentQuotaError = parseFreeAgentQuotaError(normalizedError);
+  const isFreeModelQuotaError =
+    normalizedError.includes("prism_free_model_quota_exceeded") ||
+    normalizedError.includes("FREE_MODEL_QUOTA_EXCEEDED") ||
+    normalizedError.includes("Prism Free has reached its daily limit.") ||
+    normalizedError.includes("Prism Free limit");
+  const { messagesLimit, resetTime } = useFreeAgentQuota();
+  const {
+    messagesLimit: freeModelMessagesLimit,
+    resetTime: freeModelResetTime,
+  } = useFreeModelQuota({ enabled: isFreeModelQuotaError });
+  const { userBudget } = useUserBudgetInfo();
+  // Trial Pro users cannot use the Free model (it is hidden from the picker and
+  // rejected by the engine), so don't suggest it to them.
+  const isTrialProUser = userBudget?.isTrial === true;
+
+  if (error.includes("doesn't have a free quota tier")) {
+    return (
+      <ChatErrorContainer onDismiss={onDismiss}>
+        {error}
+        <span className="ml-1">
+          <ExternalLink
+            href="https://dyad.sh/pro?utm_source=prism-app&utm_medium=app&utm_campaign=free-quota-error"
+            variant="primary"
+          >
+            Access with Prism Pro
+          </ExternalLink>
+        </span>{" "}
+        or switch to another model.
+      </ChatErrorContainer>
+    );
+  }
+
+  // Important, this needs to come after the "free quota tier" check
+  // because it also includes this URL in the error message
+  //
+  // Sometimes Prism Pro can return rate limit errors and we do not want to
+  // show the upgrade to Prism Pro link in that case because they are
+  // already on the Prism Pro plan.
+  if (
+    !isPrismProEnabled &&
+    (error.includes("Resource has been exhausted") ||
+      error.includes("https://ai.google.dev/gemini-api/docs/rate-limits") ||
+      error.includes("Provider returned error"))
+  ) {
+    return (
+      <ChatErrorContainer onDismiss={onDismiss}>
+        {error}
+        <div className="mt-2 space-y-2 space-x-2">
+          <ExternalLink
+            href="https://dyad.sh/pro?utm_source=prism-app&utm_medium=app&utm_campaign=rate-limit-error"
+            variant="primary"
+          >
+            Upgrade to Prism Pro
+          </ExternalLink>
+
+          <ExternalLink href="https://dyad.sh/docs/help/ai-rate-limit">
+            Troubleshooting guide
+          </ExternalLink>
+        </div>
+      </ChatErrorContainer>
+    );
+  }
+
+  if (error.includes("LiteLLM Virtual Key expected")) {
+    return (
+      <ChatInfoContainer onDismiss={onDismiss}>
+        <span>
+          Looks like you don't have a valid Prism Pro key.{" "}
+          <ExternalLink
+            href="https://dyad.sh/pro?utm_source=prism-app&utm_medium=app&utm_campaign=invalid-pro-key-error"
+            variant="primary"
+          >
+            Upgrade to Prism Pro
+          </ExternalLink>{" "}
+          today.
+        </span>
+      </ChatInfoContainer>
+    );
+  }
+  if (isPrismProEnabled && error.includes("ExceededBudget:")) {
+    return (
+      <ChatInfoContainer onDismiss={onDismiss}>
+        <span>
+          You have used all of your Prism AI credits this month.{" "}
+          {!isTrialProUser && (
+            <>
+              Switch to the Free model and send {freeModelMessagesLimit} free
+              messages per day.{" "}
+            </>
+          )}
+          <ExternalLink
+            href="https://academy.dyad.sh/subscription?utm_source=prism-app&utm_medium=app&utm_campaign=exceeded-budget-error"
+            variant="primary"
+          >
+            Get more AI credits
+          </ExternalLink>
+        </span>
+      </ChatInfoContainer>
+    );
+  }
+  // This is a very long list of model fallbacks that clutters the error message.
+  //
+  // We are matching "Fallbacks=[{" and not just "Fallbacks=" because the fallback
+  // model itself can error and we want to include the fallback model error in the error message.
+  // Example: https://github.com/dyad-sh/dyad/issues/1849#issuecomment-3590685911
+  if (error.includes(fallbackPrefix)) {
+    error = normalizedError;
+  }
+  // Handle FREE_AGENT_QUOTA_EXCEEDED error (Basic Agent mode quota exceeded)
+  if (freeAgentQuotaError) {
+    const authoritativeResetTime = freeAgentQuotaError.resetTime ?? resetTime;
+    const resetText = authoritativeResetTime
+      ? ` Your quota resets at ${new Intl.DateTimeFormat(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+        }).format(new Date(authoritativeResetTime))}.`
+      : "";
+
+    return (
+      <ChatErrorContainer onDismiss={onDismiss}>
+        You have used all {messagesLimit} free Basic Agent messages for today.
+        {resetText} This message was not sent. Upgrade to Prism Pro for unlimited
+        Agent access
+        {onSwitchToBuildMode
+          ? ", or switch this chat to Build mode and send it again."
+          : ". To use Build mode, first choose a model other than Prism Free, then send it again."}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <ExternalLink
+            href="https://dyad.sh/pro?utm_source=prism-app&utm_medium=app&utm_campaign=free-agent-quota-exceeded"
+            variant="primary"
+          >
+            Upgrade to Prism Pro
+          </ExternalLink>
+          {onSwitchToBuildMode && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onSwitchToBuildMode}
+              className="gap-1.5"
+            >
+              Switch to Build
+              <ArrowRight size={16} />
+            </Button>
+          )}
+        </div>
+      </ChatErrorContainer>
+    );
+  }
+
+  if (isFreeModelQuotaError) {
+    const resetText = freeModelResetTime
+      ? ` Your quota resets at ${new Intl.DateTimeFormat(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZoneName: "short",
+        }).format(new Date(freeModelResetTime))}.`
+      : "";
+
+    return (
+      <ChatErrorContainer onDismiss={onDismiss}>
+        <span>
+          You have reached the {freeModelMessagesLimit}-message Prism Free model
+          limit.
+          {resetText} Switch to paid models.{" "}
+          <ExternalLink
+            href="https://academy.dyad.sh/subscription?utm_source=prism-app&utm_medium=app&utm_campaign=exceeded-budget-error"
+            variant="primary"
+          >
+            Get more AI credits
+          </ExternalLink>
+        </span>
+      </ChatErrorContainer>
+    );
+  }
+
+  return (
+    <ChatErrorContainer onDismiss={onDismiss}>
+      <div className="max-h-64 overflow-y-auto scrollbar-on-hover">
+        <ErrorMarkdown>{error}</ErrorMarkdown>
+      </div>
+      <div className="mt-2 space-y-2 space-x-2">
+        {!isPrismProEnabled &&
+          error.includes(AI_STREAMING_ERROR_MESSAGE_PREFIX) &&
+          !error.includes("TypeError: terminated") && (
+            <ExternalLink
+              href="https://dyad.sh/pro?utm_source=prism-app&utm_medium=app&utm_campaign=general-error"
+              variant="primary"
+            >
+              Upgrade to Prism Pro
+            </ExternalLink>
+          )}
+        {isPrismProEnabled && onStartNewChat && (
+          <Tooltip>
+            <TooltipTrigger
+              onClick={onStartNewChat}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+            >
+              <span>Start new chat</span>
+              <MessageSquarePlus size={18} />
+            </TooltipTrigger>
+            <TooltipContent>
+              Starting a new chat can fix some issues
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <ExternalLink href="https://www.dyad.sh/docs/faq">
+          Read docs
+        </ExternalLink>
+      </div>
+    </ChatErrorContainer>
+  );
+}
+
+function parseFreeAgentQuotaError(
+  error: string,
+): { resetTime?: number | null } | null {
+  try {
+    const parsed: unknown = JSON.parse(error);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "type" in parsed &&
+      parsed.type === "FREE_AGENT_QUOTA_EXCEEDED"
+    ) {
+      const resetTime = "resetTime" in parsed ? parsed.resetTime : undefined;
+      return {
+        resetTime:
+          typeof resetTime === "number" && Number.isFinite(resetTime)
+            ? resetTime
+            : null,
+      };
+    }
+  } catch {
+    // Fall through to the legacy string marker check below.
+  }
+  return error.includes("FREE_AGENT_QUOTA_EXCEEDED") ? {} : null;
+}
+
+function ExternalLink({
+  href,
+  children,
+  variant = "secondary",
+  icon,
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary";
+  icon?: React.ReactNode;
+}) {
+  const baseClasses =
+    "cursor-pointer inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2";
+  const primaryClasses =
+    "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500";
+  const secondaryClasses =
+    "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 focus:ring-blue-200";
+  const iconElement =
+    icon ??
+    (variant === "primary" ? (
+      <CircleArrowUp size={18} />
+    ) : (
+      <ExternalLinkIcon size={14} />
+    ));
+
+  return (
+    <a
+      className={`${baseClasses} ${variant === "primary" ? primaryClasses : secondaryClasses}`}
+      onClick={() => ipc.system.openExternalUrl(href)}
+    >
+      <span>{children}</span>
+      {iconElement}
+    </a>
+  );
+}
+
+function ChatErrorContainer({
+  onDismiss,
+  children,
+}: {
+  onDismiss: () => void;
+  children: React.ReactNode | string;
+}) {
+  return (
+    <div
+      data-testid="chat-error-box"
+      className="relative mt-2 bg-red-50 border border-red-200 rounded-md shadow-sm p-2 mx-4"
+    >
+      <button
+        onClick={onDismiss}
+        className="absolute top-2.5 left-2 p-1 hover:bg-red-100 rounded"
+      >
+        <X size={14} className="text-red-500" />
+      </button>
+      <div className="pl-8 py-1 text-sm">
+        <div className="text-red-700 text-wrap">
+          {typeof children === "string" ? (
+            <ErrorMarkdown>{children}</ErrorMarkdown>
+          ) : (
+            children
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorMarkdown({ children }: { children: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ children: linkChildren, ...props }) => (
+          <a
+            {...props}
+            onClick={(e) => {
+              e.preventDefault();
+              if (props.href) {
+                ipc.system.openExternalUrl(props.href);
+              }
+            }}
+            className="text-blue-500 hover:text-blue-700"
+          >
+            {linkChildren}
+          </a>
+        ),
+      }}
+    >
+      {children}
+    </ReactMarkdown>
+  );
+}
+
+function ChatInfoContainer({
+  onDismiss,
+  children,
+}: {
+  onDismiss: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative mt-2 bg-sky-50 border border-sky-200 rounded-md shadow-sm p-2 mx-4">
+      <button
+        onClick={onDismiss}
+        className="absolute top-2.5 left-2 p-1 hover:bg-sky-100 rounded"
+      >
+        <X size={14} className="text-sky-600" />
+      </button>
+      <div className="pl-8 py-1 text-sm">
+        <div className="text-sky-800 text-wrap">{children}</div>
+      </div>
+    </div>
+  );
+}

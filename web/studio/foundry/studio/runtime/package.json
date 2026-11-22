@@ -1,0 +1,6 @@
+{
+  "name": "foundry-browser-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": { "esbuild-wasm": "0.25.5" }
+}

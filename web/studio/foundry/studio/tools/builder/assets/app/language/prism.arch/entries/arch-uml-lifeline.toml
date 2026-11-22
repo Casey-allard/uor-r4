@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-uml-lifeline"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "UmlLifeline"
+
+[[form]]
+id = "arch-uml-lifeline"
+channel = "text"
+surface = "UML lifeline"
+canonical_source = true
+features = ["sentence-case", "singular"]

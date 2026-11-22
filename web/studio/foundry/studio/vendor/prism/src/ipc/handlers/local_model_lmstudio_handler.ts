@@ -1,0 +1,58 @@
+import log from "electron-log";
+import { getLmStudioBaseUrl } from "../utils/lm_studio_utils";
+import { createTypedHandler } from "./base";
+import { languageModelContracts } from "../types/language-model";
+import type { LocalModel } from "../types/language-model";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+
+const logger = log.scope("lmstudio_handler");
+
+// LM Studio's /api/v0/models endpoint returns both generative models and
+// embedding models. Only generative models can be used for chat, so the
+// embedding types are excluded. Excluding non-chat types (rather than
+// allow-listing "llm") keeps multimodal/vision models such as "vlm" usable
+// and lets future chat-capable types surface without another code change.
+const NON_CHAT_LM_STUDIO_MODEL_TYPES = new Set(["embeddings", "embedding"]);
+
+export interface LMStudioModel {
+  type: "llm" | "vlm" | "embeddings" | string;
+  id: string;
+  object: string;
+  publisher: string;
+  state: "loaded" | "not-loaded";
+  max_context_length: number;
+  quantization: string;
+  compatibility_type: string;
+  arch: string;
+  [key: string]: any;
+}
+
+export async function fetchLMStudioModels(): Promise<{ models: LocalModel[] }> {
+  const modelsResponse: Response = await fetch(
+    `${getLmStudioBaseUrl()}/api/v0/models`,
+  );
+  if (!modelsResponse.ok) {
+    throw new PrismError(
+      "Failed to fetch models from LM Studio",
+      PrismErrorKind.External,
+    );
+  }
+  const modelsJson = await modelsResponse.json();
+  const downloadedModels = modelsJson.data as LMStudioModel[];
+  const models: LocalModel[] = downloadedModels
+    .filter((model) => !NON_CHAT_LM_STUDIO_MODEL_TYPES.has(model.type))
+    .map((model) => ({
+      modelName: model.id,
+      displayName: model.id,
+      provider: "lmstudio",
+    }));
+
+  logger.info(`Successfully fetched ${models.length} models from LM Studio`);
+  return { models };
+}
+
+export function registerLMStudioHandlers() {
+  createTypedHandler(languageModelContracts.listLMStudioModels, async () => {
+    return fetchLMStudioModels();
+  });
+}

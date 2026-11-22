@@ -1,0 +1,6 @@
+app Dinner guest list
+form "New guest"
+text name "Name" max 40
+table guests "Guests": name
+count guests "Coming"
+action "Add": add to guests

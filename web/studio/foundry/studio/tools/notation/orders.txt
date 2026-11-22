@@ -1,0 +1,10 @@
+app Orders
+text customer "Customer" max 30
+choice size "Size": "Small", "Large"
+choice milk "Milk": "None", "Oat", "Whole"
+table orders "Orders": customer, size, milk
+table regulars "Regulars": customer
+count orders "Orders today"
+action "Order": add to orders
+action "Remember": add to regulars
+action "Clear orders": clear orders

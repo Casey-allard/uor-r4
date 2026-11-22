@@ -1,0 +1,67 @@
+{
+ "schema": "prism/in-tab-kernel/1",
+ "lean": {
+  "version": "4.32.1",
+  "commit": "f054605aea4b840552cca2e725580bffd1e1b704"
+ },
+ "exporter": {
+  "repository": "https://github.com/leanprover/lean4export",
+  "commit": "86e4a339507466921dc8c5417c8cb1de1ce7df60",
+  "module": "PrismLive.Regions",
+  "roots": [
+   "PrismLive.Kernel.ruleJudge_sound",
+   "PrismLive.Kernel.wordsCheck",
+   "PrismLive.Kernel.Property.mk",
+   "PrismLive.Kernel.Cond.mk",
+   "Eq.refl",
+   "Bool.true",
+   "Bool.false",
+   "List.nil",
+   "List.cons",
+   "PrismLive.Tables.refused",
+   "PrismLive.Tables.left",
+   "PrismLive.Tables.right",
+   "PrismLive.Tables.outside",
+   "PrismLive.Tables.full",
+   "PrismLive.Tables.stale",
+   "Prod.mk",
+   "Prod.fst",
+   "Prod.snd",
+   "String.toUTF8",
+   "ByteArray.size",
+   "Nat.add",
+   "Nat.beq",
+   "Nat.ble",
+   "Nat.blt",
+   "Bool.and",
+   "Bool.or",
+   "ite",
+   "instDecidableEqBool"
+  ]
+ },
+ "glue": {
+  "file": "lean-kernel.mjs.gz",
+  "sha256": "3f482f95c28fb0c74027552d6c4519f8916e48cd1d5b0bd202f318ca8c027a4a",
+  "bytes": 62458
+ },
+ "wasm": {
+  "file": "lean-kernel.wasm.gz",
+  "sha256": "4b48480b9c03ae4aa3bf1a37256b59bff2d41d6cf452a2f8aa9de41a28ccd118",
+  "bytes": 2235906
+ },
+ "library": {
+  "file": "library.ndjson.gz",
+  "sha256": "a22cb8e581310c1c4a03e120e277dd99d37c66f8159188e866f68177836aa560",
+  "bytes": 7834171
+ },
+ "binding": {
+  "schema": "prism/in-tab-library-binding/1",
+  "lean": "f054605aea4b840552cca2e725580bffd1e1b704",
+  "kernel": "4b48480b9c03ae4aa3bf1a37256b59bff2d41d6cf452a2f8aa9de41a28ccd118",
+  "loader": "3f482f95c28fb0c74027552d6c4519f8916e48cd1d5b0bd202f318ca8c027a4a",
+  "library": "a22cb8e581310c1c4a03e120e277dd99d37c66f8159188e866f68177836aa560",
+  "declarations": 2113,
+  "sentToTheKernel": 1932,
+  "judgedBy": "check_whole, every declaration, in this kernel"
+ }
+}

@@ -1,0 +1,661 @@
+import { IpcMainInvokeEvent } from "electron";
+import { writeSettings, readSettings } from "../../main/settings";
+import * as schema from "../../db/schema";
+import { db } from "../../db";
+import { apps } from "../../db/schema";
+import { eq } from "drizzle-orm";
+import log from "electron-log";
+import { createVercelClient, VERCEL_API_BASE } from "../utils/vercel_utils";
+import * as fs from "fs";
+import * as path from "path";
+import { CreateProjectFramework } from "@vercel/sdk/models/createprojectop.js";
+import { getPrismAppPath } from "@/paths/paths";
+import { slugifyAppPath } from "@/shared/slugify";
+import { createTypedHandler } from "./base";
+import {
+  vercelContracts,
+  SaveVercelAccessTokenParams,
+  IsVercelProjectAvailableParams,
+  CreateVercelProjectParams,
+  CreateVercelProjectResult,
+  ConnectToExistingVercelProjectParams,
+  GetVercelDeploymentsParams,
+  DisconnectVercelProjectParams,
+  VercelProject,
+  VercelDeployment,
+} from "../types/vercel";
+import {
+  previewNeonVercelSync,
+  syncNeonConfigToVercel,
+  removeNeonEnvVarsFromVercel,
+} from "../utils/vercel_neon_sync";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+
+const logger = log.scope("vercel_handlers");
+
+// --- Helper Functions ---
+
+interface VercelProjectResponse {
+  id: string;
+  name: string;
+  framework?: string | null;
+  targets?: {
+    production?: {
+      url?: string;
+    };
+  };
+}
+
+interface GetVercelProjectsResponse {
+  projects: VercelProjectResponse[];
+}
+
+/**
+ * Fetch Vercel projects via HTTP request (bypasses the broken SDK).
+ * Mimics the SDK's `vercel.projects.getProjects` API.
+ */
+async function getVercelProjects(
+  token: string,
+  options?: { search?: string },
+): Promise<GetVercelProjectsResponse> {
+  const url = new URL(`${VERCEL_API_BASE}/v9/projects`);
+  if (options?.search) {
+    url.searchParams.set("search", options.search);
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to fetch Vercel projects: ${response.status} ${response.statusText} - ${errorText}`,
+    );
+  }
+
+  const data = await response.json();
+  return {
+    projects: data.projects || [],
+  };
+}
+
+async function validateVercelToken(token: string): Promise<boolean> {
+  try {
+    const vercel = createVercelClient(token);
+    await vercel.user.getAuthUser();
+    return true;
+  } catch (error) {
+    logger.error("Error validating Vercel token:", error);
+    return false;
+  }
+}
+
+async function getDefaultTeamId(token: string): Promise<string> {
+  try {
+    const response = await fetch(`${VERCEL_API_BASE}/v2/teams?limit=1`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch teams: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+
+    // Use the first team (typically the personal account or default team)
+    if (data.teams && data.teams.length > 0) {
+      return data.teams[0].id;
+    }
+
+    throw new PrismError("No teams found for this user", PrismErrorKind.NotFound);
+  } catch (error) {
+    logger.error("Error getting default team ID:", error);
+    throw new PrismError(
+      "Failed to get team information",
+      PrismErrorKind.External,
+    );
+  }
+}
+
+async function detectFramework(
+  appPath: string,
+): Promise<CreateProjectFramework | undefined> {
+  try {
+    // Check for specific config files first
+    const configFiles: Array<{
+      file: string;
+      framework: CreateProjectFramework;
+    }> = [
+      { file: "next.config.js", framework: "nextjs" },
+      { file: "next.config.mjs", framework: "nextjs" },
+      { file: "next.config.ts", framework: "nextjs" },
+      { file: "vite.config.js", framework: "vite" },
+      { file: "vite.config.ts", framework: "vite" },
+      { file: "vite.config.mjs", framework: "vite" },
+      { file: "nuxt.config.js", framework: "nuxtjs" },
+      { file: "nuxt.config.ts", framework: "nuxtjs" },
+      { file: "astro.config.js", framework: "astro" },
+      { file: "astro.config.mjs", framework: "astro" },
+      { file: "astro.config.ts", framework: "astro" },
+      { file: "svelte.config.js", framework: "svelte" },
+    ];
+
+    for (const { file, framework } of configFiles) {
+      if (fs.existsSync(path.join(appPath, file))) {
+        return framework;
+      }
+    }
+
+    // Check package.json for dependencies
+    const packageJsonPath = path.join(appPath, "package.json");
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      const dependencies = {
+        ...packageJson.dependencies,
+        ...packageJson.devDependencies,
+      };
+
+      // Check for framework dependencies in order of preference
+      if (dependencies.next) return "nextjs";
+      if (dependencies.vite) return "vite";
+      if (dependencies.nuxt) return "nuxtjs";
+      if (dependencies.astro) return "astro";
+      if (dependencies.svelte) return "svelte";
+      if (dependencies["@angular/core"]) return "angular";
+      if (dependencies.vue) return "vue";
+      if (dependencies["react-scripts"]) return "create-react-app";
+      if (dependencies.gatsby) return "gatsby";
+      if (dependencies.remix) return "remix";
+    }
+
+    // Default fallback
+    return undefined;
+  } catch (error) {
+    logger.error("Error detecting framework:", error);
+    return undefined;
+  }
+}
+
+// --- IPC Handlers ---
+
+async function handleSaveVercelToken(
+  event: IpcMainInvokeEvent,
+  { token }: SaveVercelAccessTokenParams,
+): Promise<void> {
+  logger.debug("Saving Vercel access token");
+
+  if (!token || token.trim() === "") {
+    throw new PrismError("Access token is required.", PrismErrorKind.Auth);
+  }
+
+  try {
+    // Validate the token by making a test API call
+    const isValid = await validateVercelToken(token.trim());
+    if (!isValid) {
+      throw new Error(
+        "Invalid access token. Please check your token and try again.",
+      );
+    }
+
+    writeSettings({
+      vercelAccessToken: {
+        value: token.trim(),
+      },
+    });
+
+    logger.log("Successfully saved Vercel access token.");
+  } catch (error: any) {
+    logger.error("Error saving Vercel token:", error);
+    throw new PrismError(
+      `Failed to save access token: ${error.message}`,
+      PrismErrorKind.Auth,
+    );
+  }
+}
+
+// --- Vercel List Projects Handler ---
+async function handleListVercelProjects(): Promise<VercelProject[]> {
+  try {
+    const settings = readSettings();
+    const accessToken = settings.vercelAccessToken?.value;
+    if (!accessToken) {
+      throw new PrismError("Not authenticated with Vercel.", PrismErrorKind.Auth);
+    }
+
+    const response = await getVercelProjects(accessToken);
+
+    if (!response.projects) {
+      throw new PrismError(
+        "Failed to retrieve projects from Vercel.",
+        PrismErrorKind.External,
+      );
+    }
+
+    return response.projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      framework: project.framework || null,
+    }));
+  } catch (err: any) {
+    if (err instanceof PrismError) throw err;
+    logger.error("[Vercel Handler] Failed to list projects:", err);
+    throw new Error(err.message || "Failed to list Vercel projects.");
+  }
+}
+
+// --- Vercel Project Availability Handler ---
+async function handleIsProjectAvailable(
+  event: IpcMainInvokeEvent,
+  { name: rawName }: IsVercelProjectAvailableParams,
+): Promise<{ available: boolean; error?: string }> {
+  // Normalize to the same kebab-case slug `handleCreateProject` will use, so
+  // the availability check reflects the name that will actually be created.
+  const name = slugifyAppPath(rawName);
+  try {
+    const settings = readSettings();
+    const accessToken = settings.vercelAccessToken?.value;
+    if (!accessToken) {
+      return { available: false, error: "Not authenticated with Vercel." };
+    }
+
+    // Check if project name is available by searching for projects with that name
+    const response = await getVercelProjects(accessToken, { search: name });
+
+    if (!response.projects) {
+      return {
+        available: false,
+        error: "Failed to check project availability.",
+      };
+    }
+
+    const projectExists = response.projects.some(
+      (project) => project.name === name,
+    );
+
+    return {
+      available: !projectExists,
+      error: projectExists ? "Project name is not available." : undefined,
+    };
+  } catch (err: any) {
+    return { available: false, error: err.message || "Unknown error" };
+  }
+}
+
+// --- Vercel Create Project Handler ---
+async function handleCreateProject(
+  event: IpcMainInvokeEvent,
+  { name: rawName, appId }: CreateVercelProjectParams,
+): Promise<CreateVercelProjectResult> {
+  // Normalize to a kebab-case slug so the project name is valid for Vercel
+  // (which requires lowercase names) regardless of how it was entered.
+  const name = slugifyAppPath(rawName);
+  const settings = readSettings();
+  const accessToken = settings.vercelAccessToken?.value;
+  if (!accessToken) {
+    throw new PrismError("Not authenticated with Vercel.", PrismErrorKind.Auth);
+  }
+
+  try {
+    logger.info(`Creating Vercel project: ${name} for app ${appId}`);
+
+    // Get app details to determine the framework
+    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    if (!app) {
+      throw new PrismError("App not found.", PrismErrorKind.NotFound);
+    }
+
+    // Check if app has GitHub repository configured
+    if (!app.githubOrg || !app.githubRepo) {
+      throw new Error(
+        "App must be connected to a GitHub repository before creating a Vercel project.",
+      );
+    }
+
+    // Detect the framework from the app's directory
+    const detectedFramework = await detectFramework(getPrismAppPath(app.path));
+
+    logger.info(
+      `Detected framework: ${detectedFramework || "none detected"} for app at ${app.path}`,
+    );
+
+    const vercel = createVercelClient(accessToken);
+
+    const projectData = await vercel.projects.createProject({
+      requestBody: {
+        name: name,
+        gitRepository: {
+          type: "github",
+          repo: `${app.githubOrg}/${app.githubRepo}`,
+        },
+        framework: detectedFramework,
+      },
+    });
+    if (!projectData.id) {
+      throw new PrismError(
+        "Failed to create project: No project ID returned.",
+        PrismErrorKind.External,
+      );
+    }
+
+    // Get the default team ID
+    const teamId = await getDefaultTeamId(accessToken);
+
+    const projectDomains = await vercel.projects.getProjectDomains({
+      idOrName: projectData.id,
+    });
+    const projectUrl = "https://" + projectDomains.domains[0].name;
+
+    // Store project info in the app's DB row
+    await updateAppVercelProject({
+      appId,
+      projectId: projectData.id,
+      projectName: projectData.name,
+      teamId: teamId,
+      deploymentUrl: projectUrl,
+    });
+
+    logger.info(
+      `Successfully created Vercel project: ${projectData.id} with GitHub repo: ${app.githubOrg}/${app.githubRepo}`,
+    );
+
+    // First-deploy auto-config: for Neon-connected apps, push env vars and add
+    // the new deployment domain to Neon Auth's trusted domains BEFORE the first
+    // build runs so it picks them up. Non-fatal, like the deployment trigger.
+    let syncWarning: string | undefined;
+    if (app.neonProjectId) {
+      try {
+        const syncResult = await syncNeonConfigToVercel({
+          appId,
+          includeDomainHosts: [projectUrl],
+        });
+        syncWarning = syncResult.warning;
+      } catch (syncError: any) {
+        logger.warn(
+          `Neon→Vercel sync failed during project creation: ${syncError.message}`,
+        );
+        syncWarning =
+          syncError.message || "Failed to sync Neon config to Vercel.";
+      }
+    }
+
+    // Trigger the first deployment
+    logger.info(`Triggering first deployment for project: ${projectData.id}`);
+    try {
+      // Create deployment via Vercel SDK using the project settings we just created
+      const deploymentData = await vercel.deployments.createDeployment({
+        requestBody: {
+          name: projectData.name,
+          project: projectData.id,
+          target: "production",
+          gitSource: {
+            type: "github",
+            org: app.githubOrg,
+            repo: app.githubRepo,
+            ref: app.githubBranch || "main",
+          },
+        },
+      });
+
+      if (deploymentData.url) {
+        logger.info(`First deployment successful: ${deploymentData.url}`);
+      } else {
+        logger.warn("First deployment failed: No deployment URL returned");
+      }
+    } catch (deployError: any) {
+      logger.warn(`First deployment failed with error: ${deployError.message}`);
+      // Don't throw here - project creation was successful, deployment failure is non-critical
+    }
+
+    return syncWarning ? { syncWarning } : undefined;
+  } catch (err: any) {
+    if (err instanceof PrismError) throw err;
+    logger.error("[Vercel Handler] Failed to create project:", err);
+    throw new Error(err.message || "Failed to create Vercel project.");
+  }
+}
+
+// --- Vercel Connect to Existing Project Handler ---
+async function handleConnectToExistingProject(
+  event: IpcMainInvokeEvent,
+  { projectId, appId }: ConnectToExistingVercelProjectParams,
+): Promise<void> {
+  try {
+    const settings = readSettings();
+    const accessToken = settings.vercelAccessToken?.value;
+    if (!accessToken) {
+      throw new PrismError("Not authenticated with Vercel.", PrismErrorKind.Auth);
+    }
+
+    logger.info(
+      `Connecting to existing Vercel project: ${projectId} for app ${appId}`,
+    );
+
+    // Verify the project exists and get its details
+    const response = await getVercelProjects(accessToken);
+    const projectData = response.projects?.find(
+      (p) => p.id === projectId || p.name === projectId,
+    );
+
+    if (!projectData) {
+      throw new PrismError(
+        "Project not found. Please check the project ID.",
+        PrismErrorKind.NotFound,
+      );
+    }
+
+    // Get the default team ID
+    const teamId = await getDefaultTeamId(accessToken);
+
+    // Store project info in the app's DB row
+    await updateAppVercelProject({
+      appId,
+      projectId: projectData.id,
+      projectName: projectData.name,
+      teamId: teamId,
+      deploymentUrl: projectData.targets?.production?.url
+        ? `https://${projectData.targets.production.url}`
+        : null,
+    });
+
+    logger.info(`Successfully connected to Vercel project: ${projectData.id}`);
+  } catch (err: any) {
+    if (err instanceof PrismError) throw err;
+    logger.error(
+      "[Vercel Handler] Failed to connect to existing project:",
+      err,
+    );
+    throw new Error(err.message || "Failed to connect to existing project.");
+  }
+}
+
+// --- Vercel Get Deployments Handler ---
+async function handleGetVercelDeployments(
+  event: IpcMainInvokeEvent,
+  { appId }: GetVercelDeploymentsParams,
+): Promise<VercelDeployment[]> {
+  try {
+    const settings = readSettings();
+    const accessToken = settings.vercelAccessToken?.value;
+    if (!accessToken) {
+      throw new PrismError("Not authenticated with Vercel.", PrismErrorKind.Auth);
+    }
+
+    const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+    if (!app || !app.vercelProjectId) {
+      throw new PrismError(
+        "App is not linked to a Vercel project.",
+        PrismErrorKind.Precondition,
+      );
+    }
+
+    logger.info(
+      `Getting deployments for Vercel project: ${app.vercelProjectId} for app ${appId}`,
+    );
+
+    const vercel = createVercelClient(accessToken);
+
+    // Get deployments for the project
+    const deploymentsResponse = await vercel.deployments.getDeployments({
+      projectId: app.vercelProjectId,
+      limit: 5, // Get last 5 deployments
+    });
+
+    if (!deploymentsResponse.deployments) {
+      throw new PrismError(
+        "Failed to retrieve deployments from Vercel.",
+        PrismErrorKind.External,
+      );
+    }
+
+    // Find the most recent READY production deployment and update the stored URL
+    const readyProductionDeployment = deploymentsResponse.deployments.find(
+      (d) => d.readyState === "READY" && d.target === "production",
+    );
+
+    if (readyProductionDeployment?.url) {
+      const newDeploymentUrl = `https://${readyProductionDeployment.url}`;
+      // Only update if the URL has changed
+      if (newDeploymentUrl !== app.vercelDeploymentUrl) {
+        logger.info(
+          `Updating deployment URL for app ${appId}: ${app.vercelDeploymentUrl} -> ${newDeploymentUrl}`,
+        );
+        await db
+          .update(apps)
+          .set({ vercelDeploymentUrl: newDeploymentUrl })
+          .where(eq(apps.id, appId));
+      }
+    }
+
+    // Map deployments to our interface format
+    return deploymentsResponse.deployments.map((deployment) => ({
+      uid: deployment.uid,
+      url: deployment.url,
+      state: deployment.state || "unknown",
+      createdAt: deployment.createdAt || 0,
+      target: deployment.target || "production",
+      readyState: deployment.readyState || "unknown",
+    }));
+  } catch (err: any) {
+    if (err instanceof PrismError) throw err;
+    logger.error("[Vercel Handler] Failed to get deployments:", err);
+    throw new Error(err.message || "Failed to get Vercel deployments.");
+  }
+}
+
+async function handleDisconnectVercelProject(
+  event: IpcMainInvokeEvent,
+  { appId }: DisconnectVercelProjectParams,
+): Promise<void> {
+  logger.log(`Disconnecting Vercel project for appId: ${appId}`);
+
+  const app = await db.query.apps.findFirst({
+    where: eq(apps.id, appId),
+  });
+
+  if (!app) {
+    throw new PrismError("App not found", PrismErrorKind.NotFound);
+  }
+
+  // Update app in database to remove Vercel project info
+  await db
+    .update(apps)
+    .set({
+      vercelProjectId: null,
+      vercelProjectName: null,
+      vercelTeamId: null,
+      vercelDeploymentUrl: null,
+    })
+    .where(eq(apps.id, appId));
+}
+
+// --- Registration ---
+export function registerVercelHandlers() {
+  // DO NOT LOG this handler because tokens are sensitive
+  createTypedHandler(vercelContracts.saveToken, async (event, params) => {
+    await handleSaveVercelToken(event, params);
+  });
+
+  createTypedHandler(vercelContracts.listProjects, async () => {
+    return handleListVercelProjects();
+  });
+
+  createTypedHandler(
+    vercelContracts.isProjectAvailable,
+    async (event, params) => {
+      return handleIsProjectAvailable(event, params);
+    },
+  );
+
+  createTypedHandler(vercelContracts.createProject, async (event, params) => {
+    return handleCreateProject(event, params);
+  });
+
+  createTypedHandler(
+    vercelContracts.connectExistingProject,
+    async (event, params) => {
+      await handleConnectToExistingProject(event, params);
+    },
+  );
+
+  createTypedHandler(vercelContracts.getDeployments, async (event, params) => {
+    return handleGetVercelDeployments(event, params);
+  });
+
+  createTypedHandler(vercelContracts.disconnect, async (event, params) => {
+    await handleDisconnectVercelProject(event, params);
+  });
+
+  // DO NOT LOG these handlers — they resolve sensitive env var values.
+  createTypedHandler(vercelContracts.getSyncPreview, async (_, { appId }) => {
+    return previewNeonVercelSync({ appId });
+  });
+
+  createTypedHandler(
+    vercelContracts.syncNeonConfig,
+    async (_, { appId, branchType }) => {
+      return syncNeonConfigToVercel({ appId, branchType });
+    },
+  );
+
+  createTypedHandler(
+    vercelContracts.removeNeonEnvVars,
+    async (_, { appId }) => {
+      return removeNeonEnvVarsFromVercel({ appId });
+    },
+  );
+
+  logger.debug("Registered Vercel IPC handlers");
+}
+
+export async function updateAppVercelProject({
+  appId,
+  projectId,
+  projectName,
+  teamId,
+  deploymentUrl,
+}: {
+  appId: number;
+  projectId: string;
+  projectName: string;
+  teamId: string;
+  deploymentUrl?: string | null;
+}): Promise<void> {
+  await db
+    .update(schema.apps)
+    .set({
+      vercelProjectId: projectId,
+      vercelProjectName: projectName,
+      vercelTeamId: teamId,
+      vercelDeploymentUrl: deploymentUrl,
+    })
+    .where(eq(schema.apps.id, appId));
+}

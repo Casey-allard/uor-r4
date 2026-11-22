@@ -1,0 +1,405 @@
+import {
+  assertMutationPathAllowed,
+  prepareDeletePath,
+  safeJoin,
+} from "@/ipc/utils/path_utils";
+import { describe, it, expect } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+
+function toPosixPath(value: string): string {
+  return value.replace(/\\/g, "/");
+}
+
+describe("safeJoin", () => {
+  const testBaseDir = "/app/workspace";
+  const testBaseDirWindows = "C:\\app\\workspace";
+
+  describe("safe paths", () => {
+    it("should join simple relative paths", () => {
+      const result = safeJoin(testBaseDir, "src", "components", "Button.tsx");
+      expect(result).toBe(
+        path.join(testBaseDir, "src", "components", "Button.tsx"),
+      );
+    });
+
+    it("should handle single file names", () => {
+      const result = safeJoin(testBaseDir, "package.json");
+      expect(result).toBe(path.join(testBaseDir, "package.json"));
+    });
+
+    it("should handle nested directories", () => {
+      const result = safeJoin(testBaseDir, "src/pages/home/index.tsx");
+      expect(result).toBe(path.join(testBaseDir, "src/pages/home/index.tsx"));
+    });
+
+    it("should handle paths with dots in filename", () => {
+      const result = safeJoin(testBaseDir, "config.test.js");
+      expect(result).toBe(path.join(testBaseDir, "config.test.js"));
+    });
+
+    it("should handle empty path segments", () => {
+      const result = safeJoin(testBaseDir, "", "src", "", "file.ts");
+      expect(result).toBe(path.join(testBaseDir, "", "src", "", "file.ts"));
+    });
+
+    it("should handle multiple path segments", () => {
+      const result = safeJoin(testBaseDir, "a", "b", "c", "d", "file.txt");
+      expect(result).toBe(
+        path.join(testBaseDir, "a", "b", "c", "d", "file.txt"),
+      );
+    });
+
+    it("should work with actual temp directory", () => {
+      const tempDir = os.tmpdir();
+      const result = safeJoin(tempDir, "test", "file.txt");
+      expect(result).toBe(path.join(tempDir, "test", "file.txt"));
+    });
+
+    it("should handle Windows-style relative paths with backslashes", () => {
+      const result = safeJoin(testBaseDir, "src\\components\\Button.tsx");
+      // safeJoin normalizes backslashes to forward slashes
+      expect(toPosixPath(result)).toBe(
+        "/app/workspace/src/components/Button.tsx",
+      );
+    });
+
+    it("should handle mixed forward/backslashes in relative paths", () => {
+      const result = safeJoin(testBaseDir, "src/components\\ui/button.tsx");
+      // safeJoin normalizes backslashes to forward slashes
+      expect(toPosixPath(result)).toBe(
+        "/app/workspace/src/components/ui/button.tsx",
+      );
+    });
+
+    it("should handle Windows-style nested directories", () => {
+      const result = safeJoin(
+        testBaseDir,
+        "pages\\home\\components\\index.tsx",
+      );
+      // safeJoin normalizes backslashes to forward slashes
+      expect(toPosixPath(result)).toBe(
+        "/app/workspace/pages/home/components/index.tsx",
+      );
+    });
+
+    it("should handle relative paths starting with dot and backslash", () => {
+      const result = safeJoin(testBaseDir, ".\\src\\file.txt");
+      // safeJoin normalizes backslashes to forward slashes
+      expect(toPosixPath(result)).toBe("/app/workspace/src/file.txt");
+    });
+  });
+
+  describe("unsafe paths - directory traversal", () => {
+    it("should throw on simple parent directory traversal", () => {
+      expect(() => safeJoin(testBaseDir, "../outside.txt")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should throw on multiple parent directory traversals", () => {
+      expect(() => safeJoin(testBaseDir, "../../etc/passwd")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should throw on complex traversal paths", () => {
+      expect(() => safeJoin(testBaseDir, "src/../../../etc/passwd")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should reject traversal to a sibling with the same path prefix", () => {
+      expect(() =>
+        safeJoin("/app/workspace", "../workspace-2/file.txt"),
+      ).toThrow(/would escape the base directory/);
+    });
+
+    it("should throw on mixed traversal with valid components", () => {
+      expect(() =>
+        safeJoin(
+          testBaseDir,
+          "src",
+          "components",
+          "..",
+          "..",
+          "..",
+          "outside.txt",
+        ),
+      ).toThrow(/would escape the base directory/);
+    });
+
+    it("should throw on absolute Unix paths", () => {
+      expect(() => safeJoin(testBaseDir, "/etc/passwd")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should throw on absolute Windows paths", () => {
+      expect(() =>
+        safeJoin(testBaseDir, "C:\\Windows\\System32\\config"),
+      ).toThrow(/would escape the base directory/);
+    });
+
+    it("should throw on Windows UNC paths", () => {
+      expect(() =>
+        safeJoin(testBaseDir, "\\\\server\\share\\file.txt"),
+      ).toThrow(/would escape the base directory/);
+    });
+
+    it("should throw on home directory shortcuts", () => {
+      expect(() => safeJoin(testBaseDir, "~/secrets.txt")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+  });
+
+  describe("edge cases", () => {
+    it("should handle Windows-style base paths", () => {
+      const result = safeJoin(testBaseDirWindows, "src", "file.txt");
+      expect(result).toBe(path.join(testBaseDirWindows, "src", "file.txt"));
+    });
+
+    it("should throw on Windows traversal from Unix base", () => {
+      expect(() => safeJoin(testBaseDir, "..\\..\\file.txt")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should handle current directory references safely", () => {
+      const result = safeJoin(testBaseDir, "./src/file.txt");
+      expect(result).toBe(path.join(testBaseDir, "./src/file.txt"));
+    });
+
+    it("should handle nested current directory references", () => {
+      const result = safeJoin(testBaseDir, "src/./components/./Button.tsx");
+      expect(result).toBe(
+        path.join(testBaseDir, "src/./components/./Button.tsx"),
+      );
+    });
+
+    it("should throw when current dir plus traversal escapes", () => {
+      expect(() => safeJoin(testBaseDir, "./../../outside.txt")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+
+    it("should handle very long paths safely", () => {
+      const longPath = Array(50).fill("subdir").join("/") + "/file.txt";
+      const result = safeJoin(testBaseDir, longPath);
+      expect(result).toBe(path.join(testBaseDir, longPath));
+    });
+
+    it("should allow Windows-style paths that look like drive letters but aren't", () => {
+      // These look like they could be problematic but are actually safe relative paths
+      // safeJoin normalizes backslashes to forward slashes
+      const result1 = safeJoin(testBaseDir, "C_drive\\file.txt");
+      expect(toPosixPath(result1)).toBe("/app/workspace/C_drive/file.txt");
+
+      const result2 = safeJoin(testBaseDir, "src\\C-file.txt");
+      expect(toPosixPath(result2)).toBe("/app/workspace/src/C-file.txt");
+    });
+
+    it("should handle Windows paths with multiple backslashes (not UNC)", () => {
+      // Single backslashes in the middle are fine - it's only \\ at the start that's UNC
+      // safeJoin normalizes backslashes to forward slashes
+      const result = safeJoin(testBaseDir, "src\\\\components\\\\Button.tsx");
+      expect(toPosixPath(result)).toBe(
+        "/app/workspace/src/components/Button.tsx",
+      );
+    });
+
+    it("should provide descriptive error messages", () => {
+      expect(() => safeJoin("/base", "../outside.txt")).toThrow(
+        'Unsafe path: joining "../outside.txt" with base "/base" would escape the base directory',
+      );
+    });
+
+    it("should provide descriptive error for multiple segments", () => {
+      expect(() => safeJoin("/base", "src", "..", "..", "outside.txt")).toThrow(
+        'Unsafe path: joining "src, .., .., outside.txt" with base "/base" would escape the base directory',
+      );
+    });
+  });
+
+  describe("boundary conditions", () => {
+    it("should allow paths at the exact boundary", () => {
+      const result = safeJoin(testBaseDir, ".");
+      expect(result).toBe(path.join(testBaseDir, "."));
+    });
+
+    it("should handle paths that approach but don't cross boundary", () => {
+      const result = safeJoin(testBaseDir, "deep/nested/../file.txt");
+      expect(result).toBe(path.join(testBaseDir, "deep/nested/../file.txt"));
+    });
+
+    it("should handle root directory as base", () => {
+      const result = safeJoin("/", "tmp/file.txt");
+      expect(result).toBe(path.join("/", "tmp/file.txt"));
+    });
+
+    it("should throw when trying to escape root", () => {
+      expect(() => safeJoin("/tmp", "../etc/passwd")).toThrow(
+        /would escape the base directory/,
+      );
+    });
+  });
+});
+
+describe("assertMutationPathAllowed", () => {
+  it("canonicalizes contained aliases and rejects escaping symlinks", async () => {
+    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "prism-app-"));
+    const outsidePath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "prism-outside-"),
+    );
+    try {
+      await fs.writeFile(path.join(appPath, "file.txt"), "in-app");
+      await fs.mkdir(path.join(appPath, "src"));
+      await fs.symlink(".", path.join(appPath, "self"), "dir");
+      await fs.symlink("file.txt", path.join(appPath, "in-app-file-link.txt"));
+      await fs.symlink(
+        path.join(outsidePath, "target.txt"),
+        path.join(appPath, "file-link.txt"),
+      );
+      await fs.symlink(outsidePath, path.join(appPath, "dir-link"), "dir");
+
+      await expect(
+        assertMutationPathAllowed({ appPath, relativePath: "file.txt" }),
+      ).resolves.toBe("file.txt");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "new/nested/file.txt",
+        }),
+      ).resolves.toBe("new/nested/file.txt");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "self/src/new-file.txt",
+        }),
+      ).resolves.toBe("src/new-file.txt");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "in-app-file-link.txt",
+        }),
+      ).resolves.toBe("file.txt");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "self/in-app-file-link.txt",
+          followFinalSymlink: false,
+        }),
+      ).resolves.toBe("in-app-file-link.txt");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "file-link.txt",
+        }),
+      ).rejects.toThrow("symlink");
+      await expect(
+        assertMutationPathAllowed({
+          appPath,
+          relativePath: "dir-link/new.txt",
+        }),
+      ).rejects.toThrow("outside the app");
+    } finally {
+      await fs.rm(appPath, { recursive: true, force: true });
+      await fs.rm(outsidePath, { recursive: true, force: true });
+    }
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "rejects slash-terminated app-root and dangling symlink aliases",
+    async () => {
+      const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "prism-app-"));
+      const missingOutsidePath = path.join(
+        os.tmpdir(),
+        `prism-missing-${Date.now()}`,
+      );
+      try {
+        await fs.symlink(".", path.join(appPath, "self"), "dir");
+        await fs.symlink(
+          missingOutsidePath,
+          path.join(appPath, "dangling"),
+          "dir",
+        );
+
+        await expect(
+          assertMutationPathAllowed({
+            appPath,
+            relativePath: "self/",
+          }),
+        ).rejects.toThrow("app root");
+        await expect(
+          assertMutationPathAllowed({
+            appPath,
+            relativePath: "dangling/",
+          }),
+        ).rejects.toThrow("symlink");
+      } finally {
+        await fs.rm(appPath, { recursive: true, force: true });
+        await fs.rm(missingOutsidePath, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe.runIf(process.platform !== "win32")("prepareDeletePath", () => {
+  it("preserves final symlinks but canonicalizes their ancestors", async () => {
+    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "prism-delete-"));
+    try {
+      const functionPath = path.join(
+        appPath,
+        "supabase/functions/hello/index.ts",
+      );
+      await fs.mkdir(path.dirname(functionPath), { recursive: true });
+      await fs.writeFile(functionPath, "export default {};\n");
+      await fs.symlink(".", path.join(appPath, "self"), "dir");
+      await fs.symlink(
+        "supabase/functions/hello/index.ts",
+        path.join(appPath, "function-link"),
+      );
+      const realAppPath = await fs.realpath(appPath);
+
+      await expect(
+        prepareDeletePath(appPath, "self/supabase/functions/hello/index.ts"),
+      ).resolves.toEqual({
+        relativePath: "supabase/functions/hello/index.ts",
+        fullPath: path.join(realAppPath, "supabase/functions/hello/index.ts"),
+      });
+      await expect(
+        prepareDeletePath(appPath, "self/function-link/"),
+      ).resolves.toEqual({
+        relativePath: "function-link",
+        fullPath: path.join(realAppPath, "function-link"),
+      });
+    } finally {
+      await fs.rm(appPath, { recursive: true, force: true });
+    }
+  });
+
+  it("allows final symlinks but rejects symlinked ancestors that escape", async () => {
+    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "prism-delete-"));
+    const outsidePath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "prism-outside-"),
+    );
+    try {
+      await fs.symlink(".", path.join(appPath, "self"), "dir");
+      await fs.symlink(outsidePath, path.join(appPath, "outside"), "dir");
+
+      const realAppPath = await fs.realpath(appPath);
+      await expect(prepareDeletePath(appPath, "self/")).resolves.toEqual({
+        relativePath: "self",
+        fullPath: path.join(realAppPath, "self"),
+      });
+      await expect(
+        prepareDeletePath(appPath, "outside/victim.txt"),
+      ).rejects.toThrow("outside the app");
+    } finally {
+      await fs.rm(appPath, { recursive: true, force: true });
+      await fs.rm(outsidePath, { recursive: true, force: true });
+    }
+  });
+});

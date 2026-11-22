@@ -1,0 +1,445 @@
+import React, { useState, useRef, useEffect } from "react";
+import Editor, { OnMount } from "@monaco-editor/react";
+import type { editor as MonacoEditor } from "monaco-editor";
+import { useLoadAppFile } from "@/hooks/useLoadAppFile";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ChevronRight, Circle, Save } from "lucide-react";
+import "@/components/chat/monaco";
+import { ipc } from "@/ipc/types";
+import { showError, showSuccess, showWarning } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { getLanguage } from "@/utils/get_language";
+import { queryKeys } from "@/lib/queryKeys";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { useTranslation } from "react-i18next";
+import { enqueueFileSave, getFileSaveQueueKey } from "./fileSaveQueue";
+import { editorCursorAtom } from "@/atoms/viewAtoms";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useTrackUnsavedFile } from "@/hooks/useUnsavedFiles";
+
+interface FileEditorProps {
+  appId: number | null;
+  filePath: string;
+  initialLine?: number | null;
+  persistCursor?: boolean;
+}
+
+interface BreadcrumbProps {
+  path: string;
+  hasUnsavedChanges: boolean;
+  onSave: () => void;
+  isSaving: boolean;
+}
+
+const retainedMonacoModels = new Map<
+  string,
+  { model: MonacoEditor.ITextModel; count: number }
+>();
+
+function retainMonacoModel(
+  modelPath: string,
+  model: MonacoEditor.ITextModel,
+): () => void {
+  const retainedModel = retainedMonacoModels.get(modelPath);
+  if (retainedModel?.model === model) {
+    retainedModel.count += 1;
+  } else {
+    retainedMonacoModels.set(modelPath, { model, count: 1 });
+  }
+
+  let released = false;
+  return () => {
+    if (released) {
+      return;
+    }
+    released = true;
+
+    const retainedModel = retainedMonacoModels.get(modelPath);
+    if (!retainedModel || retainedModel.model !== model) {
+      return;
+    }
+
+    retainedModel.count -= 1;
+    if (retainedModel.count <= 0) {
+      retainedMonacoModels.delete(modelPath);
+      if (!model.isDisposed()) {
+        model.dispose();
+      }
+    }
+  };
+}
+
+const Breadcrumb: React.FC<BreadcrumbProps> = ({
+  path,
+  hasUnsavedChanges,
+  onSave,
+  isSaving,
+}) => {
+  const { t } = useTranslation("home");
+  const segments = path.split("/").filter(Boolean);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-1 overflow-hidden">
+        <div className="flex items-center gap-1 overflow-hidden min-w-0">
+          {segments.map((segment, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && (
+                <ChevronRight
+                  size={14}
+                  className="text-gray-400 flex-shrink-0"
+                />
+              )}
+              <span className="hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer truncate">
+                {segment}
+              </span>
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onSave}
+                  disabled={!hasUnsavedChanges || isSaving}
+                  className="h-6 w-6 p-0"
+                  data-testid="save-file-button"
+                />
+              }
+            >
+              <Save size={12} />
+            </TooltipTrigger>
+            <TooltipContent>
+              {hasUnsavedChanges
+                ? t("preview.saveChanges")
+                : t("preview.noUnsavedChanges")}
+            </TooltipContent>
+          </Tooltip>
+          {hasUnsavedChanges && (
+            <Circle
+              size={8}
+              fill="currentColor"
+              className="text-amber-600 dark:text-amber-400"
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const FileEditor = ({
+  appId,
+  filePath,
+  initialLine = null,
+  persistCursor = false,
+}: FileEditorProps) => {
+  const { t } = useTranslation("home");
+  const { content, loading, error } = useLoadAppFile(appId, filePath);
+  const { isDarkMode } = useTheme();
+  const [value, setValue] = useState<string | undefined>(undefined);
+  const [displayUnsavedChanges, setDisplayUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  // Use refs for values that need to be current in event handlers
+  const originalValueRef = useRef<string | undefined>(undefined);
+  const editorRef = useRef<any>(null);
+  const isSavingRef = useRef<boolean>(false);
+  const needsSaveRef = useRef<boolean>(false);
+  const currentValueRef = useRef<string | undefined>(undefined);
+  const hasInitializedContentRef = useRef(false);
+  const isMountedRef = useRef(false);
+  const releaseModelRef = useRef<(() => void) | null>(null);
+  const cursorSubscriptionRef = useRef<{ dispose(): void } | null>(null);
+  const editorCursor = useAtomValue(editorCursorAtom);
+  const setEditorCursor = useSetAtom(editorCursorAtom);
+  const cursorTargetRef = useRef({ appId, filePath, persistCursor });
+  const initialLineTargetRef = useRef({ appId, filePath, initialLine });
+  cursorTargetRef.current = { appId, filePath, persistCursor };
+
+  const queryClient = useQueryClient();
+
+  // Publish dirty state so the file tree can mark this file as unsaved.
+  useTrackUnsavedFile({ appId, filePath, isUnsaved: displayUnsavedChanges });
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      cursorSubscriptionRef.current?.dispose();
+      cursorSubscriptionRef.current = null;
+      releaseModelRef.current?.();
+      releaseModelRef.current = null;
+    };
+  }, []);
+
+  // Initialize editor state from disk once per mounted file editor instance.
+  useEffect(() => {
+    if (
+      content === null ||
+      (hasInitializedContentRef.current && needsSaveRef.current)
+    ) {
+      return;
+    }
+
+    hasInitializedContentRef.current = true;
+    setValue(content);
+    originalValueRef.current = content;
+    currentValueRef.current = content;
+    needsSaveRef.current = false;
+    setDisplayUnsavedChanges(false);
+    setIsSaving(false);
+  }, [content]);
+
+  const editorTheme = isDarkMode ? "prism-dark" : "prism-light";
+  const modelPath = React.useMemo(() => {
+    const normalizedPath = filePath.replace(/^\/+/, "");
+    return `file:///app-${appId ?? "unknown"}/${encodeURI(normalizedPath)}`;
+  }, [appId, filePath]);
+
+  // Navigate to a specific line in the editor
+  const navigateToLine = React.useCallback((line: number | null) => {
+    if (line == null || !editorRef.current) {
+      return;
+    }
+    const lineNumber = Math.max(1, Math.floor(line));
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+    if (lineNumber > model.getLineCount()) return;
+
+    editor.revealLineInCenter(lineNumber);
+    editor.setPosition({ lineNumber, column: 1 });
+  }, []);
+
+  // Handle editor mount
+  const handleEditorDidMount: OnMount = (editor) => {
+    editorRef.current = editor;
+    const model = editor.getModel();
+    if (model) {
+      releaseModelRef.current = retainMonacoModel(modelPath, model);
+    }
+
+    if (
+      persistCursor &&
+      editorCursor?.appId === appId &&
+      editorCursor.path === filePath
+    ) {
+      editor.setPosition({
+        lineNumber: editorCursor.lineNumber,
+        column: editorCursor.column,
+      });
+      editor.revealPositionInCenter({
+        lineNumber: editorCursor.lineNumber,
+        column: editorCursor.column,
+      });
+    } else if (initialLine != null) {
+      // Navigate to initialLine if provided (handles case when editor mounts after initialLine is set)
+      navigateToLine(initialLine);
+    }
+
+    cursorSubscriptionRef.current?.dispose();
+    cursorSubscriptionRef.current = editor.onDidChangeCursorPosition(
+      ({ position }) => {
+        const target = cursorTargetRef.current;
+        if (!target.persistCursor) return;
+        setEditorCursor({
+          appId: target.appId,
+          path: target.filePath,
+          lineNumber: position.lineNumber,
+          column: position.column,
+        });
+      },
+    );
+
+    // Save when the editor loses focus and the current model is dirty.
+    editor.onDidBlurEditorText(() => {
+      if (needsSaveRef.current) {
+        saveFile();
+      }
+    });
+  };
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (
+      !persistCursor ||
+      !editor ||
+      editorCursor?.appId !== appId ||
+      editorCursor.path !== filePath
+    ) {
+      return;
+    }
+    const current = editor.getPosition();
+    if (
+      current?.lineNumber === editorCursor.lineNumber &&
+      current.column === editorCursor.column
+    ) {
+      return;
+    }
+    editor.setPosition({
+      lineNumber: editorCursor.lineNumber,
+      column: editorCursor.column,
+    });
+    editor.revealPositionInCenter({
+      lineNumber: editorCursor.lineNumber,
+      column: editorCursor.column,
+    });
+  }, [appId, editorCursor, filePath, persistCursor]);
+
+  // Handle content change
+  const handleEditorChange = (newValue: string | undefined) => {
+    setValue(newValue);
+    currentValueRef.current = newValue;
+
+    const hasChanged = newValue !== originalValueRef.current;
+    needsSaveRef.current = hasChanged;
+    setDisplayUnsavedChanges(hasChanged);
+  };
+
+  // Save the file
+  const saveFile = async () => {
+    if (
+      appId === null ||
+      currentValueRef.current === undefined ||
+      !needsSaveRef.current ||
+      isSavingRef.current
+    )
+      return;
+
+    const saveAppId = appId;
+    const saveFilePath = filePath;
+    const savedValue = currentValueRef.current;
+    const saveQueueKey = getFileSaveQueueKey(saveAppId, saveFilePath);
+    const performSave = () =>
+      ipc.app.editAppFile({
+        appId: saveAppId,
+        filePath: saveFilePath,
+        content: savedValue,
+      });
+
+    try {
+      isSavingRef.current = true;
+      if (isMountedRef.current) {
+        setIsSaving(true);
+      }
+
+      const { warning } = await enqueueFileSave(saveQueueKey, performSave);
+      queryClient.setQueryData(
+        queryKeys.appFiles.content({
+          appId: saveAppId,
+          filePath: saveFilePath,
+        }),
+        savedValue,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.versions.list({ appId: saveAppId }),
+      });
+      // Saves stage the file, so refresh the staged/uncommitted files list
+      // right away rather than waiting for its polling interval.
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.uncommittedFiles.byApp({ appId: saveAppId }),
+      });
+      if (warning) {
+        showWarning(warning);
+      } else {
+        showSuccess(t("preview.fileSaved"));
+      }
+
+      originalValueRef.current = savedValue;
+      const hasNewerEdits = currentValueRef.current !== savedValue;
+      needsSaveRef.current = hasNewerEdits;
+      if (isMountedRef.current) {
+        setDisplayUnsavedChanges(hasNewerEdits);
+      }
+    } catch (error) {
+      showError(error);
+    } finally {
+      isSavingRef.current = false;
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  // Jump to target line if provided (e.g., from search results)
+  // This effect handles when initialLine changes after the editor is mounted
+  // Include content in dependencies to ensure navigation only occurs after file content is loaded
+  useEffect(() => {
+    // Only navigate if content is loaded (not null) to avoid navigating in old file content
+    const previousTarget = initialLineTargetRef.current;
+    const isNewSameFileLineTarget =
+      previousTarget.appId === appId &&
+      previousTarget.filePath === filePath &&
+      previousTarget.initialLine !== initialLine;
+    initialLineTargetRef.current = { appId, filePath, initialLine };
+    const hasRestoredCursor =
+      persistCursor &&
+      editorCursor?.appId === appId &&
+      editorCursor.path === filePath;
+    if (content !== null && (!hasRestoredCursor || isNewSameFileLineTarget)) {
+      navigateToLine(initialLine ?? null);
+    }
+  }, [
+    appId,
+    content,
+    editorCursor,
+    filePath,
+    initialLine,
+    navigateToLine,
+    persistCursor,
+  ]);
+
+  if (loading) {
+    return <div className="p-4">{t("preview.loadingFileContent")}</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error: {error.message}</div>;
+  }
+
+  if (content === null) {
+    return (
+      <div className="p-4 text-gray-500">{t("preview.noContentAvailable")}</div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <Breadcrumb
+        path={filePath}
+        hasUnsavedChanges={displayUnsavedChanges}
+        onSave={saveFile}
+        isSaving={isSaving}
+      />
+      <div className="flex-1 overflow-hidden">
+        <Editor
+          height="100%"
+          path={modelPath}
+          keepCurrentModel
+          defaultLanguage={getLanguage(filePath)}
+          value={value}
+          theme={editorTheme}
+          onChange={handleEditorChange}
+          onMount={handleEditorDidMount}
+          options={{
+            minimap: { enabled: true },
+            scrollBeyondLastLine: false,
+            wordWrap: "off",
+            automaticLayout: true,
+            fontFamily: "monospace",
+            fontSize: 13,
+            lineNumbers: "on",
+          }}
+        />
+      </div>
+    </div>
+  );
+};

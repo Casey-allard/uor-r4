@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Run a Hologram application</title>
+<script>document.write('<base href="' + location.pathname.replace(/holo\/.*$/, "").replace(/[^/]*$/, "") + '">');</script>
+<link rel="icon" href="mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="brand.css">
+<style>
+/* Layout only; every colour, font and radius is brand.css's, generated from the kit's tokens. */
+body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.mark { position: fixed; top: 21px; left: 21px; display: inline-flex; padding: 3px; }
+.mark .on-light { display: none; } .mark .on-dark { display: block; }
+:root.light .mark .on-light { display: block; } :root.light .mark .on-dark { display: none; }
+main { max-width: 640px; margin: 0 auto; padding: 96px 24px 64px; }
+main h1 { font-size: 40px; line-height: 1.1; margin: 0 0 12px; }
+.lede { color: var(--muted-foreground); margin: 0 0 24px; }
+.hint { color: var(--muted-foreground); font-size: 14px; }
+.btn { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: calc(var(--radius) - 2px); background: var(--brand); color: var(--brand-foreground); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; border: 0; }
+.btn:hover { filter: brightness(1.06); }
+.apps { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 8px; }
+.apps li { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--card-foreground); }
+.apps a { color: inherit; }
+</style>
+<script>(function () { var root = document.documentElement, s = null; try { s = JSON.parse(localStorage.getItem("holo.theme.v1") || "null"); } catch (e) {} var palette = s && s.palette === "light" ? "light" : "dark"; root.setAttribute("data-holo-palette", palette); root.setAttribute("data-holo-immersive", "off"); root.style.setProperty("color-scheme", palette); root.classList.add(palette); })();</script>
+<script type="application/json" id="view">{"anyKeyLabel":"Any key works, for example local","appearanceLabel":"Appearance","askLabel":"Your browser may ask to let this page reach your computer.","baseUrlLabel":"Base URL","buildingLabel":"building in your browser","connectLabel":"Connect","connectedLabel":"Connected","copiedLabel":"Copied","copyLabel":"Copy","darkLabel":"Dark","downloadLabel":"Download","headline":"Own Your Ideas","holoLabel":"Your .holo application","holoLede":"The file is checked by PrismPM's own validator before it runs. Nothing leaves this browser.","holoTitle":"Run a Hologram application","identicalLabel":"Checked, identical","immersiveLabel":"Immersive","ladderLabel":"The best model your device has ready","largerLoadingLabel":"getting Qwen2.5 1.5B behind it","lede":"Describe it. It builds, runs and stays yours, in this browser, on no server.","lightLabel":"Light","listeningLabel":"Listening for the relay","loadingLabel":"getting the model, once","localLabel":"On your device","macLabel":"macOS / Linux","modelIdLabel":"Model","modelLabel":"Qwen2.5 1.5B, on your device","noGpuLabel":"This browser cannot run the model. Try Chrome or Edge on a computer.","notConnectedLabel":"Not connected","offlineLabel":"offline, working from your device","openLabel":"Open","pickLabel":"Choose a .holo file","previewLabel":"Preview","promotedLabel":"Now answering with Qwen2.5 1.5B","promptPlaceholder":"What do you want to build?","publishLabel":"Publish as a Hologram application","publishRefusedLabel":"Refused: the evidence does not match this shell","publishedLabel":"Published","publishingLabel":"cooking your application through PrismPM","rederiveLabel":"Check again","refusedLabel":"Refused: not what it claims to be","rollbackLabel":"Go back","runLabel":"Run this once, on this computer","runsLabel":"Runs on Hologram Desktop, Hologram Server and in any browser, with no server","sealedLabel":"Sealed","secondTabLabel":"Another tab is already serving","seedModelLabel":"SmolLM2 360M, on your device","sendLabel":"Build","servedLabel":"Instant, from the seal","snapshotLabel":"Sealed","stayOpenLabel":"Nothing leaves your device. Keep this tab open.","testLabel":"Send a test request","verifyLabel":"Verify the file","verifyingLabel":"verifying","wallpapers":[{"by":"Unsplash","byUrl":"https://unsplash.com/?utm_source=Hologram_AI&utm_medium=referral","file":"alps.jpg","name":"Alpine Dawn"},{"by":"Tiago Ferreira","byUrl":"https://unsplash.com/@tiago_f_ferreira?utm_source=Hologram_AI&utm_medium=referral","file":"galaxy.jpg","name":"Galaxy"},{"by":"Lightscape","byUrl":"https://unsplash.com/@lightscape?utm_source=Hologram_AI&utm_medium=referral","file":"aurora.jpg","name":"Aurora"}],"windowsLabel":"Windows"}</script>
+</head>
+<body>
+<a class="mark" href="./" aria-label="Hologram"><img class="on-dark" src="lockup-white.svg" alt="Hologram" width="157" height="30"><img class="on-light" src="lockup-black.svg" alt="Hologram" width="157" height="30"></a>
+<main>
+  <h1 class="font-display">Run a Hologram application</h1>
+  <p class="lede">The file is checked by PrismPM's own validator before it runs. Nothing leaves this browser.</p>
+  <p class="hint mono" id="status"></p>
+  <p><label class="btn" for="file" id="pick">Choose a .holo file</label><input id="file" type="file" accept=".holo" hidden></p>
+  <ul class="apps" id="apps"></ul>
+  <p class="hint">Runs on Hologram Desktop, Hologram Server and in any browser, with no server</p>
+</main>
+<script type="module">
+import { install, stored, installed } from "./holo.js";
+import { coreReady } from "./inference.js";
+const V = JSON.parse(document.getElementById("view").textContent);
+const status = document.getElementById("status"), list = document.getElementById("apps");
+const short = (k) => k.replace(/^blake3:/, "").slice(0, 12) + "…";
+const wanted = (location.pathname.match(/\/holo\/([^/]+)\//) || [])[1] || null;
+async function show() {
+  const rows = await installed();
+  list.innerHTML = "";
+  for (const r of rows) {
+    const li = document.createElement("li");
+    const a = document.createElement("a"); a.href = new URL("holo/" + r.kappa + "/", document.baseURI).href; a.textContent = (r.application || "application") + " · " + short(r.kappa) + " · " + r.byteLength + " bytes";
+    const d = document.createElement("a"); d.href = new URL("holo/" + r.kappa + ".holo", document.baseURI).href; d.textContent = V.downloadLabel; d.className = "hint"; d.setAttribute("download", "");
+    li.append(a, " ", d); list.append(li);
+  }
+}
+async function open(bytes) {
+  status.textContent = V.verifyingLabel + "…";
+  try {
+    const done = await install(bytes);
+    status.textContent = V.publishedLabel + " · " + short(done.kappa) + " · " + done.byteLength + " bytes · " + done.ms + " ms";
+    await show();
+    location.href = done.url;
+  } catch (e) {
+    status.textContent = V.refusedLabel + " · " + String((e && e.message) || e);
+  }
+}
+document.getElementById("file").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) open(new Uint8Array(await f.arrayBuffer())); });
+(async () => {
+  await coreReady();
+  await show();
+  if (wanted) { const bytes = await stored(wanted); if (bytes) open(bytes); else status.textContent = short(wanted) + " · " + V.pickLabel; }
+})();
+</script>
+</body>
+</html>

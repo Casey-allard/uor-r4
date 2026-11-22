@@ -1,0 +1,14 @@
+// Reproduce the imported renderer schemas; this is not a Prism compiler.
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url)),vendor=path.join(root,'vendor/prism'),require=createRequire(path.join(vendor,'package.json')),esbuild=require('esbuild');
+const result=await esbuild.build({absWorkingDir:vendor,stdin:{contents:'export {LargeLanguageModelSchema} from "./src/lib/schemas"; export {ChatStreamIntentEventSchema,SerializableChatTurnIntentSchema,ChatStreamRemoteSnapshotSchema} from "./src/chat_stream/transport"; export {ChatResponseChunkSchema,ChatStreamInvocationRefSchema,UpdateChatParamsSchema} from "./src/ipc/types/chat"; export {AppRunRemoteSnapshotSchema} from "./src/app_run/transport"; export {serializeImmutableChatTurnPayload} from "./src/chat_stream/intent_payload"; export {VersionPreviewIntentEventSchema,VersionPreviewRemoteSnapshotSchema} from "./src/version_preview/transport"; export {VisibleEntitySchema,ChatTabOwnershipSchema,WindowInterestSchema,QueryInvalidationScopeSchema,QueryInvalidationBatchSchema} from "./src/window_infrastructure/types";',resolveDir:vendor,sourcefile:'foundry-chat-contracts.ts',loader:'ts'},bundle:true,platform:'browser',target:'es2022',format:'esm',minify:true,legalComments:'inline',write:false,metafile:true,logLevel:'silent',});
+const bytes=result.outputFiles[0].contents,hash=b=>createHash('sha256').update(b).digest('hex');
+const inputs=Object.keys(result.metafile.inputs).filter(p=>p!=='foundry-chat-contracts.ts').sort().map(p=>({path:p,sha256:hash(fs.readFileSync(path.resolve(vendor,p)))}));
+const record={profile:'foundry/imported-chat-contracts/1',compiler:esbuild.version,generatorSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),packageLockSha256:hash(fs.readFileSync(path.join(vendor,'package-lock.json'))),licenseSha256:hash(fs.readFileSync(path.join(vendor,'node_modules/zod/LICENSE'))),inputs,output:{path:'chat-contracts.mjs',sha256:hash(bytes),bytes:bytes.length}};
+const target=path.join(root,'shell/chat-contracts.mjs'),lock=path.join(root,'CHAT_CONTRACTS_LOCK.json'),expected=JSON.stringify(record,null,2)+'\n';
+if(process.argv.includes('--check')){if(!fs.existsSync(target)||hash(fs.readFileSync(path.join(root,'shell/chat-contracts.LICENSE.txt')))!==record.licenseSha256||!Buffer.from(bytes).equals(fs.readFileSync(target))||fs.readFileSync(lock,'utf8')!==expected)throw Error('Imported chat contract projection changed');console.log('Imported chat contracts reproduce exactly');}
+else{fs.writeFileSync(target,bytes);fs.writeFileSync(lock,expected);fs.copyFileSync(path.join(vendor,'node_modules/zod/LICENSE'),path.join(root,'shell/chat-contracts.LICENSE.txt'));console.log(JSON.stringify({inputs:inputs.length,bytes:bytes.length,sha256:record.output.sha256}));}

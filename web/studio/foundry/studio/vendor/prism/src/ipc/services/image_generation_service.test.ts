@@ -1,0 +1,503 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { eq } from "drizzle-orm";
+import { apps } from "@/db/schema";
+import { PrismErrorKind } from "@/errors/prism_error";
+import { appOperationCoordinator } from "@/ipc/services/app_operation_coordinator";
+import {
+  type HandlerTestHarness,
+  setupHandlerTestHarness,
+} from "@/testing/handler_test_harness";
+import { ImageGenerationService } from "./image_generation_service";
+
+vi.mock("@/main/settings", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/main/settings")>();
+  return {
+    ...actual,
+    readSettings: () => ({
+      ...actual.DEFAULT_SETTINGS,
+      providerSettings: { auto: { apiKey: { value: "test-api-key" } } },
+    }),
+  };
+});
+
+vi.mock("@/paths/paths", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/paths/paths")>();
+  const { default: nodePath } = await import("node:path");
+  const { default: nodeOs } = await import("node:os");
+  return {
+    ...actual,
+    getPrismAppPath: (appPath: string) =>
+      nodePath.join(nodeOs.tmpdir(), "prism-image-generation-tests", appPath),
+  };
+});
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve(value: T): void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+function abortableFetch(signal?: AbortSignal): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    const rejectAbort = () =>
+      reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
+    if (signal?.aborted) {
+      rejectAbort();
+    } else {
+      signal?.addEventListener("abort", rejectAbort, { once: true });
+    }
+  });
+}
+
+describe("ImageGenerationService", () => {
+  const tempBase = path.join(os.tmpdir(), "prism-image-generation-tests");
+  let harness: HandlerTestHarness;
+  let appId: number;
+  let service: ImageGenerationService;
+
+  beforeEach(() => {
+    fs.rmSync(tempBase, { recursive: true, force: true });
+    harness = setupHandlerTestHarness();
+    service = new ImageGenerationService();
+    const result = harness.db
+      .insert(apps)
+      .values({ name: "Test app", path: "test-app" })
+      .run();
+    appId = Number(result.lastInsertRowid);
+    fs.mkdirSync(path.join(tempBase, "test-app"), { recursive: true });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    harness.dispose();
+    fs.rmSync(tempBase, { recursive: true, force: true });
+  });
+
+  function generate(requestId: string) {
+    return service.generate({
+      requestId,
+      prompt: "A tiny lighthouse",
+      themeMode: "plain",
+      targetAppId: appId,
+    });
+  }
+
+  async function cancel(requestId: string): Promise<{ cancelled: boolean }> {
+    return { cancelled: service.cancel(requestId) };
+  }
+
+  it("rejects admission while an app deletion or reset fence is active", () => {
+    service.beginAppDeletion(appId);
+    expect(() => generate("during-delete")).toThrow("The app is being deleted");
+    service.endAppDeletion(appId);
+
+    service.beginReset();
+    expect(() => generate("during-reset")).toThrow("The app is being deleted");
+    service.endReset();
+  });
+
+  it("aborts the initial generation request", async () => {
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) =>
+      abortableFetch(init?.signal ?? undefined),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const generation = generate("generation-phase");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+
+    await expect(cancel("generation-phase")).resolves.toEqual({
+      cancelled: true,
+    });
+    await expect(generation).rejects.toMatchObject({
+      kind: PrismErrorKind.UserCancelled,
+    });
+    await expect(cancel("generation-phase")).resolves.toEqual({
+      cancelled: false,
+    });
+  });
+
+  it("aborts the URL download with the generation controller", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ url: "https://example.com/generated.png" }],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockImplementationOnce((_url: string, init?: RequestInit) =>
+        abortableFetch(init?.signal ?? undefined),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const generation = generate("download-phase");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    await expect(cancel("download-phase")).resolves.toEqual({
+      cancelled: true,
+    });
+    await expect(generation).rejects.toMatchObject({
+      kind: PrismErrorKind.UserCancelled,
+    });
+  });
+
+  it("classifies a URL download timeout as an external error", async () => {
+    const downloadTimeoutController = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(
+      downloadTimeoutController.signal,
+    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ url: "https://example.com/generated.png" }],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockImplementationOnce((_url: string, init?: RequestInit) =>
+        abortableFetch(init?.signal ?? undefined),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const generation = generate("download-timeout");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    downloadTimeoutController.abort(
+      new DOMException("The operation timed out", "TimeoutError"),
+    );
+
+    await expect(generation).rejects.toMatchObject({
+      message: "Image download timed out. Please try again.",
+      kind: PrismErrorKind.External,
+    });
+    await expect(cancel("download-timeout")).resolves.toEqual({
+      cancelled: false,
+    });
+  });
+
+  it("classifies a URL download network failure as an external error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              created: 1,
+              data: [{ url: "https://example.com/generated.png" }],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockRejectedValueOnce(new TypeError("fetch failed")),
+    );
+
+    await expect(generate("download-network-failure")).rejects.toMatchObject({
+      message: "Failed to download generated image.",
+      kind: PrismErrorKind.External,
+      cause: expect.any(TypeError),
+    });
+  });
+
+  it.each([
+    [401, PrismErrorKind.Auth],
+    [403, PrismErrorKind.Auth],
+    [429, PrismErrorKind.RateLimited],
+    [503, PrismErrorKind.External],
+  ])("classifies generation HTTP %i as %s", async (status, expectedKind) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status })),
+    );
+
+    await expect(generate(`generation-http-${status}`)).rejects.toMatchObject({
+      kind: expectedKind,
+    });
+  });
+
+  it.each([
+    [401, PrismErrorKind.Auth],
+    [403, PrismErrorKind.Auth],
+    [429, PrismErrorKind.RateLimited],
+    [503, PrismErrorKind.External],
+  ])("classifies download HTTP %i as %s", async (status, expectedKind) => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              created: 1,
+              data: [{ url: "https://example.com/generated.png" }],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(new Response(null, { status })),
+    );
+
+    await expect(generate(`download-http-${status}`)).rejects.toMatchObject({
+      kind: expectedKind,
+    });
+  });
+
+  it("checks for cancellation after a download body finishes", async () => {
+    const body = deferred<ArrayBuffer>();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ url: "https://example.com/generated.png" }],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: () => body.promise,
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const generation = generate("download-body-phase");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await expect(cancel("download-body-phase")).resolves.toEqual({
+      cancelled: true,
+    });
+    body.resolve(new Uint8Array([1, 2, 3]).buffer);
+
+    await expect(generation).rejects.toMatchObject({
+      kind: PrismErrorKind.UserCancelled,
+    });
+  });
+
+  it("checks for cancellation inside the media lock before writing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ b64_json: Buffer.from("image").toString("base64") }],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const mkdirStarted = deferred<void>();
+    const releaseMkdir = deferred<void>();
+    vi.spyOn(fs.promises, "mkdir").mockImplementationOnce(async () => {
+      mkdirStarted.resolve();
+      await releaseMkdir.promise;
+      return undefined;
+    });
+    const writeFile = vi.spyOn(fs.promises, "writeFile");
+
+    const generation = generate("pre-write-phase");
+    await mkdirStarted.promise;
+    await expect(cancel("pre-write-phase")).resolves.toEqual({
+      cancelled: true,
+    });
+    releaseMkdir.resolve();
+
+    await expect(generation).rejects.toMatchObject({
+      kind: PrismErrorKind.UserCancelled,
+    });
+    expect(writeFile).not.toHaveBeenCalledWith(
+      expect.stringMatching(/\.tmp$/),
+      expect.any(Buffer),
+      expect.anything(),
+    );
+  });
+
+  it("aborts and cleans up a file write when generation is cancelled", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ b64_json: Buffer.from("image").toString("base64") }],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const writeStarted = deferred<void>();
+    const originalWriteFile = fs.promises.writeFile;
+    const writeFile = vi
+      .spyOn(fs.promises, "writeFile")
+      .mockImplementation(async (file, data, options) => {
+        if (!String(file).endsWith(".tmp")) {
+          return originalWriteFile(file, data, options);
+        }
+        const signal = (options as { signal?: AbortSignal } | undefined)
+          ?.signal;
+        writeStarted.resolve();
+        await abortableFetch(signal);
+      });
+    const rename = vi.spyOn(fs.promises, "rename");
+    const rm = vi.spyOn(fs.promises, "rm");
+
+    const generation = generate("file-write-phase");
+    await writeStarted.promise;
+    await expect(cancel("file-write-phase")).resolves.toEqual({
+      cancelled: true,
+    });
+
+    await expect(generation).rejects.toMatchObject({
+      kind: PrismErrorKind.UserCancelled,
+    });
+    expect(writeFile).toHaveBeenCalledWith(
+      expect.stringMatching(/\.tmp$/),
+      expect.any(Buffer),
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(rename).not.toHaveBeenCalled();
+    expect(rm).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/), {
+      force: true,
+    });
+  });
+
+  it("serializes with app moves and saves using the refreshed app path", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ b64_json: Buffer.from("image").toString("base64") }],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const appLockAcquired = deferred<void>();
+    const releaseAppLock = deferred<void>();
+    const relocation = appOperationCoordinator.run(
+      {
+        appId,
+        operation: "test-relocation",
+        resources: ["app-path"],
+      },
+      async () => {
+        appLockAcquired.resolve();
+        await releaseAppLock.promise;
+        const movedAppPath = path.join(tempBase, "moved-app");
+        await fs.promises.mkdir(movedAppPath, { recursive: true });
+        harness.db
+          .update(apps)
+          .set({ path: "moved-app", name: "Moved app" })
+          .where(eq(apps.id, appId))
+          .run();
+      },
+    );
+    await appLockAcquired.promise;
+
+    const generation = generate("move-during-generation");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    releaseAppLock.resolve();
+    await relocation;
+
+    await expect(generation).resolves.toMatchObject({
+      appPath: "moved-app",
+      appName: "Moved app",
+      filePath: expect.stringContaining(path.join("moved-app", ".prism")),
+    });
+    await expect(
+      fs.promises.readFile(
+        path.join(tempBase, "moved-app", ".gitignore"),
+        "utf-8",
+      ),
+    ).resolves.toContain(".prism/");
+    expect(
+      fs.existsSync(path.join(tempBase, "test-app", ".prism", "media")),
+    ).toBe(false);
+  });
+
+  it("waits for repository writers before committing a generated image", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            created: 1,
+            data: [{ b64_json: Buffer.from("image").toString("base64") }],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const repositoryAcquired = deferred<void>();
+    const releaseRepository = deferred<void>();
+    const repositoryMutation = appOperationCoordinator.run(
+      {
+        appId,
+        operation: "test-repository-mutation",
+        resources: ["repository"],
+      },
+      async () => {
+        repositoryAcquired.resolve();
+        await releaseRepository.promise;
+      },
+    );
+    await repositoryAcquired.promise;
+
+    const generation = generate("repository-during-save");
+    let settled = false;
+    void generation.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    releaseRepository.resolve();
+    await repositoryMutation;
+    await expect(generation).resolves.toMatchObject({
+      appPath: "test-app",
+      filePath: expect.stringContaining(path.join("test-app", ".prism")),
+    });
+  });
+
+  it("removes failed requests from the active controller registry", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response("service unavailable", { status: 503 }),
+        ),
+    );
+
+    await expect(generate("failed-request")).rejects.toThrow(
+      "Image generation failed (HTTP 503)",
+    );
+    await expect(cancel("failed-request")).resolves.toEqual({
+      cancelled: false,
+    });
+  });
+});

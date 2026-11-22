@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "arch-stakeholder"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "Stakeholder"
+
+[[form]]
+id = "arch-stakeholder"
+channel = "text"
+surface = "stakeholder"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

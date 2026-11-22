@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "qual-subcharacteristic"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Qual"
+component = "QualitySubcharacteristic"
+
+[[form]]
+id = "qual-subcharacteristic"
+channel = "text"
+surface = "quality subcharacteristic"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

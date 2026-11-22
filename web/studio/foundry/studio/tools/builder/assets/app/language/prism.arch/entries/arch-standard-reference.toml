@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-standard-reference"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "StandardReference"
+
+[[form]]
+id = "arch-standard-reference"
+channel = "text"
+surface = "standards reference"
+canonical_source = true
+features = ["sentence-case", "singular"]

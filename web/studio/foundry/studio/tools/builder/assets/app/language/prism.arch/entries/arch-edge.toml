@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "arch-edge"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "Edge"
+
+[[form]]
+id = "arch-edge"
+channel = "text"
+surface = "architectural edge"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

@@ -1,0 +1,563 @@
+import log from "electron-log";
+import { eq, isNotNull } from "drizzle-orm";
+import { EndpointType } from "@neondatabase/api-client";
+
+import { db } from "../../db";
+import { apps } from "../../db/schema";
+import { getNeonClient } from "../../neon_admin/neon_management_client";
+import { getConnectionUri } from "../../neon_admin/neon_context";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import { readEnvVarsOrEmpty, updateNeonEnvVars } from "./app_env_var_utils";
+import { detectFrameworkType } from "./framework_utils";
+import { retryOnLocked } from "./retryOnLocked";
+import { ensureNeonAuth, getOrCreateNeonAuthCookieSecret } from "./neon_utils";
+import {
+  appOperationCoordinator,
+  readAppResource,
+} from "../services/app_operation_coordinator";
+import { getPrismAppPath } from "@/paths/paths";
+
+const logger = log.scope("neon_test_branch");
+
+type AppRow = typeof apps.$inferSelect;
+
+// The same durable column tracks two materially different states:
+//
+// - a raw branch id means `.env.local` may still point at that test branch;
+// - a cleanup-only marker means the real env was restored and only the remote
+//   branch deletion remains.
+//
+// Keeping that distinction durable prevents a harmless Neon cleanup outage
+// from blocking Run after a restart. Neon branch ids do not use this namespaced
+// value, and every API boundary below strips it before addressing Neon.
+const CLEANUP_ONLY_BRANCH_PREFIX = "prism-cleanup-only:v1:";
+
+/**
+ * The Neon branch id a `neonTestBranchId` value refers to.
+ *
+ * The accessor every reader outside this module has to go through: the column
+ * stores either a raw branch id or the cleanup-only marker wrapping one, and
+ * anything that addresses Neon — or names the branch to a user who may have to
+ * delete it by hand — means this, never the stored string.
+ */
+export function trackedBranchId(marker: string): string {
+  return marker.startsWith(CLEANUP_ONLY_BRANCH_PREFIX)
+    ? marker.slice(CLEANUP_ONLY_BRANCH_PREFIX.length)
+    : marker;
+}
+
+export function isTestBranchCleanupOnly(marker: string | null): boolean {
+  return marker?.startsWith(CLEANUP_ONLY_BRANCH_PREFIX) ?? false;
+}
+
+export async function markTestBranchCleanupOnly(
+  appData: AppRow,
+  branchId: string,
+): Promise<AppRow> {
+  const marker = `${CLEANUP_ONLY_BRANCH_PREFIX}${trackedBranchId(branchId)}`;
+  await db
+    .update(apps)
+    .set({ neonTestBranchId: marker })
+    .where(eq(apps.id, appData.id));
+  return { ...appData, neonTestBranchId: marker };
+}
+
+/** Connection details for an isolated, throwaway Neon test branch. */
+export interface TempTestBranch {
+  /** The ephemeral branch's id (also persisted on the app row while live). */
+  branchId: string;
+  /** Connection string pointing at the throwaway branch. */
+  databaseUrl: string;
+  /** Neon Auth base URL for the branch, when auth could be activated. */
+  neonAuthBaseUrl?: string;
+  /** Per-branch Neon Auth cookie secret, when available. */
+  cookieSecret?: string;
+}
+
+/**
+ * Resolve the parent branch a test branch should be cut from. We prefer the
+ * active branch the user is currently working on so the throwaway branch
+ * inherits their realistic schema + data via Neon's instant copy-on-write.
+ * This mirrors the canonical `active ?? development` resolution used elsewhere;
+ * the preview branch (historical rollback snapshots) is only a last resort.
+ */
+function resolveParentBranchId(appData: AppRow): string | null {
+  return (
+    appData.neonActiveBranchId ??
+    appData.neonDevelopmentBranchId ??
+    appData.neonPreviewBranchId ??
+    null
+  );
+}
+
+/**
+ * Whether the app actually uses Neon Auth. Newer rows persist a cookie secret
+ * on a branch the first time Neon Auth is provisioned for it (see
+ * getOrCreateNeonAuthCookieSecret). Upgraded rows may only have NEON_AUTH_*
+ * markers in .env.local, so check those before deciding the test branch can
+ * safely skip auth provisioning.
+ */
+async function appUsesNeonAuth(appData: AppRow): Promise<boolean> {
+  if (
+    appData.neonDevelopmentAuthCookieSecret ||
+    appData.neonProductionAuthCookieSecret
+  ) {
+    return true;
+  }
+
+  try {
+    const appPath = getPrismAppPath(appData.path);
+    const envVars = await readEnvVarsOrEmpty({ appPath });
+    return envVars.some(
+      (envVar) =>
+        envVar.key === "NEON_AUTH_BASE_URL" ||
+        envVar.key === "NEON_AUTH_COOKIE_SECRET",
+    );
+  } catch (error) {
+    logger.warn(
+      `Couldn't inspect .env.local for Neon Auth markers on app ${appData.id}: ${error}`,
+    );
+    return true;
+  }
+}
+
+function resolveAuthBranchType(
+  appData: AppRow,
+  branchId: string,
+): "development" | "production" {
+  return branchId === appData.neonDevelopmentBranchId
+    ? "development"
+    : "production";
+}
+
+/**
+ * Create a throwaway copy-on-write Neon branch for an isolated test run.
+ *
+ * The branch is cut from the app's active branch (or the development/preview
+ * branch as a fallback) so it inherits the current schema and data instantly.
+ * Neon Auth + a per-branch cookie secret are provisioned best-effort so
+ * auth-gated tests can run. The branch id is persisted on the app row
+ * (`neonTestBranchId`) so a crash mid-run can be reconciled on next launch.
+ *
+ * Throws `PrismError` if the app has no Neon project or no parent branch.
+ */
+export async function createTempTestBranch(
+  appData: AppRow,
+): Promise<TempTestBranch> {
+  const projectId = appData.neonProjectId;
+  if (!projectId) {
+    throw new PrismError(
+      `App ${appData.id} is not connected to a Neon project.`,
+      PrismErrorKind.Precondition,
+    );
+  }
+
+  const parentBranchId = resolveParentBranchId(appData);
+  if (!parentBranchId) {
+    throw new PrismError(
+      `App ${appData.id} has no Neon branch to base a test branch on.`,
+      PrismErrorKind.Precondition,
+    );
+  }
+
+  // If a prior session leaked a branch on this row, delete it before we
+  // overwrite the column so we don't orphan it. If that cleanup fails we must
+  // NOT proceed: overwriting the column would orphan the prior branch forever
+  // (the startup reconciliation sweep relies on the column to find it), while
+  // leaving the column untouched would make the branch we're about to create
+  // untracked and unrecoverable on a crash. Dead-end instead and let startup
+  // reconciliation retry the prior branch on the next launch.
+  if (appData.neonTestBranchId) {
+    const priorCleanupOk = await deleteBranchBestEffort(
+      projectId,
+      trackedBranchId(appData.neonTestBranchId),
+    );
+    if (!priorCleanupOk) {
+      throw new PrismError(
+        `Couldn't clean up the previous Neon test branch for app ${appData.id}. Skipping this run to avoid leaking a branch; it will be retried on the next launch.`,
+        PrismErrorKind.External,
+      );
+    }
+  }
+
+  const neonClient = await getNeonClient();
+  const branchName = `prism-test-${appData.id}-${Date.now()}`;
+
+  const response = await retryOnLocked(
+    () =>
+      neonClient.createProjectBranch(projectId, {
+        endpoints: [{ type: EndpointType.ReadWrite }],
+        branch: {
+          name: branchName,
+          parent_id: parentBranchId,
+        },
+      }),
+    `Create test branch for app ${appData.id}`,
+  );
+
+  const branch = response.data.branch;
+  const connectionUri = response.data.connection_uris?.[0]?.connection_uri;
+  if (!branch || !connectionUri) {
+    // Partial success: Neon created the branch but returned no connection URI.
+    // We haven't persisted the branch id yet, so neither teardown nor startup
+    // reconciliation could ever find it — delete it best-effort before throwing
+    // instead of leaking it in the user's Neon project.
+    if (branch) {
+      await deleteBranchBestEffort(projectId, branch.id);
+    }
+    throw new PrismError(
+      "Neon did not return a connection string for the test branch.",
+      PrismErrorKind.External,
+    );
+  }
+
+  // Persist the in-flight branch id so a crash before teardown is recoverable
+  // by the startup reconciliation sweep. If this write fails (e.g. a transient
+  // SQLite lock), neither teardown nor reconciliation can find the branch to
+  // delete it, so remove the branch we just created before rethrowing rather
+  // than leaking it.
+  try {
+    await db
+      .update(apps)
+      .set({ neonTestBranchId: branch.id })
+      .where(eq(apps.id, appData.id));
+  } catch (error) {
+    await deleteBranchBestEffort(projectId, branch.id);
+    throw error;
+  }
+
+  // Provision Neon Auth on the throwaway branch best-effort. Auth-gated tests
+  // need it; non-auth tests still run if this fails.
+  //
+  // Skip provisioning entirely when the app never set up Neon Auth (no cookie
+  // secret persisted on either branch, and no NEON_AUTH_* markers in env).
+  // This avoids 1-3 extra Neon API calls per test run for non-auth apps - the
+  // main driver of "too many requests" when running several tests back-to-back.
+  let neonAuthBaseUrl: string | undefined;
+  let cookieSecret: string | undefined;
+  if (await appUsesNeonAuth(appData)) {
+    try {
+      // Wrap in retryOnLocked so getNeonAuth/createNeonAuth back off on a
+      // locked branch (423) or rate limit (429) instead of failing the run.
+      neonAuthBaseUrl = await retryOnLocked(
+        () => ensureNeonAuth({ projectId, branchId: branch.id }),
+        `Ensure Neon Auth for test branch ${branch.id}`,
+      );
+      if (neonAuthBaseUrl) {
+        // The test branch mirrors the development branch's auth config.
+        cookieSecret = await getOrCreateNeonAuthCookieSecret({
+          appData,
+          branchType: "development",
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        `Neon Auth could not be activated on test branch ${branch.id} for app ${appData.id}: ${error}`,
+      );
+    }
+
+    // The app relies on Neon Auth but we couldn't provision it on the throwaway
+    // branch. Proceeding would point the app's database at the isolated test
+    // branch while its auth still targets the REAL auth branch (updateNeonEnvVars
+    // preserves the existing NEON_AUTH_* vars when we pass no test auth URL) —
+    // sign-up/login in the test would then hit real auth data. Dead-end instead:
+    // delete the branch we just created and clear the column (it points at this
+    // now-deleted branch), then throw so the caller restores and never runs.
+    if (!neonAuthBaseUrl) {
+      const deleted = await deleteBranchBestEffort(projectId, branch.id);
+      // Clear the column when the delete succeeded so reconciliation doesn't
+      // later try to re-delete a branch that's already gone. If the delete
+      // failed, leave the column set so startup reconciliation retries it.
+      if (deleted) {
+        await db
+          .update(apps)
+          .set({ neonTestBranchId: null })
+          .where(eq(apps.id, appData.id));
+      }
+      throw new PrismError(
+        "Couldn't set up isolated Neon Auth for the test branch.",
+        PrismErrorKind.External,
+      );
+    }
+  }
+
+  logger.info(
+    `Created test branch ${branch.id} (parent ${parentBranchId}) for app ${appData.id}`,
+  );
+
+  return {
+    branchId: branch.id,
+    databaseUrl: connectionUri,
+    neonAuthBaseUrl,
+    cookieSecret,
+  };
+}
+
+/**
+ * Tear down the test branch for an app: best-effort delete on Neon and clear
+ * the persisted `neonTestBranchId`. Safe to call when no branch is set.
+ *
+ * Resolves to whether the branch is gone from Neon — false when the delete
+ * failed and the id was deliberately left on the row for the startup sweep to
+ * retry. Most callers can ignore that, because that retry is the recovery. The
+ * app-deletion path cannot: it is removing the row the sweep would read, so a
+ * false here is the last moment anything can name the orphaned branch.
+ */
+export async function deleteTempTestBranch(appData: AppRow): Promise<boolean> {
+  const marker = appData.neonTestBranchId;
+  const projectId = appData.neonProjectId;
+  if (!marker) {
+    // Nothing tracked, so nothing is stranded.
+    return true;
+  }
+  const branchId = trackedBranchId(marker);
+  if (!projectId) {
+    // A branch IS tracked, but the row no longer names the project holding it —
+    // Neon was unlinked after the branch was created. Nothing here can address
+    // it. Reporting success would be a lie with consequences: the app-deletion
+    // path reads this to decide whether anything was left behind, and would drop
+    // the row — the last record of this branch — believing it was cleaned up.
+    logger.error(
+      `App ${appData.id} still tracks temporary Neon test branch ${branchId}, but the app is no longer linked to a Neon project; Prism cannot delete it and it must be removed manually.`,
+    );
+    return false;
+  }
+  // Only forget the branch once Neon confirms it's gone. Clearing the column on
+  // a failed delete would orphan the branch in the user's account forever, since
+  // the startup reconciliation sweep relies on this id to find it again.
+  const deleted = await deleteBranchBestEffort(projectId, branchId);
+  if (deleted) {
+    await db
+      .update(apps)
+      .set({ neonTestBranchId: null })
+      .where(eq(apps.id, appData.id));
+  }
+  return deleted;
+}
+
+/**
+ * The tail every "we're done with this temporary branch" path shares: persist
+ * the cleanup-only marker, then delete the branch on Neon. Best-effort
+ * throughout — never throws.
+ *
+ * Ordering matters and is the reason this is one function rather than two calls
+ * repeated at each site. The marker is written FIRST so a process that dies
+ * before the remote delete leaves a row saying "the env is real, only the
+ * branch is outstanding" — which is what lets Run proceed after a restart while
+ * the startup sweep keeps retrying. Marking after a failed delete would instead
+ * claim safety this never established. A failed mark is not fatal: the delete
+ * still goes out with the raw id, so a transient SQLite error doesn't turn into
+ * a guaranteed Neon leak.
+ */
+export async function markAndDeleteTempTestBranch(
+  appData: AppRow,
+  branchId: string,
+): Promise<void> {
+  // `deleteTempTestBranch` reads the marker off the row it is given, and the
+  // caller's copy is stale by now, so carry the branch we actually created.
+  let cleanupApp: AppRow = { ...appData, neonTestBranchId: branchId };
+  try {
+    cleanupApp = await markTestBranchCleanupOnly(appData, branchId);
+  } catch (error) {
+    logger.error(
+      `Failed to persist cleanup-only state for test branch ${trackedBranchId(branchId)} on app ${appData.id}: ${error}`,
+    );
+  }
+  try {
+    await deleteTempTestBranch(cleanupApp);
+  } catch (error) {
+    logger.error(
+      `Failed to delete temporary test branch ${trackedBranchId(branchId)} for app ${appData.id}: ${error}`,
+    );
+  }
+}
+
+async function deleteBranchBestEffort(
+  projectId: string,
+  branchId: string,
+): Promise<boolean> {
+  try {
+    const neonClient = await getNeonClient();
+    await retryOnLocked(
+      () => neonClient.deleteProjectBranch(projectId, branchId),
+      `Delete test branch ${branchId}`,
+    );
+    logger.info(`Deleted test branch ${branchId} for project ${projectId}`);
+    return true;
+  } catch (error) {
+    // A 404 means Neon has already deleted the branch (e.g. a prior teardown
+    // deleted it but crashed before clearing the column). Treat that as success
+    // so the caller clears the stale id instead of dead-ending on it forever.
+    if (isNotFoundError(error)) {
+      logger.info(
+        `Test branch ${branchId} for project ${projectId} was already gone; treating as deleted`,
+      );
+      return true;
+    }
+    logger.warn(
+      `Failed to delete test branch ${branchId} for project ${projectId} (will be retried on next launch if still tracked): ${error}`,
+    );
+    return false;
+  }
+}
+
+/** Whether a Neon API error indicates the resource no longer exists (404). */
+function isNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    (error as { response?: { status?: number } }).response?.status === 404
+  );
+}
+
+async function restoreRealBranchEnvVars(appData: AppRow): Promise<boolean> {
+  const projectId = appData.neonProjectId;
+  const branchId = resolveParentBranchId(appData);
+  if (!projectId || !branchId) {
+    logger.warn(
+      `Cannot restore .env.local for app ${appData.id} before deleting test branch: missing Neon project or real branch.`,
+    );
+    return false;
+  }
+
+  try {
+    const appPath = getPrismAppPath(appData.path);
+    const frameworkType = detectFrameworkType(appPath);
+    const connectionUri = await retryOnLocked(
+      () => getConnectionUri({ projectId, branchId }),
+      `Restore Neon env for app ${appData.id}`,
+    );
+
+    let neonAuthBaseUrl: string | undefined;
+    let cookieSecret: string | undefined;
+    if (await appUsesNeonAuth(appData)) {
+      neonAuthBaseUrl = await retryOnLocked(
+        () => ensureNeonAuth({ projectId, branchId }),
+        `Restore Neon Auth env for app ${appData.id}`,
+      );
+      if (!neonAuthBaseUrl) {
+        throw new Error(
+          "Neon Auth could not be resolved for the app's real branch.",
+        );
+      }
+      if (frameworkType === "nextjs") {
+        cookieSecret = await getOrCreateNeonAuthCookieSecret({
+          appData,
+          branchType: resolveAuthBranchType(appData, branchId),
+        });
+      }
+    }
+
+    await updateNeonEnvVars({
+      appPath,
+      connectionUri,
+      neonAuthBaseUrl,
+      frameworkType,
+      cookieSecret,
+      preserveExistingAuth: false,
+    });
+    return true;
+  } catch (error) {
+    logger.warn(
+      `Failed to restore .env.local for app ${appData.id} before deleting test branch ${appData.neonTestBranchId}; leaving the branch tracked for retry: ${error}`,
+    );
+    return false;
+  }
+}
+
+/**
+ * Startup reconciliation: any app row still carrying a `neonTestBranchId` means
+ * a previous session crashed mid-run and leaked a copy-on-write branch. Delete
+ * the orphans best-effort and clear the column. Never throws — a failure here
+ * must not block app startup.
+ */
+export async function reconcileOrphanTestBranches(): Promise<void> {
+  try {
+    const rows = await db
+      .select()
+      .from(apps)
+      .where(isNotNull(apps.neonTestBranchId));
+    if (rows.length === 0) {
+      return;
+    }
+    logger.info(
+      `Reconciling ${rows.length} orphaned Neon test branch(es) from a previous session`,
+    );
+    for (const appData of rows) {
+      try {
+        await restoreAppFromTestBranch(appData);
+      } catch (error) {
+        logger.warn(
+          `Failed to reconcile orphaned test branch for app ${appData.id}: ${error}`,
+        );
+      }
+    }
+  } catch (error) {
+    logger.error(`Failed to reconcile orphaned test branches: ${error}`);
+  }
+}
+
+/**
+ * Put one app's `.env.local` back on its real branch and drop the temporary
+ * test branch. Returns whether the app is off the test branch afterwards.
+ *
+ * A teardown that couldn't restore the env deliberately keeps the branch
+ * tracked, so this is the retry — used both by the startup sweep above and by
+ * the relaunch paths, which would otherwise have nothing to offer the user
+ * beyond "edit the file yourself".
+ */
+export async function restoreAppFromTestBranch(
+  appData: AppRow,
+): Promise<boolean> {
+  if (!appData.neonTestBranchId) {
+    return true;
+  }
+  // Serialize against user-initiated test runs on the same app: both this and a
+  // run swap .env.local and restart the dev server, so an interleaving could
+  // leave the run pointed at the real database. The run path acquires the same
+  // per-app lock.
+  return appOperationCoordinator.run(
+    {
+      appId: appData.id,
+      operation: "reconcile-neon-test-branch",
+      resources: [
+        readAppResource("app-path"),
+        "provider",
+        "runtime",
+        "runtime-config",
+      ],
+    },
+    async () => {
+      // Rename, relocation, or provider reassociation may have completed while
+      // this operation waited for admission. Only the row read under app-path
+      // access is safe to use for filesystem and provider work.
+      const currentApp = await db.query.apps.findFirst({
+        where: eq(apps.id, appData.id),
+      });
+      if (!currentApp) {
+        logger.warn(
+          `Cannot restore test branch for app ${appData.id}: the app no longer exists.`,
+        );
+        return false;
+      }
+      if (!currentApp.neonTestBranchId) return true;
+
+      if (!isTestBranchCleanupOnly(currentApp.neonTestBranchId)) {
+        const restored = await restoreRealBranchEnvVars(currentApp);
+        if (!restored) {
+          return false;
+        }
+      }
+      // Same mark-then-delete tail the isolation teardown runs, shared so the
+      // marker scheme and the ordering it depends on live in one place. The env
+      // is real by now either way, which is what the relaunch gate cares about;
+      // a branch that survives stays tracked for the next sweep.
+      await markAndDeleteTempTestBranch(
+        currentApp,
+        currentApp.neonTestBranchId,
+      );
+      return true;
+    },
+  );
+}

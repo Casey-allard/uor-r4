@@ -1,0 +1,1097 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { normalizePath } from "../../shared/normalizePath";
+import {
+  sanitizeAppFolderNameInput,
+  slugifyAppFolderName,
+} from "@/shared/app_names";
+import { useSetAtom } from "jotai";
+import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { selectedChatIdAtom } from "@/atoms/chatAtoms";
+import { ipc } from "@/ipc/types";
+import { useLoadApps } from "@/hooks/useLoadApps";
+import { useChats } from "@/hooks/useChats";
+import { useSelectChat } from "@/hooks/useSelectChat";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  MoreVertical,
+  MessageCircle,
+  Pencil,
+  Plus,
+  Folder,
+  Star,
+  Trash2,
+} from "lucide-react";
+import { BackButton } from "@/components/ui/back-button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { GitHubConnector } from "@/components/GitHubConnector";
+import { SupabaseConnector } from "@/components/SupabaseConnector";
+import { NeonConnector } from "@/components/NeonConnector";
+import { showError, showSuccess } from "@/lib/toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Label } from "@/components/ui/label";
+import { Info, Loader2 } from "lucide-react";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { invalidateAppQuery } from "@/hooks/useLoadApp";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useCheckName } from "@/hooks/useCheckName";
+import { useAppFolderPreview } from "@/hooks/useAppFolderPreview";
+import { AppUpgrades } from "@/components/AppUpgrades";
+import { CapacitorControls } from "@/components/CapacitorControls";
+import { GithubCollaboratorManager } from "@/components/GithubCollaboratorManager";
+import { useAddAppToFavorite } from "@/hooks/useAddAppToFavorite";
+import { useAppCollections } from "@/hooks/useAppCollections";
+import { AssignAppsToCollectionDialog } from "@/components/AssignAppsToCollectionDialog";
+import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/queryKeys";
+
+function UnavailableIntegrationCard({
+  provider,
+}: {
+  provider: "supabase" | "neon";
+}) {
+  const { t } = useTranslation("home");
+  const label = provider === "supabase" ? "Supabase" : "Neon";
+  const descriptionKey =
+    provider === "supabase"
+      ? "integrations.mutualExclusion.supabaseUnavailable"
+      : "integrations.mutualExclusion.neonUnavailable";
+  return (
+    <Card className="mt-1">
+      <CardHeader className="flex flex-row items-center gap-3 py-3">
+        <Info className="h-5 w-5 text-muted-foreground shrink-0" />
+        <div>
+          <CardTitle className="text-sm">{label}</CardTitle>
+          <CardDescription className="text-xs">
+            {t(descriptionKey)}
+          </CardDescription>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+}
+
+export default function AppDetailsPage() {
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/app-details" as const });
+  const appId = search.appId ? Number(search.appId) : null;
+  const { t } = useTranslation("home");
+  const { apps: appsList, refreshApps } = useLoadApps();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [isRenameConfirmDialogOpen, setIsRenameConfirmDialogOpen] =
+    useState(false);
+  const [newAppName, setNewAppName] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isRenameFolderDialogOpen, setIsRenameFolderDialogOpen] =
+    useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isRenamingFolder, setIsRenamingFolder] = useState(false);
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
+  const isOpeningChatRef = useRef(false);
+
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
+  const [newCopyAppName, setNewCopyAppName] = useState("");
+  const [isChangeLocationDialogOpen, setIsChangeLocationDialogOpen] =
+    useState(false);
+
+  const queryClient = useQueryClient();
+  const setSelectedAppId = useSetAtom(selectedAppIdAtom);
+  const setSelectedChatId = useSetAtom(selectedChatIdAtom);
+
+  const trimmedNewCopyAppName = newCopyAppName.trim();
+  const debouncedNewCopyAppName = useDebounce(trimmedNewCopyAppName, 150);
+  const copyQueryMatchesInput =
+    debouncedNewCopyAppName === trimmedNewCopyAppName;
+  const { data: checkNameResult, isLoading: isCheckingName } = useCheckName(
+    debouncedNewCopyAppName,
+  );
+  const nameExists = copyQueryMatchesInput && !!checkNameResult?.exists;
+  const { data: copyFolderPreview } = useAppFolderPreview(
+    debouncedNewCopyAppName,
+  );
+  const trimmedNewAppName = newAppName.trim();
+  const debouncedNewAppName = useDebounce(trimmedNewAppName, 150);
+  const renameQueryMatchesInput = debouncedNewAppName === trimmedNewAppName;
+  const { data: renameFolderPreview, isLoading: isLoadingRenameFolderPreview } =
+    useAppFolderPreview(debouncedNewAppName, appId ?? undefined);
+  const desiredRenameFolder = slugifyAppFolderName(trimmedNewAppName);
+  const renameFolderHasCollision =
+    renameQueryMatchesInput &&
+    !!renameFolderPreview &&
+    renameFolderPreview !== desiredRenameFolder;
+  const { toggleFavorite, isLoading: isFavoriteLoading } =
+    useAddAppToFavorite();
+
+  // Get the appId and provider filter from search params
+  const providerFilter = search.provider;
+  const { chats, loading: chatsLoading, invalidateChats } = useChats(appId);
+  const { selectChat } = useSelectChat();
+
+  const { data: screenshotsData } = useQuery({
+    queryKey: queryKeys.apps.screenshots({ appId }),
+    queryFn: () => ipc.app.listAppScreenshots({ appId: appId! }),
+    enabled: !!appId,
+  });
+  const [screenshotLoadFailed, setScreenshotLoadFailed] = useState(false);
+  const latestScreenshotUrl = screenshotsData?.screenshots[0]?.url ?? null;
+  useEffect(() => {
+    setScreenshotLoadFailed(false);
+  }, [latestScreenshotUrl]);
+  const selectedApp = appId ? appsList.find((app) => app.id === appId) : null;
+
+  const { collections, assignApps } = useAppCollections();
+  const [isAssignCollectionDialogOpen, setIsAssignCollectionDialogOpen] =
+    useState(false);
+  const currentCollection = useMemo(
+    () =>
+      selectedApp?.collectionId != null
+        ? (collections.find((c) => c.id === selectedApp.collectionId) ?? null)
+        : null,
+    [collections, selectedApp?.collectionId],
+  );
+
+  useEffect(() => {
+    if (appId) {
+      setSelectedAppId(appId);
+      setSelectedChatId(null);
+    }
+  }, [appId, setSelectedAppId, setSelectedChatId]);
+
+  const handleDeleteApp = async () => {
+    if (!appId) return;
+
+    try {
+      setIsDeleting(true);
+      await ipc.app.deleteApp({ appId });
+      setIsDeleteDialogOpen(false);
+      setSelectedAppId(null);
+      setSelectedChatId(null);
+      await refreshApps();
+      navigate({ to: "/", search: {} });
+    } catch (error) {
+      setIsDeleteDialogOpen(false);
+      showError(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleOpenRenameDialog = () => {
+    if (selectedApp) {
+      setNewAppName(selectedApp.name);
+      setIsRenameDialogOpen(true);
+    }
+  };
+
+  const handleOpenRenameFolderDialog = () => {
+    if (selectedApp) {
+      setNewFolderName(
+        normalizePath(selectedApp.path).split("/").pop() || selectedApp.path,
+      );
+      setIsRenameFolderDialogOpen(true);
+    }
+  };
+
+  const handleRenameApp = async (renameFolder: boolean) => {
+    if (!appId || !selectedApp || !newAppName.trim()) return;
+
+    try {
+      setIsRenaming(true);
+
+      // Determine the new path based on user's choice. A folder derived from
+      // the display name is a lowercase slug per the app naming policy.
+      const appPath = renameFolder
+        ? slugifyAppFolderName(newAppName)
+        : selectedApp.path;
+
+      await ipc.app.renameApp({
+        appId,
+        appName: newAppName,
+        appPath,
+      });
+
+      setIsRenameDialogOpen(false);
+      setIsRenameConfirmDialogOpen(false);
+      await refreshApps();
+    } catch (error) {
+      console.error("Failed to rename app:", error);
+      const errorMessage = (
+        error instanceof Error ? error.message : String(error)
+      ).replace(/^Error invoking remote method 'rename-app': Error: /, "");
+      showError(errorMessage);
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleRenameFolderOnly = async () => {
+    if (!appId || !selectedApp || !newFolderName.trim()) return;
+
+    try {
+      setIsRenamingFolder(true);
+      // Safety-sanitize the user-typed folder name (case-preserving, no
+      // slugification) and keep the sanitized value visible in the field.
+      const sanitizedFolderName = sanitizeAppFolderNameInput(newFolderName);
+      setNewFolderName(sanitizedFolderName);
+      await ipc.app.renameApp({
+        appId,
+        appName: selectedApp.name, // Keep the app name the same
+        appPath: sanitizedFolderName, // Change only the folder path
+      });
+
+      setIsRenameFolderDialogOpen(false);
+      await refreshApps();
+    } catch (error) {
+      console.error("Failed to rename folder:", error);
+      const errorMessage = (
+        error instanceof Error ? error.message : String(error)
+      ).replace(/^Error invoking remote method 'rename-app': Error: /, "");
+      showError(errorMessage);
+    } finally {
+      setIsRenamingFolder(false);
+    }
+  };
+
+  const handleAppNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCopyAppName(e.target.value);
+  };
+
+  const handleOpenCopyDialog = () => {
+    if (selectedApp) {
+      setNewCopyAppName(`${selectedApp.name}-copy`);
+      setIsCopyDialogOpen(true);
+    }
+  };
+
+  const handleChangeLocation = async () => {
+    if (!selectedApp || !appId) return;
+
+    try {
+      // Get the current parent directory as default
+      const currentPath = selectedApp.resolvedPath || "";
+      const currentParentDir = currentPath
+        ? currentPath.replace(/[/\\][^/\\]*$/, "") // Remove last path component
+        : undefined;
+
+      const response = await ipc.app.selectAppLocation({
+        defaultPath: currentParentDir,
+      });
+      if (!response.canceled && response.path) {
+        await changeLocationMutation.mutateAsync({
+          appId,
+          parentDirectory: response.path,
+        });
+        setIsChangeLocationDialogOpen(false);
+      } else {
+        // User canceled the file dialog, close the change location dialog
+        setIsChangeLocationDialogOpen(false);
+      }
+    } catch {
+      // Error is already shown by the mutation's onError
+      setIsChangeLocationDialogOpen(false);
+    }
+  };
+
+  const copyAppMutation = useMutation({
+    mutationFn: async ({ withHistory }: { withHistory: boolean }) => {
+      if (!appId || !newCopyAppName.trim()) {
+        throw new Error("Invalid app ID or name for copying.");
+      }
+      return ipc.app.copyApp({
+        appId,
+        newAppName: newCopyAppName,
+        withHistory,
+      });
+    },
+    onSuccess: async (data) => {
+      const appId = data.app.id;
+      setSelectedAppId(appId);
+      await invalidateAppQuery(queryClient, { appId });
+      await refreshApps();
+      await ipc.chat.createChat(appId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
+      setIsCopyDialogOpen(false);
+      navigate({ to: "/app-details", search: { appId } });
+    },
+    onError: (error) => {
+      showError(error);
+    },
+  });
+
+  const changeLocationMutation = useMutation({
+    mutationFn: async (params: { appId: number; parentDirectory: string }) => {
+      return ipc.app.changeAppLocation(params);
+    },
+    onSuccess: async () => {
+      await invalidateAppQuery(queryClient, { appId });
+      await refreshApps();
+      showSuccess("App location updated");
+    },
+    onError: (error) => {
+      showError(error);
+    },
+  });
+
+  if (!selectedApp) {
+    return (
+      <div className="relative min-h-screen p-8">
+        <BackButton label="Back" className="absolute top-4 left-4 mb-0" />
+        <div className="flex flex-col items-center justify-center h-full">
+          <h2 className="text-xl font-bold">App not found</h2>
+        </div>
+      </div>
+    );
+  }
+
+  const currentAppPath = selectedApp.resolvedPath || "";
+  const latestChat = chats[0];
+  const handleOpenInChat = async () => {
+    if (isOpeningChatRef.current) {
+      return;
+    }
+
+    if (!appId) {
+      console.error("No app id found");
+      return;
+    }
+
+    try {
+      isOpeningChatRef.current = true;
+      setIsOpeningChat(true);
+      if (latestChat) {
+        selectChat({ chatId: latestChat.id, appId });
+        return;
+      }
+
+      const chatId = await ipc.chat.createChat({ appId });
+      await invalidateChats();
+      selectChat({ chatId, appId });
+    } catch (error) {
+      showError(error);
+    } finally {
+      isOpeningChatRef.current = false;
+      setIsOpeningChat(false);
+    }
+  };
+
+  return (
+    <div
+      className="relative min-h-screen p-4 w-full"
+      data-testid="app-details-page"
+    >
+      <BackButton label="Back" className="absolute top-4 left-4 mb-0" />
+
+      <div className="w-full max-w-2xl mx-auto mt-10 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm relative">
+        <div className="flex items-center mb-3">
+          <h2 className="text-2xl font-bold">{selectedApp.name}</h2>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-1 p-0.5 h-auto"
+                  onClick={() => appId && toggleFavorite(appId)}
+                  disabled={isFavoriteLoading}
+                  data-testid="favorite-button"
+                />
+              }
+            >
+              <Star
+                className={`h-4 w-4 ${
+                  selectedApp.isFavorite
+                    ? "fill-[#6c55dc] text-[#6c55dc]"
+                    : "hover:fill-[#6c55dc] hover:text-[#6c55dc]"
+                }`}
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              {selectedApp.isFavorite
+                ? "Remove from favorites"
+                : "Add to favorites"}
+            </TooltipContent>
+          </Tooltip>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-1 p-0.5 h-auto"
+            onClick={handleOpenRenameDialog}
+            data-testid="app-details-rename-app-button"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Overflow Menu in top right */}
+        <div className="absolute top-2 right-2">
+          <Popover>
+            <PopoverTrigger
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 w-7 p-0"
+              data-testid="app-details-more-options-button"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </PopoverTrigger>
+            <PopoverContent className="w-40 p-2" align="end">
+              <div className="flex flex-col space-y-0.5">
+                <Button
+                  onClick={handleOpenRenameFolderDialog}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                >
+                  Rename folder
+                </Button>
+                <Button
+                  onClick={() => setIsChangeLocationDialogOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                >
+                  Move folder
+                </Button>
+                <Button
+                  onClick={handleOpenCopyDialog}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                >
+                  Copy app
+                </Button>
+                <Button
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                >
+                  Delete
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {latestScreenshotUrl && !screenshotLoadFailed && (
+          <button
+            type="button"
+            onClick={handleOpenInChat}
+            disabled={chatsLoading || isOpeningChat}
+            aria-label={`Open ${selectedApp.name} in Chat`}
+            data-testid="app-details-screenshot-open-in-chat"
+            className="group relative mb-4 block aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-60"
+          >
+            <img
+              src={latestScreenshotUrl}
+              alt={`Preview of ${selectedApp?.name ?? "app"}`}
+              onError={() => setScreenshotLoadFailed(true)}
+              className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.02] group-disabled:scale-100"
+            />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/15 group-hover:opacity-100 group-disabled:opacity-0">
+              <span className="flex items-center gap-2 rounded-md bg-background/95 px-3 py-1.5 text-sm font-medium text-foreground shadow-md">
+                Open in Chat
+                <MessageCircle className="h-4 w-4" />
+              </span>
+            </div>
+          </button>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+          <div>
+            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
+              Created
+            </span>
+            <span>{selectedApp.createdAt.toString()}</span>
+          </div>
+          <div>
+            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
+              Last Updated
+            </span>
+            <span>{selectedApp.updatedAt.toString()}</span>
+          </div>
+          <div className="col-span-2">
+            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
+              Path
+            </span>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-[-8px] p-0.5 h-auto cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      onClick={() => {
+                        ipc.system.showItemInFolder(currentAppPath);
+                      }}
+                    />
+                  }
+                >
+                  <Folder className="h-3.5 w-3.5" />
+                </TooltipTrigger>
+                <TooltipContent>Show in folder</TooltipContent>
+              </Tooltip>
+              <span className="text-sm break-all">{currentAppPath}</span>
+            </div>
+          </div>
+          <div className="col-span-2">
+            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
+              Collection
+            </span>
+            <div className="flex items-center gap-1">
+              <Folder className="h-3.5 w-3.5 text-muted-foreground" />
+              <span
+                className="text-sm"
+                data-testid="app-details-collection-name"
+              >
+                {currentCollection?.name ?? "No collection yet"}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-1 h-auto text-muted-foreground cursor-pointer hover:bg-transparent hover:text-foreground transition-colors"
+                onClick={() => setIsAssignCollectionDialogOpen(true)}
+                data-testid="app-details-edit-collection-button"
+              >
+                {selectedApp.collectionId == null ? (
+                  <Plus className="h-3.5 w-3.5" />
+                ) : (
+                  <Pencil className="h-3.5 w-3.5" />
+                )}
+              </Button>
+              {selectedApp.collectionId != null && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-2 h-auto text-muted-foreground cursor-pointer hover:bg-transparent hover:text-destructive transition-colors"
+                  onClick={async () => {
+                    try {
+                      await assignApps({
+                        collectionId: null,
+                        appIds: [selectedApp.id],
+                      });
+                      showSuccess("Removed from collection");
+                    } catch (error) {
+                      showError(error);
+                    }
+                  }}
+                  title="Remove from collection"
+                  aria-label="Remove from collection"
+                  data-testid="app-details-remove-collection-button"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2">
+          <Button
+            onClick={handleOpenInChat}
+            disabled={chatsLoading || isOpeningChat}
+            className="cursor-pointer w-full py-5 flex justify-center items-center gap-2"
+            size="lg"
+          >
+            Open in Chat
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+          <div className="border border-gray-200 rounded-md p-4">
+            <GitHubConnector appId={appId} folderName={selectedApp.path} />
+            {selectedApp.githubOrg && selectedApp.githubRepo && appId && (
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                <GithubCollaboratorManager appId={appId} />
+              </div>
+            )}
+          </div>
+          {/* When providerFilter is set, show the selected connector only if the other provider isn't already active */}
+          {providerFilter === "supabase" &&
+            appId &&
+            !selectedApp?.neonProjectId && <SupabaseConnector appId={appId} />}
+          {providerFilter === "supabase" &&
+            appId &&
+            selectedApp?.neonProjectId && (
+              <UnavailableIntegrationCard provider="supabase" />
+            )}
+          {providerFilter === "neon" &&
+            appId &&
+            !selectedApp?.supabaseProjectId && <NeonConnector appId={appId} />}
+          {providerFilter === "neon" &&
+            appId &&
+            selectedApp?.supabaseProjectId && (
+              <UnavailableIntegrationCard provider="neon" />
+            )}
+          {/* When no providerFilter, show both with existing mutual exclusion */}
+          {!providerFilter && (
+            <>
+              {appId &&
+                !selectedApp?.neonProjectId &&
+                !selectedApp?.supabaseProjectId && (
+                  <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{t("integrations.mutualExclusion.chooseOne")}</span>
+                  </div>
+                )}
+              {appId && !selectedApp?.neonProjectId && (
+                <SupabaseConnector appId={appId} />
+              )}
+              {appId && selectedApp?.neonProjectId && (
+                <UnavailableIntegrationCard provider="supabase" />
+              )}
+              {appId && !selectedApp?.supabaseProjectId && (
+                <NeonConnector appId={appId} />
+              )}
+              {appId && selectedApp?.supabaseProjectId && (
+                <UnavailableIntegrationCard provider="neon" />
+              )}
+            </>
+          )}
+          {appId && <CapacitorControls appId={appId} />}
+          <AppUpgrades appId={appId} />
+        </div>
+
+        {/* Rename Dialog */}
+        <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle>Rename App</DialogTitle>
+            </DialogHeader>
+            <Input
+              value={newAppName}
+              onChange={(e) => setNewAppName(e.target.value)}
+              placeholder="Enter new app name"
+              className="my-2"
+              autoFocus
+            />
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRenameDialogOpen(false)}
+                disabled={isRenaming}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsRenameDialogOpen(false);
+                  setIsRenameConfirmDialogOpen(true);
+                }}
+                disabled={isRenaming || !newAppName.trim()}
+                size="sm"
+              >
+                Continue
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rename Folder Dialog */}
+        <Dialog
+          open={isRenameFolderDialogOpen}
+          onOpenChange={setIsRenameFolderDialogOpen}
+        >
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle>Rename app folder</DialogTitle>
+              <DialogDescription className="text-xs">
+                This will change only the folder name, not the app name.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Enter new folder name"
+              className="my-2"
+              autoFocus
+            />
+            {newFolderName.trim() &&
+              sanitizeAppFolderNameInput(newFolderName) !==
+                newFolderName.trim() && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t("folderSanitizedPreview", {
+                    folderName: sanitizeAppFolderNameInput(newFolderName),
+                  })}
+                </p>
+              )}
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRenameFolderDialogOpen(false)}
+                disabled={isRenamingFolder}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameFolderOnly}
+                disabled={isRenamingFolder || !newFolderName.trim()}
+                size="sm"
+              >
+                {isRenamingFolder ? (
+                  <>
+                    <svg
+                      className="animate-spin h-3 w-3 mr-1"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Renaming...
+                  </>
+                ) : (
+                  "Rename Folder"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rename Confirmation Dialog */}
+        <Dialog
+          open={isRenameConfirmDialogOpen}
+          onOpenChange={setIsRenameConfirmDialogOpen}
+        >
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-base">
+                How would you like to rename "{selectedApp.name}"?
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Choose an option:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 my-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start p-2 h-auto relative text-sm"
+                onClick={() => handleRenameApp(true)}
+                disabled={
+                  isRenaming ||
+                  !renameQueryMatchesInput ||
+                  isLoadingRenameFolderPreview ||
+                  renameFolderHasCollision
+                }
+              >
+                <div className="absolute top-1 right-1">
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 text-[10px]">
+                    Recommended
+                  </span>
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-xs">Rename app and folder</p>
+                  {renameFolderHasCollision ? (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                      {t("renameFolderCollision", {
+                        folderName: desiredRenameFolder,
+                      })}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t("renameFolderDescription", {
+                        folderName: desiredRenameFolder,
+                      })}
+                    </p>
+                  )}
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start p-2 h-auto text-sm"
+                onClick={() => handleRenameApp(false)}
+                disabled={isRenaming}
+              >
+                <div className="text-left">
+                  <p className="font-medium text-xs">Rename app only</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    The folder name will remain the same.
+                  </p>
+                </div>
+              </Button>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRenameConfirmDialogOpen(false)}
+                disabled={isRenaming}
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Copy App Dialog */}
+        {selectedApp && (
+          <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
+            <DialogContent className="max-w-md p-4">
+              <DialogHeader className="pb-2">
+                <DialogTitle>Copy "{selectedApp.name}"</DialogTitle>
+                <DialogDescription className="text-sm">
+                  <p>Create a copy of this app.</p>
+                  <p>
+                    Note: this does not copy over the Supabase project or GitHub
+                    project.
+                  </p>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 my-2">
+                <div>
+                  <Label htmlFor="newAppName">New app name</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="newAppName"
+                      value={newCopyAppName}
+                      onChange={handleAppNameChange}
+                      placeholder="Enter new app name"
+                      className="pr-8"
+                      disabled={copyAppMutation.isPending}
+                    />
+                    {isCheckingName && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+
+                  {nameExists && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
+                      An app with this name already exists. Please choose
+                      another name.
+                    </p>
+                  )}
+                  {!nameExists &&
+                    copyQueryMatchesInput &&
+                    copyFolderPreview &&
+                    copyFolderPreview !== trimmedNewCopyAppName && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("appFolderPreview", {
+                          folderName: copyFolderPreview,
+                        })}
+                      </p>
+                    )}
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start p-2 h-auto relative text-sm"
+                    onClick={() =>
+                      copyAppMutation.mutate({ withHistory: true })
+                    }
+                    disabled={
+                      copyAppMutation.isPending ||
+                      nameExists ||
+                      !trimmedNewCopyAppName ||
+                      !copyQueryMatchesInput ||
+                      isCheckingName
+                    }
+                  >
+                    {copyAppMutation.isPending &&
+                      copyAppMutation.variables?.withHistory === true && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                    <div className="absolute top-1 right-1">
+                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 text-[10px]">
+                        Recommended
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-xs">
+                        Copy app with history
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Copies the entire app, including the Git version
+                        history.
+                      </p>
+                    </div>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start p-2 h-auto text-sm"
+                    onClick={() =>
+                      copyAppMutation.mutate({ withHistory: false })
+                    }
+                    disabled={
+                      copyAppMutation.isPending ||
+                      nameExists ||
+                      !trimmedNewCopyAppName ||
+                      !copyQueryMatchesInput ||
+                      isCheckingName
+                    }
+                  >
+                    {copyAppMutation.isPending &&
+                      copyAppMutation.variables?.withHistory === false && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                    <div className="text-left">
+                      <p className="font-medium text-xs">
+                        Copy app without history
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Useful if the current app has a Git-related issue.
+                      </p>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCopyDialogOpen(false)}
+                  disabled={copyAppMutation.isPending}
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Change Location Dialog */}
+        <Dialog
+          open={isChangeLocationDialogOpen}
+          onOpenChange={setIsChangeLocationDialogOpen}
+        >
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle>Change App Location</DialogTitle>
+              <DialogDescription className="text-xs">
+                Select a folder where this app will be stored. The app folder
+                name will remain the same.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsChangeLocationDialogOpen(false)}
+                disabled={changeLocationMutation.isPending}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleChangeLocation}
+                disabled={changeLocationMutation.isPending}
+                size="sm"
+              >
+                {changeLocationMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Moving...
+                  </>
+                ) : (
+                  "Select Folder"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="max-w-sm p-4">
+            <DialogHeader className="pb-2">
+              <DialogTitle>Delete "{selectedApp.name}"?</DialogTitle>
+              <DialogDescription className="text-xs">
+                This action is irreversible. All app files and chat history will
+                be permanently deleted.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isDeleting}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteApp}
+                disabled={isDeleting}
+                className="flex items-center gap-1"
+                size="sm"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-3 w-3 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete App"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AssignAppsToCollectionDialog
+          open={isAssignCollectionDialogOpen}
+          onOpenChange={setIsAssignCollectionDialogOpen}
+          apps={selectedApp ? [selectedApp] : []}
+          collections={collections}
+        />
+      </div>
+    </div>
+  );
+}

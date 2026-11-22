@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "sec-impact"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "Impact"
+
+[[form]]
+id = "sec-impact"
+channel = "text"
+surface = "security impact"
+canonical_source = true
+features = ["sentence-case", "singular"]

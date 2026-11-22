@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism Live Lab</title>
+<link rel="stylesheet" href="../../shell/brand.css">
+<style>
+  :root { --lab-line: color-mix(in srgb, currentColor 14%, transparent); }
+  body { margin: 0; height: 100vh; display: grid; grid-template-rows: auto 1fr; font-family: var(--font-sans, system-ui, sans-serif); background: var(--background, #fff); color: var(--foreground, #111); }
+  header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--lab-line); font-size: 13px; }
+  header b.bad { color: #c2410c; }
+  header code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; }
+  #stage { flex: 1; min-width: 240px; }
+  button, select { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--lab-line); background: transparent; color: inherit; cursor: pointer; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; } }
+  textarea { width: 100%; height: 100%; box-sizing: border-box; border: 0; border-right: 1px solid var(--lab-line); resize: none; padding: 12px 14px; font: 12px/1.5 var(--font-mono, ui-monospace, monospace); background: transparent; color: inherit; outline: 0; }
+  iframe { width: 100%; height: 100%; border: 0; }
+  #streamed { width: 100%; font-size: 12px; opacity: .75; }
+</style>
+</head>
+<body>
+<header>
+  <strong>Prism Live</strong>
+  <span id="stage">loading the live frame…</span>
+  <select id="rate" aria-label="Stream rate"><option value="400">400 chars/s (a slow model)</option><option value="2000" selected>2,000 chars/s</option><option value="8000">8,000 chars/s</option></select>
+  <button id="stream">Stream the module as a model would</button>
+  <span id="streamed"></span>
+</header>
+<main>
+  <textarea id="src" spellcheck="false" aria-label="Canonical LexLean module"></textarea>
+  <iframe id="frame" title="Live preview" sandbox="allow-scripts"></iframe>
+</main>
+<script type="module" src="lab.mjs"></script>
+</body>
+</html>

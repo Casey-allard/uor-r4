@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-uml-component"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "UmlComponent"
+
+[[form]]
+id = "arch-uml-component"
+channel = "text"
+surface = "UML component"
+canonical_source = true
+features = ["sentence-case", "singular"]

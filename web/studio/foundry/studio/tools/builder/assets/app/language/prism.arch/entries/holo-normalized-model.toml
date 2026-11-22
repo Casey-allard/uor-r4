@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "holo-normalized-model"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Holo"
+component = "NormalizedHolo"
+
+[[form]]
+id = "holo-normalized-model"
+channel = "text"
+surface = "normalized hologram model"
+canonical_source = true
+features = ["sentence-case", "singular"]

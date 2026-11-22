@@ -1,0 +1,577 @@
+/* The appearance switch on the renderer's UI: the button, the popover, the three looks. Layout and behaviour
+   only: every colour, font and radius comes from brand.css, generated from the Hologram brand kit's
+   tokens, through the same variables the renderer's own components read. Immersive is brand.css's business too
+   (the photo behind a transparent main surface, glass on the panels); this file only places the switch. */
+
+/* The switch: a sun at the top right, on the header bar's centre line (48 px high), above the renderer's UI; the popover under it. */
+.appearance {
+  position: fixed; top: 9px; right: 14px; z-index: 60; width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--popover); color: var(--popover-foreground); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  opacity: 0.85; transition: opacity 0.15s, transform 0.15s;
+}
+.appearance:hover { opacity: 1; transform: translateY(1px) scale(1.04); }
+.appearance:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; opacity: 1; }
+/* Full screen sits at the far right, the sun 8 px to its left (appearance.js draws it only where a page can
+   fill the screen). The build screen on a phone (data-holo-pane) has a bottom bar whose right slot is the
+   sun's; full screen keeps out of it there. */
+.has-fullscreen .appearance:not(.fullscreen) { right: 52px; }
+:root[data-holo-pane] .fullscreen { display: none; }
+:root[data-holo-pane].has-fullscreen .appearance:not(.fullscreen) { right: 14px; }
+@media (prefers-reduced-motion: reduce) { .appearance { transition: none; } .appearance:hover { transform: none; } }
+.popover {
+  position: fixed; top: 46px; right: 14px; z-index: 61; width: 320px; padding: 16px; border-radius: calc(var(--radius) + 8px);
+  border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground);
+  font-family: var(--font-sans); font-size: 14px; display: grid; gap: 12px;
+}
+.popover[hidden] { display: none; }
+
+/* The Prism frame's theme panel (UOR-Foundation/template frame/panels.css): a title, the three looks as
+   one segmented control, the search, nine photos, the credit. */
+.theme-head { font-size: 16px; font-weight: 600; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); }
+.seg .mode { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px; padding: 0 8px; border: 0; border-radius: calc(var(--radius) + 1px); background: transparent; color: var(--muted-foreground); font: inherit; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.seg .mode svg { flex: none; width: 15px; height: 15px; }
+.seg .mode:hover { color: var(--popover-foreground); }
+.seg .mode[aria-checked="true"] { background: var(--accent); color: var(--accent-foreground); font-weight: 500; }
+.photos-part { display: grid; gap: 10px; }
+.photos-part[hidden] { display: none; }
+.find { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: calc(var(--radius) + 2px); color: var(--muted-foreground); cursor: text; }
+.find:focus-within { border-color: color-mix(in srgb, var(--popover-foreground) 35%, transparent); }
+.find input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--popover-foreground); font: inherit; }
+.find input::-webkit-search-cancel-button { display: none; }
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.photo { aspect-ratio: 1.5; border-radius: calc(var(--radius) - 1px); border: 2px solid transparent; background-size: cover; background-position: center; cursor: pointer; padding: 0; transition: transform 0.15s, border-color 0.15s; }
+.photo:hover { transform: scale(1.03); }
+.photo[aria-pressed="true"] { border-color: color-mix(in srgb, var(--popover-foreground) 70%, transparent); }
+.photos .none { grid-column: 1 / -1; margin: 6px 0; color: var(--muted-foreground); font-size: 13px; }
+.credit { margin: 0; color: var(--muted-foreground); font-size: 13px; }
+.credit[hidden] { display: none; }
+.credit a { color: var(--popover-foreground); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
+
+/* The prompt box, on the home page and in a chat, wears Holo Search's search-bar edge: the frame's
+   address-bar spectrum (its stops, 100 degrees, a 200% sweep drifting over 24 s), drawn as a 1 px ring by
+   masking the gradient to the padding, always on and brighter while focused. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl {
+  /* The stops are the frame's, generated into brand.css by tools/brand_kit.py from frame/frame.css. */
+  --spectrum: linear-gradient(100deg,
+    var(--spectrum-red) 0%, var(--spectrum-orange) 7%, var(--spectrum-amber) 14%, var(--spectrum-yellow) 19%,
+    var(--spectrum-green) 25%, var(--spectrum-cyan) 31%, var(--spectrum-blue) 38%, var(--spectrum-violet) 45%,
+    var(--spectrum-pink) 48%, var(--spectrum-red) 50%, var(--spectrum-orange) 57%, var(--spectrum-amber) 64%,
+    var(--spectrum-yellow) 69%, var(--spectrum-green) 75%, var(--spectrum-cyan) 81%, var(--spectrum-blue) 88%,
+    var(--spectrum-violet) 95%, var(--spectrum-pink) 98%, var(--spectrum-red) 100%);
+  border-color: transparent !important; box-shadow: none !important;
+}
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; padding: 1px; border-radius: inherit; pointer-events: none;
+  background-image: var(--spectrum); background-size: 200% 100%; opacity: 0.618; animation: spectrum-drift 24s linear infinite;
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl:is(:hover, :focus-within)::before { opacity: 0.854; }
+@keyframes spectrum-drift { to { background-position: 200% 0; } }
+@media (prefers-reduced-motion: reduce) { :is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl::before { animation: none; } }
+
+/* The composer, on home and on the build screen alike: the words on top, one row of controls under them (attach on the left; the model and
+   send on the right). The writing zone is the control band times the golden ratio (a 44 px band: 34 px
+   controls and the 10 px edge under them; 71 px of writing), on a near opaque ground of the page's own
+   surface, so the box reads as one solid object over any photo. Its edge is a neutral hairline; the
+   spectrum stays as light gathered at the top and bottom centre, the ring faded out towards the sides and
+   a soft glow falling below the box. No shadow. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl {
+  --band: 44px; --zone: calc(var(--band) * 1.618);
+  display: grid; grid-template-columns: auto 1fr auto auto; grid-template-rows: auto minmax(var(--zone), auto) 34px; --words: 2; --controls: 3; align-items: center; column-gap: 6px;
+  padding: 0 10px 10px; border-radius: calc(var(--radius) + 12px);
+  border: 1px solid color-mix(in srgb, var(--foreground) 11%, transparent) !important;
+  background: color-mix(in srgb, var(--background-lighter) 94%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent) !important;
+}
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl:is(:hover, :focus-within) { border-color: color-mix(in srgb, var(--foreground) 18%, transparent) !important; }
+/* The ring, masked to a band that fades out by 12% from either side. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl::before {
+  opacity: 1;
+  -webkit-mask: linear-gradient(90deg, transparent 12%, black 50%, transparent 88%), linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
+  -webkit-mask-composite: source-in, xor;
+  mask: linear-gradient(90deg, transparent 12%, black 50%, transparent 88%), linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
+  mask-composite: intersect, exclude;
+}
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl:is(:hover, :focus-within)::before { opacity: 1; }
+/* The glow: the same spectrum, blurred, clipped to fall only below the edge. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl::after {
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: -2px; height: 3px; border-radius: 999px; pointer-events: none;
+  background-image: var(--spectrum); background-size: 200% 100%; animation: spectrum-drift 24s linear infinite;
+  filter: blur(7px); opacity: 0.9; clip-path: inset(2px -60px -60px -60px); transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) { :is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl::after { animation: none; } }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl > :is(div.flex.items-end, div.justify-between) { display: contents; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl > :not(div.flex.items-end, div.justify-between) { grid-column: 1 / -1; }
+/* The words: the full width, the zone's height before they grow. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.relative.flex-1 { grid-column: 1 / -1; grid-row: var(--words); margin: 0 -10px; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.relative.flex-1 > div:first-child { min-height: var(--zone); padding: 18px 20px 6px; font-size: 16px; line-height: 1.5; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.relative.flex-1 div.absolute { top: 18px; left: 20px; font-size: 16px; line-height: 1.5; }
+/* The controls: attach (an outlined circle) first, then the model, then send (a soft square). */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > button { grid-row: var(--controls); grid-column: 1; width: 34px; height: 34px; margin: 0 !important;
+  background: transparent !important; color: var(--foreground); border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent); }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > button:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent) !important; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > div { grid-row: var(--controls); grid-column: 3; height: 34px; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > div .w-1\.5 { display: none; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) button[aria-label="Send message"] { grid-row: var(--controls); grid-column: 4; margin: 0 !important; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: calc(var(--radius) + 2px); background: color-mix(in srgb, var(--foreground) 9%, transparent); color: var(--primary) !important; }
+/* One row on any width: attach, then the app chosen (which takes the room left and cuts its name short),
+   then the model and send at the right. Nothing in the row can push the box past the screen: on a phone
+   the model drops its Cloud/Local tag and takes at most 40% of the width, so the app's name keeps room. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) > div.rounded-2xl { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > div,
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) div.justify-between > div > div.flex { display: contents; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="model-picker"] { grid-row: var(--controls); grid-column: 3; min-width: 0; max-width: min(240px, 52vw); height: 34px; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="home-app-selector"] { grid-row: var(--controls); grid-column: 2; justify-self: start; min-width: 0; max-width: 100%;
+  height: 34px; margin: 0 !important; padding: 0 10px; border-radius: 999px; gap: 6px; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="home-app-selector"] > span { min-width: 0; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="home-app-selector"] > svg { flex-shrink: 0; }
+/* The build screen's composer is the same box. Above the words it may carry notes (a queued message, the
+   visual editor, attachments, a warning), stacked in the first rows in their own order; the token bar, when
+   shown, sits under the controls. Its send slot holds Stop while an answer streams. Voice is a Pro upsell
+   Prism does not offer, so it is not drawn. */
+[data-testid="chat-input-container"] > div.rounded-2xl { grid-template-rows: repeat(6, auto) minmax(var(--zone), auto) 34px auto; --words: 7; --controls: 8; }
+[data-testid="chat-input-container"] > div.rounded-2xl > div.justify-between ~ * { grid-row: 9; }
+[data-testid="chat-input-container"] div.flex.items-end > button:last-child { grid-row: var(--controls); grid-column: 4; margin: 0 !important; padding: 0; width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center; border-radius: calc(var(--radius) + 2px); background: color-mix(in srgb, var(--foreground) 9%, transparent); }
+[data-testid="chat-input-container"] div.flex.items-end > button:last-child:not(:disabled) { color: var(--primary) !important; }
+[data-testid="chat-input-container"] div.flex.items-end > button:has(> svg.absolute) { display: none; }
+/* The composer's row reads left to right as the question is made: attach, the model answering, then how it
+   should answer, then send. The model sits beside attach; the way of asking sits beside send, on the same
+   pill as the model's, so the two read as one pair. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="model-picker"] { grid-column: 2; justify-self: start; }
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-slot="chat-mode"] { grid-row: var(--controls); grid-column: 3; justify-self: end; align-self: center; }
+/* The way of asking is chosen the way the model is: one pill with its name and a chevron, its menu two-line
+   rows, so the two controls in the row read as one pair. */
+[data-slot="chat-mode-toggle"] { max-width: 144px; }
+/* Narrow boxes, measured by the box itself (a phone, or the build screen's chat beside the preview): the
+   model drops its Cloud/Local tag and takes at most half the row, so its name and the other controls fit. */
+:is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) { container-type: inline-size; }
+@container (max-width: 420px) {
+  :is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="model-picker"] { max-width: 50cqw; }
+  :is([data-testid="home-chat-input-container"], [data-testid="chat-input-container"]) [data-testid="model-picker"] > span + span { display: none; }
+}
+/* On a phone the box runs to the page's 16 px gutter, as the inset's other content does, and the app
+   picker, with no app chosen, is a round folder button beside attach (its words kept for screen readers);
+   once an app is chosen it shows the app's name. */
+@media (max-width: 639px) {
+  [data-testid="home-chat-input-container"] { padding-inline: 0; }
+  [data-testid="home-chat-input-container"] [data-testid="home-app-selector"]:not(:has([data-testid="home-app-selector-clear"])) {
+    width: 34px; padding: 0; justify-content: center; border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent); }
+  [data-testid="home-chat-input-container"] [data-testid="home-app-selector"]:not(:has([data-testid="home-app-selector-clear"])) > span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Glass for every pop-up: dialogs, alert dialogs, menus, popovers, selects, context menus, sheets and this
+   theme panel. One surface, from the brand's own tokens, readable over any photo in any look: the popover
+   colour at 82% (so a busy background reads as a soft field, never as detail behind the words), a 28 px blur
+   with extra saturation, a hairline edge and a soft shadow. Upstream's dialogs paint with --background, which the
+   Immersive look makes fully transparent; this gives them a ground of their own. Overlays dim and blur the
+   page behind a dialog, so the dialog is the one thing in focus. */
+:is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"],
+    [data-slot="popover-content"], [data-slot="select-content"], [data-slot="context-menu-content"], [data-slot="context-menu-sub-content"],
+    [data-slot="sheet-content"], #popover) {
+  background: color-mix(in srgb, var(--popover) 82%, transparent) !important;
+  color: var(--popover-foreground) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, var(--popover-foreground) 12%, transparent) !important;
+  box-shadow: 0 24px 64px -16px color-mix(in srgb, var(--popover) 85%, transparent), inset 0 1px 0 color-mix(in srgb, var(--popover-foreground) 7%, transparent) !important;
+}
+:is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) {
+  background: color-mix(in srgb, var(--popover) 45%, transparent) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+/* Hints (tooltips): the same glass, as a small pill. Upstream paints them in the foreground colour with the words
+   in --background, which Immersive makes fully transparent, so the hint was a blank white pill there and an
+   inverted one elsewhere. Here every hint is the popover glass with the popover's own words: legible over any
+   photo in every look, 12 px medium, a hairline edge, no arrow, and it settles in quickly. */
+[data-slot="tooltip-content"] {
+  background: color-mix(in srgb, var(--popover) 88%, transparent) !important;
+  color: var(--popover-foreground) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, var(--popover-foreground) 12%, transparent);
+  border-radius: calc(var(--radius) - 2px) !important;
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--popover) 80%, transparent), inset 0 1px 0 color-mix(in srgb, var(--popover-foreground) 7%, transparent);
+  padding: 5px 9px !important;
+  font-size: 12px !important; font-weight: 500; line-height: 16px; letter-spacing: 0.005em;
+  width: max-content; max-width: min(320px, calc(100vw - 32px)); text-wrap: balance;
+  animation-duration: 120ms !important;
+}
+[data-slot="tooltip-content"] > span:has(> svg), [data-slot="tooltip-arrow"] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { [data-slot="tooltip-content"] { animation: none !important; } }
+
+/* Electron's title bar (the logo, "Manage app", the window controls) is window chrome, not the
+   product: hidden, and the layout's offset for it set to zero so the page starts at the top. */
+:root { --layout-title-bar-offset: 0px !important; }
+.app-region-drag { display: none !important; }
+
+/* The workspace window: on a wider screen it floats on the page's ground, the inset layout's 8 px margin all
+   round, with a hairline edge in place of a soft shadow, and everything in it (Immersive's photo too) clipped to
+   its corners. On a phone it fills the screen. */
+@media (min-width: 768px) {
+  [data-slot="sidebar-wrapper"] [data-slot="sidebar-inset"] { border: 1px solid var(--border); box-shadow: none; overflow: hidden; }
+  /* The sun and full screen sit in the window's header bar, on its centre line and its 14 px inner margin. */
+  .appearance { top: 17px; right: 22px; }
+  .has-fullscreen .appearance:not(.fullscreen) { right: 60px; }
+  .popover { top: 54px; right: 22px; }
+}
+/* On a phone there is no margin, so the window takes the whole height (the build screen keeps its bar's gap). */
+@media (max-width: 767px) {
+  :root:not([data-holo-pane]) [data-slot="sidebar-wrapper"] [data-slot="sidebar-inset"] { height: 100svh; }
+}
+
+/* The suggestion chips under the composer: frosted glass in every look, so they read over any photo. The
+   look's popover colour at 70% under a 16 px blur, a hairline edge and a faint top light; the words near full
+   strength. On hover they firm up and lift a pixel; a press settles them. */
+:is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button) {
+  background: color-mix(in srgb, var(--popover) 70%, transparent) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+  border-color: color-mix(in srgb, var(--foreground) 14%, transparent) !important;
+  color: color-mix(in srgb, var(--foreground) 86%, transparent) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 7%, transparent);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+:is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--popover) 88%, transparent) !important;
+  border-color: color-mix(in srgb, var(--foreground) 26%, transparent) !important;
+  color: var(--foreground) !important; transform: translateY(-1px);
+}
+:is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button):active:not(:disabled) { transform: translateY(0) scale(0.98); }
+:is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { :is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button) { transition: none; } :is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button):hover, :is([data-slot="home-surprise"], [data-slot="home-suggestions"] > button):active { transform: none; } }
+
+/* Voice to text is the renderer's Pro feature: the button and its recording states are not offered here. */
+button[aria-label^="Voice to text"], button[aria-label="Stop recording"], button[aria-label^="Transcribing"] { display: none !important; }
+
+/* The build screen on a phone (the renderer's MobileBuild sets html[data-holo-pane]): the appearance switch
+   takes the bottom bar's right slot (the bar sits 16 px above the edge, the inset layout's margin) and its panel opens upwards; the desktop's panel toggles, the
+   notification tip, the preview panel's own mode tabs (the bar chooses the view) and its log footer step
+   aside, so the chat and the app fill the pane. */
+:root[data-holo-pane] .appearance { top: auto; right: 14px; bottom: calc(26px + env(safe-area-inset-bottom)); width: 44px; height: 44px; border-color: transparent; background: transparent; }
+:root[data-holo-pane] .popover { top: auto; left: 12px; right: 12px; width: auto; bottom: calc(88px + env(safe-area-inset-bottom)); }
+:root[data-holo-pane] :is([data-testid="toggle-terminal-button"], [data-testid="toggle-preview-panel-button"], [data-testid="notification-tip-banner"]) { display: none !important; }
+:root[data-holo-pane] #preview-panel div:has(> * > [data-testid="preview-mode-button"], > [data-testid="preview-mode-button"], > * > [data-testid="preview-mode-overflow-button"]):not(:has(iframe)) { display: none !important; }
+:root[data-holo-pane] #preview-panel div:has(> .lucide-logs) { display: none !important; }
+
+/* Touch: every small control the kit draws (icon buttons, switches, checkboxes, the sidebar's trigger and
+   items, menu and select triggers, tabs) answers a 44 px square around its centre, drawn by nothing. Their
+   look is the kit's; only the area a finger can hit grows. */
+@media (pointer: coarse) {
+  :is([data-slot=sidebar-trigger], [data-slot=checkbox], [data-slot=switch], [data-slot=button], [data-slot=tooltip-trigger], [data-slot=dropdown-menu-trigger], [data-slot=popover-trigger], [data-slot=select-trigger], [data-slot=tabs-trigger], [data-slot=sidebar-menu-button], [data-slot=sidebar-menu-sub-button], [data-slot=breadcrumb-link]):not(.absolute, .fixed) { position: relative; }
+  :is([data-slot=sidebar-trigger], [data-slot=checkbox], [data-slot=switch], [data-slot=button], [data-slot=tooltip-trigger], [data-slot=dropdown-menu-trigger], [data-slot=popover-trigger], [data-slot=select-trigger], [data-slot=tabs-trigger], [data-slot=sidebar-menu-button], [data-slot=sidebar-menu-sub-button], [data-slot=breadcrumb-link], #appearance)::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%);
+  }
+}
+
+/* Motion: a sheet slides in 200 ms, not the kit's 300 to 500; and a visitor who asks for less motion gets
+   none from the stylesheet (the composer's glow above already stops). */
+[data-slot=sheet-content][data-state] { animation-duration: 200ms; }
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* FoundrySpecification.sidebarToolAccessBoundary: native top-layer disclosures remain operable over renderer drawers. */
+dialog:modal { pointer-events: auto; }
+/* Home on a phone: one screen, no scrolling, every measure from the golden ratio (phi = 1.618). The type
+   steps by phi from the 16 px body: a 26 px headline over 16 px words. The spaces are the phi series 8, 13,
+   21, 34, 55: 8 between headline and words, 21 to the composer and on to Surprise me. The block sits at the
+   golden section of the screen: the space above it is to the space below as 1 to phi. Surprise me writes an
+   idea into the composer in place of the chips, and the featured apps are on the Apps page. The tab bar is
+   55 px, its stops 34 by 89, its icons 21, 21 px from the sides and 13 above the edge. */
+[data-slot="home-narrow"] { display: none !important; }
+@media (max-width: 767px) {
+  /* On a phone the ideas give way to the one chip that offers another. */
+  [data-slot="home-wide"] { display: none !important; }
+  [data-slot="home-suggestions"] > *:not([data-slot="home-surprise"]) { display: none !important; }
+  [data-slot="home-narrow"] { display: inline !important; }
+  [data-slot="home-page"] { min-height: 100%; padding-bottom: 0 !important; }
+  [data-slot="home-stage"] { flex: 1 1 auto; margin: 0 !important; padding: 0 16px !important; justify-content: flex-start !important; }
+  [data-slot="home-stage"]::before { content: ""; flex: 1 1 0; }
+  [data-slot="home-stage"]::after { content: ""; flex: 1.618 1 0; }
+  [data-slot="home-stage"] h1 { font-size: 26px !important; line-height: 34px !important; letter-spacing: -0.02em; }
+  [data-slot="home-stage"] h1 + p { margin-top: 8px !important; font-size: 16px !important; line-height: 26px !important; }
+  [data-slot="home-stage"] > div > div:first-child { margin-bottom: 21px !important; }
+  [data-slot="home-surprise"] { height: 34px; padding: 0 13px 0 11px !important; gap: 8px; font-size: 14px !important; }
+  [data-slot="home-surprise"] > svg { width: 16px; height: 16px; }
+  /* Room for the tab bar under every page but the build screen's. */
+  :root:not([data-holo-pane]) #layout-main-content-container { padding-bottom: calc(55px + 21px + env(safe-area-inset-bottom)); }
+  [data-mobile-menu]:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+}
+[data-slot="mobile-tabs"] {
+  position: fixed; left: 21px; right: 21px; bottom: calc(13px + env(safe-area-inset-bottom)); z-index: 40; height: 55px;
+  display: flex; align-items: center; justify-content: space-around; padding: 0 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--popover) 82%, transparent); color: var(--popover-foreground);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, var(--popover-foreground) 12%, transparent);
+  box-shadow: 0 13px 34px -13px color-mix(in srgb, var(--popover) 85%, transparent), inset 0 1px 0 color-mix(in srgb, var(--popover-foreground) 7%, transparent);
+}
+[data-slot="mobile-tabs"] > a {
+  display: inline-flex; align-items: center; justify-content: center; width: 89px; height: 34px; border-radius: 999px;
+  color: color-mix(in srgb, var(--popover-foreground) 62%, transparent); transition: background-color 160ms, color 160ms;
+}
+[data-slot="mobile-tabs"] > a > svg { width: 21px; height: 21px; }
+[data-slot="mobile-tabs"] > a[data-active] { background: color-mix(in srgb, var(--popover-foreground) 10%, transparent); color: var(--popover-foreground); }
+[data-slot="mobile-tabs"] > a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+:root[data-holo-pane] [data-slot="mobile-tabs"] { display: none; }
+@media (min-width: 768px) { [data-slot="mobile-tabs"] { display: none; } }
+@media (prefers-reduced-motion: reduce) { [data-slot="mobile-tabs"] > a { transition: none; } }
+
+/* Foundry's own surfaces: the questions it asks before anything leaves the browser, the notices while a
+   request is open, and its tools in the sidebar. They are built by the shell, outside the renderer's kit, and
+   each wrote its own inline style: system colours, browser buttons, a dialog in the page's corner. Here they
+   take the app's look from the brand's tokens, in every theme. The rules are !important because they replace
+   those inline styles; nothing about what a surface says or does is changed here.
+
+   A question is a notification, drawn as the app draws its own ("Get notified about chat events"): a card on
+   the popover glass with a hairline edge, a title, quiet words, and its two answers at the right, the
+   refusal plain and the approval solid. Every one sits at the centre of the screen, over a light scrim.
+
+   Every measure is from the golden ratio (phi = 1.618), as the phone's home screen already is: the spaces are
+   the series 5, 8, 13, 21, 34, 55; the card is 550 px wide (340 x phi) and at most 61.8% of the screen tall;
+   its words are 13 px under a 16 px title; a control is 34 px tall (44 px under a finger). */
+dialog:not([data-slot]) {
+  box-sizing: border-box !important; inset: 0 !important; margin: auto !important; height: fit-content !important;
+  width: min(calc(100vw - 42px), 550px) !important; max-width: none !important; max-height: 61.8vh !important;
+  padding: 21px !important; overflow: auto !important; border-radius: 13px !important;
+  background: color-mix(in srgb, var(--popover) 94%, transparent) !important; color: var(--popover-foreground) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid color-mix(in srgb, var(--popover-foreground) 12%, transparent) !important;
+  box-shadow: 0 24px 64px -16px color-mix(in srgb, var(--popover) 85%, transparent), inset 0 1px 0 color-mix(in srgb, var(--popover-foreground) 7%, transparent) !important;
+  font: 400 13px/1.618 var(--font-sans) !important; letter-spacing: 0 !important; color-scheme: inherit !important;
+}
+dialog:not([data-slot])[open] { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 13px 8px; animation: foundry-rise 160ms ease-out; }
+dialog:not([data-slot])[open] > :not(button) { flex: 0 0 100%; min-width: 0; }
+dialog:not([data-slot])::backdrop { background: color-mix(in srgb, var(--popover) 32%, transparent); }
+@keyframes foundry-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+dialog:not([data-slot]) :is(h1, h2, h3) {
+  display: flex; align-items: center; gap: 13px; margin: 0 !important;
+  font: 600 16px/1.3 var(--font-sans) !important; letter-spacing: -0.005em; color: var(--popover-foreground) !important;
+}
+/* The title's mark: a shield in a soft tile, as the app's own notification carries its bell. */
+dialog:not([data-slot]) h2::before {
+  content: ""; flex: none; width: 34px; height: 34px; border-radius: 8px;
+  background: color-mix(in srgb, var(--popover-foreground) 8%, transparent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a399' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E") center / 21px no-repeat;
+}
+dialog:not([data-slot]) :is(p, li, label, summary, section) { margin: 0 !important; color: var(--muted-foreground) !important; overflow-wrap: anywhere; white-space: pre-line; }
+dialog:not([data-slot]) h2 + p { color: var(--popover-foreground) !important; font-weight: 500; }
+dialog:not([data-slot]) ul { margin: 0 !important; padding: 0 !important; list-style: none; display: flex; flex-wrap: wrap; gap: 5px 8px; }
+dialog:not([data-slot]) li { padding: 3px 8px; border-radius: 999px; font: 500 12px/1.5 var(--font-mono); background: color-mix(in srgb, var(--popover-foreground) 7%, transparent); color: var(--popover-foreground) !important; }
+dialog:not([data-slot]) details { border: 1px solid color-mix(in srgb, var(--popover-foreground) 10%, transparent); border-radius: 8px; padding: 8px 13px; }
+dialog:not([data-slot]) summary { cursor: pointer; font-weight: 500; }
+dialog:not([data-slot]) pre { margin: 8px 0 0 !important; max-height: 220px !important; overflow: auto !important; font: 12px/1.5 var(--font-mono) !important; color: var(--muted-foreground); }
+dialog:not([data-slot]) section { display: flex; align-items: center; justify-content: space-between; gap: 13px; padding: 8px 0; border-top: 1px solid color-mix(in srgb, var(--popover-foreground) 8%, transparent); }
+dialog:not([data-slot]) :is(input, select, textarea) {
+  margin: 5px 0 0 !important; width: 100%; box-sizing: border-box; height: 34px; padding: 0 13px; border-radius: 8px;
+  border: 1px solid var(--input); background: color-mix(in srgb, var(--popover-foreground) 4%, transparent); color: var(--popover-foreground); font: inherit;
+}
+dialog:not([data-slot]) :is(input, select, textarea):focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* Answers: every button is quiet; the last one, the approval, is solid. Focus stays where the shell puts it,
+   on the refusal. */
+dialog:not([data-slot]) button {
+  appearance: none; display: inline-flex; align-items: center; justify-content: center; margin: 0 !important; min-height: 34px; padding: 0 13px !important;
+  border-radius: 8px !important; border: 1px solid color-mix(in srgb, var(--popover-foreground) 14%, transparent) !important;
+  background: transparent !important; color: var(--popover-foreground) !important; font: 500 13px/1 var(--font-sans) !important; cursor: pointer;
+  transition: background-color 140ms, border-color 140ms, opacity 140ms;
+}
+dialog:not([data-slot]) button:hover { background: color-mix(in srgb, var(--popover-foreground) 8%, transparent) !important; }
+dialog:not([data-slot]) button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+dialog:not([data-slot]) button:disabled { opacity: 0.5; cursor: default; }
+dialog:not([data-slot])[aria-label^="Review"] button:last-of-type {
+  background: var(--popover-foreground) !important; color: var(--popover) !important; border-color: transparent !important;
+}
+dialog:not([data-slot])[aria-label^="Review"] button:last-of-type:hover { opacity: 0.9; }
+dialog:not([data-slot]) div:has(> button) { display: flex !important; justify-content: flex-end !important; gap: 8px !important; margin: 0 !important; }
+@media (pointer: coarse) { dialog:not([data-slot]) button { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { dialog:not([data-slot])[open] { animation: none; } }
+
+/* Foundry's tools are on the Settings page, as its last card: a title, then one quiet control each, with its
+   mark. They are not in the sidebar, which holds only where you can go. */
+#foundry-shell-actions {
+  display: flex !important; flex-direction: row !important; flex-wrap: wrap; align-items: center; gap: 8px !important; padding: 21px !important;
+  border-radius: 13px; border: 1px solid var(--border); background: var(--card); color: var(--card-foreground);
+}
+#foundry-shell-actions::before { content: "Tools"; flex: 0 0 100%; margin-bottom: 5px; font: 600 16px/1.3 var(--font-sans); }
+#foundry-shell-actions > button {
+  appearance: none; display: inline-flex !important; align-items: center; gap: 8px; width: auto !important; min-height: 34px; padding: 0 13px !important; margin: 0 !important;
+  border: 1px solid color-mix(in srgb, var(--card-foreground) 14%, transparent) !important; border-radius: 8px !important; background: transparent !important;
+  color: var(--card-foreground) !important; font: 500 13px/1 var(--font-sans) !important; cursor: pointer; transition: background-color 140ms;
+}
+#foundry-shell-actions > button:hover { background: color-mix(in srgb, var(--card-foreground) 8%, transparent) !important; }
+#foundry-shell-actions > button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+#foundry-shell-actions > button::before {
+  content: ""; flex: none; width: 16px; height: 16px; background: currentColor;
+  -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat;
+  --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3C/svg%3E");
+}
+#foundry-preview-permissions::before { --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E") !important; }
+#foundry-interaction-applications::before { --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z'/%3E%3C/svg%3E") !important; }
+#foundry-application-discovery::before, #foundry-shell-actions > button[id*="discover"]::before { --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m16.24 7.76-1.8 5.4a2 2 0 0 1-1.27 1.27l-5.4 1.8 1.8-5.4a2 2 0 0 1 1.27-1.27z'/%3E%3C/svg%3E") !important; }
+@media (pointer: coarse) { #foundry-shell-actions > button { min-height: 44px; } }
+/* The home composer's app picker is a quiet control, the weight of the model's name beside it. */
+[data-testid="home-chat-input-container"] [data-testid="home-app-selector"] { font-weight: 500 !important; color: var(--muted-foreground) !important; }
+[data-testid="home-chat-input-container"] [data-testid="home-app-selector"]:hover { color: var(--foreground) !important; }
+/* The sidebar is 233 px wide, 144 x phi, in place of the kit's 288. */
+[data-slot="sidebar-wrapper"] { --sidebar-width: 233px !important; }
+/* Home asks one thing, what to build: the app picker is not shown there. */
+[data-testid="home-chat-input-container"] [data-testid="home-app-selector"] { display: none !important; }
+/* Every chat builds. The mode selector is not shown, on Home, in a chat or in Settings. */
+#setting-default-chat-mode { display: none !important; }
+/* The tools are the first card of Settings, where they are found without scrolling. */
+#foundry-shell-actions { order: -1; }
+/* The selector itself is kept for the page's own checks, one pixel and unseen; it takes no space and no pointer.
+   Its wrapper keeps its place, so a mode that could not be saved is still said there. */
+select[data-testid="chat-mode-selector"] { position: absolute !important; left: 0; top: 0; width: 1px !important; height: 1px !important; padding: 0 !important; border: 0 !important; opacity: 0 !important; pointer-events: none !important; }
+div:has(> select[data-testid="chat-mode-selector"]) { position: relative; }
+/* Home asks its question and nothing more: the line under it is not shown, on any screen. */
+p:has(> [data-slot="home-wide"]) { display: none !important; }
+
+
+/* Home: one screen, two parts. The hero holds the middle of whatever space there is; the apps you have made
+   rest on the floor, one row on a panel that rises from the bottom edge, in reach at every size. The page
+   itself never scrolls: the row scrolls sideways instead, and the cards that follow peek over the edge so it
+   is plain there are more.
+
+   The measures are the golden ratio's, as the phone's home already is: the headline grows with the window
+   from 34 to 55 px; the spaces are the series 8, 13, 21, 34; a card is 233 wide, which is 144 x phi, over a
+   13 px corner; the panel's own corner is 21. The panel is the popover glass under a hairline, so it reads
+   over any photo in any look and the hero above it stays the brightest thing on the screen. */
+[data-slot="home-page"] { height: 100% !important; min-height: 100% !important; padding-bottom: 0 !important; }
+[data-slot="home-stage"] {
+  flex: 0 0 auto; min-height: calc(100% - 89px); display: flex; flex-direction: column; justify-content: center;
+  margin-block: 0 !important; padding: 34px 16px !important;
+}
+[data-slot="home-stage"] h1 {
+  font-size: clamp(34px, 4.2vw, 55px) !important; line-height: 1.06 !important; letter-spacing: -0.03em;
+}
+/* The product's name is said in a serif italic, so the line reads as a sentence and the name as a signature.
+   No serif is shipped with the page and nothing is fetched for one, so this is the reader's own serif. */
+[data-slot="home-name"] {
+  font-family: Georgia, "Times New Roman", "Liberation Serif", serif;
+  font-style: italic; font-weight: 400; font-size: 1.06em; letter-spacing: 0;
+}
+[data-slot="home-stage"] > div > div:first-child { margin-bottom: 21px !important; }
+/* The ideas are one line that scrolls, never a block that wraps: the hero keeps its height whatever is
+   offered, and the line fades at its end where more ideas follow. */
+[data-slot="home-suggestions"] {
+  margin: 21px auto 0 !important; gap: 8px !important; flex-wrap: nowrap !important;
+  justify-content: safe center !important;
+  overflow-x: auto; scrollbar-width: none; padding-inline: 1px;
+}
+[data-slot="home-suggestions"]::-webkit-scrollbar { display: none; }
+[data-slot="home-suggestions"] > button { flex: none; }
+/* The floor: a panel that rises from the bottom edge, inset from the sides, holding one row of apps. */
+[data-slot="home-featured"] { padding-inline: 34px; }
+[data-slot="home-featured"] > section {
+  max-width: none !important; margin: 0 !important; padding: 21px 21px 0 !important;
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); border-bottom: 0;
+  border-radius: 21px 21px 0 0;
+  background: color-mix(in srgb, var(--popover) 58%, transparent);
+  -webkit-backdrop-filter: blur(21px) saturate(1.4); backdrop-filter: blur(21px) saturate(1.4);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+[data-slot="home-featured"] > section > div:first-child { margin-bottom: 13px !important; align-items: baseline; }
+[data-slot="home-featured"] h2 {
+  font: 500 15px/1.3 var(--font-sans) !important; letter-spacing: -0.01em; color: var(--foreground) !important;
+}
+[data-slot="home-featured"] h2 + button {
+  font: 500 13px/1 var(--font-sans) !important; color: color-mix(in srgb, var(--foreground) 62%, transparent) !important;
+  text-decoration: none !important;
+}
+[data-slot="home-featured"] h2 + button:hover { color: var(--foreground) !important; }
+/* The row fills the floor whatever the screen: four even columns on a wide one, two on a narrow one, and
+   the cards share the width rather than keeping a width of their own. */
+[data-slot="home-featured"] [role="region"] {
+  display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px !important; padding-bottom: 13px !important; overflow: visible !important;
+}
+[data-slot="home-featured"] [role="region"] > * { width: auto !important; min-width: 0; }
+[data-slot="home-featured-empty"] { grid-column: 1 / -1; }
+@media (max-width: 1023px) { [data-slot="home-featured"] [role="region"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* A card is its picture, 233 by 144 (144 x phi), with the app name under it; the blurb stays on the Apps
+   page, so the floor holds one clean row. */
+[data-slot="home-featured"] [role="region"] button > div:first-child, [data-slot="home-featured"] [role="region"] > button {
+  aspect-ratio: 1.618 !important; border-radius: 13px !important;
+  border-color: color-mix(in srgb, var(--foreground) 12%, transparent) !important;
+}
+[data-slot="home-featured"] [role="region"] > * { transition: transform 160ms ease; }
+[data-slot="home-featured"] [role="region"] > *:hover { transform: translateY(-2px); }
+[data-slot="home-featured"] [role="region"] button > div:first-child { transition: border-color 160ms ease; }
+[data-slot="home-featured"] [role="region"] > *:hover button > div:first-child { border-color: color-mix(in srgb, var(--foreground) 26%, transparent) !important; }
+[data-slot="home-featured"] [role="region"] button > div + div { gap: 0 !important; }
+@media (prefers-reduced-motion: reduce) { [data-slot="home-featured"] [role="region"] > * > *, [data-slot="home-featured"] [role="region"] > button { transition: none; } }
+/* On a phone home is one screen that never scrolls: the featured floor gives way to the Apps tab, which
+   already lists every app, and the hero alone fills the room above the tab bar. */
+@media (max-width: 767px) {
+  [data-slot="home-featured"] { display: none !important; }
+  #layout-main-content-container:has([data-slot="home-page"]) { overflow: hidden !important; }
+  [data-slot="home-page"] { height: 100%; min-height: 0; }
+  [data-slot="home-stage"] { flex: 1 1 auto !important; min-height: 0; padding: 21px 16px !important; justify-content: flex-start !important; }
+}
+/* A workspace, not a page: the hero sits at the golden section of the room above the floor (the space over
+   it is to the space under it as 1 to phi), on a phone as on a desktop, at every height. The room is 987 px
+   wide at most (a Fibonacci number, 610 x phi) and the composer is its golden section, 610, centred, with
+   the ideas under it on the same measure. In a room larger than the one these were set for, the hero grows
+   as one piece (--hero-scale, from appearance.js), so it looks the same on a laptop and on a large screen. */
+@media (min-width: 768px) {
+  [data-slot="home-stage"] { max-width: min(92%, calc(987px * var(--hero-scale, 1))) !important; justify-content: flex-start !important; }
+  [data-slot="home-stage"] > div { zoom: var(--hero-scale, 1); }
+  [data-slot="home-stage"]::before { content: ""; flex: 1 1 0; }
+  [data-slot="home-stage"]::after { content: ""; flex: 1.618 1 0; }
+  /* The work surface is 987 wide; the input is its golden section, 610, centred, with the ideas under it on
+     the same measure. */
+  [data-testid="home-chat-input-container"] { max-width: 610px !important; margin-inline: auto !important; border-radius: 21px !important; }
+  [data-testid="home-chat-input-container"] textarea { min-height: 89px !important; }
+}
+/* The floor's four ways to look at it, in one track like the ways of asking in the box: Search, Featured,
+   My apps, Bookmarked, the chosen one lit. The star on a card is quiet until the card is under the pointer,
+   and stays lit once it is set. */
+[data-slot="home-featured-views"] {
+  gap: 2px; padding: 3px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 13%, transparent);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+[data-slot="home-featured-views"] > button {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 13px; border: 0;
+  border-radius: 999px; background: transparent; cursor: pointer;
+  font: 500 13px/1 var(--font-sans); color: var(--muted-foreground);
+  transition: color 160ms ease, background-color 160ms ease;
+}
+[data-slot="home-featured-views"] > button:hover { color: var(--foreground); }
+[data-slot="home-featured-views"] > button[data-chosen] {
+  color: var(--foreground); background: color-mix(in srgb, var(--background) 92%, var(--foreground) 8%);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 13%, transparent);
+}
+[data-slot="home-featured-query"] {
+  width: 144px; height: 28px; margin-right: 5px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 13%, transparent);
+  background: var(--background); color: var(--foreground); font: 400 13px/1 var(--font-sans);
+}
+[data-slot="home-featured-query"]::placeholder { color: var(--muted-foreground); }
+[data-slot="home-featured-query"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+[data-slot="home-featured-keep"] {
+  position: absolute; right: 8px; top: 8px; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: 0; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--background) 80%, transparent); color: var(--muted-foreground);
+  opacity: 0; transition: opacity 160ms ease, color 160ms ease;
+}
+[data-slot="home-featured-keep"]:hover { color: var(--foreground); }
+[data-slot="home-featured-keep"][data-chosen] { opacity: 1; color: var(--foreground); }
+[role="button"]:hover > div > [data-slot="home-featured-keep"], [data-slot="home-featured-keep"]:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="home-featured-views"] > button, [data-slot="home-featured-keep"] { transition: none; }
+}
+@media (max-width: 767px) {
+  [data-slot="home-featured-views"] > button { height: 26px; padding: 0 10px; font-size: 12px; }
+  [data-slot="home-featured-query"] { width: 89px; }
+}
+
+/* The card's cover is drawn in the card itself, so it needs no rule here; its name and who made it sit
+   under it, the name as the page's own size and the maker quieter. */
+[data-slot="home-featured"] [role="region"] button img { object-fit: cover !important; object-position: top center !important; }

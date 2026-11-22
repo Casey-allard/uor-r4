@@ -1,0 +1,4 @@
+app Notes
+text note "Note" max 120
+table notes "Notes": note
+action "Save": add to notes

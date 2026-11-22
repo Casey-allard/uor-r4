@@ -1,0 +1,307 @@
+{
+  "schema": "uor-r4.foundry-assets-lock/1",
+  "upstream_repo": "UOR-Foundation/foundry",
+  "upstream_commit": "ea917b8d92974c3d78ebd213eaa1c21fd47666bf",
+  "assets": [
+    {
+      "path": "frame/backdrops/0wFwSZn6I-I-thumb.jpg",
+      "sha256": "c8961c9ccbbd9bdaee0a88f2027377381212b14644ff2bee70c6007459eac71d",
+      "bytes": 5741,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/0wFwSZn6I-I-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/0wFwSZn6I-I.jpg",
+      "sha256": "d616103b46592c280e76d9d695badb8032d6c03f68b5c303ce1e0bd65165b0e8",
+      "bytes": 93706,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/0wFwSZn6I-I.jpg"
+    },
+    {
+      "path": "frame/backdrops/9wH624ALFQA-thumb.jpg",
+      "sha256": "6b39d5ba401eff06271c185cca078a395bf6fa4836f253ec074fd4c149cd4a66",
+      "bytes": 13783,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/9wH624ALFQA-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/9wH624ALFQA.jpg",
+      "sha256": "ba35adf7f14f9a37838c6cb35f81795f8030f8a7bb0f992f28502e03d5c6e82c",
+      "bytes": 317653,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/9wH624ALFQA.jpg"
+    },
+    {
+      "path": "frame/backdrops/E0AHdsENmDg-thumb.jpg",
+      "sha256": "e2cd6180c72ddb1d9e1f7838204c94e79ae127b11ba625447b7a70b6bbb0773a",
+      "bytes": 11838,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/E0AHdsENmDg-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/E0AHdsENmDg.jpg",
+      "sha256": "e43adbb89d2ec19ca6ef570f6bfae4ac6daf39a31348a9c73d5edee573a588f1",
+      "bytes": 360255,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/E0AHdsENmDg.jpg"
+    },
+    {
+      "path": "frame/backdrops/Q1p7bh3SHj8-thumb.jpg",
+      "sha256": "234cbde53f0217585749554b772df6e613bba795dfec18347e1f00f8f33fa3f9",
+      "bytes": 9825,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/Q1p7bh3SHj8-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/Q1p7bh3SHj8.jpg",
+      "sha256": "99e71e2c73a4b3e19fb98108f9dce81f8c81b71cb0c8de3e2afc9649f744f881",
+      "bytes": 160923,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/Q1p7bh3SHj8.jpg"
+    },
+    {
+      "path": "frame/backdrops/RF4p4rTM-2s-thumb.jpg",
+      "sha256": "ed50607638da713b855be09e3c99cb051bf6d87c1cab1d147888412bbde22e20",
+      "bytes": 9947,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/RF4p4rTM-2s-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/RF4p4rTM-2s.jpg",
+      "sha256": "e007bac1d872fb541d27181442500d371b27d39aea3fc48db7f757f77a1caa05",
+      "bytes": 172690,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/RF4p4rTM-2s.jpg"
+    },
+    {
+      "path": "frame/backdrops/cZgVpseeazg-thumb.jpg",
+      "sha256": "8f107db205151bab41e10df89d7fffe9a13caab11c775d623e2e108f6f04c25e",
+      "bytes": 7178,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/cZgVpseeazg-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/cZgVpseeazg.jpg",
+      "sha256": "b061c0f02fbded1a50a006ad4d8ecd4af0718e042dbbef6326d92cf7dc80a00f",
+      "bytes": 146887,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/cZgVpseeazg.jpg"
+    },
+    {
+      "path": "frame/backdrops/oMcTmNHclZI-thumb.jpg",
+      "sha256": "5de0d7fa4c32c83bea4360602ef751cd0f97d1fa46f77f4e3010bb237ed4aa5a",
+      "bytes": 7017,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/oMcTmNHclZI-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/oMcTmNHclZI.jpg",
+      "sha256": "413274ffeb758961fa77f0eec0d9c71526a0cb54333edb92f17e5896b1e8bbec",
+      "bytes": 124610,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/oMcTmNHclZI.jpg"
+    },
+    {
+      "path": "frame/backdrops/qtRF_RxCAo0-thumb.jpg",
+      "sha256": "4bd016b2ad3a6119d08139e61346081ad18781fba39df7a8026f5f31333dbaa3",
+      "bytes": 11844,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/qtRF_RxCAo0-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/qtRF_RxCAo0.jpg",
+      "sha256": "be36adbed5035b15a41206d64812754dae4c246324af525059372385dedc18b7",
+      "bytes": 302257,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/qtRF_RxCAo0.jpg"
+    },
+    {
+      "path": "frame/backdrops/t7EL2iG3jMc-thumb.jpg",
+      "sha256": "db1465c0d30a65e5d4279a4644dc1d6a488c378b4bb43fcde714f6fbb251af7f",
+      "bytes": 7634,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/t7EL2iG3jMc-thumb.jpg"
+    },
+    {
+      "path": "frame/backdrops/t7EL2iG3jMc.jpg",
+      "sha256": "6f59cde71fb09b6a5faa92b1f9a77c0a300c0e4f9e6469574e54e14e85801d29",
+      "bytes": 142982,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/frame/backdrops/t7EL2iG3jMc.jpg"
+    },
+    {
+      "path": "studio/shell/fonts/Archivo-Bold.woff2",
+      "sha256": "abada6cd4c92a9a706f6d7ed3189f322ff43dd78b9402c7d1137465b861d2a04",
+      "bytes": 14508,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Archivo-Bold.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Archivo-Medium.woff2",
+      "sha256": "ab74eca5ad115fe4cfec82ba641e5d37e4d92c58dfb1bfc1e464e9039c9d17cf",
+      "bytes": 14600,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Archivo-Medium.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Archivo-SemiBold.woff2",
+      "sha256": "d9e8c29fdd348edde2a4f9aae438e569dd165bbbdebda78495824a2d9aaa67e8",
+      "bytes": 13820,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Archivo-SemiBold.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Geist-Bold.woff2",
+      "sha256": "04f948593dca628e846e6b41b3ef66bc39ad59fee3571c589a3cd4e267122be2",
+      "bytes": 46496,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Geist-Bold.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Geist-Medium.woff2",
+      "sha256": "b0a0867cda44efef4529a4b13ce37fd9fd6e1597708615287542a51bc7452ab4",
+      "bytes": 46372,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Geist-Medium.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Geist-Regular.woff2",
+      "sha256": "d8bce822db092746889bcf3f57350b41f53708b025458fe7af30729ec4ce0df2",
+      "bytes": 45244,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Geist-Regular.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/Geist-SemiBold.woff2",
+      "sha256": "b1e6a1dd2122485d0a1f3a8d30a45443aa9453224f83018bec35f8266bc77915",
+      "bytes": 46596,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/Geist-SemiBold.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/GeistMono-Medium.woff2",
+      "sha256": "85b99e603f84a47dc8118b5af058ad8f387d7c507a00faeef1b5b60eb371e844",
+      "bytes": 51500,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/GeistMono-Medium.woff2"
+    },
+    {
+      "path": "studio/shell/fonts/GeistMono-Regular.woff2",
+      "sha256": "e4507fb4fb5f832fbbb6c06aea4206274ba3083007f23fa8cbc0e87a10acf95b",
+      "bytes": 50356,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/fonts/GeistMono-Regular.woff2"
+    },
+    {
+      "path": "studio/shell/kernel/guest.wasm",
+      "sha256": "f4d3448a99543527ade9420b04dd92d225a75401ddca5560fa6e251db2099a61",
+      "bytes": 173813,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/guest.wasm"
+    },
+    {
+      "path": "studio/shell/kernel/kernel.holo",
+      "sha256": "4e3d0c2ea8101ece70e24c405c3876ee20a9e02c04fa42fdceb56236b74b760d",
+      "bytes": 669693,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/kernel.holo"
+    },
+    {
+      "path": "studio/shell/kernel/lean/lean-kernel.mjs.gz",
+      "sha256": "8c77e3250d8c124d8f07fca9d9cc508475a062f72e9778208cd8aed3eab39cb9",
+      "bytes": 17609,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/lean/lean-kernel.mjs.gz"
+    },
+    {
+      "path": "studio/shell/kernel/lean/lean-kernel.wasm.gz",
+      "sha256": "79accfb403771f7a362e17ed777bb1e84c19cb34e24ae537a919c980e6a833f2",
+      "bytes": 420987,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/lean/lean-kernel.wasm.gz"
+    },
+    {
+      "path": "studio/shell/kernel/lean/library.ndjson.gz",
+      "sha256": "0253aaa8f557ca95b072ab8dc06ac84c4f95e076eb458dead7d27c0f7afb6434",
+      "bytes": 1246498,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/kernel/lean/library.ndjson.gz"
+    },
+    {
+      "path": "studio/shell/q/pkg/holospaces_web_bg.wasm",
+      "sha256": "9d90b4ea8bccee8c239073c7ec7dd5158c6d11f1f668487570d17475d79e661e",
+      "bytes": 6469596,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/q/pkg/holospaces_web_bg.wasm"
+    },
+    {
+      "path": "studio/shell/wallpapers/alps.jpg",
+      "sha256": "f6caa9eeead2c99deeb2cdb70b7e25bbaa2cf5c60555f5b4030ecf6b6d9efa51",
+      "bytes": 546613,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/wallpapers/alps.jpg"
+    },
+    {
+      "path": "studio/shell/wallpapers/aurora.jpg",
+      "sha256": "369294facd7021333dfc0f0f2684db180f4729790ce21752cc0f45f8af38204f",
+      "bytes": 1442065,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/wallpapers/aurora.jpg"
+    },
+    {
+      "path": "studio/shell/wallpapers/galaxy.jpg",
+      "sha256": "c4dff02733d2f8d6ede310e97a5c3067b1bfbddebd1d180c4c781db286b14607",
+      "bytes": 986636,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/shell/wallpapers/galaxy.jpg"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Archivo-Bold.woff2",
+      "sha256": "abada6cd4c92a9a706f6d7ed3189f322ff43dd78b9402c7d1137465b861d2a04",
+      "bytes": 14508,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Archivo-Bold.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Archivo-Medium.woff2",
+      "sha256": "ab74eca5ad115fe4cfec82ba641e5d37e4d92c58dfb1bfc1e464e9039c9d17cf",
+      "bytes": 14600,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Archivo-Medium.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Archivo-SemiBold.woff2",
+      "sha256": "d9e8c29fdd348edde2a4f9aae438e569dd165bbbdebda78495824a2d9aaa67e8",
+      "bytes": 13820,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Archivo-SemiBold.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Geist-Bold.woff2",
+      "sha256": "04f948593dca628e846e6b41b3ef66bc39ad59fee3571c589a3cd4e267122be2",
+      "bytes": 46496,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Geist-Bold.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Geist-Medium.woff2",
+      "sha256": "b0a0867cda44efef4529a4b13ce37fd9fd6e1597708615287542a51bc7452ab4",
+      "bytes": 46372,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Geist-Medium.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Geist-Regular.woff2",
+      "sha256": "d8bce822db092746889bcf3f57350b41f53708b025458fe7af30729ec4ce0df2",
+      "bytes": 45244,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Geist-Regular.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/Geist-SemiBold.woff2",
+      "sha256": "b1e6a1dd2122485d0a1f3a8d30a45443aa9453224f83018bec35f8266bc77915",
+      "bytes": 46596,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/Geist-SemiBold.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/GeistMono-Medium.woff2",
+      "sha256": "85b99e603f84a47dc8118b5af058ad8f387d7c507a00faeef1b5b60eb371e844",
+      "bytes": 51500,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/GeistMono-Medium.woff2"
+    },
+    {
+      "path": "studio/vendor/hologram-brand-kit/fonts/GeistMono-Regular.woff2",
+      "sha256": "e4507fb4fb5f832fbbb6c06aea4206274ba3083007f23fa8cbc0e87a10acf95b",
+      "bytes": 50356,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/hologram-brand-kit/fonts/GeistMono-Regular.woff2"
+    },
+    {
+      "path": "studio/vendor/prism/assets/ai-logos/openrouter-logo.png",
+      "sha256": "5d43e9850a9148578f048e3558627a319677b2330c297a616c2f899bbaf19c4b",
+      "bytes": 12751,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/assets/ai-logos/openrouter-logo.png"
+    },
+    {
+      "path": "studio/vendor/prism/assets/icon/logo.icns",
+      "sha256": "fe0f87320c023f5e8160af98b5ea45f4749a617c8f8140f10d4fac740b98ead2",
+      "bytes": 628840,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/assets/icon/logo.icns"
+    },
+    {
+      "path": "studio/vendor/prism/assets/icon/logo.ico",
+      "sha256": "848148cb8b22f5b3d5ad703bb58cde01c80d8ffe3e6307a2fbb4e142281f669e",
+      "bytes": 128885,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/assets/icon/logo.ico"
+    },
+    {
+      "path": "studio/vendor/prism/assets/icon/logo.png",
+      "sha256": "09e2a8d4deb64368c656ecbc41ab82e825e0f6f73a49674634aff1166ed6c7da",
+      "bytes": 233829,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/assets/icon/logo.png"
+    },
+    {
+      "path": "studio/vendor/prism/scaffold/public/favicon.ico",
+      "sha256": "a75a75f315bbed01f033fd813195a1728acfbad637888935298604e6467d34ab",
+      "bytes": 89865,
+      "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/scaffold/public/favicon.ico"
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+import fs from "node:fs";
+import path from "node:path";
+import log from "electron-log";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import { gitAdd, gitCommit } from "@/ipc/utils/git_utils";
+import {
+  ensurePnpmAllowBuildsConfigured,
+  getPnpmMinimumReleaseAgeSupport,
+  PNPM_GLOBAL_INSTALL_PACKAGE,
+  PNPM_INSTALL_POLICY_ARGS,
+} from "@/ipc/utils/socket_firewall";
+import { simpleSpawnWithDeniedPnpmBuildSelfHeal } from "@/ipc/utils/app_upgrade_utils";
+import {
+  recordAndReportDeniedPnpmBuilds,
+  resolvePnpmIgnoredBuilds,
+} from "@/ipc/utils/pnpm_denied_builds";
+import {
+  getPackageManagerSignal,
+  signalPrefersPnpm,
+} from "@/ipc/utils/package_manager_selection";
+import { sendTelemetryEvent } from "@/ipc/utils/telemetry";
+import { isVersionAtLeast } from "@/shared/version_utils";
+
+const logger = log.scope("pnpm_migration");
+
+// pnpm 9, 10, and 11 all write lockfileVersion 9.0, so a lockfile below this
+// is the one case where running the managed pnpm rewrites the lockfile into a
+// format the pinned/older pnpm cannot read (breaking the user's CI/deploys).
+const COMPATIBLE_PNPM_LOCKFILE_MAJOR = 9;
+// Pins at or below pnpm 8 write pre-9.0 lockfiles.
+const LAST_INCOMPATIBLE_PNPM_MAJOR = 8;
+const LOCKFILE_HEADER_BYTES = 512;
+
+export function getManagedPnpmMajorVersion(): number {
+  const match = PNPM_GLOBAL_INSTALL_PACKAGE.match(/latest-(\d+)$/);
+  if (!match) {
+    throw new Error(
+      `Cannot derive pnpm major version from "${PNPM_GLOBAL_INSTALL_PACKAGE}"`,
+    );
+  }
+  return Number(match[1]);
+}
+
+export function parsePnpmLockfileVersion(content: string): number | null {
+  // Formats across pnpm majors: `lockfileVersion: 5.4` (number),
+  // `lockfileVersion: '6.0'` / `lockfileVersion: "9.0"` (quoted string).
+  const match = content.match(/^lockfileVersion:\s*['"]?(\d+(?:\.\d+)?)/m);
+  if (!match) {
+    return null;
+  }
+  const version = Number.parseFloat(match[1]);
+  return Number.isFinite(version) ? version : null;
+}
+
+export function parsePinnedPnpmMajorVersion(
+  packageManagerField: string | null,
+): number | null {
+  if (!packageManagerField) {
+    return null;
+  }
+  const match = packageManagerField.match(/^pnpm@(\d+)/);
+  if (!match) {
+    return null;
+  }
+  return Number(match[1]);
+}
+
+function readPnpmLockfileVersion(appPath: string): number | null {
+  const lockfilePath = path.join(appPath, "pnpm-lock.yaml");
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(lockfilePath, "r");
+    const buffer = Buffer.alloc(LOCKFILE_HEADER_BYTES);
+    const bytesRead = fs.readSync(fd, buffer, 0, LOCKFILE_HEADER_BYTES, 0);
+    const content = buffer.subarray(0, bytesRead).toString("utf8");
+    return parsePnpmLockfileVersion(content);
+  } catch {
+    return null;
+  } finally {
+    if (fd !== null) {
+      fs.closeSync(fd);
+    }
+  }
+}
+
+/**
+ * True when running the managed pnpm against this app leaves the repo in a
+ * state the app's legacy pnpm cannot read: a pre-9.0 lockfile (which the
+ * managed pnpm rewrites incompatibly on install) or a `packageManager` pin at
+ * or below pnpm 8 (whose corepack/CI installs cannot read the 9.0 lockfile
+ * Prism produces).
+ */
+export function isPnpmVersionMigrationNeeded(appPath: string): boolean {
+  const signal = getPackageManagerSignal(appPath);
+  if (!signalPrefersPnpm(signal)) {
+    return false;
+  }
+
+  const lockfileVersion = readPnpmLockfileVersion(appPath);
+  if (
+    lockfileVersion !== null &&
+    lockfileVersion < COMPATIBLE_PNPM_LOCKFILE_MAJOR
+  ) {
+    return true;
+  }
+
+  const pinnedMajor = parsePinnedPnpmMajorVersion(signal.packageManagerField);
+  if (pinnedMajor !== null) {
+    return pinnedMajor <= LAST_INCOMPATIBLE_PNPM_MAJOR;
+  }
+
+  return false;
+}
+
+async function updatePackageManagerPin(
+  appPath: string,
+  pnpmVersion: string,
+): Promise<string> {
+  const packageJsonPath = path.join(appPath, "package.json");
+  const originalContent = await fs.promises.readFile(packageJsonPath, "utf8");
+  const packageJson = JSON.parse(originalContent);
+  packageJson.packageManager = `pnpm@${pnpmVersion}`;
+  await fs.promises.writeFile(
+    packageJsonPath,
+    `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
+  return originalContent;
+}
+
+async function restorePackageJson(
+  appPath: string,
+  packageJsonContent: string,
+): Promise<void> {
+  await fs.promises.writeFile(
+    path.join(appPath, "package.json"),
+    packageJsonContent,
+  );
+}
+
+/**
+ * Migrates the app to the Prism-managed pnpm in one visible step: updates the
+ * `packageManager` pin to the version Prism actually runs, reinstalls so the
+ * lockfile is rewritten to the matching format, and commits both together so
+ * the repo's self-description, lockfile, and CI/deploy behavior agree.
+ */
+export async function applyPnpmVersionMigration({
+  appPath,
+}: {
+  appPath: string;
+}): Promise<void> {
+  const pnpmSupport = await getPnpmMinimumReleaseAgeSupport();
+  if (!pnpmSupport.available || !pnpmSupport.version) {
+    throw new PrismError(
+      "pnpm is not available, so the project cannot be migrated. Restart Prism and try again.",
+      PrismErrorKind.External,
+    );
+  }
+  // If PATH fell back to an old system pnpm (e.g. the managed install is
+  // missing), "migrating" would pin the old pnpm and rewrite the lockfile in
+  // the old format, leaving the upgrade permanently needed.
+  if (
+    !isVersionAtLeast(
+      pnpmSupport.version,
+      `${COMPATIBLE_PNPM_LOCKFILE_MAJOR}.0.0`,
+    )
+  ) {
+    throw new PrismError(
+      `The available pnpm (${pnpmSupport.version}) is older than pnpm ${COMPATIBLE_PNPM_LOCKFILE_MAJOR}, so the project cannot be migrated. Restart Prism and try again.`,
+      PrismErrorKind.External,
+    );
+  }
+
+  const previousLockfileVersion = readPnpmLockfileVersion(appPath);
+  const allowBuildsResult = await ensurePnpmAllowBuildsConfigured({ appPath });
+
+  // Update the pin before reinstalling so pnpm writes a lockfile that matches
+  // the package metadata Prism will commit. If the install fails, restore the
+  // original package.json so the failed migration does not hide future prompts.
+  let originalPackageJsonContent: string;
+  try {
+    originalPackageJsonContent = await updatePackageManagerPin(
+      appPath,
+      pnpmSupport.version,
+    );
+  } catch (error) {
+    logger.warn("Failed to update packageManager pin:", error);
+    throw new PrismError(
+      "The packageManager pin could not be updated. Please update package.json manually.",
+      PrismErrorKind.External,
+    );
+  }
+
+  try {
+    await simpleSpawnWithDeniedPnpmBuildSelfHeal({
+      command: `pnpm ${PNPM_INSTALL_POLICY_ARGS.join(" ")} install`,
+      cwd: appPath,
+      successMessage: "Reinstalled dependencies with the Prism-managed pnpm",
+      errorPrefix: "Failed to reinstall dependencies with pnpm",
+    });
+  } catch (error) {
+    try {
+      await restorePackageJson(appPath, originalPackageJsonContent);
+    } catch (restoreError) {
+      logger.warn(
+        "Failed to restore package.json after pnpm migration install failed:",
+        restoreError,
+      );
+    }
+    throw error;
+  }
+
+  // Old-lockfile apps commonly carry unlisted build-script deps; record any
+  // builds this install skipped so plain `pnpm install` stays green outside
+  // Prism (this also commits pnpm-workspace.yaml when it changes).
+  const ignoredBuilds = await resolvePnpmIgnoredBuilds(appPath);
+  const { deniedBuilds } = await recordAndReportDeniedPnpmBuilds({
+    appPath,
+    ignoredBuilds,
+    source: "app-upgrade",
+  });
+
+  const migrationMajor = getManagedPnpmMajorVersion();
+  try {
+    await gitAdd({ path: appPath, filepath: "package.json" });
+    await gitAdd({ path: appPath, filepath: "pnpm-lock.yaml" });
+    if (allowBuildsResult.changed || deniedBuilds.length > 0) {
+      await gitAdd({ path: appPath, filepath: "pnpm-workspace.yaml" });
+    }
+    await gitCommit({
+      path: appPath,
+      message: `migrate to pnpm ${migrationMajor}`,
+    });
+  } catch (error) {
+    logger.warn("Failed to commit pnpm migration changes:", error);
+    throw new PrismError(
+      "The migration ran but the changes could not be committed. Please commit package.json and pnpm-lock.yaml manually.",
+      PrismErrorKind.External,
+    );
+  }
+
+  sendTelemetryEvent("pnpm:version-migration-applied", {
+    fromLockfileVersion: previousLockfileVersion,
+    toPnpmVersion: pnpmSupport.version,
+  });
+}

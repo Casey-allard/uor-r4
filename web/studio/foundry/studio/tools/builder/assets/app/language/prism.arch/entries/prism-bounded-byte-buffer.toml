@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "prism-bounded-byte-buffer"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Bytes"
+component = "BoundedBuffer"
+
+[[form]]
+id = "prism-bounded-byte-buffer"
+channel = "text"
+surface = "Bounded byte buffer"
+canonical_source = true
+features = ["sentence-case", "singular"]

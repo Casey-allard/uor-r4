@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-opm-zoom"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "OpmZoom"
+
+[[form]]
+id = "arch-opm-zoom"
+channel = "text"
+surface = "OPM zoom"
+canonical_source = true
+features = ["sentence-case", "singular"]

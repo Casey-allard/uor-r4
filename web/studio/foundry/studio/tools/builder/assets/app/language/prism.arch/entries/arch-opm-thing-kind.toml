@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-opm-thing-kind"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "OpmThingKind"
+
+[[form]]
+id = "arch-opm-thing-kind"
+channel = "text"
+surface = "OPM thing kind"
+canonical_source = true
+features = ["sentence-case", "singular"]

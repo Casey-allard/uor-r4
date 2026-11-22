@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" class="notranslate" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#151312">
+<title>Own Your Ideas</title>
+<meta name="description" content="Describe it. It builds, runs and stays yours, in this browser, on no server.">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
+<link rel="manifest" href="app.webmanifest">
+<link id="renderer-style" rel="stylesheet" crossorigin>
+<script>
+// Vite identifies a stylesheet by its deployment-prefixed href attribute.
+(function () { const style = document.getElementById("renderer-style"); style.setAttribute("href", new URL("assets/index.css", document.baseURI).pathname); })();
+</script>
+<link rel="stylesheet" href="brand.css">
+<link rel="stylesheet" href="appearance.css">
+<script>
+// Pre paint appearance, the same canonical state Hologram OS keeps (holo.theme.v1: palette, immersive,
+// wallpaper) and the same hooks (data-holo-palette, data-holo-immersive, --holo-wallpaper, color-scheme),
+// mirrored into the renderer's theme class and its localStorage "theme", so the first frame already wears the
+// chosen look. First run, and once for anyone who chose before look 3: immersive on the first curated
+// photo; Dark and Light are one click away.
+(function () {
+  var root = document.documentElement, s = null;
+  try { s = JSON.parse(localStorage.getItem("holo.theme.v1") || "null"); } catch (e) {}
+  if (!s || s.look !== 3) { s = { look: 3, palette: "dark", immersive: true, wallpaper: "wallpapers/galaxy.jpg", photo: {"id":"galaxy","alt":"Galaxy sky","name":"Tiago Ferreira","user":"tiago_f_ferreira"} }; try { localStorage.setItem("holo.theme.v1", JSON.stringify(s)); } catch (e) {} }
+  // Home keeps the home look; every other screen keeps one shared look, Dark until one is chosen there
+  // (appearance.js). Home is the shell's own folder, read from the stylesheet link above.
+  var l = document.querySelector('link[href="appearance.css"]'), base = "/", p = location.pathname, h = location.hash;
+  try { if (l) base = new URL(".", l.href).pathname; } catch (e) {}
+  var homeHash = !h || h === "#" || h === "#/" || h === "#telemetry" || h.indexOf("#/?") === 0;
+  if (!(p === base || p + "/" === base || p === base + "index.html") || !homeHash) { var b = null; try { b = JSON.parse(localStorage.getItem("holo.theme.build.v1") || "null"); } catch (e) {} s = { palette: b && b.palette === "light" ? "light" : "dark", immersive: !!(b && b.immersive), wallpaper: s.wallpaper }; }
+  var palette = s.palette === "light" ? "light" : "dark";
+  root.setAttribute("data-holo-palette", palette);
+  root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
+  root.style.setProperty("color-scheme", palette);
+  if (s.wallpaper) root.style.setProperty("--holo-wallpaper", "url(" + JSON.stringify(s.wallpaper) + ")");
+  root.classList.remove("light", "dark"); root.classList.add(palette);
+  try { localStorage.setItem("theme", palette); } catch (e) {}
+})();
+</script>
+<script type="application/json" id="wallpapers">[{"by":"Unsplash","byUrl":"https://unsplash.com/?utm_source=Hologram_AI&utm_medium=referral","file":"wallpapers/alps.jpg","name":"Alpine Dawn"},{"by":"Tiago Ferreira","byUrl":"https://unsplash.com/@tiago_f_ferreira?utm_source=Hologram_AI&utm_medium=referral","file":"wallpapers/galaxy.jpg","name":"Galaxy"},{"by":"Lightscape","byUrl":"https://unsplash.com/@lightscape?utm_source=Hologram_AI&utm_medium=referral","file":"wallpapers/aurora.jpg","name":"Aurora"}]</script>
+<script type="application/json" id="view">{"anyKeyLabel":"Any key works, for example local","appearanceLabel":"Appearance","askLabel":"Your browser may ask to let this page reach your computer.","baseUrlLabel":"Base URL","buildingLabel":"building in your browser","connectLabel":"Connect","connectedLabel":"Connected","copiedLabel":"Copied","copyLabel":"Copy","darkLabel":"Dark","downloadLabel":"Download","headline":"Own Your Ideas","holoLabel":"Your .holo application","holoLede":"The file is checked by PrismPM's own validator before it runs. Nothing leaves this browser.","holoTitle":"Run a Hologram application","identicalLabel":"Checked, identical","immersiveLabel":"Immersive","ladderLabel":"The best model your device has ready","largerLoadingLabel":"getting Qwen2.5 1.5B behind it","lede":"Describe it. It builds, runs and stays yours, in this browser, on no server.","lightLabel":"Light","listeningLabel":"Listening for the relay","loadingLabel":"getting the model, once","localLabel":"On your device","macLabel":"macOS / Linux","modelIdLabel":"Model","modelLabel":"Qwen2.5 1.5B, on your device","noGpuLabel":"This browser cannot run the model. Try Chrome or Edge on a computer.","notConnectedLabel":"Not connected","offlineLabel":"offline, working from your device","openLabel":"Open","pickLabel":"Choose a .holo file","previewLabel":"Preview","promotedLabel":"Now answering with Qwen2.5 1.5B","promptPlaceholder":"What do you want to build?","publishLabel":"Publish as a Hologram application","publishRefusedLabel":"Refused: the evidence does not match this shell","publishedLabel":"Published","publishingLabel":"cooking your application through PrismPM","rederiveLabel":"Check again","refusedLabel":"Refused: not what it claims to be","rollbackLabel":"Go back","runLabel":"Run this once, on this computer","runsLabel":"Runs on Hologram Desktop, Hologram Server and in any browser, with no server","sealedLabel":"Sealed","secondTabLabel":"Another tab is already serving","seedModelLabel":"SmolLM2 360M, on your device","sendLabel":"Build","servedLabel":"Instant, from the seal","snapshotLabel":"Sealed","stayOpenLabel":"Nothing leaves your device. Keep this tab open.","testLabel":"Send a test request","verifyLabel":"Verify the file","verifyingLabel":"verifying","wallpapers":[{"by":"Unsplash","byUrl":"https://unsplash.com/?utm_source=Hologram_AI&utm_medium=referral","file":"alps.jpg","name":"Alpine Dawn"},{"by":"Tiago Ferreira","byUrl":"https://unsplash.com/@tiago_f_ferreira?utm_source=Hologram_AI&utm_medium=referral","file":"galaxy.jpg","name":"Galaxy"},{"by":"Lightscape","byUrl":"https://unsplash.com/@lightscape?utm_source=Hologram_AI&utm_medium=referral","file":"aurora.jpg","name":"Aurora"}],"windowsLabel":"Windows"}</script>
+</head>
+<body>
+<div id="root"></div>
+<button class="appearance" id="appearance" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Appearance"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg></button>
+<div class="popover" id="popover" role="dialog" aria-label="Appearance" hidden>
+  <button class="mode" type="button" data-mode="immersive"><span>Immersive</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M3 15l5-5 4 4 3-3 6 6"></path><circle cx="16" cy="8" r="1.5"></circle></svg></button>
+  <div class="walls" id="walls"><button class="wall" type="button" data-wall="wallpapers/alps.jpg" title="Alpine Dawn" aria-label="Alpine Dawn" style="background-image:url(wallpapers/alps.jpg)"></button><button class="wall" type="button" data-wall="wallpapers/galaxy.jpg" title="Galaxy" aria-label="Galaxy" style="background-image:url(wallpapers/galaxy.jpg)"></button><button class="wall" type="button" data-wall="wallpapers/aurora.jpg" title="Aurora" aria-label="Aurora" style="background-image:url(wallpapers/aurora.jpg)"></button></div>
+  <button class="mode" type="button" data-mode="dark"><span>Dark</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></button>
+  <button class="mode" type="button" data-mode="light"><span>Light</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg></button>
+</div>
+<script type="module" src="host.bundle.js"></script>
+<script type="module" src="assets/index.js"></script>
+<script type="module" src="appearance.js"></script>
+</body>
+</html>

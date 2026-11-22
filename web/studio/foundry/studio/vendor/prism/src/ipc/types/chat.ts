@@ -1,0 +1,579 @@
+import { z } from "zod";
+import {
+  defineContract,
+  defineStream,
+  createClient,
+  createStreamClient,
+} from "../contracts/core";
+import {
+  ChatModeSchema,
+  ModelSelectionSchema,
+  StoredChatModeSchema,
+  migrateStoredChatMode,
+  type ChatMode,
+} from "../../lib/schemas";
+import {
+  CHAT_ATTACHMENT_COUNT_LIMIT_MESSAGE,
+  MAX_CHAT_ATTACHMENTS,
+  MAX_CHAT_COMPONENT_FIELD_CHARS,
+  MAX_CHAT_COMPONENT_SELECTIONS,
+  MAX_CHAT_PROMPT_CHARS,
+  MAX_CHAT_WIRE_ID_CHARS,
+  validateSerializedChatAttachments,
+} from "../../shared/chatAttachmentLimits";
+import type { ChatStreamInvocationRef } from "@/chat_stream/invocation";
+
+// =============================================================================
+// Chat Schemas
+// =============================================================================
+
+/**
+ * Schema for a Message object.
+ */
+export const MessageSchema = z.object({
+  id: z.number(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  approvalState: z.enum(["approved", "rejected"]).nullable().optional(),
+  commitHash: z.string().nullable().optional(),
+  sourceCommitHash: z.string().nullable().optional(),
+  dbTimestamp: z.string().nullable().optional(),
+  createdAt: z.union([z.date(), z.string()]).optional(),
+  requestId: z.string().nullable().optional(),
+  totalTokens: z.number().nullable().optional(),
+  model: z.string().nullable().optional(),
+});
+
+export type Message = z.infer<typeof MessageSchema>;
+
+export const NullableChatModeSchema = StoredChatModeSchema.nullable().transform(
+  (mode): ChatMode | null => migrateStoredChatMode(mode ?? undefined) ?? null,
+);
+
+export const ReferencedAppSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+export type ReferencedApp = z.infer<typeof ReferencedAppSchema>;
+
+/**
+ * Schema for a Chat object.
+ */
+export const ChatSchema = z.object({
+  id: z.number(),
+  appId: z.number(),
+  title: z.string(),
+  messages: z.array(MessageSchema),
+  initialCommitHash: z.string().nullable().optional(),
+  dbTimestamp: z.string().nullable().optional(),
+  chatMode: NullableChatModeSchema,
+  modelSelection: ModelSelectionSchema.nullable().optional(),
+  /**
+   * Apps referenced via `@app:Name` that stay readable for the rest of the
+   * chat in agent-backed modes.
+   */
+  referencedApps: z.array(ReferencedAppSchema).default([]),
+});
+
+export type Chat = z.infer<typeof ChatSchema>;
+
+/**
+ * Schema for component selection (used in chat context).
+ */
+export const ComponentSelectionSchema = z.object({
+  id: z.string().max(MAX_CHAT_COMPONENT_FIELD_CHARS),
+  name: z.string().max(MAX_CHAT_COMPONENT_FIELD_CHARS),
+  runtimeId: z.string().max(MAX_CHAT_COMPONENT_FIELD_CHARS).optional(),
+  relativePath: z.string().max(MAX_CHAT_COMPONENT_FIELD_CHARS),
+  lineNumber: z.number(),
+  columnNumber: z.number(),
+});
+
+export type ComponentSelection = z.infer<typeof ComponentSelectionSchema>;
+
+/**
+ * Shape of a serialized chat attachment, without the size-limit refinement.
+ * Use this for data that was already size-validated at the submission boundary
+ * (e.g. persisted queued prompts): re-running the size check on every
+ * round-trip wastes CPU, and tightening the limits later would retroactively
+ * reject stored data that was valid when written.
+ */
+export const ChatAttachmentShapeSchema = z.object({
+  name: z.string().max(1024),
+  type: z.string().max(256),
+  data: z.string(), // Base64 encoded
+  attachmentType: z.enum(["upload-to-codebase", "chat-context"]),
+});
+
+/**
+ * Schema for file attachment in chat (base64 encoded for IPC transfer).
+ */
+export const ChatAttachmentSchema = ChatAttachmentShapeSchema.superRefine(
+  (attachment, context) => {
+    const validation = validateSerializedChatAttachments([attachment]);
+    if (!validation.ok) {
+      context.addIssue({
+        code: "custom",
+        path: ["data"],
+        message: validation.message,
+      });
+    }
+  },
+);
+
+export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+
+/**
+ * FileAttachment type for browser File objects (before base64 conversion).
+ * Used by components that handle file uploads.
+ */
+export interface FileAttachment {
+  file: File;
+  type: "upload-to-codebase" | "chat-context";
+}
+
+/**
+ * Reject excessive counts before Zod parses any attachment payloads. Keeping
+ * this as an outer pipeline avoids walking arbitrarily many large base64
+ * strings before reporting the count violation.
+ */
+const ChatAttachmentsSchema = z
+  .unknown()
+  .superRefine((value, context) => {
+    if (Array.isArray(value) && value.length > MAX_CHAT_ATTACHMENTS) {
+      context.addIssue({
+        code: "custom",
+        message: CHAT_ATTACHMENT_COUNT_LIMIT_MESSAGE,
+      });
+    }
+  })
+  .pipe(z.array(ChatAttachmentSchema));
+
+/**
+ * Schema for chat stream parameters.
+ */
+export const ChatStreamInvocationRefSchema: z.ZodType<ChatStreamInvocationRef> =
+  z.object({
+    kind: z.literal("chat-stream"),
+    entityKey: z.number(),
+    operationId: z.string().min(1).max(MAX_CHAT_WIRE_ID_CHARS),
+  });
+
+export const ChatStreamParamsSchema = z
+  .object({
+    chatId: z.number(),
+    appId: z.number().int().positive().optional(),
+    /** Correlation identity for new renderers. */
+    invocationRef: ChatStreamInvocationRefSchema.optional(),
+    /** @deprecated Compatibility with renderer generations predating InvocationRef. */
+    streamId: z.number().optional(),
+    prompt: z.string().max(MAX_CHAT_PROMPT_CHARS),
+    /** Durable idempotency identity owned by the main chat actor. */
+    intentId: z.string().min(1).max(256).optional(),
+    redo: z.boolean().optional(),
+    attachments: ChatAttachmentsSchema.optional(),
+    selectedComponents: z
+      .array(ComponentSelectionSchema)
+      .max(MAX_CHAT_COMPONENT_SELECTIONS)
+      .optional(),
+    requestedChatMode: ChatModeSchema.nullable().optional(),
+    userInputRequestId: z.string().max(MAX_CHAT_WIRE_ID_CHARS).optional(),
+    planAcceptInNewChat: z.boolean().optional(),
+  })
+  .superRefine((params, context) => {
+    const validation = validateSerializedChatAttachments(
+      params.attachments ?? [],
+    );
+    if (!validation.ok) {
+      context.addIssue({
+        code: "custom",
+        path: ["attachments"],
+        message: validation.message,
+      });
+    }
+  });
+
+export type ChatStreamParams = z.infer<typeof ChatStreamParamsSchema>;
+
+/**
+ * `streamingPatch` describes a tail-only update: replace the streaming
+ * message's content from `offset` onward with `content`. Sending only the
+ * tail avoids serializing tens of thousands of unchanged bytes on every
+ * text delta during a long response.
+ *
+ * The renderer reconstructs as `current.slice(0, offset) + content`, so
+ * `offset` must be the longest common prefix length between the previously
+ * sent content and the current full response (cleanFullResponse may rewrite
+ * earlier bytes inside in-progress prism-tag attribute values).
+ */
+export const StreamingPatchSchema = z.object({
+  offset: z.number().int().nonnegative(),
+  content: z.string(),
+  /**
+   * djb2 hash of `fullResponse.slice(0, offset)` — the full agreed-upon prefix.
+   * Lets the renderer detect any stale-base mismatch (e.g. a cleanFullResponse
+   * `<` → `＜` rewrite anywhere in the prefix after the DB write), not just a
+   * mismatch at the boundary character.
+   * Absent when offset === 0 (no agreed-upon prefix to check).
+   */
+  prefixHash: z.number().int().nonnegative().optional(),
+});
+export type StreamingPatch = z.infer<typeof StreamingPatchSchema>;
+
+/**
+ * Schema for a transient tool-input XML preview.
+ *
+ * Pro/Agent v2 tools stream their args as JSON deltas; the handler rebuilds
+ * a complete XML representation per delta (see `buildXml`). That output is
+ * not append-only — closing quotes and brackets shift as attribute values
+ * grow — so it cannot be expressed as a tail-only `StreamingPatch` against
+ * `message.content`. Routing it through the patch protocol forces non-tail
+ * escalations to `fullMessages` sends, which are expensive on long turns.
+ *
+ * Instead, previews ride a dedicated field. The renderer overlays the preview
+ * on the active streaming assistant message for this chunk's chat and clears it
+ * when content is empty or the stream ends.
+ */
+export const StreamingPreviewSchema = z.object({
+  content: z.string(),
+});
+export type StreamingPreview = z.infer<typeof StreamingPreviewSchema>;
+
+/**
+ * Schema for chat response chunk event.
+ *
+ * Three independent update modes that may appear separately or alongside
+ * each other:
+ * 1. Full update: `messages` set with the complete messages array.
+ * 2. Incremental tail patch: `streamingMessageId` + `streamingPatch`.
+ * 3. Tool-input XML preview overlay: `streamingPreview`. Doesn't touch
+ *    `message.content`; rendered as a sidecar block on the frontend.
+ */
+export const ChatResponseChunkSchema = z.object({
+  chatId: z.number(),
+  invocationRef: ChatStreamInvocationRefSchema.optional(),
+  /** @deprecated Compatibility with main processes predating InvocationRef. */
+  streamId: z.number().optional(),
+  messages: z.array(MessageSchema).optional(),
+  streamingMessageId: z.number().optional(),
+  streamingPatch: StreamingPatchSchema.optional(),
+  streamingPreview: StreamingPreviewSchema.optional(),
+  // Monotonic chunk sequence used for ack-based backpressure on the canned
+  // test streaming path. Real LLM streams omit this field; the renderer
+  // only acks when chunkSeq is present.
+  chunkSeq: z.number().int().nonnegative().finite().optional(),
+  effectiveChatMode: ChatModeSchema.optional(),
+  acceptedUserInputRequestId: z.string().optional(),
+});
+
+export type ChatResponseChunk = z.infer<typeof ChatResponseChunkSchema>;
+
+/**
+ * Schema for chat response end event.
+ */
+export const ChatResponseEndSchema = z.object({
+  chatId: z.number(),
+  invocationRef: ChatStreamInvocationRefSchema.optional(),
+  /** @deprecated Compatibility with main processes predating InvocationRef. */
+  streamId: z.number().optional(),
+  updatedFiles: z.boolean(),
+  extraFiles: z.array(z.string()).optional(),
+  extraFilesError: z.string().optional(),
+  warningMessages: z.array(z.string()).optional(),
+  totalTokens: z.number().optional(),
+  contextWindow: z.number().optional(),
+  chatSummary: z.string().optional(),
+  /** Indicates the stream was cancelled by the user, not completed successfully */
+  wasCancelled: z.boolean().optional(),
+  /** Indicates queued prompts should be paused after this stream completes */
+  pausePromptQueue: z.boolean().optional(),
+  /** Indicates the queue pause was requested for the automatic review barrier. */
+  reviewBarrierRequested: z.boolean().optional(),
+  /** Prevents renderer-owned background review for modes that forbid sub-agents. */
+  suppressAutoReview: z.boolean().optional(),
+});
+
+export type ChatResponseEnd = z.infer<typeof ChatResponseEndSchema>;
+
+/**
+ * Schema for chat response error event.
+ */
+export const ChatResponseErrorSchema = z.object({
+  chatId: z.number(),
+  invocationRef: ChatStreamInvocationRefSchema.optional(),
+  /** @deprecated Compatibility with main processes predating InvocationRef. */
+  streamId: z.number().optional(),
+  error: z.string(),
+  warningMessages: z.array(z.string()).optional(),
+});
+
+/**
+ * Schema for create chat result (returns chatId).
+ */
+export const CreateChatResultSchema = z.number();
+
+/**
+ * Schema for update chat params.
+ */
+export const UpdateChatParamsSchema = z.object({
+  chatId: z.number(),
+  title: z.string().optional(),
+  chatMode: ChatModeSchema.nullable().optional(),
+  modelSelection: ModelSelectionSchema.optional(),
+});
+
+export type UpdateChatParams = z.infer<typeof UpdateChatParamsSchema>;
+
+export const RemoveChatReferencedAppParamsSchema = z.object({
+  chatId: z.number(),
+  appId: z.number(),
+});
+
+export type RemoveChatReferencedAppParams = z.infer<
+  typeof RemoveChatReferencedAppParamsSchema
+>;
+
+export const SetChatFavoriteParamsSchema = z.object({
+  chatId: z.number(),
+  isFavorite: z.boolean(),
+});
+
+export type SetChatFavoriteParams = z.infer<typeof SetChatFavoriteParamsSchema>;
+
+export const SetChatFavoriteResultSchema = z.object({
+  isFavorite: z.boolean(),
+});
+
+/**
+ * Schema for token count params.
+ */
+export const TokenCountParamsSchema = z.object({
+  chatId: z.number(),
+  input: z.string(),
+});
+
+export type TokenCountParams = z.infer<typeof TokenCountParamsSchema>;
+
+/**
+ * Schema for token count result.
+ */
+export const TokenCountResultSchema = z.object({
+  estimatedTotalTokens: z.number(),
+  actualMaxTokens: z.number().nullable(),
+  messageHistoryTokens: z.number(),
+  codebaseTokens: z.number(),
+  mentionedAppsTokens: z.number(),
+  inputTokens: z.number(),
+  systemPromptTokens: z.number(),
+  contextWindow: z.number(),
+});
+
+export type TokenCountResult = z.infer<typeof TokenCountResultSchema>;
+
+// =============================================================================
+// Chat Contracts (Invoke/Response)
+// =============================================================================
+
+export const chatContracts = {
+  getChat: defineContract({
+    channel: "get-chat",
+    input: z.number(), // chatId
+    output: ChatSchema,
+  }),
+
+  getChats: defineContract({
+    channel: "get-chats",
+    input: z.number().optional(), // appId (optional)
+    output: z.array(
+      z.object({
+        id: z.number(),
+        appId: z.number(),
+        title: z.string().nullable(),
+        createdAt: z.date(),
+        chatMode: NullableChatModeSchema,
+        isFavorite: z.boolean(),
+      }),
+    ),
+  }),
+
+  getChatMetadata: defineContract({
+    channel: "get-chat-metadata",
+    input: z.number(),
+    output: z.object({
+      id: z.number(),
+      appId: z.number(),
+      title: z.string().nullable(),
+      createdAt: z.date(),
+      chatMode: NullableChatModeSchema,
+      isFavorite: z.boolean(),
+    }),
+  }),
+
+  createChat: defineContract({
+    channel: "create-chat",
+    input: z.union([
+      z.number(), // appId (legacy shape)
+      z.object({
+        appId: z.number(),
+        initialChatMode: ChatModeSchema.optional(),
+        firstPromptCreationOperationId: z.string().min(1).optional(),
+      }),
+    ]),
+    output: CreateChatResultSchema,
+    invalidates: () => [{ family: "chats" }],
+    originHandles: () => [{ family: "chats" }],
+  }),
+
+  updateChat: defineContract({
+    channel: "update-chat",
+    input: UpdateChatParamsSchema,
+    output: z.void(),
+    invalidates: (input) => [
+      { family: "chats" },
+      { family: "chat", chatId: input.chatId },
+    ],
+    originHandles: () => [{ family: "chats" }],
+  }),
+
+  setChatFavorite: defineContract({
+    channel: "set-chat-favorite",
+    input: SetChatFavoriteParamsSchema,
+    output: SetChatFavoriteResultSchema,
+    invalidates: (input) => [
+      { family: "chats" },
+      { family: "chat", chatId: input.chatId },
+    ],
+    originHandles: () => [{ family: "chats" }],
+  }),
+
+  removeChatReferencedApp: defineContract({
+    channel: "remove-chat-referenced-app",
+    input: RemoveChatReferencedAppParamsSchema,
+    output: z.void(),
+    invalidates: (input) => [{ family: "chat", chatId: input.chatId }],
+    // The chip row invalidates the chat itself in `onSettled`, so the calling
+    // window would otherwise refetch twice per detach.
+    originHandles: (input) => [{ family: "chat", chatId: input.chatId }],
+  }),
+
+  deleteChat: defineContract({
+    channel: "delete-chat",
+    input: z.number(), // chatId
+    output: z.void(),
+    invalidates: () => [{ family: "chats" }],
+  }),
+
+  deleteMessages: defineContract({
+    channel: "delete-messages",
+    input: z.number(), // chatId
+    output: z.void(),
+    invalidates: (chatId) => [{ family: "chat", chatId }],
+  }),
+
+  searchChats: defineContract({
+    channel: "search-chats",
+    input: z.object({
+      appId: z.number(),
+      query: z.string(),
+    }),
+    output: z.array(
+      z.object({
+        id: z.number(),
+        appId: z.number(),
+        title: z.string().nullable(),
+        createdAt: z.date(),
+        matchedMessageContent: z.string().nullable(),
+      }),
+    ),
+  }),
+
+  countTokens: defineContract({
+    channel: "chat:count-tokens",
+    input: TokenCountParamsSchema,
+    output: TokenCountResultSchema,
+  }),
+
+  cancelStream: defineContract({
+    channel: "chat:cancel",
+    input: z.number(), // chatId
+    output: z.boolean(),
+  }),
+
+  observeSubmissionStopPolicy: defineContract({
+    channel: "chat:observe-submission-stop-policy",
+    input: z.number().int().positive(),
+    output: z.number().int().nonnegative(),
+  }),
+
+  // Renderer→main ack for stress-test backpressure on the canned test
+  // streaming path. The handler is registered unconditionally, but real
+  // LLM streams omit `chunkSeq`, so the renderer only invokes this
+  // channel for canned [prism-qa=...] streams.
+  responseAck: defineContract({
+    channel: "chat:response:ack",
+    input: z.object({
+      chatId: z.number().int().nonnegative().finite(),
+      lastSeq: z.number().int().nonnegative().finite(),
+    }),
+    output: z.void(),
+  }),
+} as const;
+
+// =============================================================================
+// Chat Stream Contract
+// =============================================================================
+
+/**
+ * Chat stream contract for streaming responses.
+ * Uses chatId as the key field to route events to the correct callbacks.
+ */
+export const chatStreamContract = defineStream({
+  channel: "chat:stream",
+  input: ChatStreamParamsSchema,
+  keyField: "chatId",
+  events: {
+    chunk: {
+      channel: "chat:response:chunk",
+      payload: ChatResponseChunkSchema,
+    },
+    end: {
+      channel: "chat:response:end",
+      payload: ChatResponseEndSchema,
+    },
+    error: {
+      channel: "chat:response:error",
+      payload: ChatResponseErrorSchema,
+    },
+  },
+});
+
+// =============================================================================
+// Chat Clients
+// =============================================================================
+
+/**
+ * Type-safe client for chat IPC operations.
+ * Auto-generated from contracts.
+ *
+ * @example
+ * const chat = await chatClient.getChat(chatId);
+ * const chatId = await chatClient.createChat(appId);
+ */
+export const chatClient = createClient(chatContracts);
+
+/**
+ * Type-safe client for chat streaming.
+ * Manages callbacks internally and routes events by chatId.
+ *
+ * @example
+ * chatStreamClient.start(
+ *   { chatId: 123, prompt: "Hello" },
+ *   {
+ *     onChunk: (data) => setMessages(data.messages),
+ *     onEnd: (data) => console.log("Done", data.updatedFiles),
+ *     onError: (data) => showError(data.error),
+ *   }
+ * );
+ */
+export const chatStreamClient = createStreamClient(chatStreamContract);

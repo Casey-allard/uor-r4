@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "qual-characteristic"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Qual"
+component = "ProductQualityCharacteristic"
+
+[[form]]
+id = "qual-characteristic"
+channel = "text"
+surface = "quality characteristic"
+canonical_source = true
+features = ["sentence-case", "singular"]

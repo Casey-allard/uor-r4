@@ -1,0 +1,614 @@
+import { IpcMainInvokeEvent } from "electron";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import { readSettings } from "../../main/settings";
+import {
+  gitMergeAbort,
+  gitFetch,
+  gitPull,
+  gitCreateBranch,
+  gitDeleteBranch,
+  gitCheckout,
+  gitMerge,
+  gitCurrentBranch,
+  gitListBranches,
+  gitListRemoteBranches,
+  gitRenameBranch,
+  GitStateError,
+  GIT_ERROR_CODES,
+  isGitMergeInProgress,
+  isGitRebaseInProgress,
+  getGitUncommittedFilesWithStatus,
+  gitDiscardAllChanges,
+  getFileAtCommit,
+  isMissingRemoteBranchError,
+} from "../utils/git_utils";
+import { gitService } from "../services/git_service";
+import { getPrismAppPath } from "../../paths/paths";
+import { safeJoin } from "../utils/path_utils";
+import { promises as fsPromises } from "node:fs";
+import { db } from "../../db";
+import { apps } from "../../db/schema";
+import { eq } from "drizzle-orm";
+import log from "electron-log";
+import {
+  appOperationCoordinator,
+  readAppResource,
+} from "../services/app_operation_coordinator";
+import { updateAppGithubRepo, ensureCleanWorkspace } from "./github_handlers";
+import { createTypedHandler } from "./base";
+import { githubContracts, gitContracts, gitEvents } from "../types/github";
+import { ensurePrismGitignored } from "./gitignoreUtils";
+import { safeSend } from "../utils/safe_sender";
+import type {
+  CancelCommitParams,
+  CommitChangesParams,
+  GitBranchAppIdParams,
+  CreateGitBranchParams,
+  GitBranchParams,
+  RenameGitBranchParams,
+  UncommittedFile,
+  GetUncommittedFileDiffParams,
+  UncommittedFileDiff,
+} from "../types/github";
+
+const logger = log.scope("git_branch_handlers");
+
+interface ActiveCommitOperation {
+  appId: number;
+  controller: AbortController;
+  cancellable: boolean;
+  senderId: number;
+}
+
+const activeCommitOperations = new Map<string, ActiveCommitOperation>();
+
+export async function handleAbortMerge(
+  event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<void> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  await gitMergeAbort({ path: appPath });
+}
+
+// --- GitHub Fetch Handler ---
+export async function handleFetchFromGithub(
+  event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<void> {
+  const settings = readSettings();
+  const accessToken = settings.githubAccessToken?.value;
+  if (!accessToken) {
+    throw new PrismError("Not authenticated with GitHub.", PrismErrorKind.Auth);
+  }
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app || !app.githubOrg || !app.githubRepo) {
+    throw new PrismError(
+      "App is not linked to a GitHub repo.",
+      PrismErrorKind.Precondition,
+    );
+  }
+  const appPath = getPrismAppPath(app.path);
+
+  await gitFetch({
+    path: appPath,
+    remote: "origin",
+    accessToken,
+  });
+}
+
+// --- GitHub Branch Handlers ---
+export async function handleCreateBranch(
+  event: IpcMainInvokeEvent,
+  { appId, branch, from }: CreateGitBranchParams,
+): Promise<void> {
+  // Validate branch name
+  if (!branch || branch.length === 0 || branch.length > 255) {
+    throw new PrismError(
+      "Branch name must be between 1 and 255 characters",
+      PrismErrorKind.Validation,
+    );
+  }
+  if (!/^[a-zA-Z0-9/_.-]+$/.test(branch) || /\.\./.test(branch)) {
+    throw new PrismError(
+      "Branch name contains invalid characters",
+      PrismErrorKind.Validation,
+    );
+  }
+  if (
+    branch.startsWith("-") ||
+    branch === "HEAD" ||
+    branch.endsWith(".") ||
+    branch.endsWith(".lock") ||
+    branch.startsWith("/") ||
+    branch.endsWith("/") ||
+    branch.includes("@{")
+  ) {
+    throw new PrismError("Invalid branch name", PrismErrorKind.Validation);
+  }
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  await gitCreateBranch({
+    path: appPath,
+    branch,
+    from,
+  });
+}
+
+export async function handleDeleteBranch(
+  event: IpcMainInvokeEvent,
+  { appId, branch }: GitBranchParams,
+): Promise<void> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  // Check if branch exists locally
+  const localBranches = await gitListBranches({ path: appPath });
+  const existsLocally = localBranches.includes(branch);
+
+  if (existsLocally) {
+    // Delete local branch
+    await gitDeleteBranch({
+      path: appPath,
+      branch,
+    });
+  } else {
+    // Branch doesn't exist locally - it may only exist on remote
+    // or has already been deleted. Check if it exists remotely.
+    let remoteBranches: string[];
+    try {
+      remoteBranches = await gitListRemoteBranches({ path: appPath });
+    } catch (error) {
+      logger.warn(
+        `Failed to list remote branches while checking for branch '${branch}' to delete.`,
+        error,
+      );
+      throw new PrismError(
+        `Branch '${branch}' does not exist locally and remote branches could not be checked. Please try again later.`,
+        PrismErrorKind.Conflict,
+      );
+    }
+
+    if (!remoteBranches.includes(branch)) {
+      // Branch doesn't exist locally or remotely - it's already been deleted
+      logger.info(
+        `Branch '${branch}' not found locally or remotely - may have already been deleted`,
+      );
+      return; // Success - nothing to delete
+    }
+
+    // Branch only exists remotely - inform user they need to delete it on GitHub
+    if (app.githubOrg && app.githubRepo) {
+      throw new PrismError(
+        `Branch '${branch}' only exists on the remote. To delete it, please delete the branch on GitHub directly. Visit https://github.com/${app.githubOrg}/${app.githubRepo}/branches to manage remote branches.`,
+        PrismErrorKind.Conflict,
+      );
+    }
+    throw new PrismError(
+      `Branch '${branch}' only exists on the remote and cannot be deleted locally. Please delete it from your remote Git hosting provider.`,
+      PrismErrorKind.Conflict,
+    );
+  }
+}
+
+export async function handleSwitchBranch(
+  event: IpcMainInvokeEvent,
+  { appId, branch }: GitBranchParams,
+): Promise<void> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  // Check for merge or rebase in progress before attempting to switch
+  // This provides structured error codes instead of relying on string matching
+  if (isGitMergeInProgress({ path: appPath })) {
+    throw GitStateError(
+      "Cannot switch branches: merge in progress. Please complete or abort the merge first.",
+      GIT_ERROR_CODES.MERGE_IN_PROGRESS,
+    );
+  }
+
+  if (isGitRebaseInProgress({ path: appPath })) {
+    throw GitStateError(
+      "Cannot switch branches: rebase in progress. Please complete or abort the rebase first.",
+      GIT_ERROR_CODES.REBASE_IN_PROGRESS,
+    );
+  }
+
+  await ensureCleanWorkspace(appPath, `switching to branch '${branch}'`);
+  await gitCheckout({
+    path: appPath,
+    ref: branch,
+  });
+
+  // Update DB with new branch
+  await updateAppGithubRepo({
+    appId,
+    org: app.githubOrg || undefined,
+    repo: app.githubRepo || "",
+    branch,
+  });
+}
+
+export async function handleRenameBranch(
+  event: IpcMainInvokeEvent,
+  { appId, oldBranch, newBranch }: RenameGitBranchParams,
+): Promise<void> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  // Check if we're renaming the current branch BEFORE renaming to avoid race conditions
+  const currentBranch = await gitCurrentBranch({ path: appPath });
+  const isRenamingCurrentBranch = currentBranch === oldBranch;
+
+  await gitRenameBranch({
+    path: appPath,
+    oldBranch,
+    newBranch,
+  });
+
+  // Only update DB if we were on oldBranch before renaming
+  // (git branch -m renames the current branch if we're on it, so HEAD now points to newBranch)
+  if (isRenamingCurrentBranch) {
+    await updateAppGithubRepo({
+      appId,
+      org: app.githubOrg || undefined,
+      repo: app.githubRepo || "",
+      branch: newBranch,
+    });
+  }
+}
+
+export async function handleMergeBranch(
+  event: IpcMainInvokeEvent,
+  { appId, branch }: GitBranchParams,
+): Promise<void> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  // Check if branch exists locally, if not, check if it's a remote branch
+  const localBranches = await gitListBranches({ path: appPath });
+  let remoteBranches: string[] = [];
+  try {
+    remoteBranches = await gitListRemoteBranches({
+      path: appPath,
+    });
+  } catch (error: any) {
+    logger.warn(`Failed to list remote branches: ${error.message}`);
+    // Continue with empty remote branches list
+  }
+
+  let mergeBranchRef = branch;
+
+  // If branch doesn't exist locally but exists remotely, use remote ref
+  if (!localBranches.includes(branch) && remoteBranches.includes(branch)) {
+    mergeBranchRef = `origin/${branch}`;
+  }
+
+  await ensureCleanWorkspace(appPath, `merging branch '${branch}'`);
+  await gitMerge({
+    path: appPath,
+    branch: mergeBranchRef,
+  });
+}
+
+async function handleListLocalBranches(
+  event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<{ branches: string[]; current: string | null }> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  const branches = await gitListBranches({ path: appPath });
+  const current = await gitCurrentBranch({ path: appPath });
+  return { branches, current: current || null };
+}
+
+async function handleListRemoteBranches(
+  event: IpcMainInvokeEvent,
+  { appId, remote = "origin" }: { appId: number; remote?: string },
+): Promise<string[]> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  const branches = await gitListRemoteBranches({ path: appPath, remote });
+  return branches;
+}
+
+async function handleGetUncommittedFiles(
+  event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<UncommittedFile[]> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  return getGitUncommittedFilesWithStatus({ path: appPath });
+}
+
+async function handleGetUncommittedFileDiff(
+  _event: IpcMainInvokeEvent,
+  { appId, filePath }: GetUncommittedFileDiffParams,
+): Promise<UncommittedFileDiff> {
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+  const appPath = getPrismAppPath(app.path);
+
+  // `filePath` comes from the renderer, so validate up front that it stays
+  // within the app directory before using it to read files or git objects. This
+  // rejects path-traversal attempts (e.g. "../../etc/passwd") with a clear error
+  // rather than silently returning an empty diff.
+  let resolvedPath: string;
+  try {
+    resolvedPath = safeJoin(appPath, filePath);
+  } catch {
+    throw new PrismError("Invalid file path", PrismErrorKind.Validation);
+  }
+
+  // "before" side: the file at HEAD. Missing (newly added file) → empty.
+  let oldContent =
+    (await getFileAtCommit({ path: appPath, filePath, commitHash: "HEAD" })) ??
+    "";
+
+  // A renamed file has no HEAD blob under its new path, so the lookup above
+  // returns empty and the diff would show the whole file as added. Recover the
+  // original path from status and read the HEAD content there instead, so the
+  // rename renders as an actual before/after diff.
+  if (!oldContent) {
+    const uncommitted = await getGitUncommittedFilesWithStatus({
+      path: appPath,
+    });
+    const renamed = uncommitted.find(
+      (file) =>
+        file.path === filePath && file.status === "renamed" && file.oldPath,
+    );
+    if (renamed?.oldPath) {
+      oldContent =
+        (await getFileAtCommit({
+          path: appPath,
+          filePath: renamed.oldPath,
+          commitHash: "HEAD",
+        })) ?? "";
+    }
+  }
+
+  // "after" side: the current working-tree contents. Missing (deleted) → empty.
+  let newContent = "";
+  try {
+    newContent = await fsPromises.readFile(resolvedPath, "utf-8");
+  } catch {
+    newContent = "";
+  }
+
+  return { path: filePath, oldContent, newContent };
+}
+
+async function withAppGitOp<T>(
+  appId: number,
+  operation: string,
+  fn: (appPath: string) => Promise<T>,
+): Promise<T> {
+  return appOperationCoordinator.run(
+    {
+      appId,
+      operation: `git:${operation}`,
+      resources: [readAppResource("app-path"), "repository"],
+      refuseWhenRecording: operation,
+    },
+    async () => {
+      const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+      if (!app) throw new PrismError("App not found", PrismErrorKind.NotFound);
+      const appPath = getPrismAppPath(app.path);
+
+      if (isGitMergeInProgress({ path: appPath })) {
+        throw GitStateError(
+          `Cannot ${operation}: merge in progress. Please complete or abort the merge first.`,
+          GIT_ERROR_CODES.MERGE_IN_PROGRESS,
+        );
+      }
+
+      if (isGitRebaseInProgress({ path: appPath })) {
+        throw GitStateError(
+          `Cannot ${operation}: rebase in progress. Please complete or abort the rebase first.`,
+          GIT_ERROR_CODES.REBASE_IN_PROGRESS,
+        );
+      }
+
+      return fn(appPath);
+    },
+  );
+}
+
+async function handleCommitChanges(
+  event: IpcMainInvokeEvent,
+  { appId, message, operationId }: CommitChangesParams,
+): Promise<string> {
+  if (activeCommitOperations.has(operationId)) {
+    throw new PrismError(
+      "A commit operation with this identifier is already active.",
+      PrismErrorKind.Conflict,
+    );
+  }
+
+  const controller = new AbortController();
+  const abortWhenSenderIsDestroyed = () => controller.abort();
+  event.sender.once?.("destroyed", abortWhenSenderIsDestroyed);
+  if (event.sender.isDestroyed?.()) {
+    controller.abort();
+  }
+  activeCommitOperations.set(operationId, {
+    appId,
+    controller,
+    cancellable: true,
+    senderId: event.sender.id,
+  });
+  let admitted = false;
+  try {
+    const commit = withAppGitOp(appId, "commit", async (appPath) => {
+      admitted = true;
+      if (controller.signal.aborted) {
+        throw GitStateError(
+          "The commit was cancelled.",
+          GIT_ERROR_CODES.COMMIT_CANCELLED,
+        );
+      }
+      await ensurePrismGitignored(appPath);
+      return gitService.stageAllAndCommitWithPreCommit({
+        path: appPath,
+        message,
+        signal: controller.signal,
+        onProgress: (phase) => {
+          if (phase === "committing") {
+            const active = activeCommitOperations.get(operationId);
+            if (active?.controller === controller) {
+              active.cancellable = false;
+            }
+          }
+          safeSend(event.sender, gitEvents.commitProgress.channel, {
+            appId,
+            operationId,
+            phase,
+          });
+        },
+      });
+    });
+
+    // Admission can sit in the coordinator queue for as long as whatever else
+    // holds the app's `repository` claim runs, and that queue has no timeout.
+    // A cancel that lands while the commit is still queued has to settle this
+    // invoke now: the renderer's `isCommitting` only clears when it does, so
+    // otherwise the dialog stays stuck on a disabled "Cancelling..." until the
+    // blocker releases. The queued admission still happens eventually, but its
+    // callback sees the aborted signal and commits nothing.
+    const cancelledBeforeAdmission = new Promise<never>((_resolve, reject) => {
+      const rejectAsCancelled = () => {
+        if (admitted) return;
+        reject(
+          GitStateError(
+            "The commit was cancelled.",
+            GIT_ERROR_CODES.COMMIT_CANCELLED,
+          ),
+        );
+      };
+      if (controller.signal.aborted) {
+        rejectAsCancelled();
+        return;
+      }
+      controller.signal.addEventListener("abort", rejectAsCancelled, {
+        once: true,
+      });
+    });
+    // Losing the race below leaves `commit` rejecting with nobody attached, so
+    // keep that rejection observed.
+    void commit.catch(() => {});
+    return await Promise.race([commit, cancelledBeforeAdmission]);
+  } finally {
+    event.sender.removeListener?.("destroyed", abortWhenSenderIsDestroyed);
+    const active = activeCommitOperations.get(operationId);
+    if (active?.controller === controller) {
+      activeCommitOperations.delete(operationId);
+    }
+  }
+}
+
+async function handleCancelCommit(
+  event: IpcMainInvokeEvent,
+  { appId, operationId }: CancelCommitParams,
+): Promise<boolean> {
+  const active = activeCommitOperations.get(operationId);
+  if (
+    active?.appId !== appId ||
+    active.senderId !== event.sender.id ||
+    !active.cancellable
+  ) {
+    return false;
+  }
+  active.controller.abort();
+  return true;
+}
+
+async function handleDiscardChanges(
+  _event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<void> {
+  return withAppGitOp(appId, "discard changes", async (appPath) => {
+    await gitDiscardAllChanges({ path: appPath });
+  });
+}
+
+// --- GitHub Pull Handler ---
+export async function handlePullFromGithub(
+  event: IpcMainInvokeEvent,
+  { appId }: GitBranchAppIdParams,
+): Promise<void> {
+  const settings = readSettings();
+  const accessToken = settings.githubAccessToken?.value;
+  if (!accessToken) {
+    throw new PrismError("Not authenticated with GitHub.", PrismErrorKind.Auth);
+  }
+  const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
+  if (!app || !app.githubOrg || !app.githubRepo) {
+    throw new PrismError(
+      "App is not linked to a GitHub repo.",
+      PrismErrorKind.Precondition,
+    );
+  }
+  const appPath = getPrismAppPath(app.path);
+  const currentBranch = await gitCurrentBranch({ path: appPath });
+
+  try {
+    await gitPull({
+      path: appPath,
+      remote: "origin",
+      branch: currentBranch || "main",
+      accessToken,
+    });
+  } catch (pullError: any) {
+    // Check if it's a missing remote branch error
+    const errorMessage = pullError?.message || "";
+    const isMissingRemoteBranch = isMissingRemoteBranchError(pullError);
+
+    // If the remote branch doesn't exist yet, we can ignore this
+    // (e.g., user hasn't pushed the branch yet)
+    if (!isMissingRemoteBranch) {
+      throw pullError;
+    } else {
+      logger.debug(
+        "[GitHub Handler] Remote branch missing during pull, continuing",
+        errorMessage,
+      );
+    }
+  }
+}
+
+// --- Registration ---
+export function registerGithubBranchHandlers() {
+  createTypedHandler(
+    githubContracts.listLocalBranches,
+    handleListLocalBranches,
+  );
+  createTypedHandler(
+    githubContracts.listRemoteBranches,
+    handleListRemoteBranches,
+  );
+  createTypedHandler(
+    gitContracts.getUncommittedFiles,
+    handleGetUncommittedFiles,
+  );
+  createTypedHandler(
+    gitContracts.getUncommittedFileDiff,
+    handleGetUncommittedFileDiff,
+  );
+  createTypedHandler(gitContracts.commitChanges, handleCommitChanges);
+  createTypedHandler(gitContracts.cancelCommit, handleCancelCommit);
+  createTypedHandler(gitContracts.discardChanges, handleDiscardChanges);
+}

@@ -1,0 +1,19 @@
+import {mountShellAction} from "./shell-action-dock.mjs";
+// Native review is explicit local-storage permission; it never enables audio.
+export function mountApplicationDiscovery({discover,accept,open}){
+ const element=(tag,text,parent)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;parent?.append(node);return node;};
+ const button=(label,parent,action)=>{const node=element('button',label,parent);node.type='button';node.addEventListener('click',action);node.style.cssText='padding:8px;margin:5px';return node;};
+ const install=()=>{
+  const entry=button('Discover an app',document.body,()=>{
+   const previous=document.activeElement,dialog=element('dialog');dialog.style.cssText='max-width:600px;padding:24px;border-radius:12px;background:white;color:#17202a';const heading=element('h2','Discover an application',dialog);heading.id='discovery-'+crypto.randomUUID();dialog.setAttribute('aria-labelledby',heading.id);
+   element('p','This local catalog offers a two-room gallery or an interactive garden. Try “photo gallery”, “garden with sound and motion”, or “visual” to see an ambiguous request. Other requirements are refused.',dialog);
+   const promptLabel=element('label','What would you like? ',dialog),prompt=element('textarea',undefined,promptLabel);prompt.maxLength=512;prompt.rows=3;
+   const nameLabel=element('label','Application name ',dialog),name=element('input',undefined,nameLabel);name.value='My discovered application';name.maxLength=120;
+   const status=element('p','Review a proposal before creating it.',dialog);status.setAttribute('role','status');const detail=element('section',undefined,dialog);let revision=0,proposal=null,busy=false,creating=false,closed=false;
+   const review=button('Review proposal',dialog,async()=>{if(busy)return;const ticket=revision,text=prompt.value;busy=true;review.disabled=true;create.disabled=true;try{const result=await discover({text});if(closed||ticket!==revision)return;proposal=result.ok?result:null;detail.replaceChildren();if(result.ok){element('h3',result.application.title,detail);element('p',result.application.description,detail);element('p','Creating stores this application in this browser. Sound remains off. No request is sent to a provider.',detail);status.textContent='Review the concrete application, then create it.';create.disabled=false;}else status.textContent=result.unknown.length?'Unsupported words: '+result.unknown.join(', '):'No unambiguous application fulfills the whole request. Refine it.';}catch(error){if(!closed&&ticket===revision)status.textContent=error.message;}finally{busy=false;if(!closed)review.disabled=false;}});
+   const create=button('Create reviewed application',dialog,async()=>{if(busy||!proposal)return;busy=true;creating=true;review.disabled=true;create.disabled=true;prompt.disabled=true;name.disabled=true;try{const result=await accept({text:proposal.text,name:name.value,review:proposal.review});dialog.close();await open(result.app.id);}catch(error){status.textContent=error.message;proposal=null;}finally{busy=false;creating=false;if(!closed){review.disabled=false;prompt.disabled=false;name.disabled=false;}}});create.disabled=true;
+   prompt.addEventListener('input',()=>{revision++;proposal=null;create.disabled=true;detail.replaceChildren();status.textContent='Request changed. Review it again.';});
+   button('Cancel',dialog,()=>{if(!creating)dialog.close();});dialog.addEventListener('cancel',event=>{if(creating)event.preventDefault();});dialog.addEventListener('close',()=>{closed=true;revision++;dialog.remove();previous?.focus();},{once:true});document.body.append(dialog);dialog.showModal();prompt.focus();
+  });entry.id='foundry-application-discovery';mountShellAction(entry);
+ };if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+}

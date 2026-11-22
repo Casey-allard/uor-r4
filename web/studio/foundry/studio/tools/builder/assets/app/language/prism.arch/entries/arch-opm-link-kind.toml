@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-opm-link-kind"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "OpmLinkKind"
+
+[[form]]
+id = "arch-opm-link-kind"
+channel = "text"
+surface = "OPM link kind"
+canonical_source = true
+features = ["sentence-case", "singular"]

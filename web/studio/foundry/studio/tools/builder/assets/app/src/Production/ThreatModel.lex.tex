@@ -1,0 +1,212 @@
+\begin{lexlean}{Production.ThreatModel}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\useglossary{prism.sec@1.0.0}
+\importmodule{Foundation.Sec}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: Stride,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: spoofing, fields: []},
+    {name: tampering, fields: []},
+    {name: repudiation, fields: []},
+    {name: informationDisclosure, fields: []},
+    {name: denialOfService, fields: []},
+    {name: elevationOfPrivilege, fields: []}
+  ]
+}
+
+inductive{
+  name: EvidenceKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: gate, fields: []}, {name: proof, fields: []}, {name: review, fields: []}]
+}
+
+structure{
+  name: Evidence,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: kind, type: EvidenceKind}, {name: reference, type: String}]
+}
+
+structure{
+  name: ControlSet,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: title, type: String},
+    {name: text, type: String},
+    {name: version, type: String},
+    {name: lastModified, type: String}
+  ]
+}
+
+structure{
+  name: ModeledAsset,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: asset, type: String}, {name: name, type: String}, {name: text, type: String}]
+}
+
+structure{
+  name: ModeledThreat,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: threat, type: String},
+    {name: name, type: String},
+    {name: text, type: String},
+    {name: category, type: Stride}
+  ]
+}
+
+structure{
+  name: ModeledControl,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: control, type: String},
+    {name: name, type: String},
+    {name: text, type: String},
+    {name: evidence, type: (List Evidence)}
+  ]
+}
+
+structure{
+  name: ThreatMapping,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: threat, type: String}, {name: controls, type: (List String)}]
+}
+
+structure{
+  name: AcceptedRisk,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: threat, type: String}, {name: rationale, type: String}]
+}
+
+structure{
+  name: NormalizedThreatModel,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: threatCount, type: Nat},
+    {name: categoryCounts, type: (List Nat)},
+    {name: mitigationCounts, type: (List Nat)},
+    {name: acceptanceCounts, type: (List Nat)},
+    {name: evidenceCounts, type: (List Nat)}
+  ]
+}
+
+definition{
+  name: threatListLength,
+  parameters: [values : (List Nat)],
+  result: Nat,
+  body: (match values | List.nil => 0 | List.cons value rest => ((threatListLength rest) + 1)),
+  recursive_argument: values
+}
+
+definition{
+  name: threatAllPositive,
+  parameters: [values : (List Nat)],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons value rest => ((0 <? value) && (threatAllPositive rest))),
+  recursive_argument: values
+}
+
+definition{
+  name: validateThreatsAnswered,
+  parameters: [mitigations : (List Nat), acceptances : (List Nat)],
+  result: Bool,
+  body: (match mitigations
+    | List.nil => true
+    | List.cons mitigation rest => (match acceptances
+      | List.nil => ((0 <? mitigation) && (validateThreatsAnswered rest acceptances))
+      | List.cons acceptance others => (((0 <? mitigation) || (0 <? acceptance)) && (validateThreatsAnswered rest others)))),
+  recursive_argument: mitigations
+}
+
+definition{
+  name: validateThreatCategories,
+  parameters: [categoryCounts : (List Nat)],
+  result: Bool,
+  body: (threatAllPositive categoryCounts)
+}
+
+definition{
+  name: validateControlEvidence,
+  parameters: [evidenceCounts : (List Nat)],
+  result: Bool,
+  body: (threatAllPositive evidenceCounts)
+}
+
+definition{
+  name: validateNormalizedThreatModel,
+  parameters: [model : NormalizedThreatModel],
+  result: Bool,
+  body: (((threatListLength (project model categoryCounts)) =? (project model threatCount)) && (((threatListLength (project model mitigationCounts)) =? (project model threatCount)) && (((threatListLength (project model acceptanceCounts)) =? (project model threatCount)) && ((validateThreatCategories (project model categoryCounts)) && ((validateThreatsAnswered (project model mitigationCounts) (project model acceptanceCounts)) && (validateControlEvidence (project model evidenceCounts)))))))
+}
+
+definition{
+  name: normalizedThreatModelValid,
+  parameters: [model : NormalizedThreatModel],
+  result: Prop,
+  body: ((validateNormalizedThreatModel model) = true)
+}
+
+theorem{
+  name: normalizedThreatModel_sound_complete,
+  parameters: [model : NormalizedThreatModel],
+  statement: (((validateNormalizedThreatModel model) = true) <-> (normalizedThreatModelValid model)),
+  proof: reflexivity{}
+}
+
+definition{
+  name: threatModelVector,
+  parameters: [
+    categoryCounts : (List Nat),
+    mitigationCounts : (List Nat),
+    acceptanceCounts : (List Nat),
+    evidenceCounts : (List Nat)
+  ],
+  result: NormalizedThreatModel,
+  body: (record NormalizedThreatModel {threatCount := 2, categoryCounts := categoryCounts, mitigationCounts := mitigationCounts, acceptanceCounts := acceptanceCounts, evidenceCounts := evidenceCounts})
+}
+
+theorem{
+  name: threatModelVectorAccepted,
+  parameters: [],
+  statement: ((validateNormalizedThreatModel (threatModelVector (cons 1 (cons 1 (nil Nat))) (cons 2 (cons 0 (nil Nat))) (cons 0 (cons 1 (nil Nat))) (cons 1 (cons 2 (nil Nat))))) = true),
+  proof: decide{}
+}
+
+theorem{
+  name: unmappedThreatRefused,
+  parameters: [],
+  statement: ((validateNormalizedThreatModel (threatModelVector (cons 1 (cons 1 (nil Nat))) (cons 2 (cons 0 (nil Nat))) (cons 0 (cons 0 (nil Nat))) (cons 1 (cons 2 (nil Nat))))) = false),
+  proof: decide{}
+}
+
+theorem{
+  name: controlWithoutEvidenceRefused,
+  parameters: [],
+  statement: ((validateNormalizedThreatModel (threatModelVector (cons 1 (cons 1 (nil Nat))) (cons 2 (cons 0 (nil Nat))) (cons 0 (cons 1 (nil Nat))) (cons 1 (cons 0 (nil Nat))))) = false),
+  proof: decide{}
+}
+
+theorem{
+  name: threatWithoutCategoryRefused,
+  parameters: [],
+  statement: ((validateNormalizedThreatModel (threatModelVector (cons 1 (cons 0 (nil Nat))) (cons 2 (cons 0 (nil Nat))) (cons 0 (cons 1 (nil Nat))) (cons 1 (cons 2 (nil Nat))))) = false),
+  proof: decide{}
+}
+\end{semanticmodule}
+\end{lexlean}

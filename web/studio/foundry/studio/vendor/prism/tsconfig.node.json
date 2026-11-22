@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "paths": {
+      "*": ["./*"],
+      "pg-schema-classifier": ["./packages/pg-schema-classifier/src/index.ts"],
+      "pg-schema-classifier/*": ["./packages/pg-schema-classifier/src/*"],
+      "ts-pg-schema-diff": ["./packages/ts-pg-schema-diff/src/index.ts"],
+      "ts-pg-schema-diff/*": ["./packages/ts-pg-schema-diff/src/*"]
+    }
+
+    // /* Bundler mode */
+    // // "moduleResolution": "bundler",
+    // "allowImportingTsExtensions": true,
+    // "isolatedModules": true,
+    // "moduleDetection": "force",
+    // "noEmit": true,
+    // "jsx": "react-jsx",
+
+    // /* Linting */
+    // "strict": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src",
+    "packages/ts-pg-schema-diff/src",
+    "packages/pg-schema-classifier/src"
+  ]
+}

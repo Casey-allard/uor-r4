@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "qual-measure"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Qual"
+component = "QualityMeasure"
+
+[[form]]
+id = "qual-measure"
+channel = "text"
+surface = "quality measure"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

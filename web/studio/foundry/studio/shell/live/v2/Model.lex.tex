@@ -1,0 +1,718 @@
+\begin{lexlean}{Foundation.View.Browser.V1.Model}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Browser view model}
+\begin{semanticmodule}
+structure{
+  name: Choice,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: Nat}, {name: label, type: Nat}]
+}
+
+structure{
+  name: TextChoice,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: Nat}, {name: text, type: String}]
+}
+
+structure{
+  name: TableRow,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: cells, type: (List String)}]
+}
+
+structure{
+  name: TableChunk,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: rows, type: (List TableRow)}]
+}
+
+inductive{
+  name: Content,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Section, fields: [Nat]},
+    {name: Navigation, fields: [Nat]},
+    {name: Form, fields: [Nat]},
+    {name: Heading, fields: [Nat, Nat]},
+    {name: Text, fields: [String]},
+    {name: Input, fields: [Nat, Bool, Bool, Nat, String, Nat]},
+    {name: Multiline, fields: [Nat, Bool, Bool, Nat, String, Nat]},
+    {name: Select, fields: [Nat, Bool, Bool, Nat, (List Choice), Nat]},
+    {name: Action, fields: [Nat, Nat, Bool, Bool, (List Nat)]},
+    {name: Table, fields: [Nat, (List Nat), (List TableChunk)]},
+    {name: SecretInput, fields: [Nat, Bool, Bool, Nat, Nat]},
+    {name: TextSelect, fields: [Nat, Bool, Bool, Nat, (List TextChoice), Nat]}
+  ]
+}
+
+structure{
+  name: Node,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: parent, type: Nat}, {name: content, type: Content}]
+}
+
+structure{
+  name: Presentation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: revision, type: Nat},
+    {name: phase, type: Nat},
+    {name: status, type: Nat},
+    {name: live, type: Nat},
+    {name: focus, type: Nat},
+    {name: nodes, type: (List Node)}
+  ]
+}
+
+inductive{
+  name: Value,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Text, fields: [String]}, {name: Choice, fields: [Nat]}]
+}
+
+structure{
+  name: FieldValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: node, type: Nat}, {name: value, type: Value}]
+}
+
+structure{
+  name: Intent,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: revision, type: Nat},
+    {name: action, type: Nat},
+    {name: fields, type: (List FieldValue)}
+  ]
+}
+
+definition{
+  name: countNats,
+  parameters: [items : (List Nat)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countNats tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countChoices,
+  parameters: [items : (List Choice)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countChoices tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countTextChoices,
+  parameters: [items : (List TextChoice)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countTextChoices tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countRows,
+  parameters: [items : (List TableRow)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countRows tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countNodes,
+  parameters: [items : (List Node)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countNodes tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countFields,
+  parameters: [items : (List FieldValue)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countFields tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: countStrings,
+  parameters: [items : (List String)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countStrings tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: contentKind,
+  parameters: [value : Content],
+  result: Nat,
+  body: (match value
+    | Content.Section x0 => 0
+    | Content.Navigation x0 => 1
+    | Content.Form x0 => 2
+    | Content.Heading x0 x1 => 3
+    | Content.Text x0 => 4
+    | Content.Input x0 x1 x2 x3 x4 x5 => 5
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => 6
+    | Content.Select x0 x1 x2 x3 x4 x5 => 7
+    | Content.Action x0 x1 x2 x3 x4 => 8
+    | Content.Table x0 x1 x2 => 9
+    | Content.SecretInput x0 x1 x2 x3 x4 => 10
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => 11),
+  axioms: []
+}
+
+definition{
+  name: contentEnabled,
+  parameters: [value : Content],
+  result: Bool,
+  body: (match value
+    | Content.Section x0 => false
+    | Content.Navigation x0 => false
+    | Content.Form x0 => false
+    | Content.Heading x0 x1 => false
+    | Content.Text x0 => false
+    | Content.Input x0 x1 x2 x3 x4 x5 => x1
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => x1
+    | Content.Select x0 x1 x2 x3 x4 x5 => x1
+    | Content.Action x0 x1 x2 x3 x4 => x2
+    | Content.Table x0 x1 x2 => false
+    | Content.SecretInput x0 x1 x2 x3 x4 => x1
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => x1),
+  axioms: []
+}
+
+definition{
+  name: contentChoices,
+  parameters: [value : Content],
+  result: Nat,
+  body: (match value
+    | Content.Section x0 => 0
+    | Content.Navigation x0 => 0
+    | Content.Form x0 => 0
+    | Content.Heading x0 x1 => 0
+    | Content.Text x0 => 0
+    | Content.Input x0 x1 x2 x3 x4 x5 => 0
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => 0
+    | Content.Select x0 x1 x2 x3 x4 x5 => (countChoices x4)
+    | Content.Action x0 x1 x2 x3 x4 => 0
+    | Content.Table x0 x1 x2 => 0
+    | Content.SecretInput x0 x1 x2 x3 x4 => 0
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => (countTextChoices x4)),
+  axioms: []
+}
+
+definition{
+  name: rowCells,
+  parameters: [rows : (List TableRow)],
+  result: Nat,
+  body: (match rows
+    | List.nil => 0
+    | List.cons head tail => ((countStrings (project head cells)) + (rowCells tail))),
+  axioms: [],
+  recursive_argument: rows
+}
+
+definition{
+  name: chunkCells,
+  parameters: [chunks : (List TableChunk)],
+  result: Nat,
+  body: (match chunks
+    | List.nil => 0
+    | List.cons head tail => ((rowCells (project head rows)) + (chunkCells tail))),
+  axioms: [],
+  recursive_argument: chunks
+}
+
+definition{
+  name: contentCells,
+  parameters: [value : Content],
+  result: Nat,
+  body: (match value
+    | Content.Section x0 => 0
+    | Content.Navigation x0 => 0
+    | Content.Form x0 => 0
+    | Content.Heading x0 x1 => 0
+    | Content.Text x0 => 0
+    | Content.Input x0 x1 x2 x3 x4 x5 => 0
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => 0
+    | Content.Select x0 x1 x2 x3 x4 x5 => 0
+    | Content.Action x0 x1 x2 x3 x4 => 0
+    | Content.Table x0 x1 x2 => (chunkCells x2)
+    | Content.SecretInput x0 x1 x2 x3 x4 => 0
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => 0),
+  axioms: []
+}
+
+definition{
+  name: numbersValid,
+  parameters: [items : (List Nat), previous : Nat, maximum : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head tail => ((previous <? head) && ((head <=? maximum) && ((numbersValid tail head maximum) && true)))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: labelsValid,
+  parameters: [items : (List Nat)],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head tail => ((head <=? 255) && ((labelsValid tail) && true))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: choicesValid,
+  parameters: [items : (List Choice), previous : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head tail => ((previous <? (project head id)) && (((project head id) <=? 4294967295) && (((project head label) <=? 255) && ((choicesValid tail (project head id)) && true))))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: choiceExists,
+  parameters: [items : (List Choice), choiceId : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => false
+    | List.cons head tail => (((project head id) =? choiceId) || ((choiceExists tail choiceId) || false))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: textChoiceExists,
+  parameters: [items : (List TextChoice), choiceId : Nat],
+  result: Bool,
+  body: (match items
+    | List.nil => false
+    | List.cons head tail => (((project head id) =? choiceId) || ((textChoiceExists tail choiceId) || false))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: textChoicesValid,
+  parameters: [items : (List TextChoice)],
+  result: Bool,
+  body: (match items
+    | List.nil => true
+    | List.cons head tail => ((0 <? (project head id)) && (((project head id) <=? 4294967295) && ((0 <? (prim length (prim utf8_encode (project head text) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project head text) : Bytes) : Nat) <=? 4096) && ((not (textChoiceExists tail (project head id))) && ((textChoicesValid tail) && true))))))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: rowsValid,
+  parameters: [rows : (List TableRow), width : Nat],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons head tail => (((countStrings (project head cells)) =? width) && ((rowsValid tail width) && true))),
+  axioms: [],
+  recursive_argument: rows
+}
+
+definition{
+  name: countChunks,
+  parameters: [items : (List TableChunk)],
+  result: Nat,
+  body: (match items | List.nil => 0 | List.cons head tail => (1 + (countChunks tail))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: chunksValid,
+  parameters: [chunks : (List TableChunk), width : Nat],
+  result: Bool,
+  body: (match chunks
+    | List.nil => true
+    | List.cons head tail => ((0 <? (countRows (project head rows))) && (((countRows (project head rows)) <=? 16) && ((match tail
+      | List.nil => true
+      | List.cons next rest => ((countRows (project head rows)) =? 16)) && ((rowsValid (project head rows) width) && ((chunksValid tail width) && true)))))),
+  axioms: [],
+  recursive_argument: chunks
+}
+
+definition{
+  name: contentValid,
+  parameters: [value : Content, phase : Nat],
+  result: Bool,
+  body: (match value
+    | Content.Section x0 => (x0 <=? 255)
+    | Content.Navigation x0 => (x0 <=? 255)
+    | Content.Form x0 => (x0 <=? 255)
+    | Content.Heading x0 x1 => ((0 <? x0) && ((x0 <=? 6) && ((x1 <=? 255) && true)))
+    | Content.Text x0 => true
+    | Content.Input x0 x1 x2 x3 x4 x5 => ((x5 <=? 4294967295) && ((x0 <=? 255) && (((not x1) || ((phase =? 0) || false)) && ((0 <? x3) && ((x3 <=? 67108864) && (((prim length (prim utf8_encode x4 : Bytes) : Nat) <=? x3) && true))))))
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => ((x5 <=? 4294967295) && ((x0 <=? 255) && (((not x1) || ((phase =? 0) || false)) && ((0 <? x3) && ((x3 <=? 67108864) && (((prim length (prim utf8_encode x4 : Bytes) : Nat) <=? x3) && true))))))
+    | Content.Select x0 x1 x2 x3 x4 x5 => ((x5 <=? 4294967295) && ((x0 <=? 255) && (((not x1) || ((phase =? 0) || false)) && ((x3 <=? 4294967295) && (((countChoices x4) <=? 256) && ((choicesValid x4 0) && (((x3 =? 0) || ((choiceExists x4 x3) || false)) && true)))))))
+    | Content.Action x0 x1 x2 x3 x4 => ((x0 <=? 255) && (((0 <? x1) && ((x1 <=? 4294967295) && true)) && (((not x2) || ((phase =? 0) || false)) && (((countNats x4) <=? 16) && ((numbersValid x4 0 256) && true)))))
+    | Content.Table x0 x1 x2 => (((countChunks x2) <=? 256) && (((x0 <=? 255) && ((0 <? (countNats x1)) && (((countNats x1) <=? 16) && ((labelsValid x1) && (((chunkCells x2) <=? 4096) && ((chunksValid x2 (countNats x1)) && true)))))) && true))
+    | Content.SecretInput x0 x1 x2 x3 x4 => ((x4 <=? 4294967295) && ((x0 <=? 255) && (((not x1) || ((phase =? 0) || false)) && ((0 <? x3) && ((x3 <=? 67108864) && true)))))
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => ((x5 <=? 4294967295) && ((x0 <=? 255) && (((not x1) || ((phase =? 0) || false)) && ((x3 <=? 4294967295) && (((countTextChoices x4) <=? 256) && ((textChoicesValid x4) && (((x3 =? 0) || ((textChoiceExists x4 x3) || false)) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: nodeAt,
+  parameters: [nodes : (List Node), nodeId : Nat],
+  result: (Option Node),
+  body: (match nodes
+    | List.nil => (ctor Option.none [Node])
+    | List.cons head tail => (match (nodeId =? 1)
+      | Bool.false => (nodeAt tail (prim subtract nodeId 1 : Nat))
+      | Bool.true => (ctor Option.some [Node] head))),
+  axioms: [],
+  recursive_argument: nodes
+}
+
+definition{
+  name: ancestorsValid,
+  parameters: [fuel : Nat, nodes : (List Node), parent : Nat, forbidForm : Bool],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (parent =? 0)
+    | Nat.succ rest => (match (parent =? 0)
+      | Bool.false => (match (nodeAt nodes parent)
+        | Option.none => false
+        | Option.some found => (((contentKind (project found content)) <=? 2) && (((not forbidForm) || ((not ((contentKind (project found content)) =? 2)) || false)) && ((ancestorsValid rest nodes (project found parent) forbidForm) && true))))
+      | Bool.true => true)),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: bindingValid,
+  parameters: [fields : (List Nat), nodes : (List Node), parent : Nat, enabled : Bool],
+  result: Bool,
+  body: (match fields
+    | List.nil => true
+    | List.cons head tail => ((match (nodeAt nodes head)
+      | Option.none => false
+      | Option.some found => (((project found parent) =? parent) && (((((5 <=? (contentKind (project found content))) && (((contentKind (project found content)) <=? 7) && true)) || (((contentKind (project found content)) =? 10) || false)) || ((contentKind (project found content)) =? 11)) && (((not enabled) || ((contentEnabled (project found content)) || false)) && true)))) && ((bindingValid tail nodes parent enabled) && true))),
+  axioms: [],
+  recursive_argument: fields
+}
+
+definition{
+  name: actionId,
+  parameters: [value : Content],
+  result: Nat,
+  body: (match value
+    | Content.Section x0 => 0
+    | Content.Navigation x0 => 0
+    | Content.Form x0 => 0
+    | Content.Heading x0 x1 => 0
+    | Content.Text x0 => 0
+    | Content.Input x0 x1 x2 x3 x4 x5 => 0
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => 0
+    | Content.Select x0 x1 x2 x3 x4 x5 => 0
+    | Content.Action x0 x1 x2 x3 x4 => x1
+    | Content.Table x0 x1 x2 => 0
+    | Content.SecretInput x0 x1 x2 x3 x4 => 0
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => 0),
+  axioms: []
+}
+
+definition{
+  name: defaultAction,
+  parameters: [value : Content],
+  result: Bool,
+  body: (match value
+    | Content.Section x0 => false
+    | Content.Navigation x0 => false
+    | Content.Form x0 => false
+    | Content.Heading x0 x1 => false
+    | Content.Text x0 => false
+    | Content.Input x0 x1 x2 x3 x4 x5 => false
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => false
+    | Content.Select x0 x1 x2 x3 x4 x5 => false
+    | Content.Action x0 x1 x2 x3 x4 => x3
+    | Content.Table x0 x1 x2 => false
+    | Content.SecretInput x0 x1 x2 x3 x4 => false
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => false),
+  axioms: []
+}
+
+definition{
+  name: noActionCollision,
+  parameters: [rest : (List Node), parent : Nat, nodeId : Nat, isDefault : Bool],
+  result: Bool,
+  body: (match rest
+    | List.nil => true
+    | List.cons head tail => ((not ((actionId (project head content)) =? nodeId)) && ((not (isDefault && (((project head parent) =? parent) && ((defaultAction (project head content)) && true)))) && ((noActionCollision tail parent nodeId isDefault) && true)))),
+  axioms: [],
+  recursive_argument: rest
+}
+
+definition{
+  name: nodeValid,
+  parameters: [node : Node, nodes : (List Node), rest : (List Node), index : Nat, phase : Nat],
+  result: Bool,
+  body: (((project node parent) <? index) && ((ancestorsValid 15 nodes (project node parent) ((contentKind (project node content)) =? 2)) && ((contentValid (project node content) phase) && ((match (project node content)
+    | Content.Section x0 => true
+    | Content.Navigation x0 => true
+    | Content.Form x0 => true
+    | Content.Heading x0 x1 => true
+    | Content.Text x0 => true
+    | Content.Input x0 x1 x2 x3 x4 x5 => (match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2))
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => (match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2))
+    | Content.Select x0 x1 x2 x3 x4 x5 => (match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2))
+    | Content.Action x0 x1 x2 x3 x4 => ((match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2)) && ((bindingValid x4 nodes (project node parent) x2) && ((noActionCollision rest (project node parent) x1 x3) && true)))
+    | Content.Table x0 x1 x2 => true
+    | Content.SecretInput x0 x1 x2 x3 x4 => (match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2))
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => (match (nodeAt nodes (project node parent))
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 2))) && true)))),
+  axioms: []
+}
+
+definition{
+  name: nodesValid,
+  parameters: [
+    rest : (List Node),
+    nodes : (List Node),
+    index : Nat,
+    phase : Nat,
+    actions : Nat,
+    choices : Nat,
+    cells : Nat
+  ],
+  result: Bool,
+  body: (match rest
+    | List.nil => ((actions <=? 64) && ((choices <=? 256) && ((cells <=? 4096) && true)))
+    | List.cons head tail => ((nodeValid head nodes tail index phase) && ((nodesValid tail nodes (index + 1) phase (actions + (match ((contentKind (project head content)) =? 8)
+      | Bool.false => 0
+      | Bool.true => 1)) (choices + (contentChoices (project head content))) (cells + (contentCells (project head content)))) && true))),
+  axioms: [],
+  recursive_argument: rest
+}
+
+definition{
+  name: presentationValid,
+  parameters: [value : Presentation],
+  result: Bool,
+  body: (((project value revision) <=? 4294967295) && (((project value phase) <=? 3) && (((project value status) <=? 256) && (((project value live) <=? 2) && (((project value focus) <=? (countNodes (project value nodes))) && (((not ((project value phase) =? 3)) || (((project value focus) =? 0) || false)) && (((countNodes (project value nodes)) <=? 256) && ((nodesValid (project value nodes) (project value nodes) 1 (project value phase) 0 0 0) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: intentFieldsValid,
+  parameters: [fields : (List FieldValue), previous : Nat],
+  result: Bool,
+  body: (match fields
+    | List.nil => true
+    | List.cons head tail => ((previous <? (project head node)) && (((project head node) <=? 256) && ((match (project head value)
+      | Value.Text text => true
+      | Value.Choice choiceId => (choiceId <=? 4294967295)) && ((intentFieldsValid tail (project head node)) && true))))),
+  axioms: [],
+  recursive_argument: fields
+}
+
+definition{
+  name: intentValid,
+  parameters: [value : Intent],
+  result: Bool,
+  body: (((project value revision) <=? 4294967295) && (((0 <? (project value action)) && (((project value action) <=? 4294967295) && true)) && (((countFields (project value fields)) <=? 16) && ((intentFieldsValid (project value fields) 0) && true)))),
+  axioms: []
+}
+
+definition{
+  name: fieldValueFits,
+  parameters: [content : Content, value : Value],
+  result: Bool,
+  body: (match content
+    | Content.Section x0 => false
+    | Content.Navigation x0 => false
+    | Content.Form x0 => false
+    | Content.Heading x0 x1 => false
+    | Content.Text x0 => false
+    | Content.Input x0 x1 x2 x3 x4 x5 => (match value
+      | Value.Text text => (x1 && (((prim length (prim utf8_encode text : Bytes) : Nat) <=? x3) && (((not x2) || ((0 <? (prim length (prim utf8_encode text : Bytes) : Nat)) || false)) && true)))
+      | Value.Choice choiceId => false)
+    | Content.Multiline x0 x1 x2 x3 x4 x5 => (match value
+      | Value.Text text => (x1 && (((prim length (prim utf8_encode text : Bytes) : Nat) <=? x3) && (((not x2) || ((0 <? (prim length (prim utf8_encode text : Bytes) : Nat)) || false)) && true)))
+      | Value.Choice choiceId => false)
+    | Content.Select x0 x1 x2 x3 x4 x5 => (match value
+      | Value.Text text => false
+      | Value.Choice choiceId => (x1 && (((choiceId =? 0) || ((choiceExists x4 choiceId) || false)) && (((not x2) || ((not (choiceId =? 0)) || false)) && true))))
+    | Content.Action x0 x1 x2 x3 x4 => false
+    | Content.Table x0 x1 x2 => false
+    | Content.SecretInput x0 x1 x2 x3 x4 => (match value
+      | Value.Text text => (x1 && (((prim length (prim utf8_encode text : Bytes) : Nat) <=? x3) && (((not x2) || ((0 <? (prim length (prim utf8_encode text : Bytes) : Nat)) || false)) && true)))
+      | Value.Choice choiceId => false)
+    | Content.TextSelect x0 x1 x2 x3 x4 x5 => (match value
+      | Value.Text text => false
+      | Value.Choice choiceId => (x1 && (((choiceId =? 0) || ((textChoiceExists x4 choiceId) || false)) && (((not x2) || ((not (choiceId =? 0)) || false)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: boundFieldsFit,
+  parameters: [bindings : (List Nat), fields : (List FieldValue), nodes : (List Node)],
+  result: Bool,
+  body: (match bindings
+    | List.nil => ((countFields fields) =? 0)
+    | List.cons field remaining => (match fields
+      | List.nil => false
+      | List.cons head tail => ((field =? (project head node)) && ((match (nodeAt nodes field)
+        | Option.none => false
+        | Option.some found => (fieldValueFits (project found content) (project head value))) && ((boundFieldsFit remaining tail nodes) && true))))),
+  axioms: [],
+  recursive_argument: bindings
+}
+
+definition{
+  name: intentActionFits,
+  parameters: [rest : (List Node), nodes : (List Node), intent : Intent],
+  result: Bool,
+  body: (match rest
+    | List.nil => false
+    | List.cons head tail => ((match (project head content)
+      | Content.Section x0 => false
+      | Content.Navigation x0 => false
+      | Content.Form x0 => false
+      | Content.Heading x0 x1 => false
+      | Content.Text x0 => false
+      | Content.Input x0 x1 x2 x3 x4 x5 => false
+      | Content.Multiline x0 x1 x2 x3 x4 x5 => false
+      | Content.Select x0 x1 x2 x3 x4 x5 => false
+      | Content.Action x0 x1 x2 x3 x4 => ((x1 =? (project intent action)) && (x2 && ((boundFieldsFit x4 (project intent fields) nodes) && true)))
+      | Content.Table x0 x1 x2 => false
+      | Content.SecretInput x0 x1 x2 x3 x4 => false
+      | Content.TextSelect x0 x1 x2 x3 x4 x5 => false) || ((intentActionFits tail nodes intent) || false))),
+  axioms: [],
+  recursive_argument: rest
+}
+
+definition{
+  name: intentFits,
+  parameters: [view : Presentation, intent : Intent],
+  result: Bool,
+  body: ((presentationValid view) && ((intentValid intent) && (((project view phase) =? 0) && (((project view revision) =? (project intent revision)) && ((intentActionFits (project view nodes) (project view nodes) intent) && true))))),
+  axioms: []
+}
+
+definition{
+  name: bindingsContainSecret,
+  parameters: [fields : (List Nat), nodes : (List Node)],
+  result: Bool,
+  body: (match fields
+    | List.nil => false
+    | List.cons head tail => ((match (nodeAt nodes head)
+      | Option.none => false
+      | Option.some found => ((contentKind (project found content)) =? 10)) || ((bindingsContainSecret tail nodes) || false))),
+  axioms: [],
+  recursive_argument: fields
+}
+
+definition{
+  name: nodesContainSecretAction,
+  parameters: [rest : (List Node), nodes : (List Node)],
+  result: Bool,
+  body: (match rest
+    | List.nil => false
+    | List.cons head tail => ((match (project head content)
+      | Content.Section x0 => false
+      | Content.Navigation x0 => false
+      | Content.Form x0 => false
+      | Content.Heading x0 x1 => false
+      | Content.Text x0 => false
+      | Content.Input x0 x1 x2 x3 x4 x5 => false
+      | Content.Multiline x0 x1 x2 x3 x4 x5 => false
+      | Content.Select x0 x1 x2 x3 x4 x5 => false
+      | Content.Action x0 x1 x2 x3 x4 => (bindingsContainSecret x4 nodes)
+      | Content.Table x0 x1 x2 => false
+      | Content.SecretInput x0 x1 x2 x3 x4 => false
+      | Content.TextSelect x0 x1 x2 x3 x4 x5 => false) || ((nodesContainSecretAction tail nodes) || false))),
+  axioms: [],
+  recursive_argument: rest
+}
+
+definition{
+  name: actionContainsSecret,
+  parameters: [rest : (List Node), nodes : (List Node), action : Nat],
+  result: Bool,
+  body: (match rest
+    | List.nil => false
+    | List.cons head tail => ((match (project head content)
+      | Content.Section x0 => false
+      | Content.Navigation x0 => false
+      | Content.Form x0 => false
+      | Content.Heading x0 x1 => false
+      | Content.Text x0 => false
+      | Content.Input x0 x1 x2 x3 x4 x5 => false
+      | Content.Multiline x0 x1 x2 x3 x4 x5 => false
+      | Content.Select x0 x1 x2 x3 x4 x5 => false
+      | Content.Action x0 x1 x2 x3 x4 => ((x1 =? action) && ((bindingsContainSecret x4 nodes) && true))
+      | Content.Table x0 x1 x2 => false
+      | Content.SecretInput x0 x1 x2 x3 x4 => false
+      | Content.TextSelect x0 x1 x2 x3 x4 x5 => false) || ((actionContainsSecret tail nodes action) || false))),
+  axioms: [],
+  recursive_argument: rest
+}
+
+definition{
+  name: presentationRequiresSecret,
+  parameters: [view : Presentation],
+  result: Bool,
+  body: ((presentationValid view) && ((nodesContainSecretAction (project view nodes) (project view nodes)) && true)),
+  axioms: []
+}
+
+definition{
+  name: intentRequiresSecret,
+  parameters: [view : Presentation, intent : Intent],
+  result: Bool,
+  body: ((intentFits view intent) && ((actionContainsSecret (project view nodes) (project view nodes) (project intent action)) && true)),
+  axioms: []
+}
+
+definition{
+  name: progressFits,
+  parameters: [current : Presentation, next : Presentation],
+  result: Bool,
+  body: ((presentationValid current) && ((presentationValid next) && ((((project current phase) =? 0) || ((project current phase) =? 1)) && (((project next phase) =? 1) && ((project current revision) <? (project next revision)))))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "holo-standards-profile"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Holo"
+component = "StandardsProfile"
+
+[[form]]
+id = "holo-standards-profile"
+channel = "text"
+surface = "fixed standards profile"
+canonical_source = true
+features = ["sentence-case", "singular"]

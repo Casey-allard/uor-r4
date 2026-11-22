@@ -21,19 +21,30 @@ FIXTURE_SPEC.loader.exec_module(FIXTURE_MODULE)
 
 class TauriRuntimeContractTests(unittest.TestCase):
     def test_allowlist_has_no_development_files(self):
-        text = RUNTIME.read_text(encoding='utf-8')
         result = subprocess.run(['bash', str(RUNTIME), '--list'], text=True, capture_output=True, check=True)
-        for required in ['index.html', 'index.css', 'models.json', 'assets/js/studio_ui.js', 'pkg/uor_r4_integer_bg.wasm']:
-            self.assertIn(required, result.stdout)
+        entries = set(result.stdout.splitlines())
+        for required in [
+            'index.html',
+            'host.bundle.js',
+            'manifest.json',
+            'models.json',
+            'pkg/uor_r4_integer_bg.wasm',
+            'pkg-mvm/uor_r4_mvm_bg.wasm',
+            'uor/js/uor_model_worker.js',
+            'kernel/kernel.holo',
+        ]:
+            self.assertIn(required, entries)
         for forbidden in ['src/main.ts', 'package.json', 'tsconfig.json', 'vite.config.ts', 'model_sources.test.mjs', 'pkg/README.md', 'node_modules']:
-            self.assertNotIn(forbidden, result.stdout)
+            self.assertNotIn(forbidden, entries)
+        self.assertFalse(any('/node_modules/' in line or line.startswith('node_modules/') for line in entries))
+        self.assertFalse(any(line.endswith('.test.mjs') for line in entries))
         self.assertNotIn('https://', result.stdout)
 
     def test_copy_is_runtime_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / 'studio'
             subprocess.run(['bash', str(RUNTIME), 'copy', str(REPO / 'web/studio'), str(dest), '--allow-generated-missing'], check=True)
-            for required in ['index.html', 'index.css', 'assets/js/studio_ui.js', 'assets/js/studio_api.js']:
+            for required in ['index.html', 'host.bundle.js', 'manifest.json', 'uor/js/uor_model_worker.js']:
                 self.assertTrue((dest / required).is_file(), required)
             for forbidden in ['src/main.ts', 'package.json', 'tsconfig.json', 'vite.config.ts', 'assets/js/model_sources.test.mjs', 'pkg/README.md', 'node_modules']:
                 self.assertFalse((dest / forbidden).exists(), forbidden)
@@ -70,7 +81,14 @@ class TauriRuntimeContractTests(unittest.TestCase):
             dest = Path(tmp) / 'studio'
             result = subprocess.run(['bash', str(REPO / 'scripts/stage-studio-site.sh'), str(REPO / 'web/studio'), str(dest)], text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            for required in ['index.html', 'assets/js/desktop_openai.js', 'assets/js/desktop_actions.js', 'assets/js/mcp_client.js']:
+            for required in [
+                'index.html',
+                'host.bundle.js',
+                'manifest.json',
+                'pkg/uor_r4_integer_bg.wasm',
+                'pkg-mvm/uor_r4_mvm_bg.wasm',
+                'uor/js/uor_model_worker.js',
+            ]:
                 self.assertTrue((dest / required).is_file(), required)
             for forbidden in ['src', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'node_modules', 'README.md', 'assets/js/mcp_client.test.mjs', 'verify_desktop_client.mjs']:
                 self.assertFalse((dest / forbidden).exists(), forbidden)
@@ -114,7 +132,7 @@ class TauriRuntimeContractTests(unittest.TestCase):
                 text=True, capture_output=True,
             )
             self.assertNotEqual(rejected.returncode, 0)
-            self.assertIn('Unexpected runtime file', rejected.stderr)
+            self.assertIn('Unexpected model artifact', rejected.stderr)
             (dest / 'models/unexpected.txt').unlink()
             for name in ['extra.uorlut', 'extra.tokenizer.json', 'extra.uorlut.audit.json']:
                 extra = dest / 'models' / name
@@ -166,7 +184,7 @@ class TauriRuntimeContractTests(unittest.TestCase):
             self.assertIn('symlink', rejected.stderr.lower())
             pkg.unlink()
             (dest / 'pkg-real').rename(pkg)
-            extra = dest / 'assets/js/unexpected-link.js'
+            extra = dest / 'uor/js/unexpected-link.js'
             extra.symlink_to(artifact)
             rejected = subprocess.run(
                 ['bash', str(RUNTIME), '--verify', str(dest)],

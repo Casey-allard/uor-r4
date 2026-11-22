@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "sec-asset"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "Asset"
+
+[[form]]
+id = "sec-asset"
+channel = "text"
+surface = "security asset"
+canonical_source = true
+features = ["sentence-case", "singular"]

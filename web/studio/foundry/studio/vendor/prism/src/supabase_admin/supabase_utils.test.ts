@@ -1,0 +1,871 @@
+import fs from "node:fs/promises";
+import { createRequire } from "node:module";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+
+vi.mock("@/ipc/processors/supabase_dependency_analysis", async () => {
+  const { analyzeSupabaseDependencies } =
+    await import("../../workers/supabase_dependency_analysis/analyze");
+  const { resolveTypeScriptPackageJsonPathSync } =
+    await import("../../shared/node_module_resolution");
+  return {
+    runSupabaseDependencyAnalysis: async (input: {
+      appPath: string;
+      changedSharedModulePaths: string[];
+    }) => {
+      try {
+        resolveTypeScriptPackageJsonPathSync(input.appPath);
+      } catch {
+        return { kind: "all" as const, reason: "typescript_not_installed" };
+      }
+      return analyzeSupabaseDependencies(
+        require("typescript"),
+        input.appPath,
+        input.changedSharedModulePaths,
+      );
+    },
+  };
+});
+import {
+  getSupabaseFunctionsAffectedBySharedModules,
+  isServerFunction,
+  isSharedServerModule,
+  extractFunctionNameFromPath,
+  mapSettledWithConcurrency,
+} from "@/supabase_admin/supabase_utils";
+import {
+  toPosixPath,
+  stripSupabaseFunctionsPrefix,
+  buildSignature,
+  type FileStatEntry,
+} from "@/supabase_admin/supabase_management_client";
+import {
+  enqueueSupabaseDeploy,
+  resetSupabaseDeployQueuesForTests,
+  SUPABASE_ACTIVATING_DEPLOY_CONCURRENCY,
+  SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY,
+} from "@/supabase_admin/supabase_deploy_queue";
+
+const require = createRequire(import.meta.url);
+
+describe("isServerFunction", () => {
+  describe("returns true for valid function paths", () => {
+    it("should return true for function index.ts", () => {
+      expect(isServerFunction("supabase/functions/hello/index.ts")).toBe(true);
+    });
+
+    it("should return true for nested function files", () => {
+      expect(isServerFunction("supabase/functions/hello/lib/utils.ts")).toBe(
+        true,
+      );
+    });
+
+    it("should return true for function with complex name", () => {
+      expect(isServerFunction("supabase/functions/send-email/index.ts")).toBe(
+        true,
+      );
+    });
+  });
+
+  describe("returns false for non-function paths", () => {
+    it("should return false for shared modules", () => {
+      expect(isServerFunction("supabase/functions/_shared/utils.ts")).toBe(
+        false,
+      );
+    });
+
+    it("should return false for regular source files", () => {
+      expect(isServerFunction("src/components/Button.tsx")).toBe(false);
+    });
+
+    it("should return false for root supabase files", () => {
+      expect(isServerFunction("supabase/config.toml")).toBe(false);
+    });
+
+    it("should return false for non-supabase paths", () => {
+      expect(isServerFunction("package.json")).toBe(false);
+    });
+  });
+});
+
+describe("isSharedServerModule", () => {
+  describe("returns true for _shared paths", () => {
+    it("should return true for files in _shared", () => {
+      expect(isSharedServerModule("supabase/functions/_shared/utils.ts")).toBe(
+        true,
+      );
+    });
+
+    it("should return true for nested _shared files", () => {
+      expect(
+        isSharedServerModule("supabase/functions/_shared/lib/helpers.ts"),
+      ).toBe(true);
+    });
+
+    it("should return true for _shared directory itself", () => {
+      expect(isSharedServerModule("supabase/functions/_shared/")).toBe(true);
+    });
+  });
+
+  describe("returns false for non-_shared paths", () => {
+    it("should return false for regular functions", () => {
+      expect(isSharedServerModule("supabase/functions/hello/index.ts")).toBe(
+        false,
+      );
+    });
+
+    it("should return false for similar but different paths", () => {
+      expect(isSharedServerModule("supabase/functions/shared/utils.ts")).toBe(
+        false,
+      );
+    });
+
+    it("should return false for _shared in wrong location", () => {
+      expect(isSharedServerModule("src/_shared/utils.ts")).toBe(false);
+    });
+  });
+});
+
+describe("extractFunctionNameFromPath", () => {
+  describe("extracts function name correctly from nested paths", () => {
+    it("should extract function name from index.ts path", () => {
+      expect(
+        extractFunctionNameFromPath("supabase/functions/hello/index.ts"),
+      ).toBe("hello");
+    });
+
+    it("should extract function name from deeply nested path", () => {
+      expect(
+        extractFunctionNameFromPath("supabase/functions/hello/lib/utils.ts"),
+      ).toBe("hello");
+    });
+
+    it("should extract function name from very deeply nested path", () => {
+      expect(
+        extractFunctionNameFromPath(
+          "supabase/functions/hello/src/helpers/format.ts",
+        ),
+      ).toBe("hello");
+    });
+
+    it("should extract function name with dashes", () => {
+      expect(
+        extractFunctionNameFromPath("supabase/functions/send-email/index.ts"),
+      ).toBe("send-email");
+    });
+
+    it("should extract function name with underscores", () => {
+      expect(
+        extractFunctionNameFromPath("supabase/functions/my_function/index.ts"),
+      ).toBe("my_function");
+    });
+  });
+
+  describe("throws for invalid paths", () => {
+    it("should throw for _shared paths", () => {
+      expect(() =>
+        extractFunctionNameFromPath("supabase/functions/_shared/utils.ts"),
+      ).toThrow(/Function names starting with "_" are reserved/);
+    });
+
+    it("should throw for other _ prefixed directories", () => {
+      expect(() =>
+        extractFunctionNameFromPath("supabase/functions/_internal/utils.ts"),
+      ).toThrow(/Function names starting with "_" are reserved/);
+    });
+
+    it("should throw for non-supabase paths", () => {
+      expect(() =>
+        extractFunctionNameFromPath("src/components/Button.tsx"),
+      ).toThrow(/Invalid Supabase function path/);
+    });
+
+    it("should throw for supabase root files", () => {
+      expect(() => extractFunctionNameFromPath("supabase/config.toml")).toThrow(
+        /Invalid Supabase function path/,
+      );
+    });
+
+    it("should throw for partial matches", () => {
+      expect(() => extractFunctionNameFromPath("supabase/functions")).toThrow(
+        /Invalid Supabase function path/,
+      );
+    });
+  });
+
+  describe("handles edge cases", () => {
+    it("should handle backslashes (Windows paths)", () => {
+      expect(
+        extractFunctionNameFromPath(
+          "supabase\\functions\\hello\\lib\\utils.ts",
+        ),
+      ).toBe("hello");
+    });
+
+    it("should handle mixed slashes", () => {
+      expect(
+        extractFunctionNameFromPath("supabase/functions\\hello/lib\\utils.ts"),
+      ).toBe("hello");
+    });
+  });
+});
+
+describe("getSupabaseFunctionsAffectedBySharedModules", () => {
+  let appPath: string;
+
+  async function installTypeScriptForApp() {
+    const nodeModulesPath = path.join(appPath, "node_modules");
+    await fs.mkdir(nodeModulesPath, { recursive: true });
+    await fs.symlink(
+      path.dirname(require.resolve("typescript/package.json")),
+      path.join(nodeModulesPath, "typescript"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+  }
+
+  async function writeAppFile(relativePath: string, content: string) {
+    const fullPath = path.join(appPath, relativePath);
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, content);
+  }
+
+  async function writeFunction(functionName: string, content: string) {
+    await writeAppFile(
+      path.join("supabase", "functions", functionName, "index.ts"),
+      content,
+    );
+  }
+
+  beforeEach(async () => {
+    appPath = await fs.mkdtemp(path.join(os.tmpdir(), "prism-impact-"));
+    await installTypeScriptForApp();
+  });
+
+  afterEach(async () => {
+    await fs.rm(appPath, { recursive: true, force: true });
+  });
+
+  it("returns only functions with direct shared imports", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeFunction("alpha", "import '../_shared/foo.ts';");
+    await writeFunction("beta", "export const beta = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it("ignores Node built-ins when finding affected functions", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeFunction(
+      "alpha",
+      "import { text } from 'node:stream/consumers'; import '../_shared/foo.ts';",
+    );
+    await writeFunction("beta", "export const beta = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it("follows transitive imports and re-exports", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeAppFile(
+      "supabase/functions/alpha/lib/service.ts",
+      "export * from '../../_shared/foo.ts';",
+    );
+    await writeFunction("alpha", "import './lib/service.ts';");
+    await writeFunction("beta", "export const beta = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it("returns an empty partial set for an unused shared module", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/unused.ts",
+      "export const unused = 1;",
+    );
+    await writeFunction("alpha", "export const alpha = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/unused.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: [] });
+  });
+
+  it("supports literal dynamic imports and JS/JSX ESM files", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.jsx",
+      "export const foo = <div />;",
+    );
+    await writeAppFile(
+      "supabase/functions/alpha/lib/view.js",
+      "export { foo } from '../../_shared/foo.jsx';",
+    );
+    await writeFunction("alpha", "await import('./lib/view.js');");
+    await writeFunction("beta", "export const beta = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.jsx"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it("resolves directory imports to index files", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo/index.ts",
+      "export const foo = 1;",
+    );
+    await writeFunction("alpha", "import '../_shared/foo';");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo/index.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it("handles cyclic imports without falling back", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeAppFile(
+      "supabase/functions/alpha/a.ts",
+      "import './b.ts'; import '../_shared/foo.ts';",
+    );
+    await writeAppFile("supabase/functions/alpha/b.ts", "import './a.ts';");
+    await writeFunction("alpha", "import './a.ts';");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({ kind: "partial", functionNames: ["alpha"] });
+  });
+
+  it.each([
+    ["non-literal dynamic import", "await import('../_shared/' + name);"],
+    ["CommonJS require", "require('../_shared/foo.ts');"],
+    ["TypeScript import equals", "import foo = require('../_shared/foo.ts');"],
+    ["unknown local alias", "import 'shared/foo.ts';"],
+    ["unresolved relative import", "import '../_shared/missing.ts';"],
+    ["import outside functions", "import '../../../src/helper.ts';"],
+    ["JS-to-TS extension mismatch", "import './foo.js';"],
+  ])("falls back for %s", async (_name, indexContent) => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeAppFile(
+      "supabase/functions/alpha/foo.ts",
+      "export const x = 1;",
+    );
+    await writeFunction("alpha", indexContent);
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact.kind).toBe("all");
+  });
+
+  it("falls back when a function contains invalid syntax", async () => {
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeFunction("alpha", "import { from '../_shared/foo.ts';");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({
+      kind: "all",
+      reason: expect.stringContaining("parse_failure:"),
+    });
+  });
+
+  it("falls back for unsupported changed shared file extensions", async () => {
+    await writeAppFile("supabase/functions/_shared/data.json", "{}");
+    await writeFunction("alpha", "export const alpha = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/data.json"],
+    });
+
+    expect(impact).toMatchObject({ kind: "all" });
+  });
+
+  it("falls back when the changed shared path is a directory", async () => {
+    await fs.mkdir(path.join(appPath, "supabase/functions/_shared/group.ts"), {
+      recursive: true,
+    });
+    await writeFunction("alpha", "export const alpha = 1;");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/group.ts"],
+    });
+
+    expect(impact).toEqual({
+      kind: "all",
+      reason: "changed_shared_directory:supabase/functions/_shared/group.ts",
+    });
+  });
+
+  it("falls back when app-local TypeScript is unavailable", async () => {
+    await fs.rm(path.join(appPath, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
+    await writeAppFile(
+      "supabase/functions/_shared/foo.ts",
+      "export const foo = 1;",
+    );
+    await writeFunction("alpha", "import '../_shared/foo.ts';");
+
+    const impact = await getSupabaseFunctionsAffectedBySharedModules({
+      appPath,
+      changedSharedModulePaths: ["supabase/functions/_shared/foo.ts"],
+    });
+
+    expect(impact).toEqual({
+      kind: "all",
+      reason: "typescript_not_installed",
+    });
+  });
+});
+
+describe("toPosixPath", () => {
+  it("should keep forward slashes unchanged", () => {
+    expect(toPosixPath("supabase/functions/hello/index.ts")).toBe(
+      "supabase/functions/hello/index.ts",
+    );
+  });
+
+  it("should handle empty string", () => {
+    expect(toPosixPath("")).toBe("");
+  });
+
+  it("should handle single filename", () => {
+    expect(toPosixPath("index.ts")).toBe("index.ts");
+  });
+
+  // Note: On Unix, path.sep is "/", so backslashes won't be converted
+  // This test is for documentation - actual behavior depends on platform
+  it("should handle path with no separators", () => {
+    expect(toPosixPath("filename")).toBe("filename");
+  });
+});
+
+describe("stripSupabaseFunctionsPrefix", () => {
+  describe("strips prefix correctly", () => {
+    it("should strip full prefix from index.ts", () => {
+      expect(
+        stripSupabaseFunctionsPrefix(
+          "supabase/functions/hello/index.ts",
+          "hello",
+        ),
+      ).toBe("index.ts");
+    });
+
+    it("should strip prefix from nested file", () => {
+      expect(
+        stripSupabaseFunctionsPrefix(
+          "supabase/functions/hello/lib/utils.ts",
+          "hello",
+        ),
+      ).toBe("lib/utils.ts");
+    });
+
+    it("should handle leading slash", () => {
+      expect(
+        stripSupabaseFunctionsPrefix(
+          "/supabase/functions/hello/index.ts",
+          "hello",
+        ),
+      ).toBe("index.ts");
+    });
+  });
+
+  describe("handles edge cases", () => {
+    it("should return filename when no prefix match", () => {
+      const result = stripSupabaseFunctionsPrefix("just-a-file.ts", "hello");
+      expect(result).toBe("just-a-file.ts");
+    });
+
+    it("should handle paths without function name", () => {
+      const result = stripSupabaseFunctionsPrefix(
+        "supabase/functions/other/index.ts",
+        "hello",
+      );
+      // Should strip base prefix and return the rest
+      expect(result).toBe("other/index.ts");
+    });
+
+    it("should handle empty relative path after prefix", () => {
+      // When the path is exactly the function directory
+      const result = stripSupabaseFunctionsPrefix(
+        "supabase/functions/hello",
+        "hello",
+      );
+      expect(result).toBe("hello");
+    });
+  });
+});
+
+describe("buildSignature", () => {
+  it("should build signature from single entry", () => {
+    const entries: FileStatEntry[] = [
+      {
+        absolutePath: "/app/file.ts",
+        relativePath: "file.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    const result = buildSignature(entries);
+    expect(result).toBe("file.ts:3e8:64");
+  });
+
+  it("should build signature from multiple entries sorted by relativePath", () => {
+    const entries: FileStatEntry[] = [
+      {
+        absolutePath: "/app/b.ts",
+        relativePath: "b.ts",
+        mtimeMs: 2000,
+        size: 200,
+      },
+      {
+        absolutePath: "/app/a.ts",
+        relativePath: "a.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    const result = buildSignature(entries);
+    // Should be sorted by relativePath
+    expect(result).toBe("a.ts:3e8:64|b.ts:7d0:c8");
+  });
+
+  it("should return empty string for empty array", () => {
+    const result = buildSignature([]);
+    expect(result).toBe("");
+  });
+
+  it("should produce different signatures for different mtimes", () => {
+    const entries1: FileStatEntry[] = [
+      {
+        absolutePath: "/app/file.ts",
+        relativePath: "file.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    const entries2: FileStatEntry[] = [
+      {
+        absolutePath: "/app/file.ts",
+        relativePath: "file.ts",
+        mtimeMs: 2000,
+        size: 100,
+      },
+    ];
+    expect(buildSignature(entries1)).not.toBe(buildSignature(entries2));
+  });
+
+  it("should produce different signatures for different sizes", () => {
+    const entries1: FileStatEntry[] = [
+      {
+        absolutePath: "/app/file.ts",
+        relativePath: "file.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    const entries2: FileStatEntry[] = [
+      {
+        absolutePath: "/app/file.ts",
+        relativePath: "file.ts",
+        mtimeMs: 1000,
+        size: 200,
+      },
+    ];
+    expect(buildSignature(entries1)).not.toBe(buildSignature(entries2));
+  });
+
+  it("should include path in signature for cache invalidation", () => {
+    const entries1: FileStatEntry[] = [
+      {
+        absolutePath: "/app/a.ts",
+        relativePath: "a.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    const entries2: FileStatEntry[] = [
+      {
+        absolutePath: "/app/b.ts",
+        relativePath: "b.ts",
+        mtimeMs: 1000,
+        size: 100,
+      },
+    ];
+    expect(buildSignature(entries1)).not.toBe(buildSignature(entries2));
+  });
+});
+
+describe("mapSettledWithConcurrency", () => {
+  it("limits active tasks and preserves input order", async () => {
+    let activeCount = 0;
+    let maxActiveCount = 0;
+
+    const results = await mapSettledWithConcurrency(
+      [1, 2, 3, 4, 5],
+      2,
+      async (value) => {
+        activeCount++;
+        maxActiveCount = Math.max(maxActiveCount, activeCount);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        activeCount--;
+        if (value === 3) {
+          throw new Error("boom");
+        }
+        return value * 10;
+      },
+    );
+
+    expect(maxActiveCount).toBeLessThanOrEqual(2);
+    expect(results).toEqual([
+      { status: "fulfilled", value: 10 },
+      { status: "fulfilled", value: 20 },
+      {
+        status: "rejected",
+        reason: expect.objectContaining({ message: "boom" }),
+      },
+      { status: "fulfilled", value: 40 },
+      { status: "fulfilled", value: 50 },
+    ]);
+  });
+});
+
+describe("enqueueSupabaseDeploy", () => {
+  it("limits active bundle-only deploys per project", async () => {
+    resetSupabaseDeployQueuesForTests();
+
+    let activeCount = 0;
+    let maxActiveCount = 0;
+    const startedIndexes: number[] = [];
+    const releaseTasks: Array<() => void> = [];
+
+    const tasks = Array.from(
+      { length: SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY + 4 },
+      (_, index) =>
+        enqueueSupabaseDeploy("project-1", true, async () => {
+          startedIndexes.push(index);
+          activeCount++;
+          maxActiveCount = Math.max(maxActiveCount, activeCount);
+          await new Promise<void>((resolve) => {
+            releaseTasks[index] = resolve;
+          });
+          activeCount--;
+          return index;
+        }),
+    );
+
+    expect(startedIndexes).toHaveLength(
+      SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY,
+    );
+    expect(maxActiveCount).toBe(SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY);
+
+    for (const releaseTask of releaseTasks.slice(
+      0,
+      SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY,
+    )) {
+      releaseTask();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(startedIndexes).toHaveLength(
+      SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY + 4,
+    );
+
+    for (const releaseTask of releaseTasks.slice(
+      SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY,
+    )) {
+      releaseTask();
+    }
+
+    await expect(Promise.all(tasks)).resolves.toEqual(
+      Array.from(
+        { length: SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY + 4 },
+        (_, index) => index,
+      ),
+    );
+  });
+
+  it("runs activating deploys exclusively for a project", async () => {
+    resetSupabaseDeployQueuesForTests();
+
+    const startedIndexes: number[] = [];
+    const releaseTasks: Array<() => void> = [];
+
+    const tasks = Array.from(
+      { length: SUPABASE_ACTIVATING_DEPLOY_CONCURRENCY + 2 },
+      (_, index) =>
+        enqueueSupabaseDeploy("project-1", false, async () => {
+          startedIndexes.push(index);
+          await new Promise<void>((resolve) => {
+            releaseTasks[index] = resolve;
+          });
+          return index;
+        }),
+    );
+
+    expect(startedIndexes).toEqual([0]);
+
+    releaseTasks[0]();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(startedIndexes).toEqual([0, 1]);
+
+    releaseTasks[1]();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(startedIndexes).toEqual([0, 1, 2]);
+
+    releaseTasks[2]();
+    await expect(Promise.all(tasks)).resolves.toEqual([0, 1, 2]);
+  });
+
+  it("does not start same-project bundle-only deploys while an activating deploy is queued", async () => {
+    resetSupabaseDeployQueuesForTests();
+
+    const startedTasks: string[] = [];
+    const releaseTasks: Record<string, () => void> = {};
+
+    const bundleTasks = Array.from(
+      { length: SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY },
+      (_, index) =>
+        enqueueSupabaseDeploy("project-1", true, async () => {
+          const taskName = `bundle-${index}`;
+          startedTasks.push(taskName);
+          await new Promise<void>((resolve) => {
+            releaseTasks[taskName] = resolve;
+          });
+          return taskName;
+        }),
+    );
+    const activatingTask = enqueueSupabaseDeploy(
+      "project-1",
+      false,
+      async () => {
+        startedTasks.push("activate");
+        await new Promise<void>((resolve) => {
+          releaseTasks.activate = resolve;
+        });
+        return "activate";
+      },
+    );
+    const extraBundleTask = enqueueSupabaseDeploy(
+      "project-1",
+      true,
+      async () => {
+        startedTasks.push("extra-bundle");
+        return "extra-bundle";
+      },
+    );
+
+    expect(startedTasks).toEqual(
+      Array.from(
+        { length: SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY },
+        (_, index) => `bundle-${index}`,
+      ),
+    );
+
+    for (
+      let index = 0;
+      index < SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY;
+      index++
+    ) {
+      releaseTasks[`bundle-${index}`]();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(startedTasks).toContain("activate");
+    expect(startedTasks).not.toContain("extra-bundle");
+
+    releaseTasks.activate();
+    await expect(
+      Promise.all([...bundleTasks, activatingTask, extraBundleTask]),
+    ).resolves.toEqual([
+      ...Array.from(
+        { length: SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY },
+        (_, index) => `bundle-${index}`,
+      ),
+      "activate",
+      "extra-bundle",
+    ]);
+  });
+
+  it("allows activating deploys for different projects to run concurrently", async () => {
+    resetSupabaseDeployQueuesForTests();
+
+    let activeCount = 0;
+    let maxActiveCount = 0;
+    const releaseTasks: Array<() => void> = [];
+
+    const tasks = ["project-1", "project-2"].map((projectId, index) =>
+      enqueueSupabaseDeploy(projectId, false, async () => {
+        activeCount++;
+        maxActiveCount = Math.max(maxActiveCount, activeCount);
+        await new Promise<void>((resolve) => {
+          releaseTasks[index] = resolve;
+        });
+        activeCount--;
+        return projectId;
+      }),
+    );
+
+    expect(maxActiveCount).toBe(2);
+
+    releaseTasks[0]();
+    releaseTasks[1]();
+
+    await expect(Promise.all(tasks)).resolves.toEqual([
+      "project-1",
+      "project-2",
+    ]);
+  });
+});

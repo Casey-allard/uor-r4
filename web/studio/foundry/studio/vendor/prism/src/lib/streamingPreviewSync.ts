@@ -1,0 +1,35 @@
+import type { StreamingPreview } from "@/ipc/types/chat";
+
+type SetPreview = (chatId: number, content: string) => void;
+
+/**
+ * Apply a `streamingPreview` field from a chat-stream chunk onto the
+ * sidecar overlay store. The server uses `content === ""` as a clear signal
+ * emitted after a tool's final XML is committed via `onXmlComplete`.
+ *
+ * The sidecar SnapshotStore preserves identity on no-op chunks.
+ *
+ * Used by the chat stream adapter so high-volume tool-XML preview content
+ * stays out of the lower-frequency StreamState snapshot.
+ */
+export function applyPreviewChunk(
+  setPreview: SetPreview,
+  chatId: number,
+  streamingPreview: StreamingPreview | undefined,
+): void {
+  if (!streamingPreview) return;
+  const { content } = streamingPreview;
+  setPreview(chatId, content);
+}
+
+/**
+ * Clear any active preview overlay for `chatId`. Call on stream end,
+ * error, and cancellation so a stale overlay never outlives the stream
+ * that produced it.
+ */
+export function clearPreviewForChat(
+  setPreview: SetPreview,
+  chatId: number,
+): void {
+  setPreview(chatId, "");
+}

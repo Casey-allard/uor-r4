@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "arch-opm-state"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "OpmState"
+
+[[form]]
+id = "arch-opm-state"
+channel = "text"
+surface = "OPM state"
+canonical_source = true
+features = ["sentence-case", "singular"]

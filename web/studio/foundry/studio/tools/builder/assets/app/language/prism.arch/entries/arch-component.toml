@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "arch-component"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "Component"
+
+[[form]]
+id = "arch-component"
+channel = "text"
+surface = "architectural component"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

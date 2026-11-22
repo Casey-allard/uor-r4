@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "sec-risk"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "Risk"
+
+[[form]]
+id = "sec-risk"
+channel = "text"
+surface = "security risk"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

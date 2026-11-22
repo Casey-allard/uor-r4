@@ -1,0 +1,68 @@
+\begin{lexlean}{Foundation.Bytes}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Bounded byte buffer}
+\begin{semanticmodule}
+inductive{
+  name: ByteOrder,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: LittleEndian, fields: []}, {name: BigEndian, fields: []}]
+}
+
+inductive{
+  name: BufferError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: OutOfBounds, fields: []},
+    {name: LengthOverflow, fields: []},
+    {name: NonCanonical, fields: []}
+  ]
+}
+
+structure{
+  name: BoundedBuffer,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: bytes, type: Bytes}, {name: maximum, type: UInt64}]
+}
+
+definition{
+  name: appendBytes,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bytes,
+  body: (prim append left right : Bytes)
+}
+
+definition{
+  name: byteLength,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: (prim length value : Nat)
+}
+
+definition{
+  name: byteAt,
+  parameters: [value : Bytes, offset : Nat],
+  result: (Option UInt8),
+  body: (prim index value offset : (Option UInt8))
+}
+
+definition{
+  name: sliceBytes,
+  parameters: [value : Bytes, start : Nat, count : Nat],
+  result: (Option Bytes),
+  body: (prim slice value start count : (Option Bytes))
+}
+
+definition{
+  name: compareBytes,
+  parameters: [left : Bytes, right : Bytes],
+  result: Ordering,
+  body: (prim compare_bytes left right : Ordering),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

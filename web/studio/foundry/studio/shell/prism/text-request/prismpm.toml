@@ -1,0 +1,9 @@
+spec = "prismpm/project/1"
+project = "TextRequest"
+lexlean_project = "lexlean.toml"
+build_root = ".prism"
+
+[limits]
+max_holo_bytes = 16777216
+max_entities = 100000
+max_diagnostics = 256

@@ -1,0 +1,254 @@
+\begin{lexlean}{InteractionModel}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Boolean}
+\begin{semanticmodule}
+structure{
+  name: InteractionFrame,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: screen, type: Nat},
+    {name: palette, type: Nat},
+    {name: tone, type: Nat},
+    {name: motion, type: Nat}
+  ]
+}
+
+structure{
+  name: InteractionEdge,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: origin, type: Nat}, {name: event, type: Nat}, {name: destination, type: Nat}]
+}
+
+structure{
+  name: InteractionProfile,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: version, type: Nat},
+    {name: initial, type: Nat},
+    {name: screens, type: Nat},
+    {name: frames, type: (List InteractionFrame)},
+    {name: edges, type: (List InteractionEdge)}
+  ]
+}
+
+structure{
+  name: InteractionOutput,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: state, type: Nat},
+    {name: screen, type: Nat},
+    {name: palette, type: Nat},
+    {name: tone, type: Nat},
+    {name: motion, type: Nat}
+  ]
+}
+
+inductive{
+  name: InteractionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidInteractionModel, fields: []},
+    {name: invalidInteractionState, fields: []},
+    {name: unknownInteractionEvent, fields: []}
+  ]
+}
+
+definition{
+  name: interactionFrameAt,
+  parameters: [frames : (List InteractionFrame), index : Nat],
+  result: (Option InteractionFrame),
+  body: (match frames
+    | List.nil => (ctor Option.none [InteractionFrame])
+    | List.cons head rest => (if (index =? 0) then (ctor Option.some [InteractionFrame] head) else (interactionFrameAt rest (prim subtract index 1 : Nat)))),
+  recursive_argument: frames
+}
+
+definition{
+  name: interactionFramesValid,
+  parameters: [frames : (List InteractionFrame), screens : Nat],
+  result: Bool,
+  body: (match frames
+    | List.nil => true
+    | List.cons head rest => (((project head screen) <? screens) && (((project head palette) <? 8) && (((project head tone) <=? 20000) && ((((project head tone) =? 0) || (20 <=? (project head tone))) && (((project head motion) <=? 1000) && (interactionFramesValid rest screens))))))),
+  recursive_argument: frames
+}
+
+definition{
+  name: interactionHasRoute,
+  parameters: [edges : (List InteractionEdge), origin : Nat, event : Nat],
+  result: Bool,
+  body: (match edges
+    | List.nil => false
+    | List.cons head rest => (if (((project head origin) =? origin) && ((project head event) =? event)) then true else (interactionHasRoute rest origin event))),
+  recursive_argument: edges
+}
+
+definition{
+  name: interactionEdgesValid,
+  parameters: [edges : (List InteractionEdge), size : Nat],
+  result: Bool,
+  body: (match edges
+    | List.nil => true
+    | List.cons head rest => (((project head origin) <? size) && (((project head destination) <? size) && ((0 <? (project head event)) && (((project head event) <=? 32) && ((if (interactionHasRoute rest (project head origin) (project head event)) then false else true) && (interactionEdgesValid rest size))))))),
+  recursive_argument: edges
+}
+
+definition{
+  name: interactionProfileValid,
+  parameters: [profile : InteractionProfile],
+  result: Bool,
+  body: (((project profile version) =? 1) && ((0 <? (project profile screens)) && (((project profile screens) <=? 32) && ((0 <? (prim length (project profile frames) : Nat)) && (((prim length (project profile frames) : Nat) <=? 32) && (((prim length (project profile edges) : Nat) <=? 128) && (((project profile initial) <? (prim length (project profile frames) : Nat)) && ((interactionFramesValid (project profile frames) (project profile screens)) && (interactionEdgesValid (project profile edges) (prim length (project profile frames) : Nat))))))))))
+}
+
+definition{
+  name: interactionNext,
+  parameters: [edges : (List InteractionEdge), state : Nat, event : Nat],
+  result: (Option Nat),
+  body: (match edges
+    | List.nil => (ctor Option.none [Nat])
+    | List.cons head rest => (if (((project head origin) =? state) && ((project head event) =? event)) then (ctor Option.some [Nat] (project head destination)) else (interactionNext rest state event))),
+  recursive_argument: edges
+}
+
+definition{
+  name: interactionProject,
+  parameters: [frame : InteractionFrame, state : Nat, audioGranted : Bool, reducedMotion : Bool],
+  result: InteractionOutput,
+  body: (record InteractionOutput {state := state, screen := (project frame screen), palette := (project frame palette), tone := (if audioGranted then (project frame tone) else 0), motion := (if reducedMotion then 0 else (project frame motion))})
+}
+
+definition{
+  name: interactionStep,
+  parameters: [
+    profile : InteractionProfile,
+    state : Nat,
+    event : Nat,
+    audioGranted : Bool,
+    reducedMotion : Bool
+  ],
+  result: (Result InteractionOutput InteractionError),
+  body: (if (interactionProfileValid profile) then (if (state <? (prim length (project profile frames) : Nat)) then (match (if (event =? 0) then (ctor Option.some [Nat] state) else (interactionNext (project profile edges) state event))
+    | Option.none => (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.unknownInteractionEvent))
+    | Option.some next => (match (interactionFrameAt (project profile frames) next)
+      | Option.none => (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionState))
+      | Option.some frame => (ctor Result.ok [InteractionOutput, InteractionError] (interactionProject frame next audioGranted reducedMotion)))) else (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionState))) else (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionModel)))
+}
+
+definition{
+  name: interactionExample,
+  parameters: [],
+  result: InteractionProfile,
+  body: (record InteractionProfile {version := 1, initial := 0, screens := 2, frames := (cons (record InteractionFrame {screen := 0, palette := 2, tone := 220, motion := 10}) (cons (record InteractionFrame {screen := 1, palette := 3, tone := 440, motion := 20}) (nil InteractionFrame))), edges := (cons (record InteractionEdge {origin := 0, event := 1, destination := 1}) (cons (record InteractionEdge {origin := 1, event := 2, destination := 0}) (nil InteractionEdge)))})
+}
+
+theorem{
+  name: interactionSilentWithoutConsent,
+  parameters: [frame : InteractionFrame, state : Nat, reducedMotion : Bool],
+  statement: ((project (interactionProject frame state false reducedMotion) tone) = 0),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionReducedMotionStatic,
+  parameters: [frame : InteractionFrame, state : Nat, audioGranted : Bool],
+  statement: ((project (interactionProject frame state audioGranted true) motion) = 0),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionOutputState,
+  parameters: [frame : InteractionFrame, state : Nat, audioGranted : Bool, reducedMotion : Bool],
+  statement: ((project (interactionProject frame state audioGranted reducedMotion) state) = state),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionForward,
+  parameters: [],
+  statement: ((interactionStep (interactionExample) 0 1 true false) = (ctor Result.ok [InteractionOutput, InteractionError] (record InteractionOutput {state := 1, screen := 1, palette := 3, tone := 440, motion := 20}))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionBackward,
+  parameters: [],
+  statement: ((interactionStep (interactionExample) 1 2 false true) = (ctor Result.ok [InteractionOutput, InteractionError] (record InteractionOutput {state := 0, screen := 0, palette := 2, tone := 0, motion := 0}))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionCurrent,
+  parameters: [],
+  statement: ((interactionStep (interactionExample) 0 0 false false) = (ctor Result.ok [InteractionOutput, InteractionError] (record InteractionOutput {state := 0, screen := 0, palette := 2, tone := 0, motion := 10}))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionBadState,
+  parameters: [],
+  statement: ((interactionStep (interactionExample) 2 1 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionState))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionMissingRoute,
+  parameters: [],
+  statement: ((interactionStep (interactionExample) 0 2 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.unknownInteractionEvent))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionWrongVersion,
+  parameters: [],
+  statement: ((interactionStep (record InteractionProfile {version := 2, initial := 0, screens := 2, frames := (cons (record InteractionFrame {screen := 0, palette := 2, tone := 220, motion := 10}) (cons (record InteractionFrame {screen := 1, palette := 3, tone := 440, motion := 20}) (nil InteractionFrame))), edges := (cons (record InteractionEdge {origin := 0, event := 1, destination := 1}) (cons (record InteractionEdge {origin := 1, event := 2, destination := 0}) (nil InteractionEdge)))}) 0 0 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionModel))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionEmptyFrames,
+  parameters: [],
+  statement: ((interactionStep (record InteractionProfile {version := 1, initial := 0, screens := 2, frames := (nil InteractionFrame), edges := (cons (record InteractionEdge {origin := 0, event := 1, destination := 1}) (cons (record InteractionEdge {origin := 1, event := 2, destination := 0}) (nil InteractionEdge)))}) 0 0 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionModel))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionDuplicateRoute,
+  parameters: [],
+  statement: ((interactionStep (record InteractionProfile {version := 1, initial := 0, screens := 2, frames := (cons (record InteractionFrame {screen := 0, palette := 2, tone := 220, motion := 10}) (cons (record InteractionFrame {screen := 1, palette := 3, tone := 440, motion := 20}) (nil InteractionFrame))), edges := (cons (record InteractionEdge {origin := 0, event := 1, destination := 1}) (cons (record InteractionEdge {origin := 0, event := 1, destination := 1}) (nil InteractionEdge)))}) 0 0 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionModel))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: interactionBadDestination,
+  parameters: [],
+  statement: ((interactionStep (record InteractionProfile {version := 1, initial := 0, screens := 2, frames := (cons (record InteractionFrame {screen := 0, palette := 2, tone := 220, motion := 10}) (cons (record InteractionFrame {screen := 1, palette := 3, tone := 440, motion := 20}) (nil InteractionFrame))), edges := (cons (record InteractionEdge {origin := 0, event := 1, destination := 2}) (nil InteractionEdge))}) 0 0 false false) = (ctor Result.error [InteractionOutput, InteractionError] (ctor InteractionError.invalidInteractionModel))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+definition{
+  name: interactionBoundary,
+  parameters: [],
+  result: String,
+  body: "The version-one stateful application profile is a governed finite extension independent of decision tables. It contains one to 32 frames and at most 128 unique state-event transitions. Frames identify one of 32 declared screens and eight palette slots, a silent or 20-to-20000 Hz audio signal and a zero-to-1000 motion parameter. Initial state and every transition endpoint must be in bounds; event zero projects current state and events one through 32 follow explicit unique routes. Guest evaluation returns the next state and coordinated screen, palette, audio and motion output. Audio output is zero without explicit consent; reduced-motion preference forces motion output to zero. This profile governs finite interaction and domain coordination, not arbitrary generated code, acoustic fidelity, media quality or general application completeness. Persistence, authenticated state ownership, actual rendering and sensory acceptance have separate boundaries."
+}
+\end{semanticmodule}
+
+\end{lexlean}

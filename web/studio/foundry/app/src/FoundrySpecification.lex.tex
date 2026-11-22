@@ -1,0 +1,1299 @@
+\begin{lexlean}{FoundrySpecification}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\importmodule{CommandRegistry}
+\title{Boolean}
+\begin{semanticmodule}
+inductive{
+  name: Obligation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: authority, fields: []},
+    {name: features, fields: []},
+    {name: routing, fields: []},
+    {name: composition, fields: []},
+    {name: projection, fields: []},
+    {name: proofScope, fields: []},
+    {name: effects, fields: []},
+    {name: identity, fields: []},
+    {name: packaging, fields: []},
+    {name: journeys, fields: []},
+    {name: quality, fields: []},
+    {name: release, fields: []},
+    {name: representation, fields: []},
+    {name: ownership, fields: []},
+    {name: factory, fields: []}
+  ]
+}
+
+definition{
+  name: requirement,
+  parameters: [obligation : Obligation],
+  result: String,
+  body: (match obligation
+    | Obligation.authority => "Every product-owned behavior has exactly one canonical semantic owner. An imported behavior names its external authority and an independently checked typed boundary. Authoring front ends and generated projections cannot independently redefine behavior."
+    | Obligation.features => "Features declare versioned identity, vocabulary, inputs, outputs, state, events, errors, effects, dependencies, conflicts, projection targets, resource budgets, accessibility and applicable quality obligations."
+    | Obligation.routing => "A replaceable semantic router proposes ranked features, dependencies, ambiguities and unresolved constraints from typed intent. Held-out relevance, dependency completeness, abstention and latency measurements qualify routing; proposal confidence grants no acceptance authority."
+    | Obligation.composition => "Prism independently admits interfaces, dependency closure, conflicts, permissions, budgets and evidence obligations. Both the Foundry application and each generated application have separate finite declared release scopes."
+    | Obligation.projection => "Product behavior is generated from the accepted model or crosses a declared typed adapter. Independent runtime comparison and qualified compiler evidence bind execution to the exact accepted semantics. An unsupported channel cannot report empty success as capability fulfillment."
+    | Obligation.proofScope => "Every assurance claim binds its property, model, source, executable, toolchain, oracle and dependency identities. Specification proofs, projection preservation, runtime acceptance, measurements and live release acceptance remain separate claims."
+    | Obligation.effects => "Network, inference, storage, preview, build and publication effects require explicit permission, transmitted-data disclosure, provider and credential ownership, timeout, malformed-response, revocation and offline behavior."
+    | Obligation.identity => "An identity includes object kind, canonicalization profile, algorithm, digest and version. Recompute identities independently and retain transformation relationships among model, source, executable, assets, evidence, archive and deployment."
+    | Obligation.packaging => "A complete locked production dependency closure reproduces the accepted artifacts. Independently validate the archive and reconstruction. Dependency or manifest mutation prevents promotion."
+    | Obligation.journeys => "Declared creation, editing, preview, verification, restore, cancellation, recovery and publication journeys have positive and negative runtime acceptance. State, view, effects, diagnostics, focus and publication decisions share an authoritative command boundary."
+    | Obligation.quality => "Functional correctness does not imply accessibility, audiovisual fidelity, usability or performance. Each declared quality requirement has an appropriate independent oracle, measurement or human assessment and a threshold fixed before acceptance."
+    | Obligation.release => "The release receipt binds the declared scope to exact models, source, toolchain, dependencies, artifacts, evidence and destination. Independent retrieval and live replay establish deployment acceptance; a successful process exit alone does not."
+    | Obligation.representation => "Exact byte compression retains original-object identity separately from representation, decoder and basis identities. Self-contained and conditional-basis accounting are distinct. Missing bases fail explicitly. Application optimization requires its own behavioral-preservation contract."
+    | Obligation.ownership => "Admit and reserve work before executing effects. Retain achieved state, outstanding owners, spent work, unused reservations and resumable obligations after failure or cancellation. Semantic work, scheduling reservations and physical resource measurements remain distinct."
+    | Obligation.factory => "Use the qualified PrismPM factory for dependency-scoped obligations. Bind declared input closures, prerequisite identities, commands, environments, policy and oracles. Materialized closures reject undeclared inputs. Scheduling weights affect order only; receipt reuse never weakens the complete acceptance boundary.")
+}
+
+definition{
+  name: scope,
+  parameters: [],
+  result: String,
+  body: "The semantic graph defines required behavior, not evidence that every requirement has been implemented. A source declaration, registered claim, theorem, diagnostic, accepted export and live release are distinct. Only separately executed obligations establish acceptance."
+}
+
+definition{
+  name: adaptation,
+  parameters: [],
+  result: String,
+  body: "An accepted bounded policy may permit parameter adaptation. Changes to transitions, interfaces, permissions or meaning require renewed model acceptance. Learned weights cannot authorize effects or certify themselves."
+}
+
+definition{
+  name: intent,
+  parameters: [],
+  result: String,
+  body: "Intent interpretation precedes accepted requirements. Exact reconstruction of known bytes does not establish that an interpretation captures a user intention. Ambiguity must be represented and resolved before affected behavior is accepted."
+}
+
+definition{
+  name: claims,
+  parameters: [],
+  result: String,
+  body: "Composition validity, model theorem, projection conformance, exact reconstruction, best observed candidate, scoped minimum, measured improvement, journey acceptance and live release are separate claims. A minimum certificate covers only its sealed admissible universe and objective."
+}
+
+definition{
+  name: authorityBoundary,
+  parameters: [],
+  result: String,
+  body: "The authority admission function checks a typed declaration. It does not discover source owners, verify an external checker, bind runtime artifacts or establish whole-product acceptance. Those operations have their own modeled obligations."
+}
+
+definition{
+  name: priorArt,
+  parameters: [],
+  result: String,
+  body: "Design references: afflom/rule30@916669a9b430698c143528ca723c28d9998cef95; afflom/verdant-resonance@a7bf893e325600805d44fa02c163015e8eaeb497; Casey-allard/lexlean-r4@f6f9ac02b596c4b29b4d947088a74a639ce51829; UOR-Foundation/compression@efd3d174f5983409e5ecef892210bf6f92e7e2c6. UOR-Foundation/uor-r4 README blob 7d7245e108e75fd5279bd9bc7876ecebf8a01114 is context only; pin its complete closure before reuse. Imported claims are not local acceptance evidence."
+}
+
+inductive{
+  name: Ownership,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: product, fields: [Nat]}, {name: external, fields: [Nat, Bool]}]
+}
+
+inductive{
+  name: AuthorityError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: missingOwner, fields: []},
+    {name: competingOwners, fields: []},
+    {name: uncheckedBoundary, fields: []}
+  ]
+}
+
+definition{
+  name: admitOwnerCount,
+  parameters: [owners : Nat],
+  result: (Result Bool AuthorityError),
+  body: (if (owners =? 0) then (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.missingOwner)) else (if (owners =? 1) then (ctor Result.ok [Bool, AuthorityError] true) else (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.competingOwners))))
+}
+
+definition{
+  name: admitAuthority,
+  parameters: [ownership : Ownership],
+  result: (Result Bool AuthorityError),
+  body: (match ownership
+    | Ownership.product owners => (admitOwnerCount owners)
+    | Ownership.external owners boundaryChecked => (match (admitOwnerCount owners)
+      | Result.error error => (ctor Result.error [Bool, AuthorityError] error)
+      | Result.ok accepted => (if boundaryChecked then (ctor Result.ok [Bool, AuthorityError] true) else (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.uncheckedBoundary)))))
+}
+
+theorem{
+  name: missingProductOwner,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.product 0)) = (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.missingOwner))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: oneProductOwner,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.product 1)) = (ctor Result.ok [Bool, AuthorityError] true)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: competingProductOwners,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.product 2)) = (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.competingOwners))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: uncheckedExternalBoundary,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.external 1 false)) = (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.uncheckedBoundary))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: checkedExternalBoundary,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.external 1 true)) = (ctor Result.ok [Bool, AuthorityError] true)),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: missingExternalOwner,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.external 0 true)) = (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.missingOwner))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+theorem{
+  name: competingExternalOwners,
+  parameters: [],
+  statement: ((admitAuthority (ctor Ownership.external 2 true)) = (ctor Result.error [Bool, AuthorityError] (ctor AuthorityError.competingOwners))),
+  proof: reflexivity{},
+  axioms: []
+}
+
+inductive{
+  name: HostResponseError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: unsupportedChannel, fields: []},
+    {name: invalidResponse, fields: []},
+    {name: validatorFailed, fields: []},
+    {name: handlerFailed, fields: []}
+  ]
+}
+
+definition{
+  name: hostResponseBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser IPC adapter refuses absent handlers with unsupportedChannel, handler exceptions with handlerFailed, invalid contracted output with invalidResponse and validator exceptions with validatorFailed. A schema accepting an empty value never authorizes synthesizing success. Valid handler output is preserved exactly; schema parsing is validation and cannot replace it. Both envelope and direct invocation retain typed error codes. Unsupported errors map to the imported not_found category; other boundary failures map to internal. Error messages name the channel without including request, response or exception data. Legacy handlers without imported output schemas retain their output, but this is not schema coverage or application acceptance. The external adapter inventory studio/model/host-read-scope.json classifies discovered renderer reads as required or unavailable. Required reads must retain handlers, unavailable reads must remain explicit refusals, and new or stale entries fail scope validation. This inventory declares the current adapter scope, not complete feature coverage. Renderer error-state recovery requires separate runtime journey evidence."
+}
+
+inductive{
+  name: PublicationIdentityError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidArchiveIdentity, fields: []},
+    {name: archiveIdentityMismatch, fields: []},
+    {name: invalidAcceptance, fields: []},
+    {name: acceptanceFailed, fields: []}
+  ]
+}
+
+definition{
+  name: publicationIdentityBoundary,
+  parameters: [],
+  result: String,
+  body: "Publication compares the page build identity and the imported Prism reader's recomputed archive fingerprint by full equality. Both fields contain exactly 64 lowercase hexadecimal characters, as emitted by the current template. Prefixes, suffixes, missing values, coercions and alternate algorithms are refused. The resulting typed identity has kind archiveFingerprint, algorithm blake3, profile holo-v4-body and version 1: BLAKE3 of the Hologram v4 bytes preceding the 32-byte footer, not a hash of the entire archive. Runtime acceptance must have a positive safe-integer total, a nonnegative safe-integer passed count no greater than total, and a failed array whose length accounts for every remaining vector. Every vector must pass. Malformed identity, mismatch, inconsistent or empty acceptance, and failed acceptance are distinct errors. This binds page and retrieved artifact; it does not authenticate publisher provenance or bind the artifact to a source commit. Those remain independent release obligations."
+}
+
+inductive{
+  name: SnapshotRestoreError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidSnapshot, fields: []},
+    {name: missingSnapshotObject, fields: []},
+    {name: snapshotIdentityMismatch, fields: []},
+    {name: missingFileObject, fields: []},
+    {name: fileIdentityMismatch, fields: []},
+    {name: invalidFileEncoding, fields: []},
+    {name: snapshotLimitExceeded, fields: []},
+    {name: snapshotStorageFailed, fields: []},
+    {name: snapshotCoreRefused, fields: []}
+  ]
+}
+
+definition{
+  name: snapshotRestoreBoundary,
+  parameters: [],
+  result: String,
+  body: "Snapshot restoration checks the exact BLAKE3 address of the snapshot and every referenced file object before changing working files. The existing generated core independently admits the snapshot identity. Snapshot JSON has exactly entries, name and parent; each entry is a unique portable relative path, canonical blake3 address and exact byte length. Limits fixed before admission are 2 MiB snapshot bytes, 4096 files, 16 MiB per file and 64 MiB total file bytes. Text files must decode as fatal UTF-8 with BOM preserved and re-encode to identical bytes. Missing bases, corrupt bytes, malformed shape, noncanonical addresses and exceeded bounds refuse explicitly. An empty entries list is a valid empty project. The browser adapter uses a single IndexedDB transaction for deleting current files, inserting all verified files advancing the main reference and clearing cached rule/proof state for that project; abort leaves all of these unchanged. Other projects are untouched. Snapshot/object reads, hashing and core checks occur before that transaction. Storage exceptions expose no content or credential data. Typed adapter failures map to the IPC host's handlerFailed boundary. Snapshot restoration establishes exact reconstruction of stored text bytes, not compression optimality, parent-history closure, concurrent edit merging or overall release acceptance."
+}
+
+inductive{
+  name: ProjectionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: missingProjection, fields: []},
+    {name: unreadableProjection, fields: []},
+    {name: divergedProjection, fields: []}
+  ]
+}
+
+definition{
+  name: authoringBoundary,
+  parameters: [],
+  result: String,
+  body: "The authoring front end deterministically constructs every canonical Studio module and its ordered export roots. Check mode compares all expected bytes without creating, repairing or rewriting output, reports every missingProjection, unreadableProjection or divergedProjection by path, and fails if any comparison fails. Canonical sources remain what LexLean consumes. Source conformance executes the actual checker against independent mutations of each module, export roots, newline encoding and authoring declarations; a changed declaration requires explicit regeneration before acceptance."
+}
+
+inductive{
+  name: RulesBindingError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidRulesState, fields: []},
+    {name: rulesIdentityFailed, fields: []},
+    {name: rulesStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: rulesSourceBoundary,
+  parameters: [],
+  result: String,
+  body: "Cached rule status is usable only when its canonical blake3 specKappa equals the independently recomputed identity of the project's current prism/spec.json bytes and its phase is declared by the kernel. Reads capture file and state together. Writes first check source identity and then compare the exact source again inside the same IndexedDB transaction that writes status. Asynchronous approval, proof and publication also compare their expected prior status in that transaction, so intervening edits, restores or competing completions cannot promote stale state. A stale completion returns false and never changes the current preview or claims current publication. An optional generation cancellation signal refuses status writes before commit and aborts an active status transaction; cancellation returns false, while already completed writes remain committed. Imported files may be reconstructed, but imported cached approval, proof and publication state is discarded; they require fresh checking and approval. Invalid state, identity engine failure and storage failure are typed and contain no source, credential or exception payloads. The IPC boundary maps these exceptions to handlerFailed. Publication progress callbacks belong to their captured active operation; after stop or completion they cannot overwrite its final message. Remote publication may already be live when current-state promotion or local verification fails; the UI states this explicitly. These checks bind lifecycle state to current source; they do not verify the hosted prover, authenticate build provenance or undo remote effects."
+}
+
+inductive{
+  name: KernelBoundaryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidKernelMetadata, fields: []},
+    {name: kernelLoadFailed, fields: []},
+    {name: kernelIntegrityMismatch, fields: []},
+    {name: kernelExportsMismatch, fields: []},
+    {name: kernelAcceptanceFailed, fields: []},
+    {name: invalidKernelRequest, fields: []},
+    {name: kernelRequestTooLarge, fields: []},
+    {name: kernelExecutionFailed, fields: []},
+    {name: kernelResponseTooLarge, fields: []}
+  ]
+}
+
+definition{
+  name: compositionHostBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser forge:compose handler serializes declarations through CompositionProtocol and invokes the same pinned generated kernel used for phase and effect decisions. It never implements semantic admission itself. Kernel loading requires a canonical archive label and guest SHA256, the exact kernel/guest.wasm path and byte length, a pure core-wasm export set, coherent positive limits, and nonempty acceptance. All committed vectors replay before a request is exposed. Metadata limits are 4096 vectors, 16 MiB guest bytes, 1 MiB request/response/allocation bounds, and 64 MiB total decoded vector bytes. Caller requests must be Uint8Array, are copied before asynchronous execution and cannot exceed the declared request limit. Text ask encodes only strings through the same checked dispatch. Each request uses a fresh instance; browser instance lifetime and concurrency additionally obey boundedKernelExecutionBoundary. Runtime, loading, identity, metadata, export, acceptance and bounds failures are typed without exception payloads. The host IPC maps loader exceptions to handlerFailed; guest execution failures during composition become compositionRuntimeFailed. Vector replay may exercise the declared allocation bound, which is separate from the public request bound. Runtime loading checks the guest against committed metadata; the repository kernel gate binds both to KERNEL_REV and the archive. This does not authenticate an arbitrary network origin or establish registry, routing, UI generation or application release completeness."
+}
+
+inductive{
+  name: HostInputError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidInput, fields: []},
+    {name: inputContractUnavailable, fields: []},
+    {name: inputValidatorFailed, fields: []}
+  ]
+}
+
+definition{
+  name: hostInputBoundary,
+  parameters: [],
+  result: String,
+  body: "Commands with imported renderer contracts must validate input before invoking any handler. The owned renderer bridge publishes the actual imported input and output schemas separately. An imported command carries at most one argument; omitted input is undefined. The adapter clones input before validation so caller mutation cannot change pending effects, rejects nontransferable values, and passes the schema's parsed value including declared defaults and transformations to the handler. Missing input validators for contracted outputs and throwing or malformed validators refuse without effects. Invalid arguments use invalidInput and the imported validation error category; missing or failed validators use inputContractUnavailable or inputValidatorFailed and internal. Refusals include the channel but never arguments, schema diagnostics or exception contents. Output validation still runs independently and never replaces successful handler output. Absent handlers remain unsupportedChannel. Legacy channels without imported input or output schemas retain their declared legacy behavior; their input is not claimed validated. This boundary checks representation, not permission, entity ownership, transaction isolation or full journey completeness."
+}
+
+inductive{
+  name: RepresentationError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidRepresentation, fields: []},
+    {name: identityMismatch, fields: []},
+    {name: missingBasis, fields: []},
+    {name: basisMismatch, fields: []},
+    {name: unsupportedDecoder, fields: []},
+    {name: representationTooLarge, fields: []},
+    {name: decodeFailed, fields: []},
+    {name: representationCancelled, fields: []},
+    {name: representationTimedOut, fields: []}
+  ]
+}
+
+definition{
+  name: representationBoundary,
+  parameters: [],
+  result: String,
+  body: "The byte-representation adapter accepts at most 2 MiB of original or basis bytes and a 4 MiB JSON archive. RFC1950 deflate encodes either original bytes or their bytewise XOR with an equal-length basis. Reconstruction checks typed raw-byte SHA256 identities for original, compressed payload, decoder specification and basis, exact output length, and bounded decompression before returning bytes. Representation identity hashes the entire serialized archive and reconstruction requires its separately supplied expected identity. Missing or wrong bases fail explicitly. The decoder identity identifies the specified transformation, not the browser executable or toolchain. Accounting reports payload, archive and basis bytes separately; reconstructionBytes sums archive and basis and excludes the shared native decoder implementation. Compression ratio, optimality, application equivalence and complete production dependency closure are not claimed. The host exposes forge:pack-bytes and forge:unpack-bytes with explicit basis and bytes fields, plus the expected representation identity for unpacking. These pure byte operations neither write storage nor perform network requests."
+}
+
+structure{
+  name: ByteIdentity,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: kind, type: String},
+    {name: canonicalization, type: String},
+    {name: algorithm, type: String},
+    {name: version, type: Nat},
+    {name: digest, type: String},
+    {name: byteLength, type: Nat}
+  ]
+}
+
+definition{
+  name: representationDecoderSpecification,
+  parameters: [],
+  result: String,
+  body: "foundry/deflate-xor/1: RFC1950 inflate; without basis return inflated bytes; with basis require equal lengths and XOR corresponding bytes; verify exact original length and SHA256"
+}
+
+definition{
+  name: unavailableBrowserQueries,
+  parameters: [],
+  result: (List String),
+  body: (cons "list-all-media" (cons "free-agent-quota:get-status" (cons "user-input:get-pending" (cons "get-app-upgrades" (cons "get-app-env-vars" (cons "get-templates" (cons "check-problems" (cons "app:list-screenshots" (cons "app:list-thumbnails" (cons "appCollections:list" (cons "coolify:get-status" (cons "coolify:discover" (cons "coolify-setup:snapshot" (cons "coolify-setup:get-server-key" (cons "coolify-setup:reveal-credentials" (cons "local-models:list-ollama" (cons "local-models:list-lmstudio" (cons "mcp:list-catalog" (cons "mcp:is-oauth-storage-encrypted" (cons "mcp:probe-callback-port" (cons "neon:get-project" (cons "neon:get-branch-env-vars" (cons "neon:get-email-password-config" (cons "supabase:detect-legacy-app-key" (cons "tests:list" (cons "tests:detect-legacy" (cons "vercel:get-sync-preview" (cons "get-latest-security-review" (cons "free-model-quota:get-status" (nil String))))))))))))))))))))))))))))))
+}
+
+definition{
+  name: capabilityAvailabilityBoundary,
+  parameters: [],
+  result: String,
+  body: "The declared unavailable browser queries return HostResponseError.unsupportedChannel through both IPC entrypoints. Empty findings, quota values, connection details and resource lists cannot stand in for unimplemented checks or external reads. Renderer error recovery must preserve the failure rather than substitute empty success. This negative scope is not implementation of the excluded capabilities, and it is not a complete inventory of every renderer command. Each added capability requires a new modeled boundary and executed acceptance before removing its unavailable declaration."
+}
+
+inductive{
+  name: StorageRequestError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: storageTransactionFailed, fields: []}]
+}
+
+definition{
+  name: storageCommitBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser host's single-store transaction helper captures the request result but returns success only after IndexedDB transaction completion. A later abort or error cannot become success. Opening the transaction, invoking its synchronous operation, obtaining the request and reading its result all fail closed. Synchronous exceptions and request or transaction errors abort queued writes. Abort, missing request, completion without request success and storage failures use storageTransactionFailed with a fixed public message; exception contents and stored values are not exposed. Undefined delete results are valid after commit. The host IPC boundary maps this failure to handlerFailed. This is the shared host helper's transaction acknowledgement boundary, not atomicity of multi-transaction journeys, durable storage beyond browser guarantees, quota availability, authorization, or cross-device persistence."
+}
+
+inductive{
+  name: ProjectCreationError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: projectScaffoldFailed, fields: []},
+    {name: projectPreparationFailed, fields: []},
+    {name: projectStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: projectCreationBoundary,
+  parameters: [],
+  result: String,
+  body: "New browser projects prepare all file objects and the initial snapshot before storage writes. The generated core remains the authority for snapshot preimage bytes; the existing BLAKE3 implementation derives object identities. Inputs are copied before asynchronous hashing. Names are nonempty and at most 255 UTF16 units; portable relative file paths exclude empty, dot and parent segments, backslash, colon and control characters. At most 1000 exact UTF8 files, 16 MiB per file, 64 MiB total and a 1 MiB snapshot are accepted. Scaffold loading requires a unique valid manifest and every named file including AI_RULES.md, with redirects refused, credentials omitted, fatal UTF8 decoding, a 64 KiB manifest and one 30-second header/body deadline; failures never cache a partial scaffold. A single IndexedDB write transaction allocates app and chat IDs from the current store keys and commits the app, files, file objects, snapshot object, main reference, initial version and initial chat together. Concurrent creations serialize allocation within that transaction. Chat-only creation also allocates in its transaction and requires an existing app. Import uses insert-only app/chat writes, so a stale allocated ID refuses the transaction instead of replacing an existing record. Completion is acknowledged only after commit; abort leaves previous data unchanged. Scaffold, preparation and storage errors are fixed-message ProjectCreationError values, mapped to handlerFailed by IPC. This establishes local creation atomicity and complete requested scaffold retrieval, not authenticated scaffold provenance, global project identity, atomic later edits or imports beyond collision refusal, storage durability beyond IndexedDB, or complete application generation."
+}
+
+inductive{
+  name: ProjectEditError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidProjectEdit, fields: []},
+    {name: projectEditConflict, fields: []},
+    {name: projectPreviewActive, fields: []},
+    {name: projectEditStorageFailed, fields: []},
+    {name: projectEditStateInvalid, fields: []},
+    {name: projectMutationCancelled, fields: []}
+  ]
+}
+
+definition{
+  name: projectEditBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser file-edit command copies its input and captures the app name, complete file set and main reference from one read transaction. It prepares exact file objects and generated snapshot bytes outside storage transactions, with the captured main reference as parent and the same preparation bounds as creation. A single write transaction compares the app name, reference and complete file contents to the capture; a rename, changed, added or removed file or changed reference refuses as projectEditConflict. It then writes the edited file, all prepared objects, snapshot reference, new version and app update atomically. Editing prism/spec.json also deletes cached rule status in that same transaction; other edits do not change the rule-source-specific claim. Existing version metadata is read within the write transaction and preserved. Failed writes abort all queued changes. Invalid input, conflict, invalid stored state and storage failure use fixed-message ProjectEditError values, while preparation retains ProjectCreationError.projectPreparationFailed; IPC maps these to handlerFailed. A conflict is not silently retried. The comparison binds bytes and reference at commit, not a history of intervening changes that returned to identical state. This boundary covers the explicit edit-app-file command, not streamed generation, deletion, renaming or every other project mutation, nor whole-application proof validity or durable storage beyond IndexedDB."
+}
+
+inductive{
+  name: GenerationPatchError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidGenerationPatch, fields: []},
+    {name: unlockedDependencyRequest, fields: []},
+    {name: generationCancelled, fields: []}
+  ]
+}
+
+definition{
+  name: generationPatchBoundary,
+  parameters: [],
+  result: String,
+  body: "Model-supplied file batches contain at most 1000 write, delete and rename operations and 128 direct dependency requests. Operations use portable paths, cannot overlap and cannot overwrite a rename target or delete a missing source. Staging copies inputs and leaves storage unchanged. Direct dependency requests require exact stable numeric package versions, reject conflicting versions, and are serialized in sorted order as foundry/direct-dependency-requests/1 in prism/dependencies.json; explicit file operations cannot replace that reserved file. Dependency metadata and that snapshot file commit together. These requests are not a transitive dependency lock or authenticated package closure. The request context uses one captured project file set and reference. Each generated batch compares that source inside its atomic write transaction; the resulting exact source is carried to the next rules batch, including when the first batch is a no-op. A stale source refuses. Rules files, generated module, generated screen and source-bound rule status are staged and committed together. The rules batch compares its exact captured lifecycle predecessor inside the source transaction; a competing lifecycle change refuses as projectEditConflict without changing files or status. A status-only batch still compares source and lifecycle and creates no source version. Cancellation is checked before preparation and commit, and an abort signal aborts an active write transaction. A completed transaction remains committed; the chat records its last committed snapshot and states that committed changes were retained when later work is cancelled or fails. Cancellation does not undo earlier commits, stop already submitted remote or device inference, or claim zero physical work. Invalid batches, unversioned dependency requests and pre-commit cancellation use GenerationPatchError; transaction cancellation uses ProjectEditError.projectMutationCancelled, with other edit/preparation failures preserved. This qualifies generation file batches and their source/cancellation boundary, not the complete chat admission lifecycle, authenticated dependency closure, inference truth, whole-turn atomicity or every effect in generation."
+}
+
+definition{
+  name: currentMainIntegrationBoundary,
+  parameters: [],
+  result: String,
+  body: "Live edits, undo, redo and agent spec patches use captured project source and the atomic generation batch boundary. No second seal captures unrelated concurrent files. A refused write discards optimistic history and reloads committed state. A rejected live edit redraws through the same exact-source and publication-current trust check as a normal refresh. Agent patches carry the preceding committed source and cancellation signal. Checked wording changes retain proof state only when the checked candidate logic identity and the recomputed prior checked-spec logic identity both equal the recorded identity, and the compiled lifecycle guest accepts reword. Logical changes drop proof through edit and check. Proof completion compares current source-bound logic identity and uses compare-and-set on the current state; competing completions cannot overwrite it. Source and retained lifecycle state commit atomically, without a deleted-status interval. A completed proof preceding that transaction makes a stale reword refuse without losing the proof. A completion racing after a matching reword retries its already-completed result only on a distinct matching predecessor; unchanged state or changed semantics terminates. Continual matching edits can delay completion. Reword preserves published semantic phase while publicationCurrent becomes false when source bytes differ; the card identifies that wording changed since publication. A successful new publication resets that marker. The signed guest must replay at least 114 acceptance vectors and retain lifecycle reword, composition and work protocols. These checks qualify integration of current main, not authenticated proof records, full publication closure or whole-journey conversion. Existing GenerationPatchError and ProjectEditError refusals remain authoritative."
+}
+
+inductive{
+  name: ProjectLifecycleError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidProjectLifecycle, fields: []},
+    {name: projectLifecycleStorageFailed, fields: []},
+    {name: projectLifecycleMissing, fields: []}
+  ]
+}
+
+definition{
+  name: projectLifecycleBoundary,
+  parameters: [],
+  result: String,
+  body: "Rename captures current source, prepares a snapshot with the new name and current parent, and commits metadata, snapshot, reference and version together only while captured source still matches. Checkout and revert validate all snapshot and file identities before touching the project, compare the captured source in the committing transaction, restore name and snapshot-bound direct dependencies, and invalidate source-bound proof status. Checkout selects the exact validated target reference without adding a history entry; revert creates one child of the previously current reference containing target files. Deletion removes app, its files, main and proof references, versions and dependent chats in one transaction while retaining shared content-addressed objects. Persistent allocation high-water marks prevent subsequent automatic app/chat ID reuse after deletion, including legacy records. Import refuses an allocation at or below the persisted mark and advances marks in its committing transaction. Chat updates require both the chat and its owning app in one transaction and return false after deletion, so late generation cannot resurrect deleted records. Missing projects, malformed lifecycle arguments and storage errors have typed fixed public refusals; edit conflicts and snapshot validation errors retain their existing types. Storage failure aborts the transaction. This is browser-local lifecycle consistency, not authenticated ownership, garbage collection, cross-device identity or a whole-product release claim."
+}
+
+inductive{
+  name: BuildSourceError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: buildSourceMismatch, fields: []}, {name: buildSourceChanged, fields: []}]
+}
+
+definition{
+  name: snapshotBuildBoundary,
+  parameters: [],
+  result: String,
+  body: "Preview and portable publication capture project name, main reference, files and direct dependency metadata in one transaction. They independently validate the snapshot and every file object using the existing restoration identity and generated-core admission boundary, then require exact name and file-byte agreement with captured source and exact dependency agreement with the snapshot declaration. Build adapters consume that captured source rather than rereading each file or metadata. Before promoting a current preview or installing a portable archive they compare current source against the capture; a change refuses with buildSourceChanged. Identity, basis and storage failures retain existing snapshot and project error types; disagreement uses buildSourceMismatch. A captured snapshot containing prism/spec.json always takes the Prism rule publication route, irrespective of whether cached rule state exists or is valid, so invalidation cannot bypass proof publication. The portable receipt names the captured project and reference. This qualifies source coherence and publication routing, not transitive package integrity, browser compiler preservation, atomic coordination between CacheStorage and IndexedDB, or complete live release acceptance."
+}
+
+inductive{
+  name: BuildModuleError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: buildModuleOriginRefused, fields: []},
+    {name: buildModuleResponseInvalid, fields: []},
+    {name: buildModuleUnavailable, fields: []},
+    {name: buildModuleTooLarge, fields: []},
+    {name: buildModuleLimitExceeded, fields: []},
+    {name: buildModuleTimedOut, fields: []},
+    {name: buildModuleCancelled, fields: []},
+    {name: buildModuleNetworkFailed, fields: []},
+    {name: buildModuleEncodingInvalid, fields: []},
+    {name: buildModuleIdentityFailed, fields: []}
+  ]
+}
+
+definition{
+  name: buildModuleBoundary,
+  parameters: [],
+  result: String,
+  body: "Portable browser builds retrieve external module text only from https://esm.sh with no URL credentials or fragment and at most 8192 URL characters. Every request is GET with redirects refused, credentials omitted and cache disabled. Only status 200 and JavaScript or CSS media types are accepted. One deadline of at most 120 seconds covers the module operation and callback completion, including stalled headers and bodies. At most 512 distinct URLs, 8 MiB per module and 64 MiB total are admitted. UTF8 decoding is fatal and byte roundtrip exact, including BOM. Each completed module retains its requested URL, media type, exact bytes, whole-file SHA256 and an archive path derived from that digest. Repeated requests share one in-flight operation. The portable view carries a sorted foundry/build-module-closure/1 receipt and those exact module sources. Errors and cancellation abort outstanding fetches and prevent return of a successful closure; errors have fixed public messages and never expose provider bodies. These are retrieved-byte receipts, not prior authenticity guarantees, a transitive NPM lock, compiler/toolchain closure, remote package availability, proof of browser compiler preservation or termination of already running physical work."
+}
+
+inductive{
+  name: ProjectImportError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidProjectImport, fields: []},
+    {name: projectImportLimitExceeded, fields: []},
+    {name: projectImportIdentityMismatch, fields: []},
+    {name: projectImportMissingObject, fields: []},
+    {name: projectImportSourceMismatch, fields: []},
+    {name: projectImportHistoryInvalid, fields: []},
+    {name: projectImportTimedOut, fields: []},
+    {name: projectImportCancelled, fields: []}
+  ]
+}
+
+definition{
+  name: projectImportBoundary,
+  parameters: [],
+  result: String,
+  body: "Import accepts the existing hologram-forge/export/1 profile, snapshots relevant primitive inputs before asynchronous work, and validates the complete supplied object identities and referenced snapshot/file/history closure before any write. At most 64 apps, 1000 files per app, 16 MiB per file or object, 128 MiB aggregate prepared object bytes and separately 128 MiB cumulative snapshot materialization bytes (including repeated historical references, charged before decoding), 8192 objects, 4096 historical snapshots, 4096 chats and 16384 messages are accepted; message text is at most 2 MiB each and 32 MiB total. One preparation deadline of at most 120 seconds bounds asynchronous identity and core checks; timeout or cancellation returns no prepared import. Source file bytes and app name must match an existing main snapshot. History parent cycles and missing or corrupt objects refuse. An export without a main reference receives an initial generated-core snapshot. A collision rename creates a child snapshot with the renamed app and exact files, preserving prior history. Direct dependency metadata must agree with a snapshot declaration; unbound legacy dependency requests refuse. Only validated names, dates, direct dependencies, version annotations and renderer-compatible chat/message fields survive normalization. Validated imported message IDs are renumbered consecutively from one within each chat so later local allocation cannot overflow. Imported permissions, grants, keys, provider selection, cached rule/proof state and cross-app references never grant authority. Existing insert-only atomic import and persistent allocation guards commit the prepared data. Invalid input, limits, identity, missing object, source mismatch, history, timeout and cancellation have fixed typed public errors; existing snapshot/core/preparation errors remain typed. A preparation or commit failure leaves storage unchanged. This qualifies local import integrity and authority isolation, not export authenticity, external credential ownership, package authenticity, or whole-application conversion."
+}
+
+inductive{
+  name: ShellClosureError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidShellManifest, fields: []},
+    {name: shellClosureMismatch, fields: []},
+    {name: shellFileMismatch, fields: []},
+    {name: shellResponseInvalid, fields: []},
+    {name: shellClosureLimitExceeded, fields: []},
+    {name: shellClosureTimedOut, fields: []},
+    {name: shellClosureCancelled, fields: []},
+    {name: shellClosureUnavailable, fields: []}
+  ]
+}
+
+definition{
+  name: shellClosureBoundary,
+  parameters: [],
+  result: String,
+  body: "A worker installs only its pinned hologram-forge/shell/1 closure. It independently recomputes SHA256 of the canonical ordered manifest rows, then verifies every declared file length and SHA256 before publishing file responses to its version cache or requesting activation. The existing manifest profile uses rows with keys bytes, path and sha256 in that order. Paths are unique ascending portable ASCII paths of at most 1024 characters, without URL escapes, queries, fragments or traversal. The manifest is at most 2 MiB, with at most 8192 files, 32 MiB per file and 128 MiB aggregate. The entrypoints index.html, host.js, core.wasm, assets/index.js, assets/index.css, scaffold/files.json, editor/vs/loader.js, editor/package.json, compiler/package.json, compiler/esm/browser.min.js and compiler/esbuild.wasm are required. Renderer and scaffold assets belong to the closure, while the separate app/ site has its own closure; the worker, its template, the manifest, deployment credentials and the separately closure-bound provenance receipt are excluded to avoid circularity. Fetches are same-origin GET with redirects refused, credentials omitted and HTTP cache bypassed; at most eight are in flight. One deadline of at most 120 seconds covers headers, bodies and identity work. Invalid manifest, closure, file, response, limits, timeout, cancellation and unavailable dependencies have fixed typed failures. No unverified file becomes a verified cache response. Only successful installation permits activation and deletion of prior shell caches. Controlled renderer, scaffold, editor and compiler requests read the active worker version rather than the newest network asset, including offline use. Root, index.html and shell-document GET navigations, including unknown renderer routes, read the active verified index document, including refresh after a refused update, and return 404 if that document is absent instead of borrowing network HTML. Query strings and trailing route slashes do not change this identity; exact cached resources retain their own responses. Preview, published application, app and ui subapp routing, resource namespaces and engine endpoints retain their separate handling. This does not promise atomic transitions for already-running clients during activation. This is installation byte consistency, not authentication of the worker or server, qualification of compiler/dependency provenance, prevention of all first-navigation races, or complete release acceptance."
+}
+
+inductive{
+  name: BrowserTelemetryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: browserTelemetryUnavailable, fields: []},
+    {name: browserTelemetryProjectionMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: browserTelemetryBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser product does not initialize the imported renderer vendor telemetry SDK. Its browser projection removes the unique telemetry initialization declaration and retains the uninitialized imported client only for renderer context compatibility; no replacement analytics implementation is supplied. The browser settings surface states that vendor usage events, session recordings and diagnostic reports are not sent and exposes no enable switch or telemetry identifier. Reads normalize fresh and legacy settings to opted_out and remove telemetryUserId; writes persist that normalized policy and reject attempts to opt in with browserTelemetryUnavailable. The typed host envelope preserves this refusal without exposing source error text. Existing opted-in local storage cannot initialize the client. The projection parses the imported TypeScript and requires exactly the expected declaration and settings section; absent, duplicate or changed initializer shape refuses with browserTelemetryProjectionMismatch. Tests execute the actual installed imported SDK, including capture and exception calls, and observe browser network and persistent storage under fresh and legacy consent. This is a browser vendor telemetry boundary, not a claim that AI, publishing, image, font or other explicit product requests are offline or that every external effect has already been qualified."
+}
+
+inductive{
+  name: EditorAssetError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidEditorLock, fields: []},
+    {name: editorPackageUnavailable, fields: []},
+    {name: editorPackageIntegrityMismatch, fields: []},
+    {name: invalidEditorArchive, fields: []},
+    {name: editorAssetLimitExceeded, fields: []},
+    {name: editorAssetStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: editorAssetBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser editor uses Monaco 0.52.2 from the exact production package-lock entry for monaco-editor. Staging obtains the locked registry.npmjs.org tarball from npm's offline cache, with scripts disabled and a 60-second command deadline, then independently compares its complete SHA512 against lock integrity before decoding. Compressed input is at most 32 MiB and expanded tar bytes at most 256 MiB. At most 16384 archive entries, 32 MiB per member, 4096 staged editor files and 64 MiB aggregate editor bytes are accepted. Names are bounded portable paths; traversal, duplicate paths, symlinks, hardlinks and special entries refuse. Package name/version, complete min/vs loader/editor/worker assets and LICENSE are required; third-party notices are retained when present. Only verified bytes are staged under editor/, with a foundry/editor-assets/1 receipt containing locked source/integrity and independently recomputable per-file SHA256/lengths. A second inventory/hash check rejects missing, extra or changed staged files. The renderer configures its imported Monaco loader before mount with the same-origin editor/vs URL under the actual application base. Editor requests read only the active verified shell version, with required loader and receipt included in shell admission. Real-browser acceptance executes the editor with networking offline, including a worker-backed language operation and Settings. This does not claim editor semantic correctness, upstream publisher authentication beyond the locked artifact identity, or full application dependency closure."
+}
+
+inductive{
+  name: CompilerAssetError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidCompilerLock, fields: []},
+    {name: compilerPackageUnavailable, fields: []},
+    {name: compilerPackageIntegrityMismatch, fields: []},
+    {name: invalidCompilerArchive, fields: []},
+    {name: compilerAssetLimitExceeded, fields: []},
+    {name: compilerAssetStorageFailed, fields: []},
+    {name: browserCompilerUnavailable, fields: []}
+  ]
+}
+
+definition{
+  name: compilerAssetBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser's existing esbuild-wasm 0.25.5 compiler becomes an exact locked production runtime dependency. Its registry.npmjs.org archive is acquired offline with disabled scripts and a 60-second transport deadline. The shared bounded package adapter independently verifies SHA512 before parsing and applies the editor boundary's archive path, kind, identity and resource checks. Only LICENSE.md, esm/browser.min.js and esbuild.wasm are staged under compiler/, alongside a foundry/compiler-assets/1 receipt. Independent reacquisition and exact inventory/byte comparison reject changed, missing or extra output. All three runtime entrypoints are required by shell admission and compiler requests read the active verified version. The host uses one concurrent initialization promise for both preview and publication; module and WASM URLs are local under the actual application base. Failed imports or initialization clear the failed promise so a later call may retry, and return browserCompilerUnavailable with fixed private text through the host boundary. Actual browser acceptance compiles TypeScript and a bundled module graph without networking under the verified worker, executes the resulting program against an independent expectation, rejects invalid source, and recovers from a failed local import. This establishes imported compiler availability and a finite runtime conformance example, not compiler semantic preservation for all programs, offline package resolution, or full generated-application closure."
+}
+
+inductive{
+  name: CanonicalModuleError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: invalidCanonicalModule, fields: []}]
+}
+
+definition{
+  name: canonicalModuleBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser decision-module reader accepts at most one MiB of UTF8 canonical LexLean text with at most 4096 declarations and 256 nested delimiters. It refuses duplicate declaration names, malformed or unsupported request fields, noncanonical bounds, altered arguments, unrepresented definitions and other discarded semantics. Every non-theorem declaration must equal the canonical renderer reconstruction after whitespace normalization; theorem text is not accepted as proof and is regenerated from the read properties. Refusals carry invalidCanonicalModule with a fixed public message. A valid module header can project its title before fields arrive, without inventing a decision. Partial streaming remains an untrusted draft and never establishes proof; only complete input receives canonical admission. This finite adapter profile is not a general LexLean compiler, semantic preservation theorem or complete source-authority conversion."
+}
+
+inductive{
+  name: CanonicalEditError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidCanonicalEdit, fields: []},
+    {name: canonicalProjectionReadOnly, fields: []}
+  ]
+}
+
+definition{
+  name: canonicalEditBoundary,
+  parameters: [],
+  result: String,
+  body: "Direct file-editor saves of prism/spec.json or the active canonical decision module validate at most one MiB of UTF8 input before storage mutation. A module is read through the canonical decision profile; its existing presentation fields are retained. The resulting specification must pass the existing decision checker and canonical renderer. Tag delimiters in textual metadata are escaped without changing their decoded values. A first module must match its file name. Canonical saves use the captured source and the existing atomic rules transaction to commit the semantic module, authoring JSON, generated rule runtime, snapshot, version and source-bound rules status together. Changing the module name removes only the prior active module in that same transaction. Source or lifecycle races refuse through the existing comparison boundary, retaining projectEditConflict in the host envelope. A project with a decision spec cannot directly edit src/lib/prism.ts; its model is the editable authority. Other files and inactive modules retain the generic atomic file-edit path. Invalid or unsupported canonical edits and generated-projection writes have fixed typed private refusals. Successful file-editor acknowledgements use the imported optional-string warning shape and never a null warning. This boundary covers direct file-editor commands, not every import, restore or generated-app route."
+}
+
+inductive{
+  name: CanonicalGenerationError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: canonicalGenerationRefused, fields: []}]
+}
+
+inductive{
+  name: ApplicationShapeError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: applicationShapeConflict, fields: []},
+    {name: applicationStateReadOnly, fields: []},
+    {name: statefulBuildUnsupported, fields: []}
+  ]
+}
+
+definition{
+  name: applicationShapeBoundary,
+  parameters: [],
+  result: String,
+  body: "A current source has at most one active decision or stateful application authority. A stateful module is stored at prism/App.lex.tex; direct editor saves use the existing one MiB canonical edit bound, preserve the complete copied input, and retain the hosted source permission boundary before parsing or checking. A refused or unavailable check can retain an explicitly unchecked draft, never proof standing. Explicit shape changes atomically install the new module and remove the prior active module, incompatible authoring specification, generated rule runtime and obsolete lifecycle through the captured source and lifecycle compare-and-swap. Ordinary inactive files are not removed. Legacy mixed decision and stateful source refuses active-module selection, rule proof and publication with applicationShapeConflict until an explicit canonical edit selects one shape. Committed transitions cancel and forget prior live state so old frames and intents cannot reassert obsolete authority. State, preview badges, approval and proof completion read a host-owned stateful lifecycle reference bound to exact module bytes, never the editable or importable prism/app.json projection. Direct writes to that projection refuse applicationStateReadOnly. Import and restore cannot grant checked or proved standing through authored files; source mutation invalidates the host-owned reference unless an admitted lifecycle transaction replaces it atomically. Approval reserves a uniquely identified proving attempt against the exact captured source and lifecycle predecessor. Cancellation or local initialization failure before hosted proof submission restores only that unchanged reservation to checked by compare-and-swap; intervening edits, replacement approvals or completed proofs are never overwritten. Once remote proof submission starts, Stop only stops observation, does not roll back proving and cannot recall remote work. All paths clear observation ownership and complete the chat lifecycle. Stateful source is never sent through generic scaffold preview compilation or publication; unsupported portable builds refuse statefulBuildUnsupported independently of cache or authored status. Module classification ignores quoted display text and comments. These finite host adapters do not add a new proof, publication capability or general LexLean compiler; Ask and Plan remain read-only."
+}
+
+definition{
+  name: canonicalGenerationBoundary,
+  parameters: [],
+  result: String,
+  body: "For a captured project carrying prism/spec.json, generic generated-file batches cannot write, delete or rename the specification, its active canonical decision module or src/lib/prism.ts. Both rename endpoints are checked. If the current spec cannot identify its module, top-level canonical-module paths are protected until a canonical edit repairs it. A protected operation refuses the entire batch with canonicalGenerationRefused before storage mutation, including otherwise ordinary operations in that batch. Patch and caller-supplied source snapshots are copied before asynchronous work. Ordinary files and projects without a decision spec retain the existing atomic batch path with the same captured source and cancellation checks. Canonical module, JSON, patch and file-editor authoring still use the separate rules transaction; no public switch grants generic batches model authority. This boundary does not authenticate same-origin script callers or establish whole-application semantic ownership."
+}
+
+inductive{
+  name: CanonicalBuildError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: canonicalBuildMismatch, fields: []}]
+}
+
+definition{
+  name: canonicalBuildBoundary,
+  parameters: [],
+  result: String,
+  body: "After content identity and captured-source comparison, a build carrying prism/spec.json admits at most one MiB of UTF8 specification text through the decision checker. The checked model must reconstruct exactly the active canonical module bytes and src/lib/prism.ts runtime bytes in that snapshot. Missing, changed or invalid projections refuse with fixed private canonicalBuildMismatch before preview grants, compiler execution or portable output promotion. Nonmodel projects retain their existing build path. Imported and restored drafts can remain editable but cannot use inconsistent model projections for builds. This comparison binds the existing finite decision adapter profile; it does not prove compiler preservation, arbitrary source behavior or a non-decision model."
+}
+
+inductive{
+  name: PreviewPermissionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidPreviewPermission, fields: []},
+    {name: previewPermissionDenied, fields: []},
+    {name: previewPermissionExpired, fields: []},
+    {name: previewPermissionOffline, fields: []},
+    {name: previewPermissionUnavailable, fields: []},
+    {name: previewPermissionChanged, fields: []},
+    {name: previewPermissionStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: previewPermissionBoundary,
+  parameters: [],
+  result: String,
+  body: "A networked generated-code preview must disclose its exact captured source identity and at most 32 unique HTTPS origins before compilation or a network grant. Approval is per build, expires within five minutes, and is unavailable offline. Denial and Escape grant nothing. The dialog uses text-only labels, focuses denial by default and restores focus. Disclosures explain execution of generated code, destination visibility of request data and inability to recall prior transfers. The host compares source before installing the disclosed grant, whose source and destinations are copied. The grant transaction compares the previously captured permission record so a concurrent revocation or replacement refuses stale approval with previewPermissionChanged. The worker refuses networked preview grants without matching source-bound consent metadata, including legacy grants; canonical network-free preview grants remain admissible. A persistent preview-permission control lists stored preview grants after reload, revokes serving and network permission and unloads matching local frames. Revocation prevents future worker-authorized requests but cannot recall remote data or stop all already executing remote work. Local canonical projection with no network endpoints retains its existing path. Storage and UI failures are typed and private. This is a preview permission boundary, not authentication of same-origin callers or authorization for publication or portable builds."
+}
+
+inductive{
+  name: EventDeliveryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidEventDelivery, fields: []},
+    {name: eventDeliveryUnconfigured, fields: []},
+    {name: eventDeliveryConflict, fields: []},
+    {name: eventDeliverySourceChanged, fields: []},
+    {name: eventDeliveryPending, fields: []},
+    {name: eventDeliveryLimitExceeded, fields: []},
+    {name: eventDeliveryAcknowledgementRefused, fields: []}
+  ]
+}
+
+definition{
+  name: eventDeliveryBoundary,
+  parameters: [],
+  result: String,
+  body: "Typed browser event commands retain a source-bound durable queue in the project transaction. Configuration submits a non-delivered probe to the generated event guest and binds its accepted policy, feature contracts, event contract, generation and initial sequence to the captured source. It cannot replace a queue with pending events and replacement must increase the generation. Delivery copies input before awaiting, uses only stored configuration and current sequence, asks the generated guest and atomically records the envelope with its returned next sequence. At most 256 pending envelopes and one MiB of serialized journal state are retained; overflow refuses without dropping work. Readers can recover pending events after reload even when the source is stale. Explicit project deletion removes its event journal in the same deletion transaction. New deliveries refuse changed source. Ordered acknowledgement requires the head sequence, generation and declared consumer; repeating the most recent acknowledgement is idempotent. Source and prior journal comparisons are in the same storage transaction, so competing writers cannot both consume one sequence. Acknowledgement records local consumer receipt, not execution of arbitrary effects or exactly-once delivery. Same-origin caller authentication, autonomous consumers and whole-domain behavior remain distinct obligations."
+}
+
+inductive{
+  name: InteractionJourneyError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidInteractionApplication, fields: []},
+    {name: interactionApplicationMismatch, fields: []},
+    {name: interactionStateChanged, fields: []},
+    {name: interactionStateStale, fields: []},
+    {name: interactionAudioUnavailable, fields: []}
+  ]
+}
+
+definition{
+  name: interactionJourneyBoundary,
+  parameters: [],
+  result: String,
+  body: "Gallery and garden application documents contain a bounded interaction profile and text-only screen and control descriptions. The canonical Application module is reconstructed exactly from the profile; mismatched source refuses execution. Every transition and current frame is evaluated by the generated interaction guest. Persistent state is bound to the exact semantic profile and updated with source and prior-state comparisons in the existing atomic project transaction. Reload recovers that state. A changed profile requires explicit reset; unrelated presentation edits retain state. Generic generated batches cannot overwrite interaction authority. Direct authoring of the interaction document regenerates its canonical module atomically. Audio is off on every open and reload, starts only after explicit gesture, and is stopped on revocation, close or hidden document. Reduced motion is passed to the guest. Rendering uses closed illustrations and text nodes, native keyboard controls and guest-selected frame outputs. The local receipt binds model identity and project source; it does not establish arbitrary code compilation, authentication of same-origin callers, sensory quality or whole-release qualification."
+}
+
+inductive{
+  name: CommandRegistryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: commandRegistryInvalid, fields: []},
+    {name: commandBindingMissing, fields: []},
+    {name: commandBindingMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: commandRegistryBoundary,
+  parameters: [],
+  result: String,
+  body: "The canonical command registry classifies every imported renderer input and output contract and every installed browser handler. Each command has exactly one versioned owner binding, adapter, contract origin and availability. The browser dispatcher refuses undeclared commands and changed handler availability before effects, preserving typed unsupportedChannel for declared unavailable commands. The generated registry projection is byte compared against the canonical model. Independent enumeration of the real imported schema tables and installed browser handlers rejects omissions and additions. Ownership labels identify the boundary responsible for behavior; inventory admission does not prove the adapter implements its entire contract, grant effects, qualify arbitrary imported semantics or close whole-application release acceptance."
+}
+
+definition{
+  name: browserReadBoundary,
+  parameters: [],
+  result: String,
+  body: "Browser metadata and project readers expose the declared local platform, provider catalog, stored projects, chats, versions and context through imported renderer schemas. Fixed platform values describe the finite browser adapter. Browser-only acknowledgements and unavailable remote integrations are separate classifications. This owner declaration identifies existing adapters; semantic completeness of each imported operation is independently qualified."
+}
+
+inductive{
+  name: PortableBuildPermissionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidPortableBuildPermission, fields: []},
+    {name: portableBuildStyleIncomplete, fields: []},
+    {name: portableBuildPermissionDenied, fields: []},
+    {name: portableBuildPermissionExpired, fields: []},
+    {name: portableBuildPermissionRevoked, fields: []},
+    {name: portableBuildPermissionOffline, fields: []},
+    {name: portableBuildPermissionUnavailable, fields: []}
+  ]
+}
+
+definition{
+  name: portableBuildPermissionBoundary,
+  parameters: [],
+  result: String,
+  body: "A portable build discloses its captured source identity, generated-code execution and fixed esm.sh and cdn.tailwindcss.com destinations before compiler execution or remote package retrieval. The user explicitly approves each build; denial, Escape, offline state and two-minute expiry refuse. The disclosure explains requests and data generated code may send, destination visibility, absence of configured provider credentials and inability to recall prior transfers or guarantee that remote work stops. Approval creates a temporary source-bound preview-consent grant used by the styling frame. The grant records its portable-build purpose and expiry; the worker refuses it after expiry even if the page crashed, and startup removes expired portable grant records and cached frames. Package requests and final promotion recheck the lease; a stop control aborts active fetches and closes the frame. Revocation is observed through the stored grant and prevents further authorized effects and output promotion. Source is compared before effects and before returning the result. Completion, failure and cancellation remove the temporary grant and frame. The styling probe recognizes element or nonempty text roots, and stable reports of uncovered rendered classes refuse portableBuildStyleIncomplete instead of promoting incomplete styling. The probe is a finite runtime check, not an independent proof of visual quality. The installed archive remains local; public GitHub publication has a separate authorization boundary. This permission does not establish semantic preservation of generated code, safe execution of arbitrary scripts or a locked production package closure."
+}
+
+inductive{
+  name: DurableBuildWorkError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidBuildWork, fields: []},
+    {name: buildWorkBusy, fields: []},
+    {name: buildWorkUnavailable, fields: []},
+    {name: buildWorkConflict, fields: []},
+    {name: buildWorkSourceChanged, fields: []},
+    {name: buildWorkArtifactInvalid, fields: []},
+    {name: buildWorkLimitExceeded, fields: []}
+  ]
+}
+
+definition{
+  name: durableBuildWorkBoundary,
+  parameters: [],
+  result: String,
+  body: "The portable build adapter acquires an exclusive browser Web Lock before executing work. Its owner is minted inside the adapter and never selected by a renderer command. This is cooperative same-origin browser ownership, not external user authentication or protection against malicious same-origin scripts. The verified WorkProtocol guest alone initializes, reserves, starts, pauses, transfers, resumes, progresses and finishes semantic work. One semantic unit denotes one completed source-bound portable artifact; attempt counts and elapsed time are separate physical observations, not guest spent work. IndexedDB atomically compares the prior work record and project source before saving each transition. A completed bounded output and its independently recomputed content identity commit atomically with the guest completion. Reuse recomputes that identity and requires the same captured source. Failures retain unused reservation, remaining obligation and a private interruption reason; after reload a newly minted owner pauses interrupted running state, transfers and resumes through the guest. Retries re-enter the actual permission boundary and never claim that prior network effects were undone. A bounded journal retains up to 32 distinct project sources; exhaustion refuses explicitly. Missing Web Locks, stale source, concurrent owners, corrupt artifacts, invalid records and guest refusal cannot execute or promote work. Deleted projects remove work records atomically. This adapter does not authenticate remote operators, measure CPU cost as semantic work, provide arbitrary-stage checkpointing or establish whole-release acceptance."
+}
+
+inductive{
+  name: DiscoveryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidDiscoveryIntent, fields: []},
+    {name: discoveryRefused, fields: []},
+    {name: discoveryReviewChanged, fields: []},
+    {name: discoveryUnavailable, fields: []}
+  ]
+}
+
+definition{
+  name: discoveryBoundary,
+  parameters: [],
+  result: String,
+  body: "The finite product catalog maps bounded English tokens to explicit concepts, then delegates ranking and admission to SemanticRouter through RoutingProtocol. Lowercase ASCII words are separated by whitespace or comma/period/exclamation/question-mark; other punctuation, negation, unknown words and unsupported languages never silently lose meaning. Unknown words map to an unresolved concept. Empty or more than 32 words and inputs over 512 characters refuse. The projected literal catalog is data, not an alternative semantic compiler. Discovery has no network or storage effects. A review binds exact text, current catalog, concrete application profile and guest result by canonical byte identity. Creation re-runs admission and compares that identity before calling the existing atomic interaction-application creator. The user sees the concrete supported profile and its limits before an explicit create action; editing the text invalidates the review immediately. No router confidence grants sound, network, or publication permission. Created applications retain existing canonical source binding, guest transitions, persistence and fresh audio gesture. Unsupported intent refuses instead of falling back to a partially matching template. This vocabulary is a finite language interface, not general natural-language interpretation, learned R4 qualification, or independent human quality acceptance."
+}
+
+definition{
+  name: discoveryCatalogJson,
+  parameters: [],
+  result: String,
+  body: "{\"profile\":\"foundry/discovery-catalog/1\",\"revision\":1,\"maximumCharacters\":512,\"maximumWords\":32,\"ignore\":[\"a\",\"an\",\"the\",\"app\",\"application\",\"create\",\"build\",\"make\",\"me\",\"please\",\"with\",\"and\"],\"words\":{\"gallery\":101,\"photo\":101,\"photos\":101,\"image\":101,\"images\":101,\"garden\":201,\"resonant\":201,\"resonance\":201,\"audio\":202,\"sound\":202,\"motion\":203,\"animated\":203,\"visual\":100},\"relations\":[{\"fromConcept\":100,\"toConcept\":101,\"weight\":500},{\"fromConcept\":100,\"toConcept\":201,\"weight\":500}],\"policy\":{\"cpu\":3,\"memory\":3,\"grants\":[],\"targets\":[1],\"evidence\":[]},\"catalog\":[{\"key\":10,\"version\":1,\"cpu\":1,\"memory\":1,\"vocabulary\":[900],\"outputs\":[7],\"state\":[],\"events\":[],\"errors\":[],\"effects\":[],\"conflicts\":[],\"targets\":[1],\"accessibility\":[],\"quality\":[],\"needs\":[],\"inputs\":[]},{\"key\":11,\"version\":1,\"cpu\":1,\"memory\":1,\"vocabulary\":[101],\"outputs\":[],\"state\":[],\"events\":[],\"errors\":[],\"effects\":[],\"conflicts\":[],\"targets\":[1],\"accessibility\":[],\"quality\":[],\"needs\":[{\"key\":10,\"version\":1}],\"inputs\":[]},{\"key\":12,\"version\":1,\"cpu\":1,\"memory\":1,\"vocabulary\":[201,202,203],\"outputs\":[],\"state\":[],\"events\":[],\"errors\":[],\"effects\":[],\"conflicts\":[],\"targets\":[1],\"accessibility\":[],\"quality\":[],\"needs\":[{\"key\":10,\"version\":1}],\"inputs\":[]}],\"applications\":[{\"key\":11,\"version\":1,\"kind\":\"gallery\",\"title\":\"Quiet gallery\",\"description\":\"Two illustrated rooms with keyboard controls and saved state. No sound or animation.\"},{\"key\":12,\"version\":1,\"kind\":\"garden\",\"title\":\"Resonant garden\",\"description\":\"Two garden states with coordinated color and optional motion and tones. Sound stays off until enabled; reduced-motion preference is respected.\"}]}"
+}
+
+inductive{
+  name: DurableChatQueueError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidChatQueueCommand, fields: []},
+    {name: chatQueueUnavailable, fields: []},
+    {name: chatQueueJournalInvalid, fields: []},
+    {name: chatQueueConflict, fields: []},
+    {name: chatQueueMissing, fields: []},
+    {name: chatQueueStorageFailed, fields: []},
+    {name: chatQueueLimitExceeded, fields: []},
+    {name: chatQueueIntentConflict, fields: []}
+  ]
+}
+
+definition{
+  name: durableChatQueueBoundary,
+  parameters: [],
+  result: String,
+  body: "Actual chat commands persist prompt payloads with ChatQueue guest transitions in one IndexedDB transaction. A journal binds chat and app identities, monotonically allocated uint32 item IDs, exact captured imported renderer intents, independently derived payload identities, guest state, at most 128 recent completion/removal receipts and a bounded mutation receipt. The whole journal is at most 48 MiB and the guest bounds items to 32 including active work. Acknowledgement follows transaction completion; late abort, deletion or compare-and-swap conflict cannot acknowledge or resurrect work. Payload identities and imported schemas are rechecked before mutations or execution. Duplicate queued or recent completed intent IDs replay without execution only when captured payload identity agrees; changed content refuses. This finite 128-receipt window is not eternal deduplication or exactly-once remote effects. Actual queue controls enqueue while busy, edit/reorder/remove pending items, clear only pending items, preserve pauses, and require current revisions and Stop policy. Cancellation is bound to the current invocation and cannot abort a newer turn. An origin Web Lock admits only one active executor; a separate short mutation lock serializes journal updates while allowing Stop and queue edits during a turn. Browser messages refresh peer snapshots and request active cancellation after durable Stop. An abandoned active head is recovered only while holding the exclusive execution lock, retained paused, and requires explicit resumption. Existing inference, publication, canonical generation and consent boundaries apply to every execution. The host does not automatically replay interrupted external effects. Ownership is cooperative within one origin, not remote authentication or protection from malicious same-origin scripts. Chat and project deletion remove queue journals atomically, notify other windows and cancel local active work after the deletion commits. Device loss, deleted origin storage and provider-side cancellation remain outside this storage guarantee."
+}
+
+inductive{
+  name: VersionHistoryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidVersionHistory, fields: []},
+    {name: versionHistoryMissing, fields: []},
+    {name: versionHistoryStorageFailed, fields: []},
+    {name: versionHistoryStateInvalid, fields: []}
+  ]
+}
+
+definition{
+  name: versionHistoryBoundary,
+  parameters: [],
+  result: String,
+  body: "Renderer version IDs are full lowercase hexadecimal aliases for exact canonical BLAKE3 addresses; this is reversible representation, never a second hash or Git commit claim. Listing validates project existence and history shape. The main branch lists stored history; a known exact version selects just that record without claiming Git ancestry traversal. Metadata requests use imported versionId and return oid, isFavorite and note after one apps-and-versions transaction; concurrent favorite and note changes preserve each other. Missing projects or versions, malformed requests, invalid stored records and storage failure refuse with fixed typed errors. Notes retain at most 10000 UTF-16 code units, matching the imported contract. Differences resolve only a project-owned version, then validate its snapshot and every file identity through the existing SnapshotRestore boundary and compiled core admission, and repeat that validation for its parent. Added, changed and deleted text is computed from those verified files, sorted by path; missing or corrupt objects never become an empty successful diff. The parent returned by snapshot validation is taken from the same captured verified bytes. History metadata is local presentation state and does not change canonical source identity. This boundary does not implement Git branches, version-preview ownership, history garbage collection or cross-origin authorization."
+}
+
+inductive{
+  name: DurableVersionPreviewError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidStoredPreview, fields: []},
+    {name: previewUnavailable, fields: []},
+    {name: previewStorageFailed, fields: []},
+    {name: previewSourceChanged, fields: []},
+    {name: previewMissing, fields: []},
+    {name: previewWindowBusy, fields: []},
+    {name: previewInterestMissing, fields: []},
+    {name: previewOperationConflict, fields: []},
+    {name: previewUnsupportedBranch, fields: []}
+  ]
+}
+
+definition{
+  name: durableVersionPreviewBoundary,
+  parameters: [],
+  result: String,
+  body: "Version-preview window interest requires a live exclusive origin Web Lock and an existing project. The journal binds the app, exact VersionPreview guest state and at most 128 recent operation identities/results. Acquire captures the verified current source; selection verifies a project-owned target snapshot and all files. Guest state, exact files, reference, dependencies and source-bound evidence invalidation commit together with both source and journal compare-and-swap. Only that owner may select, return or restore. Other source-changing operations refuse projectPreviewActive while ownership is active; source-neutral work metadata may still commit. Closing or switching apps returns the original verified source before releasing ownership. A new owner may recover an abandoned journal only while holding the exclusive lock; it preserves both identities, returns the exact original source and then starts a fresh session. Source mismatch refuses automatic restoration. Explicit acceptance of a changed current repository requires independently verified current snapshot/file bytes and an admitted restore transition; checkpoint acceptance creates a canonical child instead. A completed transaction is the only acknowledgement; late abort or project deletion cannot publish a successful state or resurrect a journal. Renderer event and snapshot schemas come from locked imported source, and obsolete actor identities refuse. Imported branch requests support only main; no Git branch management is claimed. The finite operation receipt window prevents duplicate recent effects only when captured operation identity matches. Owner integers and same-origin locks are cooperative ownership, not authentication. This boundary covers source preview/return/restore; chat-message restoration requires its separately modeled transaction and cannot be silently acknowledged here."
+}
+
+inductive{
+  name: MessageRestoreError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidMessageRestore, fields: []},
+    {name: messageRestoreMissing, fields: []},
+    {name: messageRestoreBusy, fields: []},
+    {name: messageRestoreConflict, fields: []},
+    {name: messageRestoreVersionMissing, fields: []},
+    {name: messageRestoreStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: messageRestorationBoundary,
+  parameters: [],
+  result: String,
+  body: "Message-linked restoration validates positive app, chat and message identities, captured history bounded to 10000 messages and 48 MiB per target chat, at most 1024 project chats and 64 MiB captured project history, project membership and queue inactivity before changing anything. The source version before a message is the following assistant source identity when present, otherwise the nearest preceding assistant final identity, otherwise the chat initial identity; the resolved version must belong to the project and all snapshot and file bytes must verify. A fork copies only preceding messages, preserving content, source/final identities, model, display time and compaction markers; it resets message IDs and live quota/delivery identities and preserves chat mode, selected model and referenced applications. A truncation retains only messages strictly before the specified message. Source restoration creates a canonical child of the original live version; fork-only closes historical preview back to that original and does not create a source version. The existing VersionPreview guest owns every source transition. Source, preview journal, exact chat update and monotonic fork ID allocation share one IndexedDB transaction. All project chats and their queue journals are compared again inside that transaction; active work or pending queue entries refuse until the user stops and clears them. No partial source/chat acknowledgement, stale history substitution, chat resurrection or duplicate fork on exact operation replay is permitted. The operation identity includes the captured message intent identity; its bounded receipt retains the affected or created chat ID for exact replay. The result identifies the affected or created chat only after transaction completion. Stored message identities are data, not authority to access another project. This browser adapter does not claim native Git, database rollback, infinite history, exactly-once external effects or cross-origin execution ownership."
+}
+
+definition{
+  name: studioConcurrencyYaml,
+  parameters: [],
+  result: String,
+  body: "concurrency:\n  group: ${{ github.event_name == 'pull_request' && format('studio-pr-{0}', github.event.pull_request.number) || format('studio-run-{0}', github.run_id) }}\n  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"
+}
+
+definition{
+  name: studioConcurrencyBoundary,
+  parameters: [],
+  result: String,
+  body: "GitHub Actions concurrency is an imported scheduling mechanism. The Studio workflow groups only pull-request runs by pull request number and permits cancellation only for pull-request events. Other events use a unique run identity and cannot cancel another main or release run. This removes superseded PR work without filtering tests, reusing evidence or weakening the full acceptance lane. The project-owned workflow projects its exact concurrency block from studioConcurrencyYaml and rejects drift. It does not change universal template policy and does not claim adoption of the still-unqualified PrismPM factory consumer."
+}
+
+inductive{
+  name: WindowCoordinationError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: windowCoordinationUnavailable, fields: []},
+    {name: invalidWindowCoordination, fields: []},
+    {name: windowCoordinationStorageFailed, fields: []},
+    {name: windowCoordinationConflict, fields: []},
+    {name: windowCoordinationLimitExceeded, fields: []},
+    {name: windowTabOwnershipConflict, fields: []}
+  ]
+}
+
+definition{
+  name: windowCoordinationBoundary,
+  parameters: [],
+  result: String,
+  body: "Browser window bootstrap holds an exclusive origin Web Lock for its UUID session and uses a fresh actor identity on every document. A duplicated sessionStorage UUID obtains a different session rather than sharing a live identity. A second short Web Lock serializes bounded journal compare-and-swap transactions; commit completion is the only acknowledgement. The journal retains at most 32 windows, 100 visible entities, 100 tab ownership entries and 100 interests per window, and 256 recent query invalidations with monotonically increasing safe-integer epochs. Dead window records can be reclaimed only after origin Web Locks establish absence; they are not treated as active owners. Imported schemas bind bootstrap, visibility, chat tab ownership, interests and invalidation batches. Focus and interests are recorded rather than silently acknowledged. Duplicate tab identities cannot be owned by two live windows. Bootstrap returns missed retained invalidations or explicit broad recovery scopes when its epoch predates retention; malformed future epochs refuse. Cross-window messages announce durable invalidations and relay only bounded allowlisted chat/app stream events to matching interests; they grant no effects and never relay credential settings or arbitrary channels. Peer snapshots pass imported schemas and are assimilated with the receiving actor identity and monotonic local revision; stale, mismatched and malformed snapshots are ignored without echo. Oversized stream events request durable query invalidation instead of an oversized relay. Source mutations invalidate relevant app/chat/version query scopes after commit; failure to announce invalidation does not roll back a completed source mutation. This is cooperative same-origin coordination, not remote authentication, native window control, cross-origin state or tab transfer acceptance. Tab transfer and new-window navigation require separately modeled protocols."
+}
+
+inductive{
+  name: WorkingTreeError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidWorkingTreeRequest, fields: []},
+    {name: workingTreeStateInvalid, fields: []},
+    {name: workingTreeComparisonLimit, fields: []}
+  ]
+}
+
+definition{
+  name: workingTreeBoundary,
+  parameters: [],
+  result: String,
+  body: "Working-tree list and file-diff queries capture app, current reference and files in one completed read transaction. The captured reference is independently reconstructed through the snapshot identity, file identity and core-admission boundary; missing or corrupt objects never become empty successful history. Results describe the captured source, not a later mutable head. Paths are relative, unique and bounded; each side permits at most 1000 UTF-8 files and 48 MiB. Added, modified and deleted paths have exact before and after text; renames appear as addition and deletion. Empty files retain presence identity. Line counts use minimum insertion/deletion distance over newline-preserving lines after common-prefix/suffix elimination, with at most 100000 lines per file and a shared four-million-cell comparison budget; exhaustion refuses rather than returning approximate counts. Requests validate positive safe app identities and captured paths before effects. No source mutation or Git process occurs. Missing or invalid project capture and snapshot verification retain their existing typed boundary failures."
+}
+
+definition{
+  name: applicationIntegrationBoundary,
+  parameters: [],
+  result: String,
+  body: "The application integration binds main revision 018975aa009dcbce38bda4c342dec594554084ea to the complete FA-01 through FA-84 feature stack and the migrated AC-01 cover capability. The first-attempt thinking decision remains an unused proved kernel protocol; inference preserves the provider default and sends no thinking switch. App notation is only a deterministic input adapter: its expansion is the canonical module stored, previewed, checked and proved. Notation text is reused as context only when re-expansion matches that module. Malformed notation cannot replace source or grant checked standing; generated table fields remain distinct and every table has one through six distinct declared columns. Notation repair preserves the same source-owned permission session, serialized text settlement and cancellation boundaries as full-module generation. The exact template policy df5d7d32f5cdc3a3cc025d438752e73a40282731 supplies proof reuse for byte-identical proof inputs on pull requests and merge queues; main, tags and local acceptance still prove in full. This supported template optimization is distinct from the unqualified PrismPM factory consumer. Incoming main artifacts do not replace the independently reproduced 305-case combined guest when the guest sources are unchanged. The combined guest retains preview, chat queue, semantic proposal, interaction, event, work and composition protocols plus current-main experience budget, layout, motion, tap-target and recent-age decisions. Its acceptance coverage retains 243 embedded application cases, 62 embedded experience cases and two large composition boundary cases independently executed by the mandatory kernel gate, and responses retain the 4096-byte protocol bound. Current-main appearance and renderer improvements preserve local editor/compiler ownership and privacy projection. Verified complete shell activation and version-bound renderer/scaffold bytes remain authoritative; partial installation or an unverified shared asset cache cannot replace them. Full Studio gates and canonical PR-only cancellation remain required. The combined source must obtain its own exact-SDK signed executable, provenance, independent reproduction and document/worker and browser acceptance; inherited artifacts and earlier release evidence do not establish combined acceptance. Main's packaging and deployment automation remain subject to independent production closure and release qualification."
+}
+
+definition{
+  name: boundedKernelExecutionBoundary,
+  parameters: [],
+  result: String,
+  body: "Browser pure guest execution preserves a fresh WebAssembly instance for every request, including acceptance replay. A dedicated worker executes at most sixteen requests before termination and replacement; replay always terminates its worker before exposing dispatch. This bounds virtual Wasm memory reservations independently of garbage-collection timing and leaves the local compiler able to initialize after replay. Requests remain copied before asynchronous execution. At most 64 requests and 64 MiB of captured request bytes can await execution; each worker request has a 30000 ms deadline. Queue exhaustion, worker startup, timeout, malformed result and execution failures retain typed kernelExecutionFailed; oversized outputs retain kernelResponseTooLarge. Worker failure terminates its isolate and subsequent admitted requests may create a new worker. Service workers cannot spawn dedicated workers, so their verified guest requests are relayed through private MessageChannels to at most eight controlled document clients. Only a current controller may request execution; the archive digest and guest SHA256 must match a document-verified kernel, and the document independently enforces its allocation/response bounds and bounded worker executor. At most eight verified kernels are registered per document. All ports close on settlement or a 30000 ms deadline; no owner or version mismatch refuses. This is cooperative same-origin transport, not independent authentication of a hostile browser realm. Other browser worker unavailability refuses; nonbrowser Node diagnostics execute the same fresh-instance function inline and establish no browser resource claim. No untrusted script or URL is accepted: worker source is the host's fixed execution adapter and messages contain only the verified compiled module, captured request and response bound. Worker ownership grants no effects and does not change guest bytes or SDK authority."
+}
+
+inductive{
+  name: PromptLibraryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidPromptCommand, fields: []},
+    {name: promptLibraryInvalid, fields: []},
+    {name: promptMissing, fields: []},
+    {name: promptSlugConflict, fields: []},
+    {name: promptLibraryLimit, fields: []},
+    {name: promptLibraryStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: promptLibraryBoundary,
+  parameters: [],
+  result: String,
+  body: "Prompt library list, create, update and delete use imported renderer input and output contracts. A dedicated settings record retains at most 1000 prompts and four MiB of UTF-8 JSON, with positive safe monotonic identities that are never reused after deletion. Titles and content are nonempty strings bounded to 256 and 65536 UTF-8 bytes; optional descriptions are bounded to 4096 bytes and nonempty slugs to 128 ASCII letters, digits or hyphens. Slugs are unique with exact case-sensitive comparison; null clears a slug and omitted update fields retain their values. Created and updated times are valid Dates; updates cannot precede creation. Input is captured before asynchronous work. Every operation validates the entire stored journal, and corrupt records never become an empty successful list. A read-write IndexedDB transaction reads, validates and writes one journal without asynchronous gaps; concurrent windows serialize in the database and completion alone acknowledges mutation. Request success followed by transaction abort is a typed failure with no partial acknowledgement. Listing returns detached records ordered by increasing identity. Invalid input, corrupt storage, absent identities, duplicate slugs, capacity or identity exhaustion and transaction failure are typed refusals with no prompt content in their messages. Data remains on the current browser origin, and this storage grants no network or execution effects. Imported prompt Dates preserve renderer semantics. This boundary is a reusable prompt library, not a claim of remote synchronization or agent execution."
+}
+
+definition{
+  name: rendererStylesheetBoundary,
+  parameters: [],
+  result: String,
+  body: "The generated browser entry gives the initial renderer stylesheet the same deployment-prefixed pathname that the locked Vite renderer uses for its stylesheet dependency identity. Before renderer module execution, the declared renderer asset is resolved against the document base and assigned once as the stylesheet pathname without changing the resource, origin, base directory or stylesheet semantics. Anonymous cross-origin mode matches the renderer's generated stylesheet loader. The home route reuses that existing stylesheet rather than adding a second render-blocking request for the same bytes. Root and nested deployments preserve the exact resolved asset path. This projection does not change asset bytes, cache verification, service-worker activation, renderer admission, offline readiness or any signed guest performance budget. Acceptance observes actual stylesheet requests and the rendered home and settings screens; deleting identity normalization must cause the duplicate-request gate to refuse."
+}
+
+inductive{
+  name: BrowserSettingsError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidSettingsCommand, fields: []},
+    {name: invalidStoredSettings, fields: []},
+    {name: settingsStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: browserSettingsTransactionBoundary,
+  parameters: [],
+  result: String,
+  body: "User settings mutations, including renderer patches, device provider credential updates, selected inference model changes and full replacements, capture their caller input before database readiness. They read, synchronously transform and write the user settings record in one IndexedDB read-write transaction. Transactions serialize across windows, so disjoint patches preserve both changes, and a later full credential removal cannot be overwritten by an earlier stale read. No asynchronous gap separates the transactional read from its write. Only transaction completion acknowledges a mutation; request success followed by abort refuses without a partial result. Reads also settle only at transaction completion and return detached records. Missing settings are distinct from corrupt non-record storage. Input and stored roots must be transferable plain records; stored provider credential validity remains the independently checked credential boundary. Imported renderer schemas, privacy coercion, build mode and defaults retain their existing ownership. Database readiness, creation, request and transaction failures expose fixed typed errors without settings contents or provider credentials. This browser-origin transaction boundary does not provide remote synchronization, merge conflicting writes to the same field, or authenticate hostile same-origin code."
+}
+
+inductive{
+  name: HostBundleBuildError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidHostBundleInput, fields: []},
+    {name: hostBundleMismatch, fields: []},
+    {name: hostBundleCompilerMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: hostBundleBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser entry loads one minified ES module containing the static host dependency graph, before the unchanged renderer module. The existing renderer-lock esbuild compiler builds this projection; this is an adapter build, not an SDK substitute or a new semantic owner. Every original module URL retains its source-relative identity through a compiler-parsed import.meta.url replacement. The canonical rule interpreter also treats two function bodies as source data. Their exact original function text is frozen from the source module before minification, validated against that source and embedded as immutable projection data, so canonical generated application bytes and interpreter names do not change. Literal dynamic imports retain their original shell-relative targets and are not eagerly bundled. All static input files and dynamic targets stay inside the shell root; symbolic links, escaping paths and non-file inputs refuse. The graph admits at most 256 files and sixteen MiB of source; the output is bounded to eight MiB. A deterministic receipt binds the exact source bytes, generator, authoritative specification, renderer package lock, compiler version and output bytes. Staging generates the bundle and receipt before manifest projection, and independent check mode recompiles without writing and refuses any missing, stale or changed output or receipt. Build input, compiler identity and artifact mismatch failures are typed. The complete existing verified service-worker asset closure includes the bundle and receipt; no partial installation, unverified cache or handwritten host fallback is added. Existing registry, input and output schemas, permissions, storage transactions and execution ownership remain unchanged. Performance and actual full browser acceptance use the generated bundle and unchanged guest budgets; a diagnostic timing does not establish release acceptance."
+}
+
+definition{
+  name: prismIdBoundary,
+  parameters: [],
+  result: String,
+  body: "Every Foundry page opens in the Prism frame, which keeps one Prism id per visitor: stitch's Prism id, generated byte for byte from the stitch commit identity/stitch.lock names and the template frame frame.lock pins. There is no sign-in, gate or prompt. On the visitor's first touch the frame makes this origin's device and a new id with its recovery device if none is held, then this app's session; a new id sends nothing to the relay and asks it nothing until it links, removes a device or is recovered. A session is a stitch action signed by an active device of the id for exactly this origin, with a non-extractable session key and an expiry of at most eight days; verifySession refuses another app, a changed key or expiry, an expired, overlong or stale session, an action that is not a session, a device the id removed and a device of another id. Linking, removal and recovery from the kit are quiet panel actions over stitch's relay, which carries only sealed sync, link rendezvous and the id's public log. A used recovery kit binds and revokes nothing. This boundary does not attest relay availability or retention, protect against a malicious same-origin script, or order two recoveries without a witness."
+}
+
+inductive{
+  name: EditorLoadPhase,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: idle, fields: []},
+    {name: pending, fields: []},
+    {name: ready, fields: []},
+    {name: refused, fields: []}
+  ]
+}
+
+inductive{
+  name: EditorLoadError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: editorLoadFailed, fields: []},
+    {name: editorThemeFailed, fields: []},
+    {name: editorLoaderProjectionMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: editorLoadLifecycleBoundary,
+  parameters: [],
+  result: String,
+  body: "The imported editor remains lazy. Each init returns one owned cancelable result that settles only after the locked Monaco loader and theme configuration settle. Cancellation retains the imported loader cancellation discriminator and affects only that caller. No detached theme promise may reject after cancellation, loading failure or configuration failure. Successful configuration installs both existing themes and the existing language options once; readiness is recorded only after every configuration call succeeds. Concurrent and replacement callers share successful theme readiness without sharing cancellation ownership. A cancelled first mount cannot prevent a later mount from configuring the editor. A failed configuration cannot mark readiness and a later request may retry. Loading and configuration failures have fixed private-data-free editorLoadFailed and editorThemeFailed codes; original provider and script text is not exposed. The locked @monaco-editor/loader 1.5.0 cancelable wrapper is transformed only at its exact ES or CommonJS source SHA256: its single then owns both success and rejection instead of creating a detached success-only promise. Changed inputs refuse with editorLoaderProjectionMismatch and a renderer build that never applies the projection refuses. The original installed package is not modified; its license remains attached to the fixture. The adapter preserves the underlying loader's resource and retry semantics, without promising a network retry the imported loader does not implement. Acceptance evaluates the actual build projection and exercises the locked loader in a real browser, including cancellation before first load, remount, concurrent ownership, load failure, configuration failure and absence of unhandled rejections. The offline editor and language-worker journey remains mandatory."
+}
+
+inductive{
+  name: ThemeLibraryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidThemeCommand, fields: []},
+    {name: themeLibraryInvalid, fields: []},
+    {name: themeMissing, fields: []},
+    {name: themeAppMissing, fields: []},
+    {name: themeLibraryLimit, fields: []},
+    {name: themeStorageFailed, fields: []},
+    {name: themeCatalogMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: themeLibraryBoundary,
+  parameters: [],
+  result: String,
+  body: "The built-in generation-theme catalog is imported from the pinned renderer shared/themes.ts and reproduced through its locked compiler, source digests, package lock and original license. This imported catalog does not become a new local semantic authority. Custom themes are durable records with monotonic positive safe-integer IDs, exact name, nullable description, prompt and real createdAt/updatedAt Dates. Names are nonempty and at most 256 UTF8 bytes, prompts nonempty and at most 65536 bytes, descriptions at most 4096 bytes; a versioned settings journal holds at most 1000 records and 4 MiB. Command inputs are copied and validated before database readiness. Updates preserve omitted fields and creation identity, and updatedAt cannot move backwards. Corrupt rows or journals never become an empty successful library. Selection accepts only a known built-in ID, canonical custom:<positive decimal ID>, or null for no theme, and requires an existing app. Selection and retrieval read the app and catalog in one transaction. Deleting a custom theme clears every app selection of that theme in the same settings/apps transaction. All acknowledgements, including reads, wait for transaction completion; late abort cannot report success or retain a partial selection. Concurrent windows serialize on the database transaction rather than independently overwriting journals. Generation resolves a detached prompt from the selected theme and includes those exact bytes in the disclosed provider request; subsequent edits cannot change a pending approved request. Theme instructions do not authorize provider, network, publication or storage effects. The existing built-in and custom renderer contracts and Date fidelity are preserved. Missing apps/themes, malformed commands, corruption, capacity, storage and source-catalog mismatch have fixed typed failures without private contents. Acceptance covers actual renderer creation/edit/deletion and selection, reload, two-window concurrency, generation disclosure, corruption and late-abort rollback. This boundary does not claim URL/image theme generation or theme-image storage, which require their own qualified effect boundaries."
+}
+
+definition{
+  name: sidebarToolAccessBoundary,
+  parameters: [],
+  result: String,
+  body: "Foundry preview permission management, interactive application opening and application discovery entries are ordinary controls on the Settings page, in its first card, titled Tools. They are not in the sidebar on any page, which holds only navigation. They do not use fixed viewport positioning or cover the composer, auxiliary menu, send control or navigation. One page-owned dock retains the original control nodes and listeners through renderer page replacement, resizing and route navigation. The visible Settings page owns the dock; on any other page the controls remain detached until Settings is shown, reachable from the sidebar's Settings entry. The dock does not grant any application, preview, network, storage or audio effect. Native tool dialogs retain their existing disclosure, close, focus and keyboard behavior. A native modal owns pointer events even when an imported renderer drawer temporarily disables pointer events on the document body; this presentation rule changes no approval predicate or permission result. Repeated DOM reconciliation cannot duplicate entries or observers, and resize, sidebar mutation and CSS animation or transition completion schedule at most one pending reconciliation. Acceptance measures actual pointer hit targets and activates each original tool on the Settings page at desktop and mobile sizes, including repeated route lifetimes, and finds no tool in the sidebar."
+}
+
+definition{
+  name: theaterBoundary,
+  parameters: [],
+  result: String,
+  body: "Theater is a navigation item right after Library, always shown. It plays one Prism app at a time on a stage and lists the rest beside it to play next: the featured apps every visitor is shown and the apps this browser holds, with the covers and bookmarks Home's floor already keeps. A visitor's app is started through the same run state as the build preview and shown at the address that state answers, under exactly the preview's sandbox; Theater grants no application, preview, network, storage or audio effect of its own. A featured app that is not published is never run: its idea is placed in Home's box and nothing is sent. The address names the app on the stage. Its look is the experience specification's five Theater statements."
+}
+
+definition{
+  name: liveMainIntegrationBoundary,
+  parameters: [],
+  result: String,
+  body: "Current upstream live-module generation and every-app replay are integrated with the canonical Foundry boundaries. A generation request uses the captured authoritative module in its editable draft representation, canonical Prism instructions and the detached selected theme prompt; generated implementation files are never accepted as source authority. Exact provider bytes remain subject to explicit consent. The chat displays human-facing text while retaining complete generated module text only for canonical reading and application; incomplete framing does not leak module text into the displayed stream. Draft logical precedence and module framing are read into the same checked canonical finite profile, never promoted directly to a qualified executable. Draft admission reconstructs every non-proof declaration using expression syntax trees and exact declaration headers and module framing, then passes the reconstructed source through the unchanged strict canonical reader. Unknown definitions, changed bounds, unrepresented constraints, duplicate names, extra framing content, excessive size and nesting remain fixed invalidCanonicalModule refusals; expression formatting cannot erase semantics. The live preview may show speculative draft content before acceptance; optimistic drawing and yield-to-paint do not confer proof or publication status. Each accepted modification retains captured-source comparison, cancellation, checked canonical source and generated projection ownership. A refused multi-operation live patch may be retried as individual checked operations, with every accepted operation committed as its own source transition and every refusal retained across subsequent patches. Code refusal is appended after patch processing. Coalesced streaming writes serialize and drain before final response persistence so a delayed draft write cannot overwrite the final response; filesystem generation transactions remain atomic and code proposals cannot bypass canonical ownership. The imported every-app replay executes the declared current corpus against actual live previews and retains result artifacts; passing finite replay does not claim universal semantic correctness. Theme storage, private credentials, native dialog access, window coordination, editor cancellation, local compiler closure, signed guest identity and existing full acceptance obligations remain intact. Incoming workflow or presentation changes do not bypass immutable SDK or template/frame policy. Combined workflow reuse names every consumed stateful engine input, and cache misses retain locked compiler and renderer staging before full closure and acceptance."
+}
+
+inductive{
+  name: GalleryFailure,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidGalleryCommand, fields: []},
+    {name: gallerySourceChanged, fields: []},
+    {name: galleryStateInvalid, fields: []},
+    {name: galleryStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: sourceBoundGalleryBoundary,
+  parameters: [],
+  result: String,
+  body: "Gallery pictures and descriptions belong to an existing captured project source, never merely an app identifier. Capture includes the app name, sealed head, exact file pairs and dependencies before screenshot or model work. A built preview retains its original build source; live capture checks that its displayed projection still matches the captured specification. Refreshing a persisted live projection schedules a new source-bound capture. A monotonically increasing bounded safe-integer record revision distinguishes changed media at the same source. Publication validates the owner and that source in the same apps/files/refs IndexedDB transaction that stores the media record. A late screenshot or description after a source edit or deletion is refused without writing or announcing success. Reads validate the record and current source in one transaction; obsolete records and legacy unbound CacheStorage entries cannot be displayed as current. Media and text merge only when their complete source matches, and stale prior text cannot attach to a newer picture. A WebP picture is nonempty and bounded to 8 MiB; card text retains the existing explicitly checked editorial boundary. Inputs are captured before database readiness and acknowledgements and notifications occur only after transaction completion. Deletion removes the owned gallery record in its project transaction, so delayed producers cannot resurrect it. Cross-window writers serialize through IndexedDB and preserve independent media and card updates for the same source. Corrupt records, malformed commands, changed or missing owners and storage aborts have fixed typed failures. The renderer consumes only the host-owned read-only gallery adapter backed by this checked read boundary; it does not initialize another inference transport or read CacheStorage directly, revokes replaced or invalid object URLs, and invalidates on gallery and project changes. Capture rendering and model-generated descriptions remain observations, not proofs about application behavior or permission grants."
+}
+
+definition{
+  name: initialProjectThemeBoundary,
+  parameters: [],
+  result: String,
+  body: "New scaffold projects read the Home selectedThemeId and custom theme journal within the same settings/apps/chats/files/objects/refs/versions transaction that creates their initial project and chat. Missing or empty selection means no theme. A nonempty selection must resolve to an exact imported built-in or existing validated custom theme. Invalid selection, corrupt journal and storage failure refuse creation with projectStorageFailed, without partial rows, allocation changes or success notification. Custom theme deletion clears matching Home selection and app selections in its settings/apps transaction, preserving unrelated settings; concurrent creation and deletion therefore cannot leave an orphan theme reference. The first-prompt renderer consumes the committed app theme instead of applying a stale React settings snapshot after creation. Later Home changes do not rewrite an existing app. Imported projects preserve their existing explicit import semantics and do not inherit Home preferences. Generation still resolves the committed theme through the existing captured-prompt and exact-consent boundary. Actual IndexedDB acceptance covers built-in/custom/no selection, corrupt and missing themes, deletion ordering, concurrent windows, late abort rollback and the first-prompt adapter."
+}
+
+definition{
+  name: modulePresentationBoundary,
+  parameters: [],
+  result: String,
+  body: "A generated canonical decision module owns its new logic and interface. Existing presentation may be retained only when both specifications validate, the previous view is valid, and the application name, ordered field names and kinds, numeric bounds, ordered choice values and ordered outcomes are identical. Rule and property edits within that interface may retain purpose, view and answer meanings; no previous logic, examples, permissions or proof status is copied. Incompatible or corrupt prior presentation is replaced by the new module's derived presentation and the result records a visible reset note. Inputs are detached before comparison, and invalid incoming modules refuse with the existing fixed invalidCanonicalModule failure before any source write. The selected presentation and new module are installed by the existing captured-source transaction, which removes the previous canonical module path on rename and invalidates obsolete proof/publication identity. Cross-profile replacement, compatible rule edits, malformed prior views, caller mutation, exact generated module bytes and actual persisted source/preview journeys qualify this boundary. Presentation retention never proves semantic equivalence or grants effects."
+}
+
+definition{
+  name: kernelOwnerReadinessBoundary,
+  parameters: [],
+  result: String,
+  body: "A service-worker execution message from the current controller may arrive while the controlled document is initializing its verified guest. The document waits for the initialization operations already active when the request arrives, then looks up the exact archive-digest and guest-hash key again. Only an entry installed after complete local integrity, export and acceptance checks may execute the captured request. Missing or mismatched guests and failed verification retain fixed kernelExecutionFailed or kernelAcceptanceFailed refusals; readiness never substitutes an unverified guest or a service-worker inline fallback. Foreign controller messages are rejected before waiting. Document readiness waiting has a 30000 ms deadline; timeout reports a fixed failure and closes its port even if initialization remains pending. At most eight document initialization operations are active; excess requests refuse before fetching. Successful and failed initialization both remove their pending entry, preserving retry after failure. Existing execution queues, fresh instances, worker retirement, bounded ports and service-worker deadlines remain unchanged. Deterministic delayed initialization and failed integrity controls, foreign/mismatched owners, capacity recovery and a full-page live-preview navigation qualify this startup boundary."
+}
+
+definition{
+  name: chatOwnerRecoveryBoundary,
+  parameters: [],
+  result: String,
+  body: "Each live document retains at most one exclusive execution-lock request per observed chat until it acquires the lock or the document is disposed. Contention must not discard recovery interest: a subscriber arriving before a closing owner releases its lock must still recover the abandoned durable head. After acquisition the controller rereads the journal under the short mutation lock and uses the existing signed ChatQueue guest recovery transition. Recovery retains the exact head paused and never replays an interrupted external effect without explicit resumption. Live owners retain exclusive execution; no timeout steals their lock. Document disposal cancels waiting lock requests and running local work, with no new writes or error publication from a cancelled waiter. Real lock/storage failures while the document remains live retain the existing fixed chatQueueUnavailable or storage failure boundary. Browser lock scheduling and document lifetime provide wake-up; no polling loop or repeated inference request substitutes for ownership."
+}
+
+definition{
+  name: kernelOwnerHandoffBoundary,
+  parameters: [],
+  result: String,
+  body: "A service-worker guest request may outlive its controlled document during navigation. The transport retains the exact archive/guest identity and captured request while observing loss of all still-answering selected owners every 50 ms. It may select current controlled replacement documents for at most eight batches of at most eight clients under one 30000 ms deadline shared across the request. A document advertises its exact ready identity only after local verification and registration. A matching readiness hint from a currently controlled client may wake another batch because a new client can be discoverable before its message listener starts; the hint itself grants no execution authority. A live unanswered owner is not replaced merely for being slow. No initial controlled owner, explicit refusal, invalid reply, exhausted handoffs, discovery failure or timeout retains an executable result; existing fixed kernelExecutionFailed, kernelResponseTooLarge and kernelAcceptanceFailed boundaries apply. Each abandoned batch closes all ports and its observation timer; terminal success or failure also clears the shared deadline and capacity accounting. Only already verified exact document entries execute, and service-worker loading still replays every committed vector before serving an untrusted preview. Repeated execution is pure guest computation and grants no effects. This transport recovery does not authenticate arbitrary same-origin code, skip acceptance or retry provider requests."
+}
+
+definition{
+  name: largeModulePresentationBoundary,
+  parameters: [],
+  result: String,
+  body: "Presentation ownership checks the complete structural schema of an already admitted canonical decision module even when its rule count exceeds the imported proof profile. The imported validator is applied to consecutive batches of at most 24 rules, each retaining the same fields, outcomes, properties, examples and presentation metadata. Every rule is validated; no batch result replaces or truncates the original detached specification. Interface comparison, invalid incoming refusal, corrupt prior reset and compatible presentation retention remain the modulePresentationBoundary. The complete original module proceeds through the existing canonical source transaction and full local obligation/table checker. Validation batches do not establish logical equivalence, independent rule semantics or eligibility for Lean proofs: the existing 24-rule proof/publication boundary and larger-module warning remain unchanged. Actual Verdant installation and compatible replacement retain exact canonical bytes, checked local status and explicit proof ineligibility. Invalid rule tails, metadata and unknown outcomes refuse before source mutation."
+}
+
+inductive{
+  name: ChatPreferencesError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidChatPreferences, fields: []},
+    {name: chatPreferencesMissing, fields: []},
+    {name: chatPreferencesStateInvalid, fields: []},
+    {name: chatPreferencesStorageFailed, fields: []}
+  ]
+}
+
+definition{
+  name: chatPreferencesBoundary,
+  parameters: [],
+  result: String,
+  body: "The imported update-chat contract captures and validates chatId, optional title, optional nullable chatMode and optional modelSelection before awaiting database readiness. Its schema is reproduced from the locked renderer sources; no handwritten model or mode schema substitutes for it. Positive safe chat identity and an existing owning app are required. Supplied fields, including empty title and explicit null mode, merge with the latest chat inside one apps/chats readwrite transaction. Unspecified fields and concurrent transcript or preference edits survive. Success follows transaction completion only. Invalid input, missing/deleted chat or app, malformed stored identity and database/late-abort failures return fixed typed refusals without exception payloads, partial writes or resurrection. Reload reads the committed preferences; subsequent generation and token accounting use the committed chat model selection ahead of global defaults. Preference storage grants no inference, source mutation or publication permission. Read-only execution semantics for Ask/Plan and full local-agent capabilities remain separately governed; storing a mode is not evidence that every mode's execution semantics are complete."
+}
+
+inductive{
+  name: ChatExecutionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: invalidChatExecutionMode, fields: []}]
+}
+
+definition{
+  name: readOnlyChatExecutionBoundary,
+  parameters: [],
+  result: String,
+  body: "The imported queued requested mode takes precedence over stored mode; absent or null mode falls back to stored mode then Build. Only imported active modes are admitted; invalid modes fail with invalidChatExecutionMode before inference or project effects. Ask and Plan are read-only with respect to application source, proof state, versions, preview and publication. Approval or publish wording is ordinary conversational input in these modes. Responses including executable module, patch, dependency or publication tags are escaped inert transcript content only: no streaming preview, repair generation, project apply, rules checking, patching or preview refresh occurs. Existing explicit inference consent, cancellation, receipts and durable transcript settlement remain required. The system prompt names Ask or Plan and its no-mutation contract; local inference receives the same read-only instruction instead of a rules-generation request. Build and local-agent retain existing execution behavior; this boundary does not claim full native agent tools or a plan approval/storage workflow. Mode capture is immutable for a queued turn."
+}
+
+definition{
+  name: chatModelPickerScopeBoundary,
+  parameters: [],
+  result: String,
+  body: "The renderer model picker resolves the current pathname relative to the configured router base at a path-segment boundary. A chat route with a positive safe loaded chat identity reads and updates that chat through the imported useChatMode hook and UpdateChatParamsSchema; this applies even before the first message. Its choice does not change Home defaults or another chat. Home and other non-chat routes use the imported settings default. A chat route with missing, invalid or unavailable identity remains disabled rather than falling through to a global settings write. Loading and ongoing mutation disable repeat selection. Existing typed storage failures retain the committed value and show a fixed retry message; no failed write is presented as saved. Offered-model labels reflect committed chat selection, survive reload and remain independent of subsequent Home changes. This boundary controls picker scope only; unsupported provider routing and model quality are not promoted into guarantees."
+}
+
+definition{
+  name: browserChatModeCatalog,
+  parameters: [],
+  result: String,
+  body: "{\"profile\":\"foundry/browser-chat-modes/1\",\"modes\":[{\"id\":\"build\",\"label\":\"Build\"},{\"id\":\"ask\",\"label\":\"Chat\"},{\"id\":\"plan\",\"label\":\"Plan\"}]}"
+}
+
+definition{
+  name: browserChatModeControlsBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser exposes only the build, ask and plan choices in browserChatModeCatalog, labelled Build, Chat and Plan, projected literally without a second authored catalog. The mode selector resolves the configured router base through the existing route-scope boundary. An existing chat uses its imported mode mutation; Home writes selectedChatMode and defaultChatMode together through the existing atomic settings transaction. The same canonical choices govern keyboard cycling with exactly one active shortcut owner; loading, missing identity and in-flight selection disable repeat writes; failure retains the committed value and displays a fixed retry message. Settings are no longer forcibly rewritten to Build on read or update. A newly created application or chat captures the supported default, with an explicit initial mode taking precedence; unsupported or invalid modes fail with invalidChatExecutionMode before project creation. Existing nullable chat mode remains nullable so imported default resolution works. New chat creation commits its captured mode with chat allocation. The current browser catalog excludes native local-agent tooling; legacy unsupported selections remain visible as unavailable and require an explicit supported choice rather than silently becoming Build. Ask and Plan execution is governed by readOnlyChatExecutionBoundary, including immutable queued-mode precedence."
+}
+
+inductive{
+  name: ChatModelRouteError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: invalidChatModelSelection, fields: []},
+    {name: unsupportedChatProvider, fields: []}
+  ]
+}
+
+definition{
+  name: chatProviderRoutingBoundary,
+  parameters: [],
+  result: String,
+  body: "Chat generation and token accounting resolve the same captured selection: a non-null chat selection takes precedence over the global default, and malformed explicit selections never fall through. The imported LargeLanguageModelSchema and bounded nonempty provider/model strings are checked before transcript or inference effects. Local accepts only the declared webgpu:Qwen model, or its former identifiers webgpu:BitNet and webgpu:Bonsai, which resolve to it, and remains a device route. A Featherless or OpenRouter selection captured before cloud models were withdrawn keeps its exact model identifier and is refused by Prism R4 before any request is made: there is no cloud transport, and such a selection never silently becomes local. Unknown providers return unsupportedChatProvider, malformed selections or invalid local identity return invalidChatModelSelection, with fixed private messages. A refused queued turn retains the existing durable paused failure state, exposes its fixed refusal to the chat renderer and creates no completion receipt or transcript message. The captured route is immutable for the executing turn. Context accounting uses the device model's window; no offered-provider catalog expansion, endpoint, provider credential, model quality or provider availability claim follows from this boundary."
+}
+
+definition{
+  name: previewAutoStartBoundary,
+  parameters: [],
+  result: String,
+  body: "The browser preview panel automatically starts only the selected application's initial idle run snapshot: matching positive safe app identity, idle phase, no operation, no start timestamp and no settlement. Missing or foreign identity and starting, ready, reloading, stopped or errored snapshots never authorize another automatic start. The imported app-run manager remains the run-state owner; the renderer uses its current snapshot and re-evaluates after hydration. Unchanged automatic eligibility does not retrigger the selection effect merely because the snapshot object changes. Responsive remounts, tab return and settings updates do not retry a declined preview or supersede an active run. Explicit existing start/restart controls remain available under the imported capabilities and still require ordinary preview authorization. Full document reload starts a fresh document-owned run session and may request permission again; this is not persisted denial or cross-window permission synchronization. Source model, permission grants and queue state are unchanged. A declined preview does not block Ask submission or cloud consent, and responsive layout must not open a fresh permission prompt after decline."
+}
+\end{semanticmodule}
+\end{lexlean}

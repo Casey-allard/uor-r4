@@ -1,0 +1,147 @@
+import type { UserSettings } from "../lib/schemas";
+import type { ActivitySnapshot } from "./memory_activity";
+
+export type PerformanceSnapshot = NonNullable<
+  UserSettings["lastKnownPerformance"]
+>;
+
+// Known Electron process types get their own telemetry field; anything else
+// is summed into "other" so the set of PostHog columns stays stable.
+const KNOWN_PROCESS_TYPES = new Set(["browser", "tab", "gpu", "utility"]);
+
+/**
+ * Flat telemetry fields for a performance snapshot, shared by
+ * app:crash_detected and renderer:crash_detected. Everything is a scalar
+ * because PostHog cannot easily filter or aggregate nested JSON.
+ * time_since_last_heartbeat_ms is measured at send time, not crash time.
+ */
+export function crashPerformanceEventFields(
+  perf: PerformanceSnapshot,
+): Record<string, unknown> {
+  return {
+    last_known_memory_mb: perf.memoryUsageMB,
+    last_known_cpu_pct: perf.cpuUsagePercent,
+    last_known_system_memory_mb: perf.systemMemoryUsageMB,
+    last_known_system_memory_total_mb: perf.systemMemoryTotalMB,
+    last_known_system_cpu_pct: perf.systemCpuPercent,
+    last_known_disk_total_mb: perf.diskTotalMB,
+    last_known_disk_used_mb: perf.diskUsedMB,
+    last_known_disk_available_mb: perf.diskAvailableMB,
+    last_known_snapshot_timestamp: perf.timestamp,
+    time_since_last_heartbeat_ms: Date.now() - perf.timestamp,
+    last_known_heap_used_mb: perf.heapUsedMB,
+    last_known_heap_limit_mb: perf.heapLimitMB,
+    ...workingSetFields("last_known_working_set", perf.processWorkingSetsMB),
+    ...activityFields("last_known", perf.activity),
+    peak_heap_used_mb: perf.peakHeapUsedMB,
+    peak_heap_pct: perf.peakHeapPct,
+    peak_rss_mb: perf.peakRssMB,
+    ...workingSetFields("peak_working_set", perf.peakProcessWorkingSetsMB),
+    ...activityFields("peak", perf.peakActivity),
+    peak_timestamp: perf.peakTimestamp,
+  };
+}
+
+// Only annotation keys known to hold diagnostic, non-sensitive values are
+// exported to telemetry, each by its exact name. Unknown keys, including
+// ones future Electron versions may add, are dropped and only counted.
+// The minidump parser also exempts these keys from its annotation cap.
+export const ALLOWED_ANNOTATION_KEYS = new Set([
+  // Our crashReporter globalExtra parameters.
+  "app_version",
+  "electron_version",
+  "chrome_version",
+  "os",
+  "arch",
+  // Electron's own crashReporter parameters.
+  "_productName",
+  "_companyName",
+  "_version",
+  // Crashpad and Electron process context.
+  "ptype",
+  "process_type",
+  "platform",
+  "plat",
+  "prod",
+  "ver",
+  "pid",
+  "osarch",
+  "lsb-release",
+  "service-name",
+  "chrome-trace-id",
+  "num-experiments",
+  // Memory and GPU state.
+  "oom-size",
+  "total-discardable-memory-allocated",
+  "gpu_webgl",
+  "gpu_compositing",
+  // V8 OOM and fatal error keys, from Electron's node_bindings.cc.
+  "electron.v8-oom.is_heap_oom",
+  "electron.v8-oom.location",
+  "electron.v8-oom.detail",
+  "electron.v8-oom.heap.used",
+  "electron.v8-oom.heap.total",
+  "electron.v8-oom.heap.limit",
+  "electron.v8-oom.heap.total_available",
+  "electron.v8-fatal.message",
+  "electron.v8-fatal.location",
+]);
+
+// Allowlisted crash annotations as flat telemetry fields, one property per
+// key, because PostHog cannot easily filter nested JSON. Keys are sanitized
+// to snake case. Dropped keys are reported only as a count.
+export function crashAnnotationEventFields(
+  annotations: Record<string, string>,
+): Record<string, string | number> {
+  const fields: Record<string, string | number> = {};
+  let dropped = 0;
+  for (const [key, value] of Object.entries(annotations)) {
+    if (!ALLOWED_ANNOTATION_KEYS.has(key)) {
+      dropped++;
+      continue;
+    }
+    const name = key.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    fields[`crash_annotation_${name}`] = value;
+  }
+  if (dropped > 0) {
+    fields.crash_annotations_dropped = dropped;
+  }
+  return fields;
+}
+
+function workingSetFields(
+  prefix: string,
+  sets: Record<string, number> | undefined,
+): Record<string, number> {
+  if (!sets) {
+    return {};
+  }
+  const fields: Record<string, number> = {};
+  let other = 0;
+  for (const [key, value] of Object.entries(sets)) {
+    if (KNOWN_PROCESS_TYPES.has(key)) {
+      fields[`${prefix}_${key}_mb`] = value;
+    } else {
+      other += value;
+    }
+  }
+  if (other > 0) {
+    fields[`${prefix}_other_mb`] = other;
+  }
+  return fields;
+}
+
+function activityFields(
+  prefix: string,
+  activity: ActivitySnapshot | undefined,
+): Record<string, unknown> {
+  if (!activity) {
+    return {};
+  }
+  return {
+    [`${prefix}_active_streams`]: activity.activeStreams,
+    [`${prefix}_running_apps`]: activity.runningApps,
+    [`${prefix}_extract_codebase`]: activity.extractCodebase,
+    [`${prefix}_ts_utility_process`]: activity.tsUtilityProcess,
+  };
+}

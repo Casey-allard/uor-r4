@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "sec-activity"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "SecurityActivity"
+
+[[form]]
+id = "sec-activity"
+channel = "text"
+surface = "security activity"
+canonical_source = true
+features = ["sentence-case", "singular"]

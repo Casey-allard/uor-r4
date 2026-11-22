@@ -1,0 +1,17 @@
+spec = "lexlean/entry/1"
+id = "sec-measurement"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Sec"
+component = "VerificationMeasurement"
+
+[[form]]
+id = "sec-measurement"
+channel = "text"
+surface = "security verification measurement"
+canonical_source = true
+features = ["sentence-case", "singular"]

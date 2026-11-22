@@ -1,0 +1,137 @@
+{
+  "spec": {
+    "name": "library-fee",
+    "title": "Library late fee",
+    "purpose": "Decide the late fee tier from days late and member type.",
+    "fields": [
+      {
+        "name": "days",
+        "kind": "number",
+        "min": 0,
+        "max": 60,
+        "means": "days the item is late"
+      },
+      {
+        "name": "member",
+        "kind": "choice",
+        "values": [
+          "student",
+          "adult",
+          "senior"
+        ],
+        "means": "member type"
+      }
+    ],
+    "outcomes": [
+      "free",
+      "low",
+      "standard",
+      "high"
+    ],
+    "rules": [
+      {
+        "when": [
+          {
+            "field": "days",
+            "op": "=",
+            "value": 0
+          }
+        ],
+        "then": "free",
+        "why": "nothing is overdue"
+      },
+      {
+        "when": [
+          {
+            "field": "member",
+            "op": "is",
+            "value": "senior"
+          }
+        ],
+        "then": "free",
+        "why": "seniors borrow free"
+      },
+      {
+        "when": [
+          {
+            "field": "days",
+            "op": ">",
+            "value": 30
+          }
+        ],
+        "then": "high",
+        "why": "more than 30 days late is a high fee"
+      },
+      {
+        "when": [
+          {
+            "field": "member",
+            "op": "is",
+            "value": "student"
+          }
+        ],
+        "then": "low",
+        "why": "students pay a low fee"
+      }
+    ],
+    "otherwise": "standard",
+    "otherwiseWhy": "an adult up to 30 days late pays the standard fee",
+    "properties": [
+      {
+        "kind": "never",
+        "when": [
+          {
+            "field": "member",
+            "op": "is",
+            "value": "senior"
+          }
+        ],
+        "then": "high",
+        "why": "a senior must never pay a high fee"
+      },
+      {
+        "kind": "always",
+        "when": [
+          {
+            "field": "days",
+            "op": "=",
+            "value": 0
+          }
+        ],
+        "then": "free",
+        "why": "an item that is not late costs nothing"
+      }
+    ],
+    "examples": [
+      {
+        "request": "0 adult",
+        "response": "free"
+      },
+      {
+        "request": "45 senior",
+        "response": "free"
+      },
+      {
+        "request": "45 adult",
+        "response": "high"
+      },
+      {
+        "request": "12 student",
+        "response": "low"
+      },
+      {
+        "request": "12 adult",
+        "response": "standard"
+      }
+    ],
+    "limits": [
+      "Days are whole numbers from 0 to 60."
+    ],
+    "meanings": {
+      "free": "no fee",
+      "low": "the reduced fee",
+      "standard": "the standard fee",
+      "high": "the high fee"
+    }
+  }
+}

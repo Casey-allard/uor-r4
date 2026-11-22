@@ -1,0 +1,479 @@
+/* The Prism frame: the top bar every Prism app opens in, as one web component.
+ * This sheet lives in the component's shadow root, so no host page can break
+ * it and it breaks no host page. Colour, radius, border, ring, duration and
+ * easing come from the Hologram brand kit's tokens, inherited from the page
+ * (the component brings them when a page has none). The one exception is the
+ * spectrum line, the UOR Foundation's header spectrum, named below. */
+
+:host {
+  /* The page's scale, so the frame looks the same on any host. */
+  --text-14: 0.875rem;
+  --text-16: 1rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --margin: 1rem;
+  --column: 45rem;
+  --control: 2.25rem;
+  --bar-control: 2rem;
+  --touch: 3rem;
+  /* A bar button's hit box: its circle on a fine pointer, 48 px on a coarse one. */
+  --hit: var(--bar-control);
+  --radius-control: calc(var(--radius) - 2px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --spectrum-red: #fb5661;
+  --spectrum-orange: #fa792e;
+  --spectrum-amber: #f9cf24;
+  --spectrum-yellow: #f6e41e;
+  --spectrum-green: #25d05e;
+  --spectrum-cyan: #20d0f3;
+  --spectrum-blue: #4f81f8;
+  --spectrum-violet: #ae6ff6;
+  --spectrum-pink: #f368c5;
+  --spectrum: linear-gradient(100deg,
+    var(--spectrum-red) 0%, var(--spectrum-orange) 7%, var(--spectrum-amber) 14%, var(--spectrum-yellow) 19%,
+    var(--spectrum-green) 25%, var(--spectrum-cyan) 31%, var(--spectrum-blue) 38%, var(--spectrum-violet) 45%,
+    var(--spectrum-pink) 48%, var(--spectrum-red) 50%, var(--spectrum-orange) 57%, var(--spectrum-amber) 64%,
+    var(--spectrum-yellow) 69%, var(--spectrum-green) 75%, var(--spectrum-cyan) 81%, var(--spectrum-blue) 88%,
+    var(--spectrum-violet) 95%, var(--spectrum-pink) 98%, var(--spectrum-red) 100%);
+
+  /* The chrome: the bar and the margin around the app are the brand's chrome
+   * surface; the app shows through a rounded window inset into it. The bar
+   * is exactly the height the page reserves for it, so the window's top
+   * edge is the bar's bottom edge. */
+  --chrome: var(--sidebar, var(--muted));
+  /* The address: on the light chrome a white field, on the dark one barely
+   * off the chrome, its hairline drawing it at 3:1 or more (WCAG 1.4.11). */
+  --field: light-dark(var(--card), color-mix(in oklab, var(--chrome), var(--foreground) 3%));
+  --field-border: var(--muted-foreground);
+  --gutter: 0.5rem;
+  --window-radius: 0.75rem;
+  --frame-height: calc(var(--safe-top) + var(--bar-control) + 0.875rem);
+
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-16);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+@media (min-width: 600px) { :host { --margin: 1.5rem; } }
+@media (min-width: 840px) { :host { --column: 80rem; } }
+/* Touch: the bar looks the same, and every control in it takes a 48 px tap. */
+@media (pointer: coarse) { :host { --hit: var(--touch); } }
+/* The theme is the page's colour scheme, which the page sets before its
+ * first paint; once the script runs the host says it too, for a page that
+ * sets none. */
+:host([dark]) { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: var(--ring-width) solid var(--ring);
+  outline-offset: var(--ring-offset);
+}
+
+/* Controls, as the page draws them: 36 px on a fine pointer, 48 on a coarse one. */
+button, input, .ghost { font: inherit; font-size: var(--text-14); }
+button {
+  min-height: var(--control);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--border);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+button:hover { background: var(--accent); }
+button:active { background: var(--accent-pressed); }
+button.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+button.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.ghost, button.ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  font-weight: 500;
+}
+.ghost:hover, button.ghost:hover { background: var(--accent); color: var(--accent-foreground); }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-control);
+  border: var(--border-width) solid var(--border);
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.chip-wait { color: var(--muted-foreground); }
+.chip-good { color: var(--success); }
+.chip-bad { color: var(--destructive); }
+
+/* The bar: the host is sticky, the bar paints the chrome edge to edge. */
+.bar {
+  position: relative;
+  padding-top: var(--safe-top);
+  background: var(--chrome);
+  container: bar / inline-size;
+}
+
+/* The window: the app is seen through a rounded opening in the chrome, a
+ * small margin from every edge, as a desktop shows an app's window. It is
+ * one fixed layer whose shadow paints the chrome around the opening, with a
+ * hairline just inside its edge; it takes no clicks and moves nothing, so
+ * the page keeps its own layout and scroll, and content scrolls away under
+ * the window's edges.
+ * A page may open a panel beside the window, on the chrome, by setting
+ * --prism-aside on <html> to the panel's width: the window and the bar both
+ * end that far from the right edge, so the app narrows and the panel sits
+ * next to it, never over it. The page animates it (it is registered there). */
+.canvas {
+  position: fixed;
+  top: var(--frame-height);
+  left: calc(var(--gutter) + var(--safe-left));
+  right: calc(var(--gutter) + var(--safe-right) + var(--prism-aside, 0px));
+  bottom: max(var(--gutter), env(safe-area-inset-bottom, 0px));
+  border-radius: var(--window-radius);
+  box-shadow: inset 0 0 0 var(--border-width) var(--border), 0 0 0 100vmax var(--chrome);
+  pointer-events: none;
+}
+
+@keyframes spectrum-drift { to { background-position: 200% 0; } }
+
+/* The bar's three parts, as a browser lays them out: home on the left, the
+ * address filling the width between, the app's controls on the right; all
+ * of it spans the chrome, edge to edge, its controls in line with the
+ * window's edges. One line; at 200 percent text it wraps rather than
+ * overflow, and the window moves down with it. */
+.inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  /* 8 px of chrome above the controls, 6 px below them to the window's edge. */
+  padding: 0.5rem calc(var(--gutter) + var(--safe-right) + var(--prism-aside, 0px)) 0.375rem calc(var(--gutter) + var(--safe-left));
+}
+.start, .end { flex: none; display: flex; align-items: center; gap: var(--space-2); }
+.end { justify-content: flex-end; }
+
+/* Icons: 20 px line drawings, a fine even stroke, in the text colour of
+ * whatever holds them. */
+svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Brand marks are filled shapes, not line drawings. */
+svg.gh, svg.fill { fill: currentColor; stroke: none; }
+
+/* The bar's buttons, as Lovable and Claude draw them: a bare 16 px line
+ * icon in a quiet grey that brightens on hover over a soft square tint.
+ * The tint is drawn under the icon, so on a touch screen the button's hit
+ * box grows to 48 px around it and the bar keeps its height. */
+.ghost.icon {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  justify-content: center;
+  height: var(--hit);
+  min-height: var(--hit);
+  margin-block: calc((var(--bar-control) - var(--hit)) / 2);
+  padding: 0;
+  border: 0;
+  transition: color var(--duration) var(--ease);
+}
+.ghost.icon {
+  width: var(--hit);
+  margin-inline: calc((var(--bar-control) - var(--hit)) / 2);
+  color: var(--muted-foreground);
+}
+.ghost.icon, .ghost.icon:hover, .ghost.icon:active { background: none; }
+.ghost.icon::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border: var(--border-width) solid transparent;
+  transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.ghost.icon::before { inset: calc((var(--hit) - var(--bar-control)) / 2); border-radius: var(--radius-control); }
+.ghost.icon svg { width: 1rem; height: 1rem; stroke-width: 1.6; }
+.ghost.icon svg.gh { width: 0.9375rem; height: 0.9375rem; }
+/* GitHub with its stars: the mark, then GitHub's own star in its gold and
+ * the count beside it, one quiet pill; the count in the muted grey and
+ * tabular figures, so it reads as a figure. */
+#github .stars { display: none; }
+/* In the address, beside share: a small pill the height of share's circle. */
+#github.starred { width: auto; gap: 0.375rem; padding-inline: 0.5rem; margin-inline: calc((1.5rem - var(--hit)) / 2 + 0.25rem) 0; }
+#github.starred::before { inset: calc((var(--hit) - 1.5rem) / 2) 0; border-radius: 999px; }
+#github.starred .stars { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; color: var(--muted-foreground); }
+#github .stars svg.star { width: 0.75rem; height: 0.75rem; fill: #e3b341; stroke: none; }
+#github.starred:hover .stars { color: var(--foreground); }
+/* Home is the Hologram logomark, the brand kit's 70 dots exactly, in the
+ * full text colour: white on the dark chrome, near-black on the light, as
+ * Hologram OS draws it. A touch larger than the line icons, so its dots
+ * stay distinct. */
+#home { color: var(--foreground); } #home:focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); border-radius: var(--radius-control); }
+#home svg.mark { width: 1.25rem; height: 1.25rem; shape-rendering: geometricPrecision; }
+.ghost.icon:hover { color: var(--foreground); }
+.ghost.icon:hover::before { background: color-mix(in oklab, var(--chrome), var(--foreground) 7%); }
+.ghost.icon:active::before { background: color-mix(in oklab, var(--chrome), var(--foreground) 11%); transform: scale(0.94); }
+.ghost.icon:focus-visible { outline: none; }
+.ghost.icon:focus-visible::before { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+/* An icon inside the address, at its right end, as Chrome keeps its own
+ * there: a 24 px circle tints on hover. */
+.ghost.icon.inset {
+  width: var(--hit);
+  margin: calc((1.5rem - var(--hit)) / 2);
+  margin-inline-end: calc((1.5rem - var(--hit)) / 2 + 0.125rem);
+}
+.ghost.icon.inset::before { inset: calc((var(--hit) - 1.5rem) / 2); border-radius: 50%; }
+/* While the address is edited it steps aside for the text. */
+.inner.editing #share, .inner.editing #github, .inner.editing .sep { display: none; }
+/* A hairline between GitHub and share, as a browser divides its icons. */
+.address .sep { flex: none; width: var(--border-width); height: 1rem; margin-inline: 0.125rem; background: var(--border-strong); }
+#github[hidden] + .sep { display: none; }
+/* Full screen: the corners point out to enter, in to leave. */
+:host([fullscreen]) #fullscreen .expand, :host(:not([fullscreen])) #fullscreen .shrink { display: none; }
+/* The account: a line drawing signed out; while the Prism id window is open
+ * it breathes; signed in, the same figure filled, in the full text
+ * colour, so who is signed in reads at a glance and nothing else changes. */
+#account.signed-in { color: var(--foreground); }
+#account.signed-in svg.person { fill: currentColor; }
+#account.busy svg.person { animation: account-breathe 1.2s var(--ease) infinite; }
+@keyframes account-breathe { 50% { opacity: 0.35; } }
+
+/* The address: the app's holo:// name in a pill across the bar, read the
+ * way Chrome's address bar reads: the shield first, where Chrome shows
+ * the site's security, then the scheme dimmed and the name bright, as a
+ * browser shows the domain, and the share icon at the right end. It is
+ * also the omnibox: the input lies over the styled address, invisible until
+ * focused, so clicking anywhere on the pill edits it, and the suggestions
+ * open below. */
+.address {
+  position: relative;
+  flex: 1 1 10rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--bar-control);
+  margin: 0;
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid var(--field-border);
+  border-radius: 999px;
+  background: var(--field);
+  font-size: var(--text-14);
+  white-space: nowrap;
+  cursor: text;
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+.address:hover { background: color-mix(in oklab, var(--field), var(--foreground) 3%); }
+/* Editing: the script's editing class, so the bar stays right when the window
+ * loses focus mid-edit; the focus rules give the same look before it runs. */
+.address:has(.omnibox:focus), .inner.editing .address { background: var(--background); border-color: transparent; }
+
+/* The spectrum: while the address is edited, a hairline in the full colour
+ * spectrum takes the place of the pill's own, one device pixel on a plain
+ * screen and one and a half CSS pixels on a sharp one, a little softened,
+ * and drifts round every 24 seconds: the UOR Foundation's header spectrum,
+ * which the brand kit does not carry. It never drifts under reduced motion. */
+.address::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--border-width));
+  border-radius: inherit;
+  background-image: var(--spectrum);
+  background-size: 200% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* The spectrum cut to the hairline by its padding. */
+.address::before {
+  padding: 1px;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.address:has(.omnibox:focus)::before, .inner.editing .address::before { opacity: 0.85; animation: spectrum-drift 24s linear infinite; }
+@media (min-resolution: 2dppx) { .address::before { padding: 1.5px; } }
+.field { position: relative; flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; }
+.url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scheme { color: var(--muted-foreground); }
+.host { color: var(--foreground); font-weight: 500; }
+.address:has(.omnibox:focus) .url, .inner.editing .address .url { visibility: hidden; }
+
+.address .omnibox {
+  position: absolute;
+  inset: calc(-1 * var(--border-width)) 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-14);
+  font-weight: 500;
+  outline: none;
+}
+.address .omnibox:focus, .inner.editing .address .omnibox { color: var(--foreground); }
+.address .omnibox::placeholder { color: var(--muted-foreground); font-weight: 400; }
+/* The selected address in the quiet inverse, not the brand: it is selected on every focus. */
+.address .omnibox::selection { background: var(--primary); color: var(--primary-foreground); }
+@media (pointer: coarse) { .opt { min-height: var(--touch); } }
+
+/* The shield, first in the address, where a browser shows a page's
+ * security: grey dots while the browser checks, a green tick once every
+ * check passed, a red exclamation mark when one failed. Its panel says
+ * which. Every state is the same size, so nothing moves. */
+.trust svg, .trust-badge svg { width: 1.0625rem; height: 1.0625rem; stroke-width: 1.6; }
+.trust .body, .trust-badge .body { fill: currentColor; fill-opacity: 0.16; }
+.trust .ok, .trust .bad, .trust-badge .ok, .trust-badge .bad { display: none; }
+.trust.good .ok, .trust.bad .bad, .trust-badge.good .ok, .trust-badge.bad .bad { display: inline; }
+.trust.good .wait, .trust.bad .wait, .trust-badge.good .wait, .trust-badge.bad .wait { display: none; }
+#trust.good, #trust.good:hover, .trust-badge.good { color: var(--success); }
+#trust.bad, #trust.bad:hover, .trust-badge.bad { color: var(--destructive); }
+#trust.wait, .trust-badge.wait { color: var(--muted-foreground); }
+@starting-style {
+  .trust-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+.trust-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+.trust-badge svg { width: 1.25rem; height: 1.25rem; }
+.trust-sub { color: var(--muted-foreground); }
+
+/* The checks: a mark in its state's colour, the check's name, what it found. */
+.checks { margin: 0; padding: var(--space-2) 0; list-style: none; }
+
+@media (pointer: coarse) {
+  .trust-panel button.text { min-width: var(--touch); min-height: var(--touch); margin-block: calc((1lh - var(--touch)) / 2); display: inline-flex; align-items: center; justify-content: center; }
+  .trust-details { min-height: var(--touch); }
+}
+
+/* Share: the icon turns to a tick for a moment once the link is copied. */
+#share .done, #share.copied .share { display: none; }
+#share.copied .done { display: inline; }
+@starting-style {
+  .share-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+.share-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--text-14); color: var(--muted-foreground); }
+#share-copy { flex: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); }
+#share-copy svg { width: 1rem; height: 1rem; }
+#share-copy .done, #share-copy.copied .link { display: none; }
+#share-copy.copied .done { display: inline; }
+.share-glyph {
+  display: grid;
+  place-items: center;
+  width: var(--touch);
+  height: var(--touch);
+  border: var(--border-width) solid var(--border);
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--foreground);
+  transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+
+/* Theme: the button shows the theme in use and opens the panel to change it.
+ * The icons are drawn in one place; the colour scheme shows the sun or the
+ * moon, so it is right from the first paint, and immersive shows the photo. */
+#theme { display: inline-grid; place-items: center; }
+#theme svg { grid-area: 1 / 1; }
+#theme .sun { color: light-dark(currentColor, transparent); }
+#theme .moon { color: light-dark(transparent, currentColor); }
+#theme .photo, :host([immersive]) #theme .moon { color: transparent; }
+:host([immersive]) #theme .photo { color: currentColor; }
+@starting-style {
+  .theme-panel:popover-open { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+}
+@keyframes breathe { from { opacity: 0.45; } to { opacity: 0.9; } }
+@keyframes spin { to { transform: rotate(1turn); } }
+/* Immersive keeps the chrome as it is: the photo is the app's, drawn inside
+ * the window only (the frame publishes the window's edges; see watchWindow). */
+
+/* Read by screen readers, not shown. */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Compact width: the icons pack closer, and GitHub and the address's dot
+ * step out (the page's footer links the repository), so holo:// and the
+ * name keep their room at 360 px. While the address is edited it takes the
+ * whole bar, the way a phone's browser does, and the suggestions span it. */
+@media (max-width: 599px) {
+  :host { --window-radius: 0.625rem; }
+  .inner { gap: var(--space-1); }
+  .start, .end { flex: none; gap: var(--space-1); }
+  .address { flex-basis: 8rem; }
+  #github, .address .sep { display: none; }
+  .opt-sub { display: none; }
+  .inner.editing > :not(.address) { display: none; }
+}
+
+/* Too narrow for one line, as on a phone at large text (container rems
+ * follow the page's text size, as media query rems do not): the buttons on
+ * top, the address the whole width below. */
+@container bar (width < 20rem) {
+  .inner { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "start . end" "address address address"; }
+  .start { grid-area: start; }
+  .end { grid-area: end; }
+  .address { grid-area: address; }
+}
+
+/* Compact height, a phone in landscape: the bar scrolls away with the page,
+ * and the app has the whole screen, no window around it. */
+@media (max-height: 480px) {
+  :host { position: static; }
+  .canvas { display: none; }
+}
+
+@media print {
+  .canvas { display: none; }
+}
+
+/* Touch: every control is 48 px, whatever rule sized it above. */
+@media (pointer: coarse) {
+  button:not(.icon), .ghost:not(.icon) { min-height: var(--touch); }
+  /* The address takes a 48 px tap, past its pill's edges. */
+  .address .omnibox { inset: calc((var(--bar-control) - var(--touch)) / 2 - var(--border-width)) 0; }
+}
+
+@media (forced-colors: active) {
+  .bar, .chip, .address, .share-panel, .account-panel, .share-glyph, button { border-color: CanvasText; }
+  .address::before { display: none; }
+  .address:has(.omnibox:focus) { border-color: Highlight; }
+  .canvas { box-shadow: inset 0 0 0 1px CanvasText, 0 0 0 100vmax Canvas; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+  .address::before, .photo-pick.blank, .find.busy .find-busy { animation: none !important; }
+}

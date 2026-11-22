@@ -1,0 +1,1333 @@
+import {
+  DEFAULT_PTY_COMMAND_TIMEOUT_MS,
+  PtyCommandExecutionError,
+  runPtyCommand,
+} from "@/ipc/utils/pty_command_runner";
+import fs from "node:fs/promises";
+import path from "node:path";
+import log from "electron-log";
+import defaultApproveBuildsText from "@/data/default-approve-builds.txt?raw";
+import { gitAdd, gitCommit } from "@/ipc/utils/git_utils";
+import { PNPM_MINIMUM_RELEASE_AGE_WARNING_PREFIX } from "@/shared/packageManagerWarnings";
+import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
+import { isVersionAtLeast } from "@/shared/version_utils";
+import {
+  getManagedToolsDir,
+  prependPathSegment,
+  sanitizePathEnv,
+} from "@/ipc/utils/managed_tools";
+import { getPathEnvKey } from "@/ipc/utils/path_env";
+import {
+  buildWindowsCommandInvocation,
+  resolveWindowsExecutableName,
+} from "@/ipc/utils/windows_command";
+
+export const SOCKET_FIREWALL_WARNING_MESSAGE =
+  "the npm firewall could not be installed. Warning: can not check if npm packages are safe";
+export const PNPM_MINIMUM_RELEASE_AGE_VERSION = "10.16.0";
+export const PNPM_GLOBAL_INSTALL_PACKAGE = "pnpm@latest-11";
+export const COREPACK_ENABLE_PROJECT_SPEC_DISABLED_ENV = "0";
+export const COREPACK_ENABLE_STRICT_DISABLED_ENV = "0";
+export const PNPM_PACKAGE_MANAGER_STRICT_DISABLED_ENV = "false";
+export const PNPM_PM_ON_FAIL_IGNORE_ENV = "ignore";
+export const PNPM_PM_ON_FAIL_IGNORE_ARG = "--config.pm-on-fail=ignore";
+const MANAGED_PNPM_DIR = "pnpm";
+const MINIMUM_PACKAGE_RELEASE_AGE_DAYS = 1;
+export const MINIMUM_PACKAGE_RELEASE_AGE_MINUTES =
+  MINIMUM_PACKAGE_RELEASE_AGE_DAYS * 24 * 60;
+export const PNPM_INSTALL_POLICY_ARGS = [
+  PNPM_PM_ON_FAIL_IGNORE_ARG,
+  "--config.confirmModulesPurge=false",
+  "--config.strictDepBuilds=false",
+];
+
+export const PNPM_MINIMUM_RELEASE_AGE_WARNING_MESSAGE = `${PNPM_MINIMUM_RELEASE_AGE_WARNING_PREFIX}${PNPM_MINIMUM_RELEASE_AGE_VERSION} or newer for the strongest protection`;
+const SOCKET_FIREWALL_PACKAGE = "sfw@2.0.4";
+const SOCKET_FIREWALL_NPX_ARGS = [
+  "--prefer-offline",
+  "--yes",
+  SOCKET_FIREWALL_PACKAGE,
+];
+export const SOCKET_FIREWALL_PROBE_TIMEOUT_MS = 30 * 1000;
+export const PACKAGE_MANAGER_PROBE_TIMEOUT_MS = 30 * 1000;
+export const ADD_DEPENDENCY_INSTALL_TIMEOUT_MS = DEFAULT_PTY_COMMAND_TIMEOUT_MS;
+const logger = log.scope("socket_firewall");
+const PRISM_ALLOW_BUILDS_SCHEMA = "v1";
+const PRISM_ALLOW_BUILDS_SCHEMA_KEY = "prism-default-allow-builds-schema";
+const PRISM_ALLOW_BUILDS_DATA_VERSION_KEY =
+  "prism-default-allow-builds-data-version";
+const PRISM_ALLOW_BUILDS_CHANNEL_KEY = "prism-default-allow-builds-channel";
+const PRISM_ALLOW_BUILDS_BEGIN = "# prism-default-allow-builds begin";
+const PRISM_ALLOW_BUILDS_END = "# prism-default-allow-builds end";
+const LEGACY_PRISM_ALLOW_BUILDS_BEGIN = "# prism-default-allow-builds=v1 begin";
+const LEGACY_PRISM_ALLOW_BUILDS_END = "# prism-default-allow-builds=v1 end";
+const PRISM_AUTO_DENIED_ALLOW_BUILDS_COMMENT = "# prism-auto-denied";
+const PNPM_IGNORED_BUILDS_ERROR_CODE = "ERR_PNPM_IGNORED_BUILDS";
+const PRISM_ALLOW_BUILDS_METADATA_PATTERN =
+  /^#\s*(prism-default-allow-builds-(?:schema|data-version|channel))=(.+)$/;
+const PRISM_ALLOW_BUILDS_REMOTE_URL =
+  process.env.PRISM_DEFAULT_APPROVE_BUILDS_URL ??
+  "https://api.dyad.sh/v1/default-approve-builds.txt";
+const PRISM_ALLOW_BUILDS_FETCH_TIMEOUT_MS = 5_000;
+export const PRISM_ALLOW_BUILDS_CACHE_TTL_MS = 60 * 60 * 1000;
+const PRISM_ALLOW_BUILDS_MAX_BYTES = 256 * 1024;
+
+export interface CommandExecutionOptions {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  timeoutMs?: number;
+}
+
+export interface CommandExecutionResult {
+  stdout: string;
+  stderr: string;
+}
+
+function buildCommandDisplay(command: string, args: string[]): string {
+  return [command, ...args].join(" ");
+}
+
+export class CommandExecutionError extends Error {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+
+  constructor({
+    message,
+    stdout = "",
+    stderr = "",
+    exitCode = null,
+  }: {
+    message: string;
+    stdout?: string;
+    stderr?: string;
+    exitCode?: number | null;
+  }) {
+    super(message);
+    this.name = "CommandExecutionError";
+    this.stdout = stdout;
+    this.stderr = stderr;
+    this.exitCode = exitCode;
+  }
+}
+
+export type CommandRunner = (
+  command: string,
+  args: string[],
+  options?: CommandExecutionOptions,
+) => Promise<CommandExecutionResult>;
+
+export function getManagedPnpmInstallDir(): string {
+  return path.join(getManagedToolsDir(), MANAGED_PNPM_DIR);
+}
+
+export function getManagedPnpmBinDir(): string {
+  return path.join(getManagedPnpmInstallDir(), "node_modules", ".bin");
+}
+
+export function getManagedPnpmCliScriptPath(): string {
+  return path.join(
+    getManagedPnpmInstallDir(),
+    "node_modules",
+    "pnpm",
+    "bin",
+    "pnpm.cjs",
+  );
+}
+
+function withManagedPnpmPath(
+  env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  return prependPathSegment(env, getManagedPnpmBinDir());
+}
+
+export function applyManagedPnpmToProcessPath(): void {
+  const pathKey = getPathEnvKey(process.env);
+  const nextEnv = withManagedPnpmPath(process.env);
+  process.env[pathKey] = nextEnv[pathKey] ?? "";
+}
+
+export function getPackageManagerCommandEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  return {
+    ...withManagedPnpmPath(sanitizePathEnv(env)),
+    COREPACK_ENABLE_PROJECT_SPEC: COREPACK_ENABLE_PROJECT_SPEC_DISABLED_ENV,
+    COREPACK_ENABLE_STRICT: COREPACK_ENABLE_STRICT_DISABLED_ENV,
+    npm_config_package_manager_strict: PNPM_PACKAGE_MANAGER_STRICT_DISABLED_ENV,
+    npm_config_pm_on_fail: PNPM_PM_ON_FAIL_IGNORE_ENV,
+  };
+}
+
+export type PackageManager = "pnpm" | "npm";
+type AllowBuildsChannel = "local" | "remote";
+
+type AllowBuildsSource = {
+  schema: typeof PRISM_ALLOW_BUILDS_SCHEMA;
+  dataVersion: string;
+  channel: AllowBuildsChannel;
+  packages: string[];
+};
+type AllowBuildsMetadataKey =
+  | typeof PRISM_ALLOW_BUILDS_SCHEMA_KEY
+  | typeof PRISM_ALLOW_BUILDS_DATA_VERSION_KEY
+  | typeof PRISM_ALLOW_BUILDS_CHANNEL_KEY;
+
+type AllowBuildsTextFetcher = (
+  url: string,
+  init: { signal: AbortSignal },
+) => Promise<{
+  ok: boolean;
+  text: () => Promise<string>;
+}>;
+type RemoteAllowBuildsCacheEntry = {
+  source: AllowBuildsSource;
+  expiresAtMs: number;
+};
+export type PnpmIgnoredBuild = {
+  packageName: string;
+  packageSpec: string;
+};
+
+const remoteAllowBuildsCache = new WeakMap<
+  AllowBuildsTextFetcher,
+  RemoteAllowBuildsCacheEntry
+>();
+const pendingRemoteAllowBuildsFetches = new WeakMap<
+  AllowBuildsTextFetcher,
+  Promise<AllowBuildsSource | null>
+>();
+
+function parseAllowBuildsMetadata(
+  lines: string[],
+): Partial<Record<AllowBuildsMetadataKey, string>> {
+  const metadata: Partial<Record<AllowBuildsMetadataKey, string>> = {};
+  for (const line of lines) {
+    const match = line.trim().match(PRISM_ALLOW_BUILDS_METADATA_PATTERN);
+    if (!match) {
+      continue;
+    }
+    metadata[match[1] as AllowBuildsMetadataKey] = match[2].trim();
+  }
+  return metadata;
+}
+
+function parseDefaultAllowBuilds(
+  text = defaultApproveBuildsText,
+): AllowBuildsSource {
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
+  const metadata = parseAllowBuildsMetadata(lines);
+  if (metadata[PRISM_ALLOW_BUILDS_SCHEMA_KEY] !== PRISM_ALLOW_BUILDS_SCHEMA) {
+    throw new Error(
+      `Invalid default pnpm allow-builds list. Expected "${PRISM_ALLOW_BUILDS_SCHEMA_KEY}=${PRISM_ALLOW_BUILDS_SCHEMA}".`,
+    );
+  }
+  const dataVersion = metadata[PRISM_ALLOW_BUILDS_DATA_VERSION_KEY];
+  if (!dataVersion) {
+    throw new Error(
+      `Invalid default pnpm allow-builds list. Expected "${PRISM_ALLOW_BUILDS_DATA_VERSION_KEY}".`,
+    );
+  }
+  const channel = metadata[PRISM_ALLOW_BUILDS_CHANNEL_KEY];
+  if (channel !== "local" && channel !== "remote") {
+    throw new Error(
+      `Invalid default pnpm allow-builds list. Expected "${PRISM_ALLOW_BUILDS_CHANNEL_KEY}" to be local or remote.`,
+    );
+  }
+
+  return {
+    schema: PRISM_ALLOW_BUILDS_SCHEMA,
+    dataVersion,
+    channel,
+    packages: Array.from(
+      new Set(lines.filter((line) => line && !line.startsWith("#"))),
+    ).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function quoteYamlMapKey(key: string): string {
+  if (/^[A-Za-z0-9._/-]+$/.test(key)) {
+    return key;
+  }
+
+  return JSON.stringify(key);
+}
+
+function buildAllowBuildsManagedBlock(
+  source: AllowBuildsSource,
+  indent: string,
+): string[] {
+  return [
+    `${indent}${PRISM_ALLOW_BUILDS_BEGIN}`,
+    `${indent}# ${PRISM_ALLOW_BUILDS_SCHEMA_KEY}=${source.schema}`,
+    `${indent}# ${PRISM_ALLOW_BUILDS_DATA_VERSION_KEY}=${source.dataVersion}`,
+    `${indent}# ${PRISM_ALLOW_BUILDS_CHANNEL_KEY}=${source.channel}`,
+    ...source.packages.map((pkg) => `${indent}${quoteYamlMapKey(pkg)}: true`),
+    `${indent}${PRISM_ALLOW_BUILDS_END}`,
+  ];
+}
+
+function findAllowBuildsManagedBlock(lines: string[]): {
+  beginIndex: number;
+  endIndex: number;
+} | null {
+  const beginIndexes = lines
+    .map((line, index) =>
+      line.trim() === PRISM_ALLOW_BUILDS_BEGIN ||
+      line.trim() === LEGACY_PRISM_ALLOW_BUILDS_BEGIN
+        ? index
+        : -1,
+    )
+    .filter((index) => index !== -1);
+  const endIndexes = lines
+    .map((line, index) =>
+      line.trim() === PRISM_ALLOW_BUILDS_END ||
+      line.trim() === LEGACY_PRISM_ALLOW_BUILDS_END
+        ? index
+        : -1,
+    )
+    .filter((index) => index !== -1);
+
+  if (beginIndexes.length === 1 && endIndexes.length === 1) {
+    const beginIndex = beginIndexes[0];
+    const endIndex = endIndexes[0];
+    if (beginIndex >= endIndex) {
+      throw new Error("Malformed Prism pnpm allow-builds markers.");
+    }
+    return { beginIndex, endIndex };
+  }
+
+  if (beginIndexes.length !== endIndexes.length || beginIndexes.length > 1) {
+    throw new Error("Malformed Prism pnpm allow-builds markers.");
+  }
+
+  if (
+    lines.some((line) => {
+      const trimmedLine = line.trim();
+      return (
+        trimmedLine.startsWith("# prism-default-allow-builds=") &&
+        trimmedLine !== LEGACY_PRISM_ALLOW_BUILDS_BEGIN &&
+        trimmedLine !== LEGACY_PRISM_ALLOW_BUILDS_END
+      );
+    })
+  ) {
+    throw new Error("Unsupported Prism pnpm allow-builds marker version.");
+  }
+
+  return null;
+}
+
+function getExistingManagedAllowBuildsMetadata(
+  existingContent: string,
+): Partial<
+  Pick<AllowBuildsSource, "schema" | "dataVersion" | "channel">
+> | null {
+  const lines = existingContent ? existingContent.split(/\r?\n/) : [];
+  if (lines.at(-1) === "") {
+    lines.pop();
+  }
+
+  const range = findAllowBuildsManagedBlock(lines);
+  if (!range) {
+    return null;
+  }
+
+  const metadata = parseAllowBuildsMetadata(
+    lines.slice(range.beginIndex + 1, range.endIndex),
+  );
+  return {
+    schema:
+      metadata[PRISM_ALLOW_BUILDS_SCHEMA_KEY] === PRISM_ALLOW_BUILDS_SCHEMA
+        ? PRISM_ALLOW_BUILDS_SCHEMA
+        : undefined,
+    dataVersion: metadata[PRISM_ALLOW_BUILDS_DATA_VERSION_KEY],
+    channel:
+      metadata[PRISM_ALLOW_BUILDS_CHANNEL_KEY] === "local" ||
+      metadata[PRISM_ALLOW_BUILDS_CHANNEL_KEY] === "remote"
+        ? metadata[PRISM_ALLOW_BUILDS_CHANNEL_KEY]
+        : undefined,
+  };
+}
+
+function getTopLevelAllowBuildsRange(lines: string[]): {
+  start: number;
+  end: number;
+} | null {
+  const start = lines.findIndex((line) =>
+    /^allowBuilds:\s*(?:#.*)?$/.test(line),
+  );
+  if (start === -1) {
+    return null;
+  }
+
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.trim() && !/^\s/.test(line)) {
+      end = index;
+      break;
+    }
+  }
+
+  return { start, end };
+}
+
+function parseAllowBuildsExistingKeys(lines: string[]): Set<string> {
+  const keys = new Set<string>();
+  for (const line of lines) {
+    const match = line.match(
+      /^\s{2}((?:"(?:[^"\\]|\\.)+"|'[^']+'|[^:#]+)):\s*/,
+    );
+    if (!match) {
+      continue;
+    }
+
+    const rawKey = match[1].trim();
+    keys.add(parseYamlMapKey(rawKey));
+  }
+  return keys;
+}
+
+function parseYamlMapKey(rawKey: string): string {
+  try {
+    return rawKey.startsWith('"')
+      ? JSON.parse(rawKey)
+      : rawKey.replace(/^'|'$/g, "");
+  } catch {
+    return rawKey;
+  }
+}
+
+function parseAllowBuildsLine(
+  line: string,
+): { key: string; value: string } | null {
+  const match = line.match(
+    /^\s{2}((?:"(?:[^"\\]|\\.)+"|'[^']+'|[^:#]+)):\s*(.*?)\s*(?:#.*)?$/,
+  );
+  if (!match) {
+    return null;
+  }
+
+  return { key: parseYamlMapKey(match[1].trim()), value: match[2].trim() };
+}
+
+// pnpm 11 appends `pkg: set this to true or false` placeholder entries to
+// allowBuilds after a non-strict install that ignored builds. A placeholder
+// neither satisfies strict mode (installs still fail with
+// ERR_PNPM_IGNORED_BUILDS) nor represents a human decision, so Prism treats
+// these as its own to resolve: remove them and let the caller convert them
+// into tagged denials (or a managed `true` when the allow-list covers them).
+const PNPM_PLACEHOLDER_ALLOW_BUILDS_VALUE_PATTERN =
+  /^["']?set this to true or false["']?$/i;
+
+function removePlaceholderAllowBuildsEntries(lines: string[]): string[] {
+  const range = getTopLevelAllowBuildsRange(lines);
+  if (!range) {
+    return [];
+  }
+
+  const managedBlock = findAllowBuildsManagedBlock(lines);
+  const placeholderPackages: string[] = [];
+  for (let index = range.end - 1; index > range.start; index -= 1) {
+    if (
+      managedBlock &&
+      index >= managedBlock.beginIndex &&
+      index <= managedBlock.endIndex
+    ) {
+      continue;
+    }
+
+    const parsedLine = parseAllowBuildsLine(lines[index]);
+    if (
+      parsedLine &&
+      PNPM_PLACEHOLDER_ALLOW_BUILDS_VALUE_PATTERN.test(parsedLine.value)
+    ) {
+      lines.splice(index, 1);
+      placeholderPackages.push(parsedLine.key);
+    }
+  }
+
+  return placeholderPackages;
+}
+
+function removeAutoDeniedPromotedBuilds(
+  lines: string[],
+  source: AllowBuildsSource,
+): string[] {
+  const promotedPackageSet = new Set(source.packages);
+  const range = getTopLevelAllowBuildsRange(lines);
+  if (!range || promotedPackageSet.size === 0) {
+    return [];
+  }
+
+  const managedBlock = findAllowBuildsManagedBlock(lines);
+  const promotedPackages: string[] = [];
+  for (let index = range.end - 1; index > range.start; index -= 1) {
+    if (
+      managedBlock &&
+      index >= managedBlock.beginIndex &&
+      index <= managedBlock.endIndex
+    ) {
+      continue;
+    }
+
+    const parsedLine = parseAllowBuildsLine(lines[index]);
+    if (
+      parsedLine &&
+      promotedPackageSet.has(parsedLine.key) &&
+      lines[index].includes(PRISM_AUTO_DENIED_ALLOW_BUILDS_COMMENT)
+    ) {
+      lines.splice(index, 1);
+      promotedPackages.push(parsedLine.key);
+    }
+  }
+
+  return promotedPackages.sort((left, right) => left.localeCompare(right));
+}
+
+function insertAutoDeniedBuilds(
+  lines: string[],
+  allowedPackages: ReadonlySet<string>,
+  packageNames: string[],
+): string[] {
+  const sourcePackageSet = allowedPackages;
+  const range = getTopLevelAllowBuildsRange(lines);
+  const existingKeys = parseAllowBuildsExistingKeys(
+    range ? lines.slice(range.start + 1, range.end) : [],
+  );
+  const newDeniedPackageNames = Array.from(new Set(packageNames))
+    .filter((packageName) => {
+      return (
+        !sourcePackageSet.has(packageName) && !existingKeys.has(packageName)
+      );
+    })
+    .sort((left, right) => left.localeCompare(right));
+
+  if (newDeniedPackageNames.length === 0) {
+    return [];
+  }
+
+  if (!range) {
+    return [];
+  }
+
+  lines.splice(
+    range.start + 1,
+    0,
+    ...newDeniedPackageNames.map(
+      (packageName) =>
+        `  ${quoteYamlMapKey(packageName)}: false ${PRISM_AUTO_DENIED_ALLOW_BUILDS_COMMENT}`,
+    ),
+  );
+  return newDeniedPackageNames;
+}
+
+function hasTopLevelConfigKey(lines: string[], key: string): boolean {
+  return lines.some((line) =>
+    new RegExp(`^${key}:\\s*(?:#.*)?$|^${key}:\\s+`).test(line),
+  );
+}
+
+function formatPnpmWorkspaceConfigContent(lines: string[]): string {
+  if (!hasTopLevelConfigKey(lines, "packages")) {
+    if (lines.length > 0 && lines.at(-1) !== "") {
+      lines.push("");
+    }
+    lines.push("packages:", "  - .");
+  }
+
+  if (!hasTopLevelConfigKey(lines, "minimumReleaseAge")) {
+    lines.push(`minimumReleaseAge: ${MINIMUM_PACKAGE_RELEASE_AGE_MINUTES}`);
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+export function updatePnpmAllowBuildsConfigContent(
+  existingContent: string,
+  allowBuildsText = defaultApproveBuildsText,
+): string {
+  return updatePnpmAllowBuildsConfigContentWithSource(
+    existingContent,
+    parseDefaultAllowBuilds(allowBuildsText),
+  ).content;
+}
+
+function updatePnpmAllowBuildsConfigContentWithSource(
+  existingContent: string,
+  source: AllowBuildsSource,
+  autoDeniedPackageNames: string[] = [],
+): { content: string; promotedPackages: string[]; deniedPackages: string[] } {
+  const lines = existingContent ? existingContent.split(/\r?\n/) : [];
+  if (lines.at(-1) === "") {
+    lines.pop();
+  }
+
+  const promotedPackages = removeAutoDeniedPromotedBuilds(lines, source);
+  // Placeholder entries become tagged denials below (via the deny list), or
+  // simply drop away when the allow-list now covers the package (the managed
+  // block rewrite emits `pkg: true` for those).
+  const packagesToDeny = [
+    ...autoDeniedPackageNames,
+    ...removePlaceholderAllowBuildsEntries(lines),
+  ];
+  const managedBlock = findAllowBuildsManagedBlock(lines);
+  if (managedBlock) {
+    const { beginIndex, endIndex } = managedBlock;
+    const indent = lines[beginIndex].match(/^\s*/)?.[0] ?? "  ";
+    const range = getTopLevelAllowBuildsRange(lines);
+    const existingKeys = range
+      ? parseAllowBuildsExistingKeys([
+          ...lines.slice(range.start + 1, beginIndex),
+          ...lines.slice(endIndex + 1, range.end),
+        ])
+      : new Set<string>();
+    const filteredSource = {
+      ...source,
+      packages: source.packages.filter((pkg) => !existingKeys.has(pkg)),
+    };
+
+    lines.splice(
+      beginIndex,
+      endIndex - beginIndex + 1,
+      ...buildAllowBuildsManagedBlock(filteredSource, indent),
+    );
+    const deniedPackages = insertAutoDeniedBuilds(
+      lines,
+      new Set(source.packages),
+      packagesToDeny,
+    );
+    return {
+      content: formatPnpmWorkspaceConfigContent(lines),
+      promotedPackages,
+      deniedPackages,
+    };
+  }
+
+  const range = getTopLevelAllowBuildsRange(lines);
+  if (range) {
+    const existingKeys = parseAllowBuildsExistingKeys(
+      lines.slice(range.start + 1, range.end),
+    );
+    const filteredSource = {
+      ...source,
+      packages: source.packages.filter((pkg) => !existingKeys.has(pkg)),
+    };
+    lines.splice(
+      range.start + 1,
+      0,
+      ...buildAllowBuildsManagedBlock(filteredSource, "  "),
+    );
+    const deniedPackages = insertAutoDeniedBuilds(
+      lines,
+      new Set(source.packages),
+      packagesToDeny,
+    );
+    return {
+      content: formatPnpmWorkspaceConfigContent(lines),
+      promotedPackages,
+      deniedPackages,
+    };
+  }
+
+  const prefix = lines.length > 0 ? [...lines, ""] : [];
+  const nextLines = [
+    ...prefix,
+    "allowBuilds:",
+    ...buildAllowBuildsManagedBlock(source, "  "),
+  ];
+  const deniedPackages = insertAutoDeniedBuilds(
+    nextLines,
+    new Set(source.packages),
+    packagesToDeny,
+  );
+  return {
+    content: formatPnpmWorkspaceConfigContent(nextLines),
+    promotedPackages,
+    deniedPackages,
+  };
+}
+
+async function fetchRemoteAllowBuildsSource(
+  fetcher: AllowBuildsTextFetcher = fetch,
+): Promise<AllowBuildsSource | null> {
+  const cachedSource = remoteAllowBuildsCache.get(fetcher);
+  if (cachedSource && cachedSource.expiresAtMs > Date.now()) {
+    return cachedSource.source;
+  }
+
+  const pendingFetch = pendingRemoteAllowBuildsFetches.get(fetcher);
+  if (pendingFetch) {
+    return pendingFetch;
+  }
+
+  const fetchPromise = fetchRemoteAllowBuildsSourceFromNetwork(fetcher).finally(
+    () => {
+      pendingRemoteAllowBuildsFetches.delete(fetcher);
+    },
+  );
+  pendingRemoteAllowBuildsFetches.set(fetcher, fetchPromise);
+  return fetchPromise;
+}
+
+async function fetchRemoteAllowBuildsSourceFromNetwork(
+  fetcher: AllowBuildsTextFetcher,
+): Promise<AllowBuildsSource | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    PRISM_ALLOW_BUILDS_FETCH_TIMEOUT_MS,
+  );
+
+  try {
+    const response = await fetcher(PRISM_ALLOW_BUILDS_REMOTE_URL, {
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+
+    const text = await response.text();
+    if (text.length > PRISM_ALLOW_BUILDS_MAX_BYTES) {
+      return null;
+    }
+
+    const source = parseDefaultAllowBuilds(text);
+    if (source.channel !== "remote") {
+      return null;
+    }
+    remoteAllowBuildsCache.set(fetcher, {
+      source,
+      expiresAtMs: Date.now() + PRISM_ALLOW_BUILDS_CACHE_TTL_MS,
+    });
+    return source;
+  } catch (error) {
+    logger.debug("Failed to fetch remote pnpm allowBuilds list:", error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveAllowBuildsSource({
+  existingContent,
+  allowBuildsText,
+  remoteAllowBuildsTextFetcher,
+}: {
+  existingContent: string;
+  allowBuildsText?: string;
+  remoteAllowBuildsTextFetcher?: AllowBuildsTextFetcher;
+}): Promise<AllowBuildsSource | null> {
+  if (allowBuildsText !== undefined) {
+    return parseDefaultAllowBuilds(allowBuildsText);
+  }
+
+  const remoteSource = await fetchRemoteAllowBuildsSource(
+    remoteAllowBuildsTextFetcher,
+  );
+  if (remoteSource) {
+    return remoteSource;
+  }
+
+  const existingMetadata =
+    getExistingManagedAllowBuildsMetadata(existingContent);
+  if (
+    existingMetadata?.schema === PRISM_ALLOW_BUILDS_SCHEMA &&
+    existingMetadata.channel === "remote"
+  ) {
+    return null;
+  }
+
+  return parseDefaultAllowBuilds(defaultApproveBuildsText);
+}
+
+export async function ensurePnpmAllowBuildsConfigured({
+  appPath,
+  allowBuildsText,
+  remoteAllowBuildsTextFetcher,
+}: {
+  appPath: string;
+  allowBuildsText?: string;
+  remoteAllowBuildsTextFetcher?: AllowBuildsTextFetcher;
+}): Promise<{ changed: boolean; promotedPackages: string[] }> {
+  const configPath = path.join(appPath, "pnpm-workspace.yaml");
+  try {
+    let existingContent = "";
+    try {
+      existingContent = await fs.readFile(configPath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    const allowBuildsSource = await resolveAllowBuildsSource({
+      existingContent,
+      allowBuildsText,
+      remoteAllowBuildsTextFetcher,
+    });
+    const updateResult = allowBuildsSource
+      ? updatePnpmAllowBuildsConfigContentWithSource(
+          existingContent,
+          allowBuildsSource,
+        )
+      : {
+          content: formatPnpmWorkspaceConfigContent(
+            existingContent
+              ? existingContent.split(/\r?\n/).filter((_, index, lines) => {
+                  return index !== lines.length - 1 || lines[index] !== "";
+                })
+              : [],
+          ),
+          promotedPackages: [],
+          deniedPackages: [],
+        };
+    const nextContent = updateResult.content;
+    if (nextContent === existingContent) {
+      return { changed: false, promotedPackages: [] };
+    }
+
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
+    const tempPath = `${configPath}.tmp`;
+    await fs.writeFile(tempPath, nextContent);
+    await fs.rename(tempPath, configPath);
+    return {
+      changed: true,
+      promotedPackages: updateResult.promotedPackages,
+    };
+  } catch (error) {
+    logger.warn("Failed to update pnpm allowBuilds config:", error);
+    return { changed: false, promotedPackages: [] };
+  }
+}
+
+export async function commitPnpmAllowBuildsConfigIfChanged(
+  appPath: string,
+): Promise<{ promotedPackages: string[] }> {
+  const result = await ensurePnpmAllowBuildsConfigured({ appPath });
+  if (!result.changed) {
+    return { promotedPackages: result.promotedPackages };
+  }
+
+  try {
+    await gitAdd({ path: appPath, filepath: "pnpm-workspace.yaml" });
+    await gitCommit({
+      path: appPath,
+      message: "approve pnpm dependency builds",
+    });
+  } catch (error) {
+    logger.warn("Failed to commit pnpm allowBuilds config:", error);
+  }
+  return { promotedPackages: result.promotedPackages };
+}
+
+const SAFE_PNPM_PACKAGE_NAME_PATTERN = /^(@[a-z0-9-_.]+\/)?[a-z0-9-_.]+$/i;
+
+export function getBestEffortPnpmRebuildCommand(
+  packageNames: string[],
+): string | null {
+  // This command string runs under cmd.exe on Windows (where single quotes
+  // are literal and `true` is not a command) and sh elsewhere, so neither
+  // quoting nor `|| true` is portable. npm package names never need quoting;
+  // drop anything that doesn't look like one, and use `echo` — a builtin
+  // that succeeds in both shells — as the best-effort fallback.
+  const safePackageNames = packageNames.filter((packageName) =>
+    SAFE_PNPM_PACKAGE_NAME_PATTERN.test(packageName),
+  );
+  if (safePackageNames.length === 0) {
+    return null;
+  }
+
+  return `(pnpm rebuild ${safePackageNames.join(" ")} || echo pnpm rebuild skipped)`;
+}
+
+export function getPnpmIgnoredBuildPackageName(packageSpec: string): string {
+  const atIndex = packageSpec.lastIndexOf("@");
+  if (atIndex <= 0) {
+    return packageSpec.trim();
+  }
+  return packageSpec.slice(0, atIndex).trim();
+}
+
+function parseIgnoredBuildsInlineValue(value: string): string[] {
+  const trimmedValue = value.trim();
+  if (!trimmedValue || trimmedValue === "[]") {
+    return [];
+  }
+
+  if (trimmedValue.startsWith("[") && trimmedValue.endsWith("]")) {
+    return trimmedValue
+      .slice(1, -1)
+      .split(",")
+      .map((entry) => entry.trim().replace(/^['"]|['"]$/g, ""))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function parseIgnoredBuildsFromJson(content: string): string[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    return null;
+  }
+
+  if (typeof parsed !== "object" || parsed === null) {
+    return null;
+  }
+
+  const ignoredBuilds = (parsed as { ignoredBuilds?: unknown }).ignoredBuilds;
+  if (ignoredBuilds === undefined) {
+    return [];
+  }
+  if (!Array.isArray(ignoredBuilds)) {
+    return null;
+  }
+
+  return ignoredBuilds.filter(
+    (entry): entry is string => typeof entry === "string",
+  );
+}
+
+export function parsePnpmIgnoredBuildsFromModulesYaml(
+  content: string,
+): PnpmIgnoredBuild[] {
+  // pnpm 10.x/11.x write .modules.yaml as JSON (a YAML subset); older
+  // versions used block-style YAML. Try JSON first, then the line parser.
+  const jsonPackageSpecs = parseIgnoredBuildsFromJson(content);
+  if (jsonPackageSpecs !== null) {
+    return Array.from(new Set(jsonPackageSpecs))
+      .filter(Boolean)
+      .map((packageSpec) => ({
+        packageName: getPnpmIgnoredBuildPackageName(packageSpec),
+        packageSpec,
+      }));
+  }
+
+  const lines = content.split(/\r?\n/);
+  const packageSpecs: string[] = [];
+  let inIgnoredBuilds = false;
+
+  for (const line of lines) {
+    const ignoredBuildsMatch = line.match(/^ignoredBuilds:\s*(.*)$/);
+    if (ignoredBuildsMatch) {
+      inIgnoredBuilds = true;
+      packageSpecs.push(
+        ...parseIgnoredBuildsInlineValue(ignoredBuildsMatch[1]),
+      );
+      continue;
+    }
+
+    if (!inIgnoredBuilds) {
+      continue;
+    }
+
+    if (line.trim() && !/^\s/.test(line)) {
+      break;
+    }
+
+    const listItemMatch = line.match(/^\s*-\s*(.+?)\s*$/);
+    if (listItemMatch) {
+      packageSpecs.push(listItemMatch[1].replace(/^['"]|['"]$/g, ""));
+    }
+  }
+
+  return Array.from(new Set(packageSpecs))
+    .filter(Boolean)
+    .map((packageSpec) => ({
+      packageName: getPnpmIgnoredBuildPackageName(packageSpec),
+      packageSpec,
+    }));
+}
+
+export function parsePnpmIgnoredBuildsFromOutput(
+  output: string,
+): PnpmIgnoredBuild[] {
+  const match = output.match(/Ignored build scripts:\s*([^\n\r]+)/i);
+  if (!match) {
+    return [];
+  }
+
+  return (
+    match[1]
+      .split(",")
+      // The warning-box form ends the list with a period and pads with box
+      // border characters; specs never legitimately end with either.
+      .map((entry) => entry.trim().replace(/[\s│.]+$/u, ""))
+      .filter(Boolean)
+      .map((packageSpec) => ({
+        packageName: getPnpmIgnoredBuildPackageName(packageSpec),
+        packageSpec,
+      }))
+  );
+}
+
+export async function readPnpmIgnoredBuilds(
+  appPath: string,
+): Promise<PnpmIgnoredBuild[]> {
+  try {
+    const modulesYamlPath = path.join(appPath, "node_modules", ".modules.yaml");
+    const content = await fs.readFile(modulesYamlPath, "utf8");
+    return parsePnpmIgnoredBuildsFromModulesYaml(content);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      logger.debug("Failed to read pnpm ignored builds:", error);
+    }
+    return [];
+  }
+}
+
+export function isPnpmIgnoredBuildsError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes(PNPM_IGNORED_BUILDS_ERROR_CODE);
+}
+
+function insertAutoDeniedBuildsIntoContent(
+  existingContent: string,
+  packageNames: string[],
+): { content: string; promotedPackages: string[]; deniedPackages: string[] } {
+  const lines = existingContent ? existingContent.split(/\r?\n/) : [];
+  if (lines.at(-1) === "") {
+    lines.pop();
+  }
+
+  const packagesToDeny = [
+    ...packageNames,
+    ...removePlaceholderAllowBuildsEntries(lines),
+  ];
+  if (packagesToDeny.length > 0 && !getTopLevelAllowBuildsRange(lines)) {
+    if (lines.length > 0 && lines.at(-1) !== "") {
+      lines.push("");
+    }
+    lines.push("allowBuilds:");
+  }
+
+  const deniedPackages = insertAutoDeniedBuilds(
+    lines,
+    new Set<string>(),
+    packagesToDeny,
+  );
+  if (deniedPackages.length === 0) {
+    return {
+      content: existingContent,
+      promotedPackages: [],
+      deniedPackages: [],
+    };
+  }
+
+  return {
+    content: formatPnpmWorkspaceConfigContent(lines),
+    promotedPackages: [],
+    deniedPackages,
+  };
+}
+
+export async function recordDeniedPnpmBuilds({
+  appPath,
+  ignoredBuilds,
+  allowBuildsText,
+  remoteAllowBuildsTextFetcher,
+}: {
+  appPath: string;
+  ignoredBuilds: PnpmIgnoredBuild[];
+  allowBuildsText?: string;
+  remoteAllowBuildsTextFetcher?: AllowBuildsTextFetcher;
+}): Promise<{ deniedBuilds: PnpmIgnoredBuild[] }> {
+  const packageNames = ignoredBuilds.map(
+    (ignoredBuild) => ignoredBuild.packageName,
+  );
+  if (packageNames.length === 0) {
+    return { deniedBuilds: [] };
+  }
+
+  const configPath = path.join(appPath, "pnpm-workspace.yaml");
+  try {
+    let existingContent = "";
+    try {
+      existingContent = await fs.readFile(configPath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    const allowBuildsSource = await resolveAllowBuildsSource({
+      existingContent,
+      allowBuildsText,
+      remoteAllowBuildsTextFetcher,
+    });
+    const updateResult = allowBuildsSource
+      ? updatePnpmAllowBuildsConfigContentWithSource(
+          existingContent,
+          allowBuildsSource,
+          packageNames,
+        )
+      : // A remote-managed config whose fetch failed (offline/API outage):
+        // skip the managed rewrite but still record denials against the
+        // existing content — insertAutoDeniedBuilds already skips packages
+        // present anywhere in the allowBuilds map, managed block included.
+        insertAutoDeniedBuildsIntoContent(existingContent, packageNames);
+    if (updateResult.content === existingContent) {
+      return { deniedBuilds: [] };
+    }
+
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
+    const tempPath = `${configPath}.tmp`;
+    await fs.writeFile(tempPath, updateResult.content);
+    await fs.rename(tempPath, configPath);
+
+    const deniedPackageNameSet = new Set(updateResult.deniedPackages);
+    const deniedBuilds = ignoredBuilds.filter((ignoredBuild) =>
+      deniedPackageNameSet.has(ignoredBuild.packageName),
+    );
+    if (deniedBuilds.length === 0) {
+      return { deniedBuilds: [] };
+    }
+
+    try {
+      await gitAdd({ path: appPath, filepath: "pnpm-workspace.yaml" });
+      await gitCommit({
+        path: appPath,
+        message: "record denied pnpm dependency builds",
+      });
+    } catch (error) {
+      logger.warn("Failed to commit denied pnpm builds config:", error);
+    }
+
+    return { deniedBuilds };
+  } catch (error) {
+    logger.warn("Failed to record denied pnpm builds:", error);
+    return { deniedBuilds: [] };
+  }
+}
+
+export function resolveExecutableName(
+  command: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return resolveWindowsExecutableName(command, platform);
+}
+
+export function buildPtyInvocation(
+  command: string,
+  args: string[],
+  platform: NodeJS.Platform = process.platform,
+  comSpec = process.env.ComSpec ?? "cmd.exe",
+): { command: string; args: string[] } {
+  return buildWindowsCommandInvocation(command, args, platform, comSpec);
+}
+
+export async function runCommand(
+  command: string,
+  args: string[],
+  options: CommandExecutionOptions = {},
+): Promise<CommandExecutionResult> {
+  try {
+    const invocation = buildPtyInvocation(command, args);
+    const { output } = await runPtyCommand(
+      invocation.command,
+      invocation.args,
+      {
+        cwd: options.cwd,
+        displayCommand: buildCommandDisplay(command, args),
+        env: options.env,
+        timeoutMs: options.timeoutMs,
+      },
+    );
+
+    return {
+      stdout: output,
+      stderr: "",
+    };
+  } catch (error) {
+    if (error instanceof PtyCommandExecutionError) {
+      throw new CommandExecutionError({
+        message: error.message,
+        stdout: error.output,
+        exitCode: error.exitCode,
+      });
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    throw new CommandExecutionError({
+      message: `Failed to run command '${buildCommandDisplay(command, args)}': ${message}`,
+    });
+  }
+}
+
+export function getCommandExecutionDisplayDetails(
+  error: unknown,
+): string | undefined {
+  if (!(error instanceof CommandExecutionError)) {
+    return undefined;
+  }
+
+  const stderr = error.stderr.trim();
+  if (stderr) {
+    return stderr;
+  }
+
+  const stdout = error.stdout.trim();
+  if (stdout) {
+    return stdout;
+  }
+
+  return undefined;
+}
+
+export async function ensureSocketFirewallInstalled(
+  runner: CommandRunner = runCommand,
+): Promise<{
+  available: boolean;
+  warningMessage?: string;
+}> {
+  try {
+    await runner("npx", [...SOCKET_FIREWALL_NPX_ARGS, "--help"], {
+      env: getPackageManagerCommandEnv(),
+      timeoutMs: SOCKET_FIREWALL_PROBE_TIMEOUT_MS,
+    });
+    return { available: true };
+  } catch {
+    return {
+      available: false,
+      warningMessage: SOCKET_FIREWALL_WARNING_MESSAGE,
+    };
+  }
+}
+
+export async function detectPreferredPackageManager(
+  runner: CommandRunner = runCommand,
+): Promise<PackageManager> {
+  const pnpmSupport = await getPnpmMinimumReleaseAgeSupport(runner);
+  return pnpmSupport.available ? "pnpm" : "npm";
+}
+
+export async function getPnpmMinimumReleaseAgeSupport(
+  runner: CommandRunner = runCommand,
+): Promise<{
+  available: boolean;
+  minimumReleaseAgeSupported: boolean;
+  version?: string;
+  warningMessage?: string;
+}> {
+  const testPnpmVersion = IS_TEST_BUILD
+    ? process.env.PRISM_TEST_PNPM_VERSION
+    : undefined;
+  if (testPnpmVersion) {
+    if (isVersionAtLeast(testPnpmVersion, PNPM_MINIMUM_RELEASE_AGE_VERSION)) {
+      return {
+        available: true,
+        minimumReleaseAgeSupported: true,
+        version: testPnpmVersion,
+      };
+    }
+    return {
+      available: true,
+      minimumReleaseAgeSupported: false,
+      version: testPnpmVersion,
+      warningMessage: PNPM_MINIMUM_RELEASE_AGE_WARNING_MESSAGE,
+    };
+  }
+
+  try {
+    // Probe with bare --version: pnpm 8.x/9.0 reject --config.* flags on
+    // --version ("Unknown option") even though they accept them on real
+    // subcommands, so a flagged probe would misreport a working pnpm as
+    // unavailable. The pm-on-fail setting still applies via
+    // npm_config_pm_on_fail in getPackageManagerCommandEnv().
+    const result = await runner("pnpm", ["--version"], {
+      env: getPackageManagerCommandEnv(),
+      timeoutMs: PACKAGE_MANAGER_PROBE_TIMEOUT_MS,
+    });
+    const version = result.stdout.trim();
+    if (isVersionAtLeast(version, PNPM_MINIMUM_RELEASE_AGE_VERSION)) {
+      return { available: true, minimumReleaseAgeSupported: true, version };
+    }
+    return {
+      available: true,
+      minimumReleaseAgeSupported: false,
+      version,
+      warningMessage: PNPM_MINIMUM_RELEASE_AGE_WARNING_MESSAGE,
+    };
+  } catch {
+    return {
+      available: false,
+      minimumReleaseAgeSupported: false,
+      warningMessage: PNPM_MINIMUM_RELEASE_AGE_WARNING_MESSAGE,
+    };
+  }
+}
+
+export function buildAddDependencyCommand(
+  packages: string[],
+  packageManager: PackageManager,
+  useSocketFirewall: boolean,
+  options: { dev?: boolean; saveExact?: boolean } = {},
+): { command: string; args: string[] } {
+  const { dev = false, saveExact = false } = options;
+  const packageManagerArgs =
+    packageManager === "pnpm"
+      ? [
+          ...PNPM_INSTALL_POLICY_ARGS,
+          "add",
+          "--ignore-workspace-root-check",
+          ...(dev ? ["-D"] : []),
+          ...(saveExact ? ["--save-exact"] : []),
+          ...packages,
+        ]
+      : [
+          "install",
+          "--legacy-peer-deps",
+          ...(dev ? ["--save-dev"] : []),
+          ...(saveExact ? ["--save-exact"] : []),
+          ...packages,
+        ];
+
+  return wrapPackageManagerCommand(
+    packageManager,
+    packageManagerArgs,
+    useSocketFirewall,
+  );
+}
+
+export function buildUpdateDependencyCommand(
+  packages: string[],
+  packageManager: PackageManager,
+  useSocketFirewall: boolean,
+): { command: string; args: string[] } {
+  const packageManagerArgs =
+    packageManager === "pnpm"
+      ? [...PNPM_INSTALL_POLICY_ARGS, "update", ...packages]
+      : ["update", "--legacy-peer-deps", ...packages];
+
+  return wrapPackageManagerCommand(
+    packageManager,
+    packageManagerArgs,
+    useSocketFirewall,
+  );
+}
+
+function wrapPackageManagerCommand(
+  packageManager: PackageManager,
+  packageManagerArgs: string[],
+  useSocketFirewall: boolean,
+): { command: string; args: string[] } {
+  if (useSocketFirewall) {
+    return {
+      // Use a pinned npx package so sfw stays reproducible and avoids global path issues on Windows.
+      command: "npx",
+      args: [
+        ...SOCKET_FIREWALL_NPX_ARGS,
+        packageManager,
+        ...packageManagerArgs,
+      ],
+    };
+  }
+
+  return {
+    command: packageManager,
+    args: packageManagerArgs,
+  };
+}

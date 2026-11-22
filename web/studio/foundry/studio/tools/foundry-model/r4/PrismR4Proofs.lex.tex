@@ -1,0 +1,414 @@
+\begin{lexlean}{PrismR4Proofs}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{PrismR4}
+\title{Text application model}
+\begin{semanticmodule}
+definition{
+  name: r4BreaksInv001,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: ((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && ((project request weights) =? (PrismR4::r4WeightsMismatch))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv001Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv001 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv001
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv002,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: ((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && (not ((project request engine) =? (PrismR4::r4EngineMatch)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv002Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv002 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv002
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv003,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: (((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && ((project request mode) =? (PrismR4::r4ModeRouted))) && (not ((project request route) =? (PrismR4::r4RouteGranted)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv003Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv003 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv003
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv004,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: (((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && ((project request mode) =? (PrismR4::r4ModeCompiled))) && (not ((project request weights) =? (PrismR4::r4WeightsNone)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv004Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv004 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv004
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv005,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: (((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && ((project request mode) =? (PrismR4::r4ModeInprism))) && (not ((project request weights) =? (PrismR4::r4WeightsMatch)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv005Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv005 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv005
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv006,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: (((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && (not ((project request mode) =? (PrismR4::r4ModeRouted)))) && (not ((project request route) =? (PrismR4::r4RouteNone)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv006Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv006 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv006
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: r4BreaksInv007,
+  parameters: [request : PrismR4::R4Request],
+  result: Bool,
+  body: ((((((((project request mode) <? 3) && ((project request engine) <? 3)) && ((project request weights) <? 4)) && ((project request route) <? 3)) && ((project request boundary) <? 4)) && (not ((project request boundary) =? (PrismR4::r4BoundaryAllow)))) && ((PrismR4::r4Judge request) =? (PrismR4::r4AnswerAnswer)))
+}
+
+theorem{
+  name: r4Inv007Holds,
+  parameters: [request : PrismR4::R4Request],
+  statement: ((r4BreaksInv007 request) = false),
+  proof: linear_arithmetic{
+    definitions: [
+      PrismR4::r4AnswerAnswer,
+      PrismR4::r4AnswerAsk,
+      PrismR4::r4AnswerReceipt,
+      PrismR4::r4AnswerRefuse,
+      PrismR4::r4BoundaryAllow,
+      PrismR4::r4BoundaryAsk,
+      PrismR4::r4BoundaryDeny,
+      PrismR4::r4BoundaryHashonly,
+      PrismR4::r4EngineMatch,
+      PrismR4::r4EngineMismatch,
+      PrismR4::r4EngineMissing,
+      PrismR4::r4Judge,
+      PrismR4::r4ModeCompiled,
+      PrismR4::r4ModeInprism,
+      PrismR4::r4ModeRouted,
+      PrismR4::r4RouteGranted,
+      PrismR4::r4RouteNone,
+      PrismR4::r4RouteUngranted,
+      PrismR4::r4Rule1,
+      PrismR4::r4Rule10,
+      PrismR4::r4Rule11,
+      PrismR4::r4Rule1Misses,
+      PrismR4::r4Rule2,
+      PrismR4::r4Rule3,
+      PrismR4::r4Rule3Misses,
+      PrismR4::r4Rule4,
+      PrismR4::r4Rule4Misses,
+      PrismR4::r4Rule5,
+      PrismR4::r4Rule5Misses,
+      PrismR4::r4Rule6,
+      PrismR4::r4Rule6Misses,
+      PrismR4::r4Rule7,
+      PrismR4::r4Rule7Misses,
+      PrismR4::r4Rule8,
+      PrismR4::r4Rule9,
+      PrismR4::r4WeightsMatch,
+      PrismR4::r4WeightsMismatch,
+      PrismR4::r4WeightsMissing,
+      PrismR4::r4WeightsNone,
+      r4BreaksInv007
+    ]
+  },
+  axioms: [Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

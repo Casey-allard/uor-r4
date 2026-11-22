@@ -1,0 +1,563 @@
+{
+ "about": "Where each file every built app carries comes from: byte-equal to source.path in source.repository at source.commit, checked when this table was written, and held to its SHA-256 by DR-19.",
+ "files": [
+  {
+   "path": "app/language/prism.arch/entries/arch-component-kind.toml",
+   "sha256": "bb54f236dd64badfc74d57ee43a0f4d886786b9270edb07347f062541bec613e",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-component-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-component.toml",
+   "sha256": "bf09a1e640dd6fd3444f4b0e86e347eea716e6154937140bbb1b5fdca4221ca5",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-component.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-concern.toml",
+   "sha256": "64e175a6742bb0ce67dcc2aabb43b374da2a7869d79d3743e5cdedec2c6377bf",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-concern.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-design-diagram.toml",
+   "sha256": "d1271732b7422830e447dbee53d50c94f96ee62a6f8ff9d8c48733a5dc7de590",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-design-diagram.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-design-view.toml",
+   "sha256": "700c790b669ca183e2d1597aa31794fc5b5176ea73ec90739842b7d8178b6029",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-design-view.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-edge-kind.toml",
+   "sha256": "333c549f1db8311e47c74e391839649e20ba45495f6c40843348a45588db444f",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-edge-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-edge.toml",
+   "sha256": "d55c136497837e0fa8a8145f0d8be51a3d5c156a8da90ac569d2a254bf8f6f40",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-edge.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-feature.toml",
+   "sha256": "e7fa5eef2083d92238d095e673dea6ec3afa334b94e746b880d386baec7007d0",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-feature.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-journey.toml",
+   "sha256": "83d9b65b897757bde8ae20a9c2711b14c71353366f11a8cc842cd1187f413500",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-journey.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-model-kind.toml",
+   "sha256": "ccb283501e64ab83914728371e1e2fdf8301837bc502804c4bd18c1d49128ada",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-model-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-link-kind.toml",
+   "sha256": "415728234f06cd6edbfee42d886c6e22f6fa50496c60956da6b492fdd0b6e430",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-link-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-link.toml",
+   "sha256": "4c6dcac08a14d3fa3227e3c835a217d8ef9c9f2cfe873c21bd59ddd5b65e9162",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-link.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-state.toml",
+   "sha256": "30ba55bfe521791338c72979c970ba8f5611816ba581161ba949ba0f45eb4b18",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-state.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-thing-kind.toml",
+   "sha256": "65f4f8345dd4c9e2d4d4d411aa889c113f87c800bd8e5ed8cc3ba426d8d619da",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-thing-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-thing.toml",
+   "sha256": "58952b0e65b24e86872e06f7ddd8ab6b6eca16b16da155f675145ca17d528652",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-thing.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-opm-zoom.toml",
+   "sha256": "e972d07ce8a43b731a391c5fe0ac1db21d16da6487f38d7411785b711f24ad27",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-opm-zoom.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-stakeholder.toml",
+   "sha256": "06524c57a142d217a2a3d4edd3acfa619a9ef4bddc794d9ba47ca4038e89e544",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-stakeholder.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-standard-reference.toml",
+   "sha256": "07e3dcf71b75ee0dcfe8441894e5ad3744f042577c502619b3bedb787c86ca1b",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-standard-reference.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-system-process.toml",
+   "sha256": "6bd0007adce95dfd7d1b9b0c6feb4beaf5957610da3acb9c38e4bc0800d50e08",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-system-process.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-system-state.toml",
+   "sha256": "b1f6931d2b8cdae634248f63b0e2e1fb82c45ea911daebdc05cf45f0a0f561c1",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-system-state.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-text-application-model.toml",
+   "sha256": "6d92d1a7d29d4516dde60bd9539e758b1076dfbf889860e3e435f289c504b9d1",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-text-application-model.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-component.toml",
+   "sha256": "b6452e2a27a5769f02885dbe65c59f5b97c7b0cb9d2a631c3cd2b7f456f40c38",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-component.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-connector.toml",
+   "sha256": "4449a51cdc9bbbe18b2c79a9de0c6701221b59f5587d666f88a0fc5ebf3f215f",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-connector.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-lifeline.toml",
+   "sha256": "ae42f311e9aae008651342490fbb2f76ad58ae39b431244309bd61d19da89779",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-lifeline.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-message-kind.toml",
+   "sha256": "26847bf271b316e622f940309c2dd192b4dafbb9c5c891ade2bd93a770735e66",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-message-kind.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-message.toml",
+   "sha256": "cb1ed600c3a668c9a308195bfd4fd946cdbabe645e052709556656ac1c0fc4a4",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-message.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-state.toml",
+   "sha256": "edcd73e3810655c219625e20e198659fab6cd1f4fa757bbb57842133350ec9c7",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-state.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-uml-transition.toml",
+   "sha256": "246b1e916ca5db6546fe02d9b9d3000c98d31ac5cf59981c3126073937d6f8e4",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-uml-transition.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-view-class.toml",
+   "sha256": "ef9465462b1adcf5c36b10b2669f03057d5215bbfd10e863db58e81727408fdb",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-view-class.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-view.toml",
+   "sha256": "1684e6298c81eb2d3f893fe6583f24ff23da9556868e8a323f9e0e7757c74ef9",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-view.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-viewpoint-class.toml",
+   "sha256": "c1efce0dd43342b471433ae8a89d7cc46876d54ef3200aed8e08e817f36795cf",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/arch-viewpoint-class.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/arch-viewpoint.toml",
+   "sha256": "c2346ce74e4b88893c0d1c2195266290aa90fe1db095220b4fd20b106fce2d07",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/arch-viewpoint.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/holo-flat-validation-input.toml",
+   "sha256": "e3a0cf83efd144e1aa3ed6ce5b67ea3bed1df1c4f198c71655c817b65b1d0108",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/holo-flat-validation-input.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/holo-normalized-features.toml",
+   "sha256": "97870c07f976c8ed25e2eedc87de98339eea79e65e3a78530ee30327d1c8cd20",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.arch/entries/holo-normalized-features.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/holo-normalized-model.toml",
+   "sha256": "5f7f66774560717cfa55842e30e8fc1b097e1e038b0eba6da6ea3312b583080e",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/holo-normalized-model.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/holo-standards-profile.toml",
+   "sha256": "1cf436bcdcc986f4ffcb41db1f31eba74aab4e534a867b4dc5d6d6cf7523417d",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/holo-standards-profile.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/prism-bounded-byte-buffer.toml",
+   "sha256": "9b8f6d61f42389a8e63bfbac674ec1b3061f5f004adda8279158df549ee7c902",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/prism-bounded-byte-buffer.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/prism-browser-system-model.toml",
+   "sha256": "3ba45fd6754e84290033a4f18ebc06f5338c8e8affd5e58ee95b07e572fcf42b",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/prism-browser-system-model.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/prism-production-system-model.toml",
+   "sha256": "91df8207b685a56ba0f0032ed06e875f707202789d21aa3cb6e8b31b4855fb34",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/prism-production-system-model.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/entries/prism-unicode-text-codec.toml",
+   "sha256": "7c296475b0a97eccee73eb522af93359eaf185b04571e280b01d394b20f9e1e1",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/entries/prism-unicode-text-codec.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.arch/lexicon.toml",
+   "sha256": "14c95df8b512edacacdb1788b58ae90cf573b4e3f1dca0e41074bfde5a380c9f",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/language/prism.arch/lexicon.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.qual/entries/qual-characteristic.toml",
+   "sha256": "88c99bf5804a200ea5d42c4937567ffc9469f0a500967d7db077ebc31b1c60ca",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.qual/entries/qual-characteristic.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.qual/entries/qual-measure.toml",
+   "sha256": "304e8b84739e034eee5635801b02044d16522e82e53a54e4af173c0dcf929d09",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.qual/entries/qual-measure.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.qual/entries/qual-requirement.toml",
+   "sha256": "85a2d7dec43320aa24ee3e0e3706035d94bcdf38613c0c56d44f46c194e29fa6",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.qual/entries/qual-requirement.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.qual/entries/qual-subcharacteristic.toml",
+   "sha256": "3e7ae6099226785e401b3bcba2c2a508b705b17cb7c33673e8f6c6be8b4aec9f",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.qual/entries/qual-subcharacteristic.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.qual/lexicon.toml",
+   "sha256": "a79fae9a81e748c01f19a48dd066b0dedd356c05b791bd8bc8e7ce20d44cb335",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.qual/lexicon.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-activity.toml",
+   "sha256": "a9d8f0369b33d332d58fc5155bf26fe73573d94dae627624d1c02922028fe6c5",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-activity.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-asset.toml",
+   "sha256": "11ad482bdceffcb5413351d40566221e6ae06bd08731a27d04ad66cb8038fafb",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-asset.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-control.toml",
+   "sha256": "2079014db65e604290d9b5b09cd9fbd63da084a4cd082e39dd4c2836ac9e9192",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-control.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-impact.toml",
+   "sha256": "2dcf1b527613d7d4c11f477c23f5f10fd7181a7f315dfb87c8585d1b3c28827b",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-impact.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-likelihood.toml",
+   "sha256": "36ffd259c2d5598cd18dab6e1d023910712c7fe86f1e0b7fcebae106084954cb",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-likelihood.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-measurement.toml",
+   "sha256": "2e5ff2c76971922d6321ae4ae6eeb29330d14cab2efb363ab0d10ebc5c95e400",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-measurement.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-risk.toml",
+   "sha256": "f2a6d3dbee6dab80f208394fcdfb50eccb1185ae46ad9e2a31eb057b33a36b72",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-risk.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/entries/sec-threat.toml",
+   "sha256": "a9b2201976bb336399d5ba4456a32c60263101b9accbbdbf8d9361e3c3175c21",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/entries/sec-threat.toml"
+   }
+  },
+  {
+   "path": "app/language/prism.sec/lexicon.toml",
+   "sha256": "d9b9663715d38c6d181becc8d433e3c3636b55d7ef97bd1f3d39688222925f7c",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/language/prism.sec/lexicon.toml"
+   }
+  },
+  {
+   "path": "app/lean-toolchain",
+   "sha256": "8e3538e0ab5f81a3ee04927d8838c8c674e0e112838b4b3ce87ec218143276af",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/lean-toolchain"
+   }
+  },
+  {
+   "path": "app/src/Foundation/Arch.lex.tex",
+   "sha256": "ac98d00c82c37d523361ef2fa01419e796c359b74c4a87ac39d53d4821aa80d8",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/src/Foundation/Arch.lex.tex"
+   }
+  },
+  {
+   "path": "app/src/Foundation/Bytes.lex.tex",
+   "sha256": "ce16e5b439128db3231979381f4599d3ff0617f62c2bf00c348bba35393abcd6",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/src/Foundation/Bytes.lex.tex"
+   }
+  },
+  {
+   "path": "app/src/Foundation/Qual.lex.tex",
+   "sha256": "6a0dbe7026dbdce3e52fa6082eac54d0155ca6bc40ac2abf25fd5e225de239bd",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/src/Foundation/Qual.lex.tex"
+   }
+  },
+  {
+   "path": "app/src/Foundation/Sec.lex.tex",
+   "sha256": "518b968cbcf6251785d8bc450df0de8737b7e491235361a46f9b20684810a5b2",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/src/Foundation/Sec.lex.tex"
+   }
+  },
+  {
+   "path": "app/src/Foundation/View/Text/V1/Model.lex.tex",
+   "sha256": "db124343ad8fe1295bc8eb305c7f59f83cf6ad76d46a5cabea500fe66f3ad5dc",
+   "source": {
+    "repository": "UOR-Foundation/template",
+    "commit": "e79e0dcd7b95189f588c9ef2bebf5606b9ce3eb0",
+    "path": "app/src/Foundation/View/Text/V1/Model.lex.tex"
+   }
+  },
+  {
+   "path": "app/src/Production/ThreatModel.lex.tex",
+   "sha256": "bc6acde21335954805485e15c86d9f35178dceda8563d1dabdc062dcff6acc29",
+   "source": {
+    "repository": "UOR-Foundation/PrismPM",
+    "commit": "3db7f3e6be768f4e1347e5717e9f805492573d05",
+    "path": "tests/negative/threat-model/unmapped-threat/project/src/Production/ThreatModel.lex.tex"
+   }
+  }
+ ]
+}

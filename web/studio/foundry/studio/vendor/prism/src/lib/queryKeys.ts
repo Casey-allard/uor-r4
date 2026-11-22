@@ -1,0 +1,550 @@
+/**
+ * Centralized React Query key factory.
+ *
+ * This pattern provides:
+ * - Type-safe query keys with full autocomplete
+ * - Hierarchical structure for easy invalidation (invalidate parent to invalidate children)
+ * - Consistent naming across the codebase
+ * - Single source of truth for all query keys
+ *
+ * Usage:
+ *   queryKey: queryKeys.apps.detail({ appId })
+ *   queryClient.invalidateQueries({ queryKey: queryKeys.apps.all })
+ *
+ * @see https://tkdodo.eu/blog/effective-react-query-keys
+ */
+
+export const queryKeys = {
+  subagents: {
+    all: ["subagents"] as const,
+    byChat: ({ chatId }: { chatId: number }) => ["subagents", chatId] as const,
+    messages: ({ chatId, threadId }: { chatId: number; threadId: string }) =>
+      ["subagents", chatId, "messages", threadId] as const,
+    activities: ({ chatId, threadId }: { chatId: number; threadId: string }) =>
+      ["subagents", chatId, "activities", threadId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // System
+  // ─────────────────────────────────────────────────────────────────────────────
+  system: {
+    all: ["system"] as const,
+    appVersion: ["system", "appVersion"] as const,
+    nodejsStatus: ["system", "nodejsStatus"] as const,
+    nativeTheme: ["system", "nativeTheme"] as const,
+    platform: ["system", "platform"] as const,
+    subscriptionStatus: ["system", "subscriptionStatus"] as const,
+    initialLoadTelemetryContext: [
+      "system",
+      "initialLoadTelemetryContext",
+    ] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Settings
+  // ─────────────────────────────────────────────────────────────────────────────
+  settings: {
+    all: ["settings"] as const,
+    user: ["settings", "user"] as const,
+    envVars: ["settings", "envVars"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Apps
+  // ─────────────────────────────────────────────────────────────────────────────
+  apps: {
+    all: ["apps"] as const,
+    detail: ({ appId }: { appId: number | null }) =>
+      ["apps", "detail", appId] as const,
+    screenshots: ({ appId }: { appId: number | null }) =>
+      ["apps", "screenshots", appId] as const,
+    thumbnails: ["apps", "thumbnails"] as const,
+    search: ({ query }: { query: string }) =>
+      ["apps", "search", query] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Collections
+  // ─────────────────────────────────────────────────────────────────────────────
+  appCollections: {
+    all: ["appCollections"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Chats
+  // ─────────────────────────────────────────────────────────────────────────────
+  chats: {
+    all: ["chats"] as const,
+    list: ({ appId }: { appId: number | null }) => ["chats", appId] as const,
+    detail: ({ chatId }: { chatId: number | null }) =>
+      ["chats", "detail", chatId] as const,
+    search: ({ appId, query }: { appId: number | null; query: string }) =>
+      ["chats", "search", appId, query] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Plans
+  // ─────────────────────────────────────────────────────────────────────────────
+  plans: {
+    all: ["plans"] as const,
+    forChat: ({
+      appId,
+      chatId,
+    }: {
+      appId: number | null;
+      chatId: number | null;
+    }) => ["plans", "forChat", appId, chatId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Proposals
+  // ─────────────────────────────────────────────────────────────────────────────
+  proposals: {
+    all: ["proposal"] as const,
+    detail: ({ chatId }: { chatId: number | undefined }) =>
+      ["proposal", chatId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Git / Versions
+  // ─────────────────────────────────────────────────────────────────────────────
+  versions: {
+    all: ["versions"] as const,
+    list: ({ appId }: { appId: number | null }) => ["versions", appId] as const,
+    changes: ({
+      appId,
+      versionId,
+    }: {
+      appId: number | null;
+      versionId: string | null;
+    }) => ["versions", appId, "changes", versionId] as const,
+    restoreToMessageMutation: ({ appId }: { appId: number | null }) =>
+      ["restoreToMessageVersion", appId] as const,
+    revertMutation: ({ appId }: { appId: number | null }) =>
+      ["revertVersion", appId] as const,
+  },
+
+  branches: {
+    all: ["branches"] as const,
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["branches", appId] as const,
+    current: ({ appId }: { appId: number | null }) =>
+      ["branches", appId, "current"] as const,
+    inventory: ({ appId }: { appId: number }) =>
+      ["branches", appId, "inventory"] as const,
+  },
+
+  uncommittedFiles: {
+    all: ["uncommittedFiles"] as const,
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["uncommittedFiles", appId] as const,
+    diff: ({
+      appId,
+      filePath,
+    }: {
+      appId: number | null;
+      filePath: string | null;
+    }) => ["uncommittedFiles", appId, "diff", filePath] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Problems / Diagnostics
+  // ─────────────────────────────────────────────────────────────────────────────
+  problems: {
+    all: ["problems"] as const,
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["problems", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Tests
+  // ─────────────────────────────────────────────────────────────────────────────
+  tests: {
+    all: ["tests"] as const,
+    list: ({ appId }: { appId: number | null }) =>
+      ["tests", "list", appId] as const,
+    legacy: ({ appId }: { appId: number | null }) =>
+      ["tests", "legacy", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Context Paths
+  // ─────────────────────────────────────────────────────────────────────────────
+  contextPaths: {
+    all: ["context-paths"] as const,
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["context-paths", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Token Counting
+  // ─────────────────────────────────────────────────────────────────────────────
+  tokenCount: {
+    all: ["tokenCount"] as const,
+    forChat: ({ chatId, input }: { chatId: number | null; input: string }) =>
+      ["tokenCount", chatId, input] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Files
+  // ─────────────────────────────────────────────────────────────────────────────
+  files: {
+    search: ({ appId, query }: { appId: number | null; query: string }) =>
+      ["search-app-files", appId, query] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Files
+  // ─────────────────────────────────────────────────────────────────────────────
+  appFiles: {
+    all: ["app-files"] as const,
+    content: ({
+      appId,
+      filePath,
+    }: {
+      appId: number | null;
+      filePath: string | null;
+    }) => ["app-files", "content", appId, filePath] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Name Check
+  // ─────────────────────────────────────────────────────────────────────────────
+  appName: {
+    check: ({ name }: { name: string }) => ["checkAppName", name] as const,
+    folderPreview: ({ name, appId }: { name: string; appId?: number }) =>
+      ["appFolderPreview", name, appId ?? null] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Security Review
+  // ─────────────────────────────────────────────────────────────────────────────
+  securityReview: {
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["security-review", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Theme
+  // ─────────────────────────────────────────────────────────────────────────────
+  appTheme: {
+    all: ["app-theme"] as const,
+    byApp: ({ appId }: { appId: number | undefined }) =>
+      ["app-theme", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Themes (global list)
+  // ─────────────────────────────────────────────────────────────────────────────
+  themes: {
+    all: ["themes"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Custom Themes
+  // ─────────────────────────────────────────────────────────────────────────────
+  customThemes: {
+    all: ["custom-themes"] as const,
+  },
+  themeGenerationModelOptions: {
+    all: ["theme-generation-model-options"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Templates
+  // ─────────────────────────────────────────────────────────────────────────────
+  templates: {
+    all: ["templates"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Prompts
+  // ─────────────────────────────────────────────────────────────────────────────
+  prompts: {
+    all: ["prompts"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Agent Tools
+  // ─────────────────────────────────────────────────────────────────────────────
+  agentTools: {
+    all: ["agent-tools"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Language Models / Providers
+  // ─────────────────────────────────────────────────────────────────────────────
+  languageModels: {
+    providers: ["languageModelProviders"] as const,
+    byProviders: ["language-models-by-providers"] as const,
+    forProvider: ({ providerId }: { providerId: string }) =>
+      ["language-models", providerId] as const,
+    ollamaLocal: ["language-models", "ollama-local"] as const,
+    lmStudioLocal: ["language-models", "lmstudio-local"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // User Budget
+  // ─────────────────────────────────────────────────────────────────────────────
+  userBudget: {
+    info: ["userBudgetInfo"] as const,
+  },
+
+  cloudSandboxes: {
+    status: ({ appId }: { appId: number | null }) =>
+      ["cloudSandboxStatus", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Free Agent Quota
+  // ─────────────────────────────────────────────────────────────────────────────
+  freeAgentQuota: {
+    status: ["freeAgentQuotaStatus"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Free Pro Model Quota
+  // ─────────────────────────────────────────────────────────────────────────────
+  freeModelQuota: {
+    status: ["freeModelQuotaStatus"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Vercel Deployments
+  // ─────────────────────────────────────────────────────────────────────────────
+  vercel: {
+    all: ["vercel"] as const,
+    deployments: ({ appId }: { appId: number }) =>
+      ["vercel", "deployments", appId] as const,
+    syncPreview: ({ appId }: { appId: number | null }) =>
+      ["vercel", "syncPreview", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Coolify Deployments
+  // ─────────────────────────────────────────────────────────────────────────────
+  coolify: {
+    all: ["coolify"] as const,
+    status: ({ appId }: { appId: number }) =>
+      ["coolify", "status", appId] as const,
+    /**
+     * Keyed by instance and token: servers and projects belong to both, and
+     * two tokens on one instance can see different teams.
+     *
+     * The token comes from the status query, which lags the write, so in
+     * principle a list fetched with one token can land under another's key.
+     * Changing a token requires signing out first, which disables these
+     * queries, so nothing reaches that state through the form today.
+     */
+    discovery: (instanceUrl: string | null, tokenId: string | null) =>
+      [
+        "coolify",
+        "discovery",
+        instanceUrl ?? "none",
+        tokenId ?? "none",
+      ] as const,
+    /** What the main process is doing with a server right now. */
+    setup: ["coolify", "setup"] as const,
+    /** The public half of the key Prism puts on servers it sets up. */
+    serverKey: ["coolify", "serverKey"] as const,
+    /** What Prism knows about signing in to the server it set up. */
+    credentials: ["coolify", "credentials"] as const,
+    /** Every instance's list, for invalidating after a token change. */
+    discoveryAll: ["coolify", "discovery"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Upgrades
+  // ─────────────────────────────────────────────────────────────────────────────
+  appUpgrades: {
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["app-upgrades", appId] as const,
+    isCapacitor: ({ appId }: { appId: number | null }) =>
+      ["is-capacitor", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MCP (Model Context Protocol)
+  // ─────────────────────────────────────────────────────────────────────────────
+  mcp: {
+    all: ["mcp"] as const,
+    servers: ["mcp", "servers"] as const,
+    toolsByServer: {
+      all: ["mcp", "tools-by-server"] as const,
+      list: ({ serverIds }: { serverIds: number[] }) =>
+        ["mcp", "tools-by-server", serverIds] as const,
+    },
+    consents: ["mcp", "consents"] as const,
+    catalog: ["mcp", "catalog"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Supabase
+  // ─────────────────────────────────────────────────────────────────────────────
+  supabase: {
+    all: ["supabase"] as const,
+    organizations: ["supabase", "organizations"] as const,
+    projects: ["supabase", "projects"] as const,
+    redeploy: ({ appId }: { appId: number }) =>
+      ["supabase", "redeploy", appId] as const,
+    /**
+     * Scoped by project too: the answer is about one app/project pairing, so
+     * repointing an app at another project (or branch) must not reuse the old
+     * project's verdict. Invalidate with `legacyAppKeyForApp` to clear every
+     * project's entry for an app.
+     */
+    legacyAppKey: ({
+      appId,
+      projectId,
+    }: {
+      appId: number | null;
+      projectId: string | null;
+    }) => ["supabase", "legacyAppKey", appId, projectId] as const,
+    legacyAppKeyForApp: ({ appId }: { appId: number | null }) =>
+      ["supabase", "legacyAppKey", appId] as const,
+    branches: ({
+      projectId,
+      organizationSlug,
+    }: {
+      projectId: string;
+      organizationSlug: string | null;
+    }) => ["supabase", "branches", projectId, organizationSlug] as const,
+    edgeLogs: ({
+      projectId,
+      appId,
+      organizationSlug,
+    }: {
+      projectId: string;
+      appId: number | null;
+      organizationSlug: string | null;
+    }) => ["supabase", "edgeLogs", projectId, appId, organizationSlug] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GitHub
+  // ─────────────────────────────────────────────────────────────────────────────
+  github: {
+    all: ["github"] as const,
+    repos: ["github", "repos"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Migration
+  // ─────────────────────────────────────────────────────────────────────────────
+  migration: {
+    all: ["migration"] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Neon
+  // ─────────────────────────────────────────────────────────────────────────────
+  neon: {
+    all: ["neon"] as const,
+    projects: ["neon", "projects"] as const,
+    project: ({ appId }: { appId: number | null }) =>
+      ["neon", "project", appId] as const,
+    emailPasswordConfig: ({
+      appId,
+      branchId,
+    }: {
+      appId: number | null;
+      branchId: string | null;
+    }) => ["neon", "emailPasswordConfig", appId, branchId] as const,
+    branchEnvVars: ({
+      appId,
+      branchType,
+    }: {
+      appId: number | null;
+      branchType: "production" | "development";
+    }) => ["neon", "branch-env-vars", appId, branchType] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // App Environment Variables
+  // ─────────────────────────────────────────────────────────────────────────────
+  appEnvVars: {
+    byApp: ({ appId }: { appId: number | null }) =>
+      ["app-env-vars", appId] as const,
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Media
+  // ─────────────────────────────────────────────────────────────────────────────
+  media: {
+    all: ["media"] as const,
+  },
+} as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Type helpers for extracting query key types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Extract the type of a query key from a factory function or constant */
+export type QueryKeyOf<T> = T extends readonly unknown[]
+  ? T
+  : T extends (...args: never[]) => infer R
+    ? R
+    : never;
+
+/** All possible query keys (useful for typing queryClient operations) */
+export type AppQueryKey =
+  | QueryKeyOf<(typeof queryKeys.subagents)[keyof typeof queryKeys.subagents]>
+  | QueryKeyOf<(typeof queryKeys.system)[keyof typeof queryKeys.system]>
+  | QueryKeyOf<(typeof queryKeys.settings)[keyof typeof queryKeys.settings]>
+  | QueryKeyOf<(typeof queryKeys.apps)[keyof typeof queryKeys.apps]>
+  | QueryKeyOf<
+      (typeof queryKeys.appCollections)[keyof typeof queryKeys.appCollections]
+    >
+  | QueryKeyOf<(typeof queryKeys.chats)[keyof typeof queryKeys.chats]>
+  | QueryKeyOf<(typeof queryKeys.plans)[keyof typeof queryKeys.plans]>
+  | QueryKeyOf<(typeof queryKeys.proposals)[keyof typeof queryKeys.proposals]>
+  | QueryKeyOf<(typeof queryKeys.versions)[keyof typeof queryKeys.versions]>
+  | QueryKeyOf<(typeof queryKeys.branches)[keyof typeof queryKeys.branches]>
+  | QueryKeyOf<
+      (typeof queryKeys.uncommittedFiles)[keyof typeof queryKeys.uncommittedFiles]
+    >
+  | QueryKeyOf<(typeof queryKeys.problems)[keyof typeof queryKeys.problems]>
+  | QueryKeyOf<(typeof queryKeys.tests)[keyof typeof queryKeys.tests]>
+  | QueryKeyOf<
+      (typeof queryKeys.contextPaths)[keyof typeof queryKeys.contextPaths]
+    >
+  | QueryKeyOf<(typeof queryKeys.tokenCount)[keyof typeof queryKeys.tokenCount]>
+  | QueryKeyOf<(typeof queryKeys.appFiles)[keyof typeof queryKeys.appFiles]>
+  | QueryKeyOf<(typeof queryKeys.files)[keyof typeof queryKeys.files]>
+  | QueryKeyOf<(typeof queryKeys.appName)[keyof typeof queryKeys.appName]>
+  | QueryKeyOf<
+      (typeof queryKeys.securityReview)[keyof typeof queryKeys.securityReview]
+    >
+  | QueryKeyOf<(typeof queryKeys.appTheme)[keyof typeof queryKeys.appTheme]>
+  | QueryKeyOf<(typeof queryKeys.themes)[keyof typeof queryKeys.themes]>
+  | QueryKeyOf<
+      (typeof queryKeys.customThemes)[keyof typeof queryKeys.customThemes]
+    >
+  | QueryKeyOf<(typeof queryKeys.templates)[keyof typeof queryKeys.templates]>
+  | QueryKeyOf<(typeof queryKeys.prompts)[keyof typeof queryKeys.prompts]>
+  | QueryKeyOf<(typeof queryKeys.agentTools)[keyof typeof queryKeys.agentTools]>
+  | QueryKeyOf<
+      (typeof queryKeys.languageModels)[keyof typeof queryKeys.languageModels]
+    >
+  | QueryKeyOf<(typeof queryKeys.userBudget)[keyof typeof queryKeys.userBudget]>
+  | QueryKeyOf<
+      (typeof queryKeys.cloudSandboxes)[keyof typeof queryKeys.cloudSandboxes]
+    >
+  | QueryKeyOf<
+      (typeof queryKeys.freeAgentQuota)[keyof typeof queryKeys.freeAgentQuota]
+    >
+  | QueryKeyOf<
+      (typeof queryKeys.freeModelQuota)[keyof typeof queryKeys.freeModelQuota]
+    >
+  | QueryKeyOf<(typeof queryKeys.vercel)[keyof typeof queryKeys.vercel]>
+  | QueryKeyOf<
+      (typeof queryKeys.appUpgrades)[keyof typeof queryKeys.appUpgrades]
+    >
+  | QueryKeyOf<(typeof queryKeys.mcp)[keyof typeof queryKeys.mcp]>
+  | QueryKeyOf<(typeof queryKeys.supabase)[keyof typeof queryKeys.supabase]>
+  | QueryKeyOf<(typeof queryKeys.github)[keyof typeof queryKeys.github]>
+  | QueryKeyOf<(typeof queryKeys.migration)[keyof typeof queryKeys.migration]>
+  | QueryKeyOf<(typeof queryKeys.neon)[keyof typeof queryKeys.neon]>
+  | QueryKeyOf<(typeof queryKeys.coolify)[keyof typeof queryKeys.coolify]>
+  | QueryKeyOf<(typeof queryKeys.appEnvVars)[keyof typeof queryKeys.appEnvVars]>
+  | QueryKeyOf<(typeof queryKeys.media)[keyof typeof queryKeys.media]>;

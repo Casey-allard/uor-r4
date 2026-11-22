@@ -1,0 +1,7 @@
+name = "prism-unsplash"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+# The frame reaches it at https://prism-unsplash.trinity-03d.workers.dev/
+# (UNSPLASH_PROXY in frame/frame.mjs); no other address is needed.
+workers_dev = true
+preview_urls = false

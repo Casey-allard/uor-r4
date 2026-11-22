@@ -1,0 +1,284 @@
+import { db } from "../../db";
+import { chats } from "../../db/schema";
+import { eq } from "drizzle-orm";
+import {
+  constructSystemPrompt,
+  readAiRules,
+} from "../../prompts/system_prompt";
+import { getThemePromptById } from "../utils/theme_utils";
+import {
+  getSupabaseAvailableSystemPrompt,
+  SUPABASE_DISCONNECTED_SYSTEM_PROMPT,
+  SUPABASE_NOT_AVAILABLE_SYSTEM_PROMPT,
+} from "../../prompts/supabase_prompt";
+import { buildNeonPromptForApp } from "../../neon_admin/neon_prompt_context";
+import { NEON_DISCONNECTED_SYSTEM_PROMPT } from "../../prompts/neon_prompt";
+import { getPrismAppPath } from "../../paths/paths";
+import { detectFrameworkType } from "../utils/framework_utils";
+import log from "electron-log";
+import {
+  getSupabaseContext,
+  getSupabaseClientCode,
+} from "../../supabase_admin/supabase_context";
+
+import { TokenCountParams, TokenCountResult } from "@/ipc/types";
+import { estimateTokens, getContextWindow } from "../utils/token_utils";
+import { createLoggedHandler } from "./safe_handle";
+import { readSettings } from "@/main/settings";
+import {
+  normalizeModelSelection,
+  resolveDefaultModelSelection,
+} from "@/ipc/utils/model_effort";
+import { extractMentionedAppsCodebasesFromPrompt } from "../utils/mention_apps";
+import {
+  isPrismProEnabled,
+  isBasicAgentMode,
+  isLocalAgentBackedMode,
+  isTurboEditsV2Enabled,
+  hasSupabaseCredentialsForOrganization,
+} from "@/lib/schemas";
+import { PrismError, PrismErrorKind } from "@/errors/prism_error";
+import { resolveChatModeForTurn } from "./chat_mode_resolution";
+import { isImplementerSubagentEnabled } from "@/lib/autoSidekick";
+import { estimateAgentToolTokens } from "@/pro/main/ipc/handlers/local_agent/tool_definitions";
+import {
+  buildChatMessageHistory,
+  hasCompletedAppBlueprintQuestionnaire,
+} from "@/pro/main/ipc/handlers/local_agent/local_agent_handler";
+import { getCachedMcpToolDefs } from "@/pro/main/ipc/handlers/local_agent/tools/mcp_type_defs";
+import { resolveRootDatabasePromptState } from "@/shared/database_provider";
+import { getAppBlueprintForChat } from "./app_blueprint_handlers";
+
+const logger = log.scope("token_count_handlers");
+
+const handle = createLoggedHandler(logger);
+
+export function registerTokenCountHandlers() {
+  handle(
+    "chat:count-tokens",
+    async (event, req: TokenCountParams): Promise<TokenCountResult> => {
+      const chat = await db.query.chats.findFirst({
+        where: eq(chats.id, req.chatId),
+        with: {
+          messages: {
+            orderBy: (messages, { asc }) => [
+              asc(messages.createdAt),
+              asc(messages.id),
+            ],
+          },
+          app: true,
+        },
+      });
+
+      if (!chat) {
+        throw new PrismError(
+          `Chat not found: ${req.chatId}`,
+          PrismErrorKind.NotFound,
+        );
+      }
+
+      // Count input tokens
+      const inputTokens = estimateTokens(req.input);
+
+      const storedSettings = readSettings();
+      const selectedModel = chat.modelSelection
+        ? await normalizeModelSelection(chat.modelSelection)
+        : await resolveDefaultModelSelection(storedSettings);
+      const { mode: selectedChatMode } = await resolveChatModeForTurn({
+        storedChatMode: chat.chatMode,
+        settings: { ...storedSettings, selectedModel },
+      });
+      const settings = {
+        ...storedSettings,
+        selectedModel,
+        selectedChatMode,
+      };
+      const willUseLocalAgentStream = isLocalAgentBackedMode(selectedChatMode);
+      const messageHistoryTokens = willUseLocalAgentStream
+        ? estimateTokens(JSON.stringify(buildChatMessageHistory(chat.messages)))
+        : estimateTokens(
+            chat.messages.map((message) => message.content).join(""),
+          );
+
+      // Count system prompt tokens
+      // Migration on read converts "agent" to "build", so no need to check for it here
+      const themePrompt = await getThemePromptById(chat.app?.themeId ?? null);
+      const frameworkType = detectFrameworkType(getPrismAppPath(chat.app.path));
+      const enableAppBlueprint =
+        settings.enableAppBlueprint === true && chat.app.needsAppBlueprint;
+      const appBlueprint = getAppBlueprintForChat(chat.id);
+      const hasAppBlueprint = Boolean(appBlueprint);
+      const planningQuestionnaireAvailable =
+        settings.agentToolConsents?.["planning_questionnaire"] !== "never";
+      const appBlueprintQuestionnaireCompleted =
+        hasCompletedAppBlueprintQuestionnaire(chat.messages);
+      let systemPrompt = constructSystemPrompt({
+        aiRules: await readAiRules(getPrismAppPath(chat.app.path)),
+        chatMode: selectedChatMode === "ask" ? "local-agent" : selectedChatMode,
+        enableTurboEditsV2: isTurboEditsV2Enabled(settings),
+        themePrompt,
+        readOnly: selectedChatMode === "ask",
+        frameworkType,
+        hasSupabaseProject: !!chat.app?.supabaseProjectId,
+        implementerAvailable:
+          selectedChatMode === "local-agent" &&
+          isPrismProEnabled(settings) &&
+          isImplementerSubagentEnabled(settings),
+        testingEnabled: !!chat.app?.testingEnabled,
+        enableAppBlueprint,
+        hasAppBlueprint,
+        planningQuestionnaireAvailable,
+        appBlueprintQuestionnaireCompleted,
+        appBlueprint,
+      });
+      let supabaseContext = "";
+      const supabaseProviderToolsAvailable = Boolean(
+        chat.app.supabaseProjectId &&
+        hasSupabaseCredentialsForOrganization(
+          settings,
+          chat.app.supabaseOrganizationSlug,
+        ),
+      );
+      const neonCredentialsAvailable = Boolean(
+        chat.app.neonProjectId && settings.neon?.accessToken?.value,
+      );
+      const neonActiveBranchId =
+        chat.app.neonActiveBranchId ?? chat.app.neonDevelopmentBranchId;
+      const neonProviderToolsAvailable = Boolean(
+        neonCredentialsAvailable && neonActiveBranchId,
+      );
+      const rootDatabasePromptState = resolveRootDatabasePromptState({
+        hasSupabaseProject: Boolean(chat.app.supabaseProjectId),
+        supabaseCredentialsAvailable: supabaseProviderToolsAvailable,
+        hasNeonProject: Boolean(chat.app.neonProjectId),
+        neonCredentialsAvailable,
+      });
+
+      if (rootDatabasePromptState === "supabase") {
+        const supabaseClientCode = await getSupabaseClientCode({
+          projectId: chat.app.supabaseProjectId!,
+          organizationSlug: chat.app.supabaseOrganizationSlug ?? null,
+        });
+        systemPrompt +=
+          "\n\n" + getSupabaseAvailableSystemPrompt(supabaseClientCode);
+        if (!willUseLocalAgentStream) {
+          supabaseContext = await getSupabaseContext({
+            supabaseProjectId: chat.app.supabaseProjectId!,
+            organizationSlug: chat.app.supabaseOrganizationSlug ?? null,
+          });
+        }
+      } else if (rootDatabasePromptState === "supabase-disconnected") {
+        systemPrompt += "\n\n" + SUPABASE_DISCONNECTED_SYSTEM_PROMPT;
+      } else if (rootDatabasePromptState === "neon") {
+        systemPrompt +=
+          "\n\n" +
+          (await buildNeonPromptForApp({
+            appPath: chat.app.path,
+            neonProjectId: chat.app.neonProjectId!,
+            neonActiveBranchId: chat.app.neonActiveBranchId,
+            neonDevelopmentBranchId: chat.app.neonDevelopmentBranchId,
+            selectedChatMode,
+          }));
+      } else if (rootDatabasePromptState === "neon-disconnected") {
+        systemPrompt += "\n\n" + NEON_DISCONNECTED_SYSTEM_PROMPT;
+      } else if (!willUseLocalAgentStream) {
+        // Neon projects don't need Supabase (already handled above).
+        systemPrompt += "\n\n" + SUPABASE_NOT_AVAILABLE_SYSTEM_PROMPT;
+      }
+
+      const isPrismPro = isPrismProEnabled(settings);
+      const mcpToolDefs =
+        selectedChatMode === "local-agent" ? getCachedMcpToolDefs() : [];
+      const toolDefinitionTokens = await estimateAgentToolTokens({
+        toolProfile: selectedChatMode === "build" ? "build" : "agent",
+        readOnly: selectedChatMode === "ask",
+        planModeOnly: selectedChatMode === "plan",
+        basicAgentMode:
+          selectedChatMode === "local-agent" && isBasicAgentMode(settings),
+        enableAppBlueprint,
+        isPrismPro,
+        frameworkType,
+        supabaseProjectId: chat.app.supabaseProjectId,
+        supabaseProviderToolsAvailable,
+        neonProjectId: chat.app.neonProjectId,
+        neonActiveBranchId,
+        neonProviderToolsAvailable,
+        testingEnabled: !!chat.app.testingEnabled,
+        canUseExplorerSubagent:
+          selectedChatMode !== "build" &&
+          isPrismPro &&
+          settings.enableExplorerSubagent !== false,
+        canUseImplementerSubagent:
+          selectedChatMode === "local-agent" &&
+          isPrismPro &&
+          isImplementerSubagentEnabled(settings),
+        mcpToolDefs,
+        canUseAdvancedSubagentTools:
+          selectedChatMode === "local-agent" &&
+          isPrismPro &&
+          settings.enableAdvancedSubagents === true,
+        runTypeScriptForWholeProject:
+          settings.runTypeScriptForWholeProject === true,
+      });
+      const systemPromptTokens =
+        estimateTokens(systemPrompt + supabaseContext) + toolDefinitionTokens;
+
+      // Tool-backed modes inspect the current app on demand, so they do not
+      // inject the full codebase into the initial request.
+      const codebaseTokens = 0;
+
+      // Tool-backed modes reach referenced apps via tool calls rather than
+      // injecting full codebases into the prompt, so mentioned apps contribute
+      // ~0 tokens upfront. Match the extraction behavior in chat_stream_handlers
+      // so the UI estimate tracks what's actually sent.
+      let mentionedAppsTokens = 0;
+      if (!willUseLocalAgentStream) {
+        const mentionedAppsCodebases =
+          await extractMentionedAppsCodebasesFromPrompt(
+            req.input,
+            chat.app?.id, // Exclude current app
+          );
+
+        if (mentionedAppsCodebases.length > 0) {
+          const mentionedAppsContent = mentionedAppsCodebases
+            .map(
+              ({ appName, codebaseInfo }) =>
+                `\n\n=== Referenced App: ${appName} ===\n${codebaseInfo}`,
+            )
+            .join("");
+
+          mentionedAppsTokens = estimateTokens(mentionedAppsContent);
+
+          logger.debug(
+            `Extracted ${mentionedAppsCodebases.length} mentioned app codebases, tokens: ${mentionedAppsTokens}`,
+          );
+        }
+      }
+
+      // Calculate total tokens
+      const totalTokens =
+        messageHistoryTokens +
+        inputTokens +
+        systemPromptTokens +
+        codebaseTokens +
+        mentionedAppsTokens;
+
+      // Find the last assistant message since totalTokens is only set on assistant messages
+      const lastAssistantMessage = [...chat.messages]
+        .reverse()
+        .find((m) => m.role === "assistant");
+      const actualMaxTokens = lastAssistantMessage?.maxTokensUsed ?? null;
+
+      return {
+        estimatedTotalTokens: totalTokens,
+        actualMaxTokens,
+        messageHistoryTokens,
+        codebaseTokens,
+        mentionedAppsTokens,
+        inputTokens,
+        systemPromptTokens,
+        contextWindow: await getContextWindow(selectedModel),
+      };
+    },
+  );
+}

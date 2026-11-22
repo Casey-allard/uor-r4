@@ -1,0 +1,18 @@
+spec = "lexlean/entry/1"
+id = "arch-viewpoint"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "document"
+module = "Foundation.Arch"
+component = "Viewpoint"
+
+[[form]]
+id = "arch-viewpoint"
+channel = "text"
+surface = "architecture viewpoint"
+canonical_source = true
+features = ["sentence-case", "singular"]
+

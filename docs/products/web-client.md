@@ -1,5 +1,9 @@
-<!-- freshness: sources=.github/workflows/deploy.yml,.github/workflows/docs-site.yml,crates/uor-r4-integer,crates/uor-r4-integer/src/wasm_bindgen_exports.rs,scripts/stage-studio-site.sh,scripts/studio/build-and-publish.sh,scripts/studio/catalog.mjs,web/studio,web/studio/index.html checked=abfad060460503bbd468f5b8c74b892b2aaca800 -->
+<!-- freshness: sources=.github/workflows/deploy.yml,.github/workflows/docs-site.yml,crates/uor-r4-integer,crates/uor-r4-integer/src/wasm_bindgen_exports.rs,crates/uor-r4-mvm,scripts/stage-studio-site.sh,scripts/studio/build-and-publish.sh,scripts/studio/catalog.mjs,web/studio,web/studio/foundry/studio/core/src/bin/project_shell.rs checked=a33cd2850383be7ed63a4f5f614a2e77581f3b9a -->
 # The web client
+
+**Foundry Studio workbench with UOR-R4 WASM and RV64IMAC MVM Micro-Linux terminal (November 22, 2026).** The deployed Studio at [`/studio/`](https://uor-foundation.github.io/uor-r4/studio/) now runs the [`UOR-Foundation/foundry`](https://github.com/UOR-Foundation/foundry) browser workbench (`web/studio/foundry/`), replacing the retired Preact frontend (archived byte-identical in [`archive/web-studio-preact-2026-11/`](../../archive/web-studio-preact-2026-11/README.md); desktop `src-tauri/` work stays paused). It wires both:
+- **Real UOR-R4 integer WASM serving (`crates/uor-r4-integer`, `--features serving-wasm`):** executes [`uor_model_worker.js`](../../web/studio/assets/js/uor_model_worker.js) with zero fabricated replies, supporting the bundled `synthetic-seed-5` stack, user-initiated download + SHA-256 verification + OPFS caching of the public M1 seed-1 predictor, and local `.uorlut` / `.lut` / `.d11` file uploads alongside Foundry's compiled `IdeaReader` (honest status: **Pre-alpha · M1 complete · 1 of 8 milestones**).
+- **Interactive RV64IMAC MVM Micro-Linux terminal (`crates/uor-r4-mvm`, `--features wasm`):** hosts `WasmMvmSandbox` inside a dedicated Web Worker with persistent OPFS CoW snapshots, Foundry's **Terminal** tab (`TerminalPanel`), and `/mvm` + `<tool_call>`/`<tool_response>` execution in chat turns. Zero external network requests run on initial page load.
 
 **Public M1 predictor, November 17, 2026.** The deployed Studio offers the trained M1 seed-1 predictor and the synthetic seed-5 demo. The production browser check observed zero off-origin requests before **Load**. The click fetched 86,536,132 bytes of weights and a 265,393-byte BPE tokenizer from the pinned release. Studio checked both SHA-256 digests and the tokenizer binding. [Published catalog](https://github.com/UOR-Foundation/uor-r4/blob/2878cdc029c1d232e7468e4751a610cc91fc8ab0/studio/models.json) · [Pinned model and tokenizer](https://huggingface.co/caseyallard/uor-r4-m1-model/tree/1fec0d4c42d4d5929a0cf08b1a0f17291d1dbc55)
 
@@ -81,13 +85,12 @@ Labels: **proof**, **measurement**, **hypothesis**. See [`docs/formal_vocabulary
 
 ![A browser window with three layers: the Studio interface, a Web Worker holding the integer engine, and browser storage split between verified synthetic session snapshots and a dashed, planned model cache. Local WASM mode keeps prompts on the device; an optional user-configured API sends prompts to the chosen endpoint.](../figures/products/web-client-architecture.svg)
 
-*Current model downloads require an explicit load; the download-once persistent cache is planned. Session save/restore is verified on the synthetic stand-in.*
+*Current model downloads require an explicit user load and are SHA-256-verified before caching in OPFS/IndexedDB. Session save/restore is verified on the synthetic stand-in.*
 
 ## How it is meant to work
 
 1. **Load the static Studio.** The charter places it at `/studio` on the documentation site.
-2. **Download one `UORLUT01` file and verify its SHA-256.** A release pin identifies the model. A
-   download-once browser-storage cache is planned, not claimed as delivered.
+2. **Download one `UORLUT01` file, verify its SHA-256, and cache it in browser storage.** A release pin identifies the model; explicit loads verify both artifact and tokenizer digests and store them in OPFS/IndexedDB for offline reuse.
 3. **Start the integer engine in a Web Worker.** The worker loads `pkg/uor_r4_integer.js` and calls
    `init` and `loadStack` on the model bytes.
 4. **Generate.** Each token calls `step`. The D11 engine uses integer arithmetic; integer multiply
@@ -109,12 +112,12 @@ development research and does not qualify the browser runtime.
 
 | Piece | Current state | Source |
 |---|---|---|
-| Studio interface | Editor, file tree, chat UI, model manager and local folder access, with self-hosted vendor shims | [`web/studio/index.html`](../../web/studio/index.html) |
+| Studio interface | Foundry browser Studio shell, Monaco editor, model picker, OPFS cache, RV64IMAC MVM terminal panel, and `<tool_call>` loop | [`web/studio/foundry/studio/shell/index.html`](../../web/studio/foundry/studio/shell/index.html) |
 | Integer worker connection | `loadStack`, `step`, save/restore, header/engine-derived capabilities and a stack-bound ByteLevel BPE tokenizer, verified on a synthetic stand-in | [#2868 record](../labs/m7-studio-connect-wasm-engine/README.md) |
 | Offline assets and tokenizer | Main page and router demo make zero external page-load requests; the tokenizer artifact replaces the old byte-mod fallback on bound stacks | [#3075 record](../labs/m7-studio-self-host-page-assets/README.md) |
 | WebAssembly integer engine | `serving-wasm` build and 7-of-7 serving-function audit; save/restore identity on the synthetic model | [runtime record](../labs/wasm-serving-runtime-2026-10-18/README.md) |
 | Parity harness | Eight-prompt native/CLI/browser bit-identity on the seed-5 synthetic stack, with fresh-process restore | [M7 parity record](../labs/m7-parity-library-cli-browser/README.md) |
-| Status text | Pre-alpha, 1 of 8 milestones complete; M1 decode measured separately from the synthetic stand-in; no qualified model bundled | [`index.html`](../../web/studio/index.html) |
+| Status text | Pre-alpha, 1 of 8 milestones complete; M1 decode measured separately from the synthetic stand-in; no qualified model bundled | [`shell/index.html`](../../web/studio/foundry/studio/shell/index.html) |
 | Public deploy | The public browser loaded the seed-1 model and its bound tokenizer, then reproduced all eight native candidates offline on the checked prompt | [Published catalog](https://github.com/UOR-Foundation/uor-r4/blob/2878cdc029c1d232e7468e4751a610cc91fc8ab0/studio/models.json) · [Studio](https://uor-foundation.github.io/uor-r4/studio/) |
 
 The SIMD kernels in the WebAssembly build are fixtures, not the hot path; the engine currently uses
@@ -127,11 +130,11 @@ but they are not a browser qualification of that model.
   browser parity or M7 distribution.
 - **The accepted M4 model and its browser export.** Full quality, session and audit bars come before
   M7's accepted-model parity check.
-- **A download-once cache and release loader.**
 - **Bit-identical tokens and sessions on the real model across library, CLI and browser.** The
   synthetic harness passing is an instrument result, not M7 completion.
-- **Automatic build/publish remains owner-only.** DeepSeek's manual production publish is already
-  live; this documentation refresh performs no deployment.
+- **Automatic CI Pages deploys remain paused by owner policy.** `.github/workflows/deploy.yml`
+  stays disabled (`if: ${{ false }}`); live publication runs manually from clean `main` through
+  `scripts/studio/build-and-publish.sh`.
 
 ## Privacy and integrity
 

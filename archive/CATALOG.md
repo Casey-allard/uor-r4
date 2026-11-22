@@ -8,7 +8,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 
 ## Totals
 
-1175 records.
+1176 records.
 
 | Outcome | Records |
 |---|---|
@@ -16,7 +16,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | diagnostic-stop | 33 |
 | inconclusive | 103 |
 | negative | 193 |
-| ops | 18 |
+| ops | 19 |
 | plan | 148 |
 | positive | 214 |
 | process | 90 |
@@ -42,7 +42,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | m4-serving | 42 | 2026-08-07 | 2026-10-18 | 7 | 9 | [m4-serving](catalog/m4-serving.md) |
 | m5-energy | 4 | 2026-09-25 | 2026-10-18 | 0 | 1 | [m5-energy](catalog/m5-energy.md) |
 | m6-reasoning-coding | 2 | 2026-08-22 | 2026-08-22 | 0 | 1 | [m6-reasoning-coding](catalog/m6-reasoning-coding.md) |
-| m7-distribution | 8 | 2026-09-03 | 2026-10-15 | 0 | 0 | [m7-distribution](catalog/m7-distribution.md) |
+| m7-distribution | 9 | 2026-09-03 | 2026-11-22 | 0 | 0 | [m7-distribution](catalog/m7-distribution.md) |
 | native-geometric-sept | 294 | 2026-07-31 | 2026-09-28 | 113 | 81 | [native-geometric-sept](catalog/native-geometric-sept.md) |
 | r4g1-transformerless | 74 | 2026-07-21 | 2026-09-27 | 15 | 19 | [r4g1-transformerless](catalog/r4g1-transformerless.md) |
 | spiralcore-wire | 7 | 2026-10-18 | 2026-10-18 | 0 | 0 | [spiralcore-wire](catalog/spiralcore-wire.md) |
@@ -63,7 +63,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | hamilton-gate | 17 |
 | hopf-observation | 45 |
 | legal-construction | 23 |
-| lut-serving | 101 |
+| lut-serving | 102 |
 | native-geometric | 96 |
 | none | 219 |
 | object-store | 34 |

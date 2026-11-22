@@ -1,0 +1,562 @@
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { generateText } from "ai";
+
+import type { UserSettings } from "../../lib/schemas";
+import {
+  getModelClient,
+  setModelClientFetchForTesting,
+} from "./get_model_client";
+import {
+  OPENROUTER_APP_CATEGORIES,
+  OPENROUTER_APP_REFERER,
+  OPENROUTER_APP_TITLE,
+} from "./openrouter_attribution";
+import { getLanguageModels } from "../shared/language_model_helpers";
+
+vi.mock("electron-log", () => ({
+  default: {
+    scope: () => ({
+      debug: vi.fn(),
+      info: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock("./model_effort", () => ({
+  resolveModelSelection: vi.fn(async ({ model, preferredEffortLevel }) => ({
+    ...model,
+    effortLevel: preferredEffortLevel ?? "medium",
+  })),
+}));
+
+vi.mock("../shared/language_model_helpers", () => ({
+  // The auto chain now computes each fallback model's own call options
+  // (temperature/maxOutputTokens) via findLanguageModel -> getLanguageModels.
+  // An empty catalog means "no per-model data", which exercises the
+  // conservative path without inventing model entries these tests don't need.
+  getLanguageModels: vi.fn(async () => []),
+  getLanguageModelProviders: vi.fn(async () => [
+    {
+      id: "auto",
+      name: "Prism",
+      gatewayPrefix: "prism/",
+      type: "cloud",
+    },
+    {
+      id: "openai",
+      name: "OpenAI",
+      gatewayPrefix: "",
+      type: "cloud",
+    },
+    {
+      id: "anthropic",
+      name: "Anthropic",
+      gatewayPrefix: "anthropic/",
+      type: "cloud",
+    },
+    {
+      id: "google",
+      name: "Google",
+      gatewayPrefix: "gemini/",
+      type: "cloud",
+    },
+    {
+      id: "openrouter",
+      name: "OpenRouter",
+      gatewayPrefix: "openrouter/",
+      type: "cloud",
+    },
+  ]),
+}));
+
+vi.mock("../shared/remote_language_model_catalog", () => ({
+  resolveBuiltinModelAlias: vi.fn(async (aliasId: string) => {
+    switch (aliasId) {
+      case "prism/auto/openai":
+        return {
+          providerId: "openai",
+          apiName: "gpt-5.5",
+        };
+      case "prism/auto/anthropic":
+        return {
+          providerId: "anthropic",
+          apiName: "claude-sonnet-4-20250514",
+        };
+      case "prism/auto/google":
+        return {
+          providerId: "google",
+          apiName: "gemini-3.5-flash",
+        };
+      case "prism/auto/openrouter":
+        return {
+          providerId: "openrouter",
+          apiName: "nvidia/nemotron-3-super-120b-a12b:free",
+        };
+      case "prism/auto/balanced":
+        return {
+          providerId: "openrouter",
+          apiName: "x-ai/grok-4.6",
+          apiProtocol: "responses",
+        };
+      default:
+        return null;
+    }
+  }),
+}));
+
+describe("getModelClient", () => {
+  afterEach(() => {
+    setModelClientFetchForTesting(undefined);
+    vi.mocked(getLanguageModels).mockResolvedValue([]);
+  });
+
+  test("keeps the Anthropic gateway prefix for Prism Engine models", async () => {
+    const { modelClient } = await getModelClient(
+      {
+        provider: "anthropic",
+        name: "claude-sonnet-4-20250514",
+      },
+      {
+        enablePrismPro: true,
+        providerSettings: {
+          auto: {
+            apiKey: {
+              value: "prism-pro-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    expect((modelClient.model as { modelId: string }).modelId).toBe(
+      "anthropic/claude-sonnet-4-20250514",
+    );
+  });
+
+  test("keeps the Anthropic gateway prefix for Prism Engine auto-mode fallback models", async () => {
+    const { modelClient, runtimeModel } = await getModelClient(
+      {
+        provider: "auto",
+        name: "auto",
+      },
+      {
+        enablePrismPro: true,
+        selectedChatMode: "local-agent",
+        providerSettings: {
+          auto: {
+            apiKey: {
+              value: "prism-pro-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    const fallbackModels = (
+      modelClient.model as unknown as {
+        settings: { models: Array<{ modelId: string }> };
+      }
+    ).settings.models;
+
+    expect(fallbackModels.map((model) => model.modelId)).toEqual([
+      "gpt-5.5",
+      "anthropic/claude-sonnet-4-20250514",
+      "gemini/gemini-3.5-flash",
+    ]);
+    expect(runtimeModel).toMatchObject({ provider: "auto", name: "auto" });
+  });
+
+  test("reports the provider selected by direct Auto routing", async () => {
+    const { runtimeModel } = await getModelClient(
+      { provider: "auto", name: "auto" },
+      {
+        enablePrismPro: false,
+        providerSettings: {
+          google: { apiKey: { value: "google-key" } },
+        },
+      } as unknown as UserSettings,
+    );
+
+    expect(runtimeModel).toMatchObject({
+      provider: "google",
+      name: "gemini-3.5-flash",
+    });
+  });
+
+  test("builds catalog-derived call options in fallback-model order", async () => {
+    vi.mocked(getLanguageModels).mockImplementation(async ({ providerId }) => {
+      const catalogEntries = {
+        openai: [
+          {
+            apiName: "gpt-5.5",
+            temperature: 1,
+            maxOutputTokens: 64_000,
+          },
+        ],
+        anthropic: [
+          {
+            apiName: "claude-sonnet-4-20250514",
+            temperature: undefined,
+            maxOutputTokens: 32_000,
+          },
+        ],
+        google: [
+          {
+            apiName: "gemini-3.5-flash",
+            temperature: 0.7,
+            maxOutputTokens: 16_000,
+          },
+        ],
+      } as const;
+      return [
+        ...(catalogEntries[providerId as keyof typeof catalogEntries] ?? []),
+      ] as any;
+    });
+
+    const { modelClient } = await getModelClient(
+      { provider: "auto", name: "auto" },
+      {
+        enablePrismPro: true,
+        selectedChatMode: "local-agent",
+        providerSettings: {
+          auto: { apiKey: { value: "prism-pro-key" } },
+        },
+      } as unknown as UserSettings,
+    );
+
+    const fallbackSettings = (
+      modelClient.model as unknown as {
+        settings: {
+          models: Array<{ modelId: string }>;
+          modelCallOptions: Array<{
+            temperature?: number;
+            maxOutputTokens?: number;
+          }>;
+        };
+      }
+    ).settings;
+
+    expect(fallbackSettings.models.map((model) => model.modelId)).toEqual([
+      "gpt-5.5",
+      "anthropic/claude-sonnet-4-20250514",
+      "gemini/gemini-3.5-flash",
+    ]);
+    expect(fallbackSettings.modelCallOptions).toEqual([
+      { temperature: 1, maxOutputTokens: 64_000 },
+      { temperature: undefined, maxOutputTokens: 32_000 },
+      { temperature: 0.7, maxOutputTokens: 16_000 },
+    ]);
+  });
+
+  test("routes Auto Sidekick through the regular Agent Auto models", async () => {
+    const { modelClient, runtimeModel } = await getModelClient(
+      {
+        provider: "auto",
+        name: "auto-sidekick",
+      },
+      {
+        enablePrismPro: true,
+        selectedChatMode: "local-agent",
+        providerSettings: {
+          auto: {
+            apiKey: {
+              value: "prism-pro-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    const fallbackModels = (
+      modelClient.model as unknown as {
+        settings: { models: Array<{ modelId: string }> };
+      }
+    ).settings.models;
+
+    expect(fallbackModels.map((model) => model.modelId)).toEqual([
+      "gpt-5.5",
+      "anthropic/claude-sonnet-4-20250514",
+      "gemini/gemini-3.5-flash",
+    ]);
+    expect(runtimeModel).toMatchObject({ provider: "auto", name: "auto" });
+  });
+
+  test("adds OpenRouter free as a regular auto fallback only outside Prism Pro", async () => {
+    const { modelClient, isEngineEnabled } = await getModelClient(
+      {
+        provider: "auto",
+        name: "auto",
+      },
+      {
+        enablePrismPro: false,
+        providerSettings: {
+          openrouter: {
+            apiKey: {
+              value: "openrouter-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    const fallbackModels = (
+      modelClient.model as unknown as {
+        settings: { models: Array<{ modelId: string }> };
+      }
+    ).settings.models;
+
+    expect(fallbackModels.map((model) => model.modelId)).toEqual([
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "openrouter/free",
+    ]);
+    expect(modelClient.builtinProviderId).toBe("openrouter");
+    expect(isEngineEnabled).toBeFalsy();
+  });
+
+  test("routes Prism Free through its dedicated engine model", async () => {
+    const { modelClient } = await getModelClient(
+      {
+        provider: "auto",
+        name: "free-pro",
+      },
+      {
+        enablePrismPro: true,
+        providerSettings: {
+          auto: {
+            apiKey: {
+              value: "prism-pro-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    expect((modelClient.model as { modelId: string }).modelId).toBe("free-pro");
+    expect(modelClient.builtinProviderId).toBe("auto");
+  });
+
+  test("routes Auto (balanced) through its catalog-selected Responses API model", async () => {
+    let capturedUrl: string | undefined;
+    let capturedBody: Record<string, unknown> | undefined;
+    setModelClientFetchForTesting(
+      vi.fn(async (url, init) => {
+        capturedUrl = url.toString();
+        capturedBody = JSON.parse(init?.body as string);
+        return new Response(
+          JSON.stringify({
+            id: "resp-balanced",
+            created_at: 1_700_000_000,
+            model: "openrouter/x-ai/grok-4.6",
+            output: [
+              {
+                type: "message",
+                role: "assistant",
+                id: "msg-balanced",
+                content: [
+                  {
+                    type: "output_text",
+                    text: "ok",
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: { input_tokens: 1, output_tokens: 1 },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        );
+      }),
+    );
+
+    const { modelClient, runtimeModel } = await getModelClient(
+      { provider: "auto", name: "balanced" },
+      {
+        enablePrismPro: true,
+        selectedChatMode: "build",
+        providerSettings: {
+          auto: { apiKey: { value: "prism-pro-key" } },
+        },
+      } as unknown as UserSettings,
+    );
+
+    await generateText({
+      model: modelClient.model,
+      prompt: "hi",
+      maxRetries: 0,
+    });
+
+    expect(capturedUrl).toMatch(/\/v1\/responses$/);
+    expect(capturedBody?.model).toBe("openrouter/x-ai/grok-4.6");
+    expect((modelClient.model as { modelId: string }).modelId).toBe(
+      "openrouter/x-ai/grok-4.6",
+    );
+    expect(modelClient.builtinProviderId).toBe("openrouter");
+    expect(runtimeModel).toEqual({ provider: "auto", name: "balanced" });
+  });
+
+  test("rejects Auto (balanced) without Prism Pro instead of falling back", async () => {
+    await expect(
+      getModelClient({ provider: "auto", name: "balanced" }, {
+        enablePrismPro: false,
+        providerSettings: {
+          openrouter: { apiKey: { value: "openrouter-key" } },
+        },
+      } as unknown as UserSettings),
+    ).rejects.toMatchObject({
+      message:
+        "Auto (balanced) requires Prism Pro. Switch to another model or enable Prism Pro.",
+    });
+  });
+
+  test.each(
+    (["local-agent", "ask", "plan", "build", undefined] as const).flatMap(
+      (mode) => [
+        ...["gpt-6-astra", "gpt-5.5"].map((name) => ({
+          provider: "openai",
+          name,
+          mode,
+          modelId: name,
+        })),
+        { provider: "auto", name: "value", mode, modelId: "prism/value" },
+      ],
+    ),
+  )(
+    "routes $provider/$name through Responses in $mode mode",
+    async ({ provider, name, mode, modelId }) => {
+      let capturedUrl: string | undefined;
+      let capturedBody: Record<string, unknown> | undefined;
+      setModelClientFetchForTesting(
+        vi.fn(async (url, init) => {
+          capturedUrl = url.toString();
+          capturedBody = JSON.parse(init?.body as string);
+          return new Response(
+            JSON.stringify({
+              id: "resp-test",
+              created_at: 1_700_000_000,
+              model: modelId,
+              output: [
+                {
+                  type: "message",
+                  role: "assistant",
+                  id: "msg-test",
+                  content: [
+                    {
+                      type: "output_text",
+                      text: "ok",
+                      annotations: [],
+                    },
+                  ],
+                },
+              ],
+              usage: {
+                input_tokens: 1,
+                output_tokens: 1,
+              },
+            }),
+            { headers: { "Content-Type": "application/json" } },
+          );
+        }),
+      );
+
+      const { modelClient } = await getModelClient(
+        {
+          provider,
+          name,
+        },
+        {
+          enablePrismPro: true,
+          selectedChatMode: mode,
+          providerSettings: {
+            auto: {
+              apiKey: {
+                value: "prism-pro-key",
+              },
+            },
+          },
+        } as unknown as UserSettings,
+      );
+
+      await generateText({
+        model: modelClient.model,
+        prompt: "hi",
+        maxOutputTokens: 128000,
+        maxRetries: 0,
+      });
+
+      expect(capturedUrl).toMatch(/\/v1\/responses$/);
+      expect(capturedBody).not.toHaveProperty("max_tokens");
+      expect(capturedBody).not.toHaveProperty("reasoning_effort");
+      expect(capturedBody).toMatchObject({
+        model: modelId,
+        max_output_tokens: 128000,
+        reasoning: {
+          summary: "detailed",
+          effort: "medium",
+        },
+        include: ["reasoning.encrypted_content"],
+        store: false,
+      });
+      expect((modelClient.model as { modelId: string }).modelId).toBe(modelId);
+    },
+  );
+
+  test("sends OpenRouter app attribution headers", async () => {
+    let capturedHeaders: Headers | undefined;
+    setModelClientFetchForTesting(
+      vi.fn(async (_url, init) => {
+        capturedHeaders = new Headers(init?.headers);
+        return new Response(
+          JSON.stringify({
+            id: "chatcmpl-test",
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: "ok",
+                },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+          {
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }),
+    );
+
+    const { modelClient } = await getModelClient(
+      {
+        provider: "openrouter",
+        name: "openrouter/free",
+      },
+      {
+        providerSettings: {
+          openrouter: {
+            apiKey: {
+              value: "openrouter-key",
+            },
+          },
+        },
+      } as unknown as UserSettings,
+    );
+
+    await generateText({
+      model: modelClient.model,
+      prompt: "hi",
+      maxRetries: 0,
+    });
+
+    expect(capturedHeaders?.get("Authorization")).toBe("Bearer openrouter-key");
+    expect(capturedHeaders?.get("HTTP-Referer")).toBe(OPENROUTER_APP_REFERER);
+    expect(capturedHeaders?.get("X-OpenRouter-Title")).toBe(
+      OPENROUTER_APP_TITLE,
+    );
+    expect(capturedHeaders?.get("X-OpenRouter-Categories")).toBe(
+      OPENROUTER_APP_CATEGORIES,
+    );
+  });
+});

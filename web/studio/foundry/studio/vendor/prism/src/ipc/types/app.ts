@@ -1,0 +1,683 @@
+import { z } from "zod";
+import { defineContract, createClient } from "../contracts/core";
+import { APP_FRAMEWORK_TYPES } from "../../lib/framework_constants";
+import { ChatModeSchema } from "../../lib/schemas";
+import type { AppRunInvocationRef } from "@/app_run/state";
+
+// =============================================================================
+// App Schemas
+// =============================================================================
+
+/**
+ * Base app schema with fields from the database.
+ * These are the core fields stored in the apps table.
+ */
+export const AppBaseSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  path: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  githubOrg: z.string().nullable(),
+  githubRepo: z.string().nullable(),
+  githubBranch: z.string().nullable(),
+  supabaseProjectId: z.string().nullable(),
+  supabaseParentProjectId: z.string().nullable(),
+  supabaseOrganizationSlug: z.string().nullable(),
+  neonProjectId: z.string().nullable(),
+  neonDevelopmentBranchId: z.string().nullable(),
+  neonPreviewBranchId: z.string().nullable(),
+  neonActiveBranchId: z.string().nullable(),
+  selectedDatabaseBranchType: z.enum(["production", "development"]).nullable(),
+  vercelProjectId: z.string().nullable(),
+  vercelProjectName: z.string().nullable(),
+  vercelDeploymentUrl: z.string().nullable(),
+  vercelTeamId: z.string().nullable(),
+  installCommand: z.string().nullable(),
+  startCommand: z.string().nullable(),
+  isFavorite: z.boolean(),
+  testingEnabled: z.boolean(),
+  collectionId: z.number().nullable(),
+});
+
+/**
+ * Schema for a full App object as returned from the database with computed fields.
+ * Used for getApp which returns the full app with resolved paths and files.
+ */
+export const AppSchema = AppBaseSchema.extend({
+  files: z.array(z.string()),
+  frameworkType: z.enum(APP_FRAMEWORK_TYPES).nullable().optional(),
+  supabaseProjectName: z.string().nullable(),
+  vercelTeamSlug: z.string().nullable(),
+  resolvedPath: z.string().optional(),
+});
+
+export type App = z.infer<typeof AppSchema>;
+
+/**
+ * Schema for CreateApp parameters.
+ */
+export const CreateAppParamsSchema = z.object({
+  name: z.string().min(1),
+  initialChatMode: ChatModeSchema.optional(),
+  firstPromptCreationOperationId: z.string().min(1).optional(),
+});
+
+/**
+ * Schema for CreateApp result.
+ * Uses AppBaseSchema since computed fields are not available at creation time.
+ */
+export const CreateAppResultSchema = z.object({
+  app: AppBaseSchema.extend({
+    resolvedPath: z.string(),
+  }),
+  chatId: z.number(),
+});
+
+/**
+ * Schema for delete app params.
+ */
+export const DeleteAppParamsSchema = z.object({
+  appId: z.number(),
+});
+
+/**
+ * Schema for bulk delete apps params.
+ */
+export const DeleteAppsParamsSchema = z.object({
+  appIds: z.array(z.number()).min(1),
+});
+
+/**
+ * Schema for bulk delete apps result. Per-app success/error so partial
+ * failures can be surfaced to the user without aborting the whole batch.
+ */
+export const DeleteAppsResultSchema = z.object({
+  results: z.array(
+    z.object({
+      appId: z.number(),
+      success: z.boolean(),
+      error: z.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * Schema for copy app params.
+ */
+export const CopyAppParamsSchema = z.object({
+  appId: z.number(),
+  newAppName: z.string(),
+  withHistory: z.boolean(),
+});
+
+/**
+ * Schema for copy app result.
+ * Uses AppBaseSchema since computed fields are not available at copy time.
+ */
+export const CopyAppResultSchema = z.object({
+  app: AppBaseSchema.extend({
+    resolvedPath: z.string().optional(),
+  }),
+});
+
+/**
+ * Schema for rename app params.
+ */
+export const RenameAppParamsSchema = z.object({
+  appId: z.number(),
+  appName: z.string(),
+  appPath: z.string(),
+  // When true, name/path collisions are resolved by appending a numeric
+  // suffix (atomically, under the app lock) instead of throwing Conflict.
+  // Used by blueprint approval so generated names never block the flow.
+  autoResolveConflicts: z.boolean().optional(),
+});
+
+/**
+ * Schema for rename app result: the final display name and stored path,
+ * which may differ from the requested ones when conflicts were auto-resolved.
+ */
+export const RenameAppResultSchema = z.object({
+  name: z.string(),
+  path: z.string(),
+});
+
+/**
+ * Schema for previewing the folder name an app display name resolves to.
+ */
+export const PreviewAppFolderNameParamsSchema = z.object({
+  name: z.string(),
+  appId: z.number().optional(),
+});
+
+export const PreviewAppFolderNameResultSchema = z.object({
+  folderName: z.string(),
+});
+
+/**
+ * Schema for run/stop/restart app params.
+ */
+export const AppIdParamsSchema = z.object({
+  appId: z.number(),
+});
+
+export const AppRunInvocationRefSchema: z.ZodType<AppRunInvocationRef> =
+  z.object({
+    kind: z.literal("app-run"),
+    entityKey: z.number(),
+    operationId: z.string().min(1),
+  });
+
+export const RunAppParamsSchema = AppIdParamsSchema.extend({
+  invocationRef: AppRunInvocationRefSchema.optional(),
+});
+
+/**
+ * Schema for restart app params (with optional removeNodeModules).
+ */
+export const RestartAppParamsSchema = z.object({
+  appId: z.number(),
+  invocationRef: AppRunInvocationRefSchema.optional(),
+  removeNodeModules: z.boolean().optional(),
+  recreateSandbox: z.boolean().optional(),
+});
+
+export const CloudSandboxStatusSchema = z.object({
+  sandboxId: z.string(),
+  status: z.string(),
+  previewUrl: z.string(),
+  previewAuthToken: z.string(),
+  previewPort: z.number().int(),
+  syncRevision: z.number().int().nonnegative(),
+  initialSyncCompleted: z.boolean(),
+  appStatus: z.enum(["starting", "running", "standby", "failed"]),
+  syncAgentHealthy: z.boolean(),
+  createdAt: z.string(),
+  lastActiveAt: z.string(),
+  lastSuccessfulSyncAt: z.string().nullable(),
+  expiresAt: z.string(),
+  billingState: z.enum([
+    "active",
+    "charging",
+    "terminated",
+    "billing_unavailable",
+  ]),
+  billingStartedAt: z.string(),
+  billingLockedAt: z.string().nullable(),
+  lastChargedAt: z.string().nullable(),
+  nextChargeAt: z.string(),
+  billingSlicesCharged: z.number().int().nonnegative(),
+  creditsCharged: z.number().nonnegative(),
+  terminationReason: z
+    .enum([
+      "manual",
+      "idle_timeout",
+      "credits_exhausted",
+      "billing_unavailable",
+    ])
+    .nullable(),
+  lastErrorCode: z.string().nullable(),
+  lastErrorMessage: z.string().nullable(),
+  localSyncErrorMessage: z.string().nullable().optional(),
+});
+
+export const CreateCloudSandboxShareLinkParamsSchema = z.object({
+  appId: z.number(),
+  expiresInSeconds: z.number().int().positive().optional(),
+});
+
+export const CreateCloudSandboxShareLinkResultSchema = z.object({
+  sandboxId: z.string(),
+  shareLinkId: z.string(),
+  url: z.string(),
+  expiresAt: z.string(),
+});
+
+/**
+ * Schema for edit app file params.
+ */
+export const EditAppFileParamsSchema = z.object({
+  appId: z.number(),
+  filePath: z.string(),
+  content: z.string(),
+});
+
+/**
+ * Schema for edit app file result.
+ */
+export const EditAppFileResultSchema = z.object({
+  warning: z.string().optional(),
+});
+
+/**
+ * Schema for read app file params.
+ */
+export const ReadAppFileParamsSchema = z.object({
+  appId: z.number(),
+  filePath: z.string(),
+});
+
+/**
+ * Schema for respond to app input params.
+ */
+export const RespondToAppInputParamsSchema = z.object({
+  appId: z.number(),
+  response: z.string(),
+});
+
+/**
+ * Schema for search app files params.
+ */
+export const SearchAppFilesParamsSchema = z.object({
+  appId: z.number(),
+  query: z.string(),
+});
+
+/**
+ * Schema for file search result snippet.
+ */
+export const FileSearchSnippetSchema = z.object({
+  before: z.string(),
+  match: z.string(),
+  after: z.string(),
+  line: z.number(),
+});
+
+/**
+ * Schema for app file search result.
+ */
+export const AppFileSearchResultSchema = z.object({
+  path: z.string(),
+  matchesContent: z.boolean(),
+  snippets: z.array(FileSearchSnippetSchema).optional(),
+});
+
+/**
+ * Schema for change app location params.
+ */
+export const ChangeAppLocationParamsSchema = z.object({
+  appId: z.number(),
+  parentDirectory: z.string(),
+});
+
+/**
+ * Schema for change app location result.
+ */
+export const ChangeAppLocationResultSchema = z.object({
+  resolvedPath: z.string(),
+});
+
+/**
+ * Schema for a listed app - what listApps returns for each app.
+ * This is AppBaseSchema plus resolvedPath, but without computed fields like files.
+ */
+export const ListedAppSchema = AppBaseSchema.extend({
+  resolvedPath: z.string().optional(),
+});
+
+export type ListedApp = z.infer<typeof ListedAppSchema>;
+
+/**
+ * Schema for list apps response.
+ * Uses ListedAppSchema since listing only has resolved path, not full computed fields.
+ */
+export const ListAppsResponseSchema = z.object({
+  apps: z.array(ListedAppSchema),
+});
+
+/**
+ * Schema for rename branch params.
+ */
+export const RenameBranchParamsSchema = z.object({
+  appId: z.number(),
+  oldBranchName: z.string(),
+  newBranchName: z.string(),
+});
+
+/**
+ * Schema for add to favorite result.
+ */
+export const AddToFavoriteResultSchema = z.object({
+  isFavorite: z.boolean(),
+});
+
+/**
+ * Schema for setting the per-app E2E testing opt-in flag.
+ */
+export const SetTestingEnabledParamsSchema = z.object({
+  appId: z.number(),
+  enabled: z.boolean(),
+});
+
+export const SetTestingEnabledResultSchema = z.object({
+  testingEnabled: z.boolean(),
+});
+
+/**
+ * Schema for update app commands params.
+ */
+export const UpdateAppCommandsParamsSchema = z.object({
+  appId: z.number(),
+  installCommand: z.string().nullable(),
+  startCommand: z.string().nullable(),
+});
+
+/**
+ * Schema for select app location params.
+ */
+export const SelectAppLocationParamsSchema = z.object({
+  defaultPath: z.string().optional(),
+});
+
+/**
+ * Schema for select app location result.
+ */
+export const SelectAppLocationResultSchema = z.object({
+  path: z.string().nullable(),
+  canceled: z.boolean(),
+});
+
+/**
+ * Schema for app search result.
+ */
+export const AppSearchResultSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  createdAt: z.date(),
+  matchedChatTitle: z.string().nullable(),
+  matchedChatMessage: z.string().nullable(),
+});
+
+// =============================================================================
+// App Contracts
+// =============================================================================
+
+export const appContracts = {
+  createApp: defineContract({
+    channel: "create-app",
+    input: CreateAppParamsSchema,
+    output: CreateAppResultSchema,
+    invalidates: () => [{ family: "apps" }, { family: "chats" }],
+  }),
+
+  getApp: defineContract({
+    channel: "get-app",
+    input: z.number(),
+    output: AppSchema,
+  }),
+
+  listApps: defineContract({
+    channel: "list-apps",
+    input: z.void(),
+    output: ListAppsResponseSchema,
+  }),
+
+  deleteApp: defineContract({
+    channel: "delete-app",
+    input: DeleteAppParamsSchema,
+    output: z.void(),
+    invalidates: () => [
+      { family: "apps" },
+      { family: "chats" },
+      { family: "app-collections" },
+    ],
+    originHandles: () => [{ family: "apps" }, { family: "app-collections" }],
+  }),
+
+  deleteApps: defineContract({
+    channel: "delete-apps",
+    input: DeleteAppsParamsSchema,
+    output: DeleteAppsResultSchema,
+    invalidates: (_input, output) =>
+      output.results.some((result) => result.success)
+        ? [
+            { family: "apps" },
+            { family: "chats" },
+            { family: "app-collections" },
+          ]
+        : [],
+    originHandles: (_input, output) =>
+      output.results.some((result) => result.success)
+        ? [{ family: "apps" }, { family: "app-collections" }]
+        : [],
+  }),
+
+  copyApp: defineContract({
+    channel: "copy-app",
+    input: CopyAppParamsSchema,
+    output: CopyAppResultSchema,
+    invalidates: () => [{ family: "apps" }, { family: "chats" }],
+  }),
+
+  renameApp: defineContract({
+    channel: "rename-app",
+    input: RenameAppParamsSchema,
+    output: RenameAppResultSchema,
+    invalidates: (input) => [
+      { family: "apps" },
+      { family: "app", appId: input.appId },
+    ],
+    originHandles: () => [{ family: "apps" }],
+  }),
+
+  previewAppFolderName: defineContract({
+    channel: "preview-app-folder-name",
+    input: PreviewAppFolderNameParamsSchema,
+    output: PreviewAppFolderNameResultSchema,
+  }),
+
+  runApp: defineContract({
+    channel: "run-app",
+    input: RunAppParamsSchema,
+    output: z.void(),
+  }),
+
+  stopApp: defineContract({
+    channel: "stop-app",
+    input: AppIdParamsSchema,
+    output: z.void(),
+  }),
+
+  restartApp: defineContract({
+    channel: "restart-app",
+    input: RestartAppParamsSchema,
+    output: z.void(),
+  }),
+
+  getCloudSandboxStatus: defineContract({
+    channel: "get-cloud-sandbox-status",
+    input: AppIdParamsSchema,
+    output: CloudSandboxStatusSchema.nullable(),
+  }),
+
+  createCloudSandboxShareLink: defineContract({
+    channel: "create-cloud-sandbox-share-link",
+    input: CreateCloudSandboxShareLinkParamsSchema,
+    output: CreateCloudSandboxShareLinkResultSchema,
+  }),
+
+  editAppFile: defineContract({
+    channel: "edit-app-file",
+    input: EditAppFileParamsSchema,
+    output: EditAppFileResultSchema,
+    invalidates: (input) => [{ family: "versions", appId: input.appId }],
+  }),
+
+  readAppFile: defineContract({
+    channel: "read-app-file",
+    input: ReadAppFileParamsSchema,
+    output: z.string(),
+  }),
+
+  respondToAppInput: defineContract({
+    channel: "respond-to-app-input",
+    input: RespondToAppInputParamsSchema,
+    output: z.void(),
+  }),
+
+  searchAppFiles: defineContract({
+    channel: "search-app-files",
+    input: SearchAppFilesParamsSchema,
+    output: z.array(AppFileSearchResultSchema),
+  }),
+
+  changeAppLocation: defineContract({
+    channel: "change-app-location",
+    input: ChangeAppLocationParamsSchema,
+    output: ChangeAppLocationResultSchema,
+    invalidates: (input) => [
+      { family: "apps" },
+      { family: "app", appId: input.appId },
+    ],
+  }),
+
+  renameBranch: defineContract({
+    channel: "rename-branch",
+    input: RenameBranchParamsSchema,
+    output: z.void(),
+    invalidates: (input) => [
+      { family: "branches", appId: input.appId },
+      { family: "versions", appId: input.appId },
+    ],
+  }),
+
+  addToFavorite: defineContract({
+    channel: "add-to-favorite",
+    input: AppIdParamsSchema,
+    output: AddToFavoriteResultSchema,
+    invalidates: (input) => [
+      { family: "apps" },
+      { family: "app", appId: input.appId },
+    ],
+    originHandles: () => [{ family: "apps" }],
+  }),
+
+  setTestingEnabled: defineContract({
+    channel: "set-testing-enabled",
+    input: SetTestingEnabledParamsSchema,
+    output: SetTestingEnabledResultSchema,
+    invalidates: (input) => [
+      { family: "apps" },
+      { family: "app", appId: input.appId },
+    ],
+    originHandles: (input) => [{ family: "app", appId: input.appId }],
+  }),
+
+  selectAppLocation: defineContract({
+    channel: "select-app-location",
+    input: SelectAppLocationParamsSchema,
+    output: SelectAppLocationResultSchema,
+  }),
+
+  checkAppName: defineContract({
+    channel: "check-app-name",
+    input: z.object({ appName: z.string() }),
+    output: z.object({ exists: z.boolean(), message: z.string().optional() }),
+  }),
+
+  searchApps: defineContract({
+    channel: "search-app",
+    input: z.string(),
+    output: z.array(AppSearchResultSchema),
+  }),
+
+  updateAppCommands: defineContract({
+    channel: "update-app-commands",
+    input: UpdateAppCommandsParamsSchema,
+    output: z.void(),
+    invalidates: (input) => [{ family: "app", appId: input.appId }],
+  }),
+
+  /**
+   * Notifies the backend that an app has been selected/viewed in the preview panel.
+   * This updates the lastViewedAt timestamp to prevent garbage collection.
+   */
+  selectAppForPreview: defineContract({
+    channel: "select-app-for-preview",
+    input: z.object({ appId: z.number().nullable() }),
+    output: z.void(),
+  }),
+
+  getCurrentCommitHash: defineContract({
+    channel: "app:get-current-commit-hash",
+    input: z.object({ appId: z.number() }),
+    output: z.object({ commitHash: z.string().nullable() }),
+  }),
+
+  saveAppScreenshot: defineContract({
+    channel: "app:save-screenshot",
+    input: z.object({
+      appId: z.number(),
+      dataUrl: z.string(),
+      // Commit hash captured at the time the screenshot was requested.
+      // Required to avoid saving the screenshot under a newer HEAD if
+      // another commit lands between capture request and save.
+      commitHash: z.string(),
+    }),
+    output: z.void(),
+  }),
+
+  listAppScreenshots: defineContract({
+    channel: "app:list-screenshots",
+    input: z.object({ appId: z.number() }),
+    output: z.object({
+      screenshots: z.array(
+        z.object({ commitHash: z.string(), url: z.string() }),
+      ),
+    }),
+  }),
+
+  listAppThumbnails: defineContract({
+    channel: "app:list-thumbnails",
+    input: z.object({ appIds: z.array(z.number()) }),
+    output: z.object({
+      thumbnails: z.array(
+        z.object({
+          appId: z.number(),
+          thumbnailUrl: z.string().nullable(),
+        }),
+      ),
+    }),
+  }),
+} as const;
+
+// =============================================================================
+// App Client
+// =============================================================================
+
+/**
+ * Type-safe client for app IPC operations.
+ * Auto-generated from contracts.
+ *
+ * @example
+ * const { app, chatId } = await appClient.createApp({ name: "my-app" });
+ * await appClient.deleteApp({ appId: app.id });
+ */
+export const appClient = createClient(appContracts);
+
+// =============================================================================
+// Type Exports (for backwards compatibility)
+// =============================================================================
+
+export type CreateAppParams = z.infer<typeof CreateAppParamsSchema>;
+export type CreateAppResult = z.infer<typeof CreateAppResultSchema>;
+export type CopyAppParams = z.infer<typeof CopyAppParamsSchema>;
+export type EditAppFileReturnType = z.infer<typeof EditAppFileResultSchema>;
+export type RespondToAppInputParams = z.infer<
+  typeof RespondToAppInputParamsSchema
+>;
+export type AppFileSearchResult = z.infer<typeof AppFileSearchResultSchema>;
+export type ChangeAppLocationParams = z.infer<
+  typeof ChangeAppLocationParamsSchema
+>;
+export type ChangeAppLocationResult = z.infer<
+  typeof ChangeAppLocationResultSchema
+>;
+export type ListAppsResponse = z.infer<typeof ListAppsResponseSchema>;
+export type RenameBranchParams = z.infer<typeof RenameBranchParamsSchema>;
+export type AppSearchResult = z.infer<typeof AppSearchResultSchema>;
+export type UpdateAppCommandsParams = z.infer<
+  typeof UpdateAppCommandsParamsSchema
+>;
+export type CloudSandboxStatus = z.infer<typeof CloudSandboxStatusSchema>;
