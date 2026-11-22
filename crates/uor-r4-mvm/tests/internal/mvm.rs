@@ -5,7 +5,7 @@ use crate::mvm::{
     SpiralCoreHeader, SPIRALCORE_MAGIC,
 };
 
-use crate::mvm_cc::compile_c_to_rv64_elf;
+use crate::mvm_cc::{compile_c_to_rv64_elf, compile_c_units_to_rv64_elf};
 use crate::spiralcore_vsock::r4_spiralcore_vsock::{
     EgressVerdict, ElfAdmission, FrameVerdict, SocketAdmission,
 };
@@ -58,7 +58,15 @@ fn mvm_exec_mutates_virtual_files() {
         .expect("generated ELF");
     assert_eq!(
         generated,
-        compile_c_to_rv64_elf(source).expect("direct compiler output")
+        compile_c_units_to_rv64_elf(
+            &[("/workspace/source.c", source)],
+            &["/workspace".to_string(), "/usr/include".to_string()],
+            &[],
+            |hdr| vm
+                .read_guest_file(hdr)
+                .and_then(|b| String::from_utf8(b).ok()),
+        )
+        .expect("direct compiler output")
     );
 
     let mut files = BTreeMap::new();
@@ -118,11 +126,19 @@ int main(void) {
     return 0;
 }
 "#;
-    let elf = compile_c_to_rv64_elf(source).expect("C compiles to RV64 ELF");
+    let mut vm = MvmSandbox::boot_default().expect("boot");
+    let elf = compile_c_units_to_rv64_elf(
+        &[("/workspace/src/bench.c", source)],
+        &["/workspace/src".to_string(), "/usr/include".to_string()],
+        &[],
+        |hdr| {
+            vm.read_guest_file(hdr)
+                .and_then(|b| String::from_utf8(b).ok())
+        },
+    )
+    .expect("C compiles to RV64 ELF");
     assert_eq!(&elf[..4], b"\x7fELF");
     assert_eq!(u16::from_le_bytes([elf[18], elf[19]]), 243);
-
-    let mut vm = MvmSandbox::boot_default().expect("boot");
     vm.write_guest_file("/workspace/src/bench.c", source.as_bytes())
         .expect("write C source");
     let outcome = vm

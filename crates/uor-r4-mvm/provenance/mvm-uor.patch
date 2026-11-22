@@ -1,21 +1,33 @@
 --- a/mvm.rs
 +++ b/mvm.rs
-@@ -15,3 +15,3 @@
+@@ -15 +15 @@
+-use crate::lexlean_generated::r4_connected_studio::{
++use crate::lexlean_admission::r4_connected_studio::{
+@@ -19,5 +19,4 @@
+-use crate::lexlean_generated::r4_secops_audit::{admit_sandbox_write, SandboxAdmissionOutcome};
 -use crate::lexlean_generated::r4_spiralcore_vsock::{
 -    admit_guest_socket, admit_host_egress, admit_rv64_elf, admit_spiralcore_frame,
 -    EgressPolicyCheck, EgressVerdict, Elf64HeaderSummary, ElfAdmission, FrameVerdict,
-+use crate::spiralcore_vsock::r4_spiralcore_vsock::{
-+    admit_guest_socket, admit_host_egress, admit_spiralcore_frame,
-+    EgressPolicyCheck, EgressVerdict, ElfAdmission, FrameVerdict,
-@@ -38 +38 @@
+-    SocketAdmission, SpiralCoreFrame,
++use crate::lexlean_admission::r4_secops_audit::{admit_sandbox_write, SandboxAdmissionOutcome};
++use crate::lexlean_admission::r4_spiralcore_vsock::{
++    admit_guest_socket, admit_host_egress, admit_spiralcore_frame, EgressPolicyCheck,
++    EgressVerdict, ElfAdmission, FrameVerdict, SocketAdmission, SpiralCoreFrame,
+@@ -51 +50 @@
 -static INITRAMFS_IMAGE: &[u8] = include_bytes!("mvm_initramfs.bin");
 +static INITRAMFS_IMAGE: &[u8] = crate::mvm_initramfs::MVM_INITRAMFS;
-@@ -104 +104 @@
+@@ -62,0 +62,2 @@
++/// Linux `EFBIG` (`27`) negated.
++const LINUX_EFBIG: i64 = -27;
+@@ -64,0 +66,2 @@
++/// Maximum size of a single virtual file written through Linux syscalls (8 MiB).
++const MAX_GUEST_FILE_BYTES: usize = 8 * 1024 * 1024;
+@@ -342 +345 @@
 -    pub fn to_bytes(&self) -> [u8; 16] {
 +    pub fn to_bytes(self) -> [u8; 16] {
-@@ -161,0 +162 @@
+@@ -399,0 +403 @@
 +    next_sector: u32,
-@@ -206,43 +207,4 @@
+@@ -495,32 +499,3 @@
 -    if bytes.len() < 64 {
 -        return ElfAdmission::RefusedBadMagic;
 -    }
@@ -48,7 +60,10 @@
 -                }
 -            }
 -        }
--    }
++    match crate::elf::parse(bytes, GUEST_RAM_BYTES) {
++        Ok(_) => ElfAdmission::ElfAdmitted,
++        Err(refusal) => refusal,
+@@ -528,10 +502,0 @@
 -
 -    admit_rv64_elf(Elf64HeaderSummary {
 -        magic_valid,
@@ -59,30 +74,760 @@
 -        segment_count: load_segments,
 -        max_segments: 16,
 -    })
-+    match crate::elf::parse(bytes, GUEST_RAM_BYTES) {
-+        Ok(_) => ElfAdmission::ElfAdmitted,
-+        Err(refusal) => refusal,
+@@ -634,0 +600,14 @@
++    fn guest_range(&self, addr: u64, len: usize) -> Result<std::ops::Range<usize>, MvmError> {
++        let start = usize::try_from(addr)
++            .map_err(|_| MvmError::CpuTrap(format!("guest address out of range: 0x{addr:x}")))?;
++        let end = start
++            .checked_add(len)
++            .ok_or_else(|| MvmError::CpuTrap(format!("guest address overflow: 0x{addr:x}")))?;
++        if end > self.ram.len() {
++            return Err(MvmError::CpuTrap(format!(
++                "memory fault at 0x{addr:x} len={len}"
++            )));
++        }
++        Ok(start..end)
 +    }
-@@ -510,0 +473 @@
++
+@@ -637,5 +616,2 @@
+-        let idx = addr as usize;
+-        self.ram
+-            .get(idx)
+-            .copied()
+-            .ok_or_else(|| MvmError::CpuTrap(format!("load u8 fault at 0x{addr:x}")))
++        let range = self.guest_range(addr, 1)?;
++        Ok(self.ram[range.start])
+@@ -645,5 +621,5 @@
+-        let idx = addr as usize;
+-        if idx + 2 > self.ram.len() {
+-            return Err(MvmError::CpuTrap(format!("load u16 fault at 0x{addr:x}")));
+-        }
+-        Ok(u16::from_le_bytes([self.ram[idx], self.ram[idx + 1]]))
++        let range = self.guest_range(addr, 2)?;
++        Ok(u16::from_le_bytes([
++            self.ram[range.start],
++            self.ram[range.start + 1],
++        ]))
+@@ -653,4 +629 @@
+-        let idx = addr as usize;
+-        if idx + 4 > self.ram.len() {
+-            return Err(MvmError::CpuTrap(format!("load u32 fault at 0x{addr:x}")));
+-        }
++        let range = self.guest_range(addr, 4)?;
+@@ -658,4 +631,4 @@
+-            self.ram[idx],
+-            self.ram[idx + 1],
+-            self.ram[idx + 2],
+-            self.ram[idx + 3],
++            self.ram[range.start],
++            self.ram[range.start + 1],
++            self.ram[range.start + 2],
++            self.ram[range.start + 3],
+@@ -666,4 +639 @@
+-        let idx = addr as usize;
+-        if idx + 8 > self.ram.len() {
+-            return Err(MvmError::CpuTrap(format!("load u64 fault at 0x{addr:x}")));
+-        }
++        let range = self.guest_range(addr, 8)?;
+@@ -671 +641 @@
+-        b.copy_from_slice(&self.ram[idx..idx + 8]);
++        b.copy_from_slice(&self.ram[range]);
+@@ -677,8 +647,2 @@
+-        let idx = addr as usize;
+-        if idx.saturating_add(data.len()) > self.ram.len() {
+-            return Err(MvmError::CpuTrap(format!(
+-                "store fault at 0x{addr:x} len={}",
+-                data.len()
+-            )));
+-        }
+-        self.ram[idx..idx + data.len()].copy_from_slice(data);
++        let range = self.guest_range(addr, data.len())?;
++        self.ram[range].copy_from_slice(data);
+@@ -690 +654,3 @@
+-        let mut idx = addr as usize;
++        let start = usize::try_from(addr)
++            .map_err(|_| MvmError::CpuTrap(format!("unterminated cstr at 0x{addr:x}")))?;
++        let mut idx = start;
+@@ -738,0 +705,74 @@
++    /// List normalized guest file paths matching `prefix`.
++    pub fn list_guest_paths(&self, prefix: &str) -> Vec<String> {
++        let norm_prefix = if prefix.is_empty() || prefix == "/" {
++            "/".to_string()
++        } else {
++            Self::normalize_guest_path("/", prefix)
++        };
++        self.inodes
++            .keys()
++            .filter(|k| {
++                norm_prefix == "/"
++                    || k.as_str() == norm_prefix.as_str()
++                    || k.starts_with(&format!("{}/", norm_prefix.trim_end_matches('/')))
++            })
++            .cloned()
++            .collect()
++    }
++
++    /// Remove a regular guest file or symlink, refusing protected canonical and system paths.
++    pub fn remove_guest_file(&mut self, path: &str) -> Result<(), MvmError> {
++        let norm = Self::normalize_guest_path("/", path);
++        if Self::is_protected_guest_path(&norm) {
++            return Err(MvmError::CanonicalPathProtected(norm));
++        }
++        if let Some(rel) = norm.strip_prefix("/workspace/") {
++            self.synced_workspace_paths.remove(rel);
++            self.workspace_diff_baseline.remove(rel);
++        }
++        if !self.remove_inode_reclaiming(&norm) {
++            return Err(MvmError::NotFound(norm));
++        }
++        Ok(())
++    }
++
++    /// Reclaim CoW sectors owned solely by `removed_inode`.
++    pub(super) fn free_inode_sectors(&mut self, removed_inode: &GuestInode) {
++        let InodeKind::Regular {
++            sector_start,
++            byte_len,
++        } = &removed_inode.kind
++        else {
++            return;
++        };
++        let count = (*byte_len).div_ceil(MVM_COW_SECTOR_BYTES).max(1) as u32;
++        for sec_id in *sector_start..sector_start.saturating_add(count) {
++            let still_referenced = self.inodes.values().any(|ino| {
++                if let InodeKind::Regular {
++                    sector_start: os,
++                    byte_len: ol,
++                } = &ino.kind
++                {
++                    let oc = (*ol).div_ceil(MVM_COW_SECTOR_BYTES).max(1) as u32;
++                    sec_id >= *os && sec_id < os.saturating_add(oc)
++                } else {
++                    false
++                }
++            });
++            if !still_referenced {
++                self.cow_sectors.remove(&sec_id);
++                self.dirty_sectors.remove(&sec_id);
++            }
++        }
++    }
++
++    /// Remove `norm_path` from `self.inodes` and reclaim unreferenced CoW sectors.
++    pub(super) fn remove_inode_reclaiming(&mut self, norm_path: &str) -> bool {
++        if let Some(old) = self.inodes.remove(norm_path) {
++            self.free_inode_sectors(&old);
++            true
++        } else {
++            false
++        }
++    }
++
+@@ -947 +987 @@
+-        if Self::is_protected_canonical_guest_path(&guest) {
++        if Self::is_protected_guest_path(&guest) {
+@@ -951 +991 @@
+-        self.inodes.remove(&guest).is_some()
++        self.remove_inode_reclaiming(&guest)
+@@ -1010,0 +1051 @@
 +            next_sector: self.next_sector,
-@@ -519,0 +483 @@
+@@ -1020,0 +1062,48 @@
 +        self.next_sector = snap.next_sector;
-@@ -801,0 +766,3 @@
++    }
++
++    /// Encode a complete, self-verifying Copy-on-Write snapshot for OPFS persistence.
++    pub fn export_cow_snapshot_bytes(&self) -> Result<Vec<u8>, String> {
++        #[derive(serde::Serialize)]
++        struct CowWireMeta<'a> {
++            state_sha256: &'a str,
++            dirs: &'a BTreeSet<String>,
++            inodes: &'a BTreeMap<String, GuestInode>,
++            installed_packages: &'a BTreeMap<String, InstalledPackageMeta>,
++            current_cwd: &'a str,
++            synced_workspace_paths: &'a BTreeSet<String>,
++            dirty_sectors: &'a BTreeSet<u32>,
++            next_sector: u32,
++        }
++
++        let state_sha256 = self.cow_state_sha256();
++        let meta = CowWireMeta {
++            state_sha256: &state_sha256,
++            dirs: &self.dirs,
++            inodes: &self.inodes,
++            installed_packages: &self.installed_packages,
++            current_cwd: &self.current_cwd,
++            synced_workspace_paths: &self.synced_workspace_paths,
++            dirty_sectors: &self.dirty_sectors,
++            next_sector: self.next_sector,
++        };
++        let meta_json = serde_json::to_vec(&meta).map_err(|e| format!("cow serialize: {e}"))?;
++        let mut body = Vec::with_capacity(8 + meta_json.len() + self.cow_sectors.len() * 1024);
++        body.extend_from_slice(&(meta_json.len() as u32).to_le_bytes());
++        body.extend_from_slice(&meta_json);
++        body.extend_from_slice(&(self.cow_sectors.len() as u32).to_le_bytes());
++        for (&sector_id, sector) in &self.cow_sectors {
++            let trimmed_len = sector
++                .iter()
++                .rposition(|&b| b != 0)
++                .map_or(0, |idx| idx + 1);
++            body.extend_from_slice(&sector_id.to_le_bytes());
++            body.extend_from_slice(&(trimmed_len as u32).to_le_bytes());
++            body.extend_from_slice(&sector[..trimmed_len]);
++        }
++        let checksum = Sha256::digest(&body);
++        let mut out = Vec::with_capacity(8 + 32 + body.len());
++        out.extend_from_slice(b"UORCOW01");
++        out.extend_from_slice(&checksum);
++        out.extend_from_slice(&body);
++        Ok(out)
+@@ -1022,0 +1112,121 @@
++    /// Restore a binary Copy-on-Write snapshot, validating header bounds, full SHA-256 integrity,
++    /// VFS consistency, and cwd normalization.
++    pub fn import_cow_snapshot_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
++        #[derive(serde::Deserialize)]
++        struct CowWireMetaOwned {
++            state_sha256: String,
++            dirs: BTreeSet<String>,
++            inodes: BTreeMap<String, GuestInode>,
++            installed_packages: BTreeMap<String, InstalledPackageMeta>,
++            current_cwd: String,
++            synced_workspace_paths: BTreeSet<String>,
++            dirty_sectors: BTreeSet<u32>,
++            next_sector: u32,
++        }
++
++        if bytes.len() < 48 || &bytes[..8] != b"UORCOW01" {
++            return Err("invalid UORCOW01 snapshot header".to_string());
++        }
++        let body = &bytes[40..];
++        let actual_checksum = Sha256::digest(body);
++        if actual_checksum.as_slice() != &bytes[8..40] {
++            return Err("UORCOW01 wire checksum verification failed".to_string());
++        }
++
++        let meta_len = u32::from_le_bytes([body[0], body[1], body[2], body[3]]) as usize;
++        let mut cur = 4usize;
++        let meta_end = cur
++            .checked_add(meta_len)
++            .ok_or_else(|| "snapshot metadata length overflow".to_string())?;
++        let meta_slice = body
++            .get(cur..meta_end)
++            .ok_or_else(|| "truncated snapshot metadata".to_string())?;
++        let meta: CowWireMetaOwned =
++            serde_json::from_slice(meta_slice).map_err(|e| format!("bad snapshot metadata: {e}"))?;
++        cur = meta_end;
++
++        let count_bytes = body
++            .get(cur..cur + 4)
++            .ok_or_else(|| "missing snapshot sector count".to_string())?;
++        let sector_count =
++            u32::from_le_bytes([count_bytes[0], count_bytes[1], count_bytes[2], count_bytes[3]])
++                as usize;
++        cur += 4;
++
++        let mut cow_sectors = BTreeMap::new();
++        for _ in 0..sector_count {
++            let hdr = body
++                .get(cur..cur + 8)
++                .ok_or_else(|| "truncated snapshot sector header".to_string())?;
++            cur += 8;
++            let sector_id = u32::from_le_bytes([hdr[0], hdr[1], hdr[2], hdr[3]]);
++            let trimmed_len = u32::from_le_bytes([hdr[4], hdr[5], hdr[6], hdr[7]]) as usize;
++            if trimmed_len > MVM_COW_SECTOR_BYTES {
++                return Err(format!("snapshot sector {sector_id} exceeds 64 KB"));
++            }
++            let payload_end = cur
++                .checked_add(trimmed_len)
++                .ok_or_else(|| "snapshot sector length overflow".to_string())?;
++            let payload = body
++                .get(cur..payload_end)
++                .ok_or_else(|| "truncated snapshot sector payload".to_string())?;
++            cur = payload_end;
++            let mut full = vec![0u8; MVM_COW_SECTOR_BYTES];
++            full[..trimmed_len].copy_from_slice(payload);
++            cow_sectors.insert(sector_id, full);
++        }
++        if cur != body.len() {
++            return Err("trailing bytes in UORCOW01 snapshot".to_string());
++        }
++
++        for (path, inode) in &meta.inodes {
++            if !path.starts_with('/') {
++                return Err(format!("invalid inode path in snapshot: {path}"));
++            }
++            if let InodeKind::Regular {
++                sector_start,
++                byte_len,
++            } = &inode.kind
++            {
++                let needed = u32::try_from((*byte_len).div_ceil(MVM_COW_SECTOR_BYTES).max(1))
++                    .map_err(|_| "snapshot sector count overflow".to_string())?;
++                for off in 0..needed {
++                    let sid = sector_start
++                        .checked_add(off)
++                        .ok_or_else(|| "snapshot sector index overflow".to_string())?;
++                    if !cow_sectors.contains_key(&sid) {
++                        return Err(format!("missing sector {sid} for inode {path}"));
++                    }
++                }
++            }
++        }
++
++        let norm_cwd = if meta.current_cwd.trim().is_empty() {
++            "/workspace".to_string()
++        } else {
++            Self::normalize_guest_path("/workspace", &meta.current_cwd)
++        };
++        let target_cwd = if meta.dirs.contains(&norm_cwd) {
++            norm_cwd
++        } else {
++            "/workspace".to_string()
++        };
++
++        let backup = self.clone();
++        self.dirs = meta.dirs;
++        self.inodes = meta.inodes;
++        self.installed_packages = meta.installed_packages;
++        self.current_cwd = target_cwd.clone();
++        self.env_vars.insert("PWD".to_string(), target_cwd);
++        self.synced_workspace_paths = meta.synced_workspace_paths;
++        self.dirty_sectors = meta.dirty_sectors;
++        self.next_sector = meta.next_sector;
++        self.cow_sectors = cow_sectors;
++
++        if !self.is_cow_vfs_consistent() || self.cow_state_sha256() != meta.state_sha256 {
++            *self = backup;
++            return Err("UORCOW01 snapshot VFS/SHA-256 verification failed".to_string());
++        }
++        Ok(())
++    }
++
+@@ -1064 +1274,5 @@
+-            if cur + path_len + data_len > raw_img.len() {
++            if path_len
++                .checked_add(data_len)
++                .and_then(|sum| cur.checked_add(sum))
++                .is_none_or(|end| end > raw_img.len())
++            {
+@@ -1263,0 +1478,3 @@
++        if let Some(old) = self.inodes.remove(&norm) {
++            self.free_inode_sectors(&old);
++        }
+@@ -1284,0 +1502,21 @@
++                },
++            },
++        );
++        Ok(())
++    }
++
++    pub(super) fn write_symlink_inode(&mut self, path: &str, target: &str) -> Result<(), String> {
++        let norm = Self::normalize_guest_path("/", path);
++        if Self::is_protected_guest_path(&norm) {
++            return Err(format!("mvm: refused write to protected path '{norm}'"));
++        }
++        self.ensure_parent_dirs(&norm);
++        if let Some(old) = self.inodes.remove(&norm) {
++            self.free_inode_sectors(&old);
++        }
++        self.inodes.insert(
++            norm,
++            GuestInode {
++                mode: 0o120777,
++                kind: InodeKind::Symlink {
++                    target: target.to_string(),
+@@ -1305 +1543 @@
+-    /// refusing protected canonical paths (`prism/*.lex.tex`, `app/state`) and symlinks to them.
++    /// refusing protected canonical/system paths (`prism/*.lex.tex`, `app/state`, `/bin`, `/sbin`, `/usr`, `/etc`) and symlinks to them.
+@@ -1310 +1548 @@
+-            if Self::is_protected_canonical_guest_path(&cur) {
++            if Self::is_protected_guest_path(&cur) {
+@@ -1393 +1631 @@
+-            self.inodes.remove(&guest_path);
++            self.remove_inode_reclaiming(&guest_path);
+@@ -1554 +1792 @@
+-                if self.inodes.remove(&guest_path).is_some() {
++                if self.remove_inode_reclaiming(&guest_path) {
+@@ -1709 +1947 @@
+-                self.inodes.remove(&k);
++                self.remove_inode_reclaiming(&k);
+@@ -1718 +1956 @@
+-        self.inodes.remove(&prefix).is_some()
++        self.remove_inode_reclaiming(&prefix)
+@@ -1746,2 +1984 @@
+-        if Self::is_protected_canonical_guest_path(&from_guest)
+-            || Self::is_protected_canonical_guest_path(&to_guest)
++        if Self::is_protected_guest_path(&from_guest) || Self::is_protected_guest_path(&to_guest)
+@@ -1759,8 +1996,5 @@
+-                self.ensure_parent_dirs(&to_guest);
+-                self.inodes.insert(
+-                    to_guest,
+-                    GuestInode {
+-                        mode: inode.mode,
+-                        kind: InodeKind::Symlink { target },
+-                    },
+-                );
++                self.write_symlink_inode(&to_guest, &target)
++                    .map_err(MvmError::CanonicalPathProtected)?;
++                if let Some(ino) = self.inodes.get_mut(&to_guest) {
++                    ino.mode = inode.mode;
++                }
+@@ -1773 +2007 @@
+-        self.inodes.remove(&from_guest);
++        self.remove_inode_reclaiming(&from_guest);
+@@ -1791,3 +2025,3 @@
+-    /// Formal R4.MvmLinuxContainer.
+-    fn remove_guest_path(&mut self, norm_path: &str, recursive: bool) -> Result<usize, String> {
+-        if norm_path == "/"
++    /// Unified check enforcing protected canonical paths and read-only system directories/binaries.
++    pub(super) fn is_protected_guest_path(norm_path: &str) -> bool {
++        norm_path == "/"
+@@ -1794,0 +2029 @@
++            || norm_path.starts_with("/bin/")
+@@ -1795,0 +2031,11 @@
++            || norm_path.starts_with("/sbin/")
++            || norm_path == "/usr"
++            || norm_path == "/usr/bin"
++            || norm_path.starts_with("/usr/bin/")
++            || norm_path == "/usr/include"
++            || norm_path.starts_with("/usr/include/")
++            || norm_path == "/usr/src"
++            || norm_path.starts_with("/usr/src/")
++            || norm_path == "/usr/local"
++            || norm_path == "/etc"
++            || norm_path.starts_with("/etc/")
+@@ -1798 +2044,5 @@
+-        {
++    }
++
++    /// Formal R4.MvmLinuxContainer.
++    fn remove_guest_path(&mut self, norm_path: &str, recursive: bool) -> Result<usize, String> {
++        if Self::is_protected_guest_path(norm_path) {
+@@ -1806 +2056 @@
+-                .any(|k| k.starts_with(&prefix) && Self::is_protected_canonical_guest_path(k))
++                .any(|k| k.starts_with(&prefix) && Self::is_protected_guest_path(k))
+@@ -1809 +2059 @@
+-                "rm: refusing to remove '{norm_path}' containing protected canonical files"
++                "rm: refusing to remove '{norm_path}' containing protected files"
+@@ -1813 +2063 @@
+-        if self.inodes.remove(norm_path).is_some() {
++        if self.remove_inode_reclaiming(norm_path) {
+@@ -1820 +2070 @@
+-                .filter(|k| k.starts_with(&prefix) && !Self::is_protected_canonical_guest_path(k))
++                .filter(|k| k.starts_with(&prefix) && !Self::is_protected_guest_path(k))
+@@ -1824,2 +2074,3 @@
+-                self.inodes.remove(&k);
+-                removed += 1;
++                if self.remove_inode_reclaiming(&k) {
++                    removed += 1;
++                }
+@@ -1835,4 +2086,5 @@
+-                let has_protected_below = self.inodes.keys().any(|k| {
+-                    k.starts_with(&d_prefix) && Self::is_protected_canonical_guest_path(k)
+-                });
+-                if d != "/workspace" && !has_protected_below {
++                let has_protected_below = self
++                    .inodes
++                    .keys()
++                    .any(|k| k.starts_with(&d_prefix) && Self::is_protected_guest_path(k));
++                if !Self::is_protected_guest_path(&d) && !has_protected_below {
+@@ -1941,0 +2194,3 @@
 +        if payload.len() > SPIRALCORE_MAX_PAYLOAD {
 +            return Err(MvmError::FrameRejected(FrameVerdict::RefusedPayloadTooLarge));
 +        }
-@@ -834 +801 @@
+@@ -1975 +2230 @@
 -        if wire.len() < end {
 +        if wire.len() != end {
-@@ -1046,5 +1013 @@
+@@ -2412 +2667 @@
+-                    let _ = self.write_guest_file("/etc/pkg/installed.json", &cat_bytes);
++                    let _ = self.write_inode_with_mode("/etc/pkg/installed.json", &cat_bytes, 0o100644);
+@@ -3040,8 +3295,2 @@
+-                    self.ensure_parent_dirs(&norm);
+-                    self.inodes.insert(
+-                        norm,
+-                        GuestInode {
+-                            mode: 0o120777,
+-                            kind: InodeKind::Symlink { target: sym_target },
+-                        },
+-                    );
++                    self.write_symlink_inode(&norm, &sym_target)
++                        .map_err(MvmError::CanonicalPathProtected)?;
+@@ -3455 +3704 @@
+-        if Self::is_protected_canonical_guest_path(&target_path) {
++        if Self::is_protected_guest_path(&target_path) {
+@@ -4044 +4293 @@
+-            let mut expanded = String::with_capacity(raw_line.len());
++            let mut expanded = Vec::with_capacity(raw_line.len());
+@@ -4051 +4300 @@
+-                        expanded.push_str(&pos_args.len().to_string());
++                        expanded.extend_from_slice(pos_args.len().to_string().as_bytes());
+@@ -4056 +4305 @@
+-                        expanded.push_str(&pos_args.join(" "));
++                        expanded.extend_from_slice(pos_args.join(" ").as_bytes());
+@@ -4063 +4312 @@
+-                            expanded.push_str(&script_name);
++                            expanded.extend_from_slice(script_name.as_bytes());
+@@ -4065 +4314 @@
+-                            expanded.push_str(val);
++                            expanded.extend_from_slice(val.as_bytes());
+@@ -4077 +4326 @@
+-                            expanded.push_str(&script_name);
++                            expanded.extend_from_slice(script_name.as_bytes());
+@@ -4079 +4328 @@
+-                            expanded.push_str(val);
++                            expanded.extend_from_slice(val.as_bytes());
+@@ -4085 +4334 @@
+-                expanded.push(bytes[i] as char);
++                expanded.push(bytes[i]);
+@@ -4088 +4337,2 @@
+-            let step = self.exec_command(&expanded, &sub_cwd)?;
++            let expanded_str = String::from_utf8_lossy(&expanded).into_owned();
++            let step = self.exec_command(&expanded_str, &sub_cwd)?;
+@@ -4373 +4623 @@
+-                let mut next = String::with_capacity(cur.len());
++                let mut next = Vec::with_capacity(cur.len());
+@@ -4380 +4630 @@
+-                            next.push('$');
++                            next.push(b'$');
+@@ -4385 +4635 @@
+-                            next.push_str(target);
++                            next.extend_from_slice(target.as_bytes());
+@@ -4392 +4642 @@
+-                                next.push_str(first_dep);
++                                next.extend_from_slice(first_dep.as_bytes());
+@@ -4399 +4649 @@
+-                            next.push_str(&deps.join(" "));
++                            next.extend_from_slice(deps.join(" ").as_bytes());
+@@ -4407,3 +4657,3 @@
+-                                let key = &cur[i + 2..i + 2 + rel_end];
+-                                if let Some(val) = vars.get(key) {
+-                                    next.push_str(val);
++                                let key = String::from_utf8_lossy(&b[i + 2..i + 2 + rel_end]);
++                                if let Some(val) = vars.get(key.as_ref()) {
++                                    next.extend_from_slice(val.as_bytes());
+@@ -4417 +4667 @@
+-                    next.push(b[i] as char);
++                    next.push(b[i]);
+@@ -4420 +4670 @@
+-                cur = next;
++                cur = String::from_utf8_lossy(&next).into_owned();
+@@ -4545 +4795 @@
+-    /// Formal R4.MvmPolyglotToolchain execute in-guest `cargo` / `rustc` against `/workspace` Rust sources (`R4-67`).
++    /// Refuse in-guest `cargo` / `rustc` honestly (no fake AST evaluator or guest Rust toolchain).
+@@ -4549,2 +4799,2 @@
+-        args: &[String],
+-        working_cwd: &str,
++        _args: &[String],
++        _working_cwd: &str,
+@@ -4552,2 +4802,4 @@
+-        use crate::lexlean_generated::r4_mvm_polyglot_toolchain::{
+-            admit_cargo_terminal_subcommand, PolyglotToolchainVerdict,
++        let tool = if prog == "rustc" || prog.ends_with("/rustc") {
++            "rustc"
++        } else {
++            "cargo"
+@@ -4555,189 +4807,6 @@
+-
+-        let is_rustc = prog == "rustc" || prog.ends_with("/rustc");
+-        if args.is_empty()
+-            || args
+-                .iter()
+-                .any(|a| a == "--version" || a == "-V" || a == "version")
+-        {
+-            let banner = if is_rustc {
+-                "rustc 1.97.1-mvm-uor (riscv64gc-unknown-linux-gnu)\n"
+-            } else if args.is_empty() {
+-                "Rust's package manager (in-MVM AST engine: check, test, clippy, build, run, --version)\n"
+-            } else {
+-                "cargo 1.97.1-mvm-uor (wasm-ast-eval)\n"
+-            };
+-            return Ok(StageExecBytesOutcome::ok_text(banner.to_string()));
+-        }
+-
+-        let touches_protected = args.iter().any(|arg| {
+-            if arg.starts_with('-') {
+-                return false;
+-            }
+-            let norm = Self::normalize_guest_path(working_cwd, arg);
+-            Self::is_protected_canonical_guest_path(&norm)
+-        });
+-
+-        if is_rustc {
+-            let verdict = admit_cargo_terminal_subcommand(true, touches_protected);
+-            if verdict == PolyglotToolchainVerdict::RefusedProtectedPathToolchainMutation {
+-                return Ok(StageExecBytesOutcome::err(
+-                    1,
+-                    "rustc: RefusedProtectedPathToolchainMutation\n".to_string(),
+-                ));
+-            }
+-            let mut target_rs: Option<String> = None;
+-            let mut idx = 0usize;
+-            while idx < args.len() {
+-                let a = args[idx].as_str();
+-                if matches!(a, "-o" | "--crate-type" | "--edition" | "-C" | "-L") {
+-                    idx += 2;
+-                    continue;
+-                }
+-                if !a.starts_with('-') && a.ends_with(".rs") {
+-                    target_rs = Some(Self::normalize_guest_path(working_cwd, a));
+-                    break;
+-                }
+-                idx += 1;
+-            }
+-            let Some(rs_norm) = target_rs else {
+-                return Ok(StageExecBytesOutcome::err(
+-                    1,
+-                    "rustc: expected a `.rs` input file\n".to_string(),
+-                ));
+-            };
+-            let Some(bytes) = self.read_guest_file(&rs_norm) else {
+-                return Ok(StageExecBytesOutcome::err(
+-                    1,
+-                    format!("rustc: couldn't read `{rs_norm}`: No such file\n"),
+-                ));
+-            };
+-            let rel = rs_norm
+-                .strip_prefix("/workspace/")
+-                .unwrap_or(rs_norm.as_str())
+-                .to_string();
+-            let rep = crate::wasm_ast_eval::execute_workspace_cargo(
+-                "check",
+-                "",
+-                &[(rel, String::from_utf8_lossy(&bytes).into_owned())],
+-            );
+-            let mut out = rep.terminal_output;
+-            if !out.ends_with('\n') {
+-                out.push('\n');
+-            }
+-            return if rep.status == "ok" {
+-                Ok(StageExecBytesOutcome::ok_text(out))
+-            } else {
+-                Ok(StageExecBytesOutcome::err(1, out))
+-            };
+-        }
+-
+-        let raw_sub = args[0].as_str();
+-        let mapped_sub = match raw_sub {
+-            "check" | "c" => Some("check"),
+-            "test" | "t" => Some("test"),
+-            "clippy" => Some("clippy"),
+-            "build" | "b" => Some("check"),
+-            "run" | "r" => Some("run"),
+-            _ => None,
+-        };
+-        let verdict = admit_cargo_terminal_subcommand(mapped_sub.is_some(), touches_protected);
+-        match verdict {
+-            PolyglotToolchainVerdict::RefusedProtectedPathToolchainMutation => {
+-                return Ok(StageExecBytesOutcome::err(
+-                    1,
+-                    "cargo: RefusedProtectedPathToolchainMutation\n".to_string(),
+-                ));
+-            }
+-            PolyglotToolchainVerdict::RefusedUnsupportedToolchainSubcommand => {
+-                return Ok(StageExecBytesOutcome::err(
+-                    101,
+-                    format!(
+-                        "cargo: RefusedUnsupportedToolchainSubcommand: `{raw_sub}` (supported: check, test, clippy, build, run, --version)\n"
+-                    ),
+-                ));
+-            }
+-            _ => {}
+-        }
+-
+-        let eval_sub = mapped_sub.unwrap_or("check");
+-        let mut filter = String::new();
+-        let mut idx = 1usize;
+-        while idx < args.len() {
+-            let a = args[idx].as_str();
+-            if a == "--" {
+-                idx += 1;
+-                continue;
+-            }
+-            if matches!(
+-                a,
+-                "-p" | "--package" | "--bin" | "--test" | "--manifest-path" | "-j" | "--jobs"
+-            ) {
+-                idx += 2;
+-                continue;
+-            }
+-            if !a.starts_with('-') && filter.is_empty() {
+-                filter = a.to_string();
+-            }
+-            idx += 1;
+-        }
+-
+-        let mut rs_paths: Vec<String> = self
+-            .inodes
+-            .keys()
+-            .filter(|k| {
+-                k.starts_with("/workspace/")
+-                    && k.ends_with(".rs")
+-                    && !Self::is_protected_canonical_guest_path(k)
+-            })
+-            .cloned()
+-            .collect();
+-        rs_paths.sort();
+-
+-        let mut rs_files: Vec<(String, String)> = Vec::with_capacity(rs_paths.len());
+-        for p in rs_paths {
+-            if let Some(bytes) = self.read_guest_file(&p) {
+-                let rel = p
+-                    .strip_prefix("/workspace/")
+-                    .unwrap_or(p.as_str())
+-                    .to_string();
+-                rs_files.push((rel, String::from_utf8_lossy(&bytes).into_owned()));
+-            }
+-        }
+-        if rs_files.is_empty() {
+-            return Ok(StageExecBytesOutcome::err(
+-                101,
+-                "cargo: no `.rs` source files found under `/workspace`\n".to_string(),
+-            ));
+-        }
+-
+-        let rep = crate::wasm_ast_eval::execute_workspace_cargo(eval_sub, &filter, &rs_files);
+-        let mut term = rep.terminal_output;
+-        if !term.is_empty() && !term.ends_with('\n') {
+-            term.push('\n');
+-        }
+-        if rep.status == "ok" {
+-            let mut combined = term;
+-            if !rep.stdout.is_empty() && !combined.contains(&rep.stdout) {
+-                combined.push_str(&rep.stdout);
+-                if !combined.ends_with('\n') {
+-                    combined.push('\n');
+-                }
+-            }
+-            Ok(StageExecBytesOutcome {
+-                exit_code: 0,
+-                stdout: combined.into_bytes(),
+-                stderr: String::new(),
+-                instructions_retired: rep.total_fuel_consumed,
+-                vsock_frames: Vec::new(),
+-                compiled_elf_machine: None,
+-            })
+-        } else {
+-            Ok(StageExecBytesOutcome {
+-                exit_code: 101,
+-                stdout: rep.stdout.into_bytes(),
+-                stderr: term,
+-                instructions_retired: rep.total_fuel_consumed,
+-                vsock_frames: Vec::new(),
+-                compiled_elf_machine: None,
+-            })
+-        }
++        Ok(StageExecBytesOutcome::err(
++            127,
++            format!(
++                "{tool}: unavailable inside RV64IMAC MVM sandbox (no AST evaluator or guest Rust toolchain installed; use cc for in-sandbox RV64 C compilation)\n"
++            ),
++        ))
+@@ -4775,4 +4844 @@
 -        let adm = admit_elf64_riscv(&elf);
 -        if adm != ElfAdmission::ElfAdmitted {
 -            return Err(MvmError::ElfRejected(adm));
 -        }
--
 +        let image = crate::elf::parse(&elf, proc_state.ram.len()).map_err(MvmError::ElfRejected)?;
-@@ -1054,10 +1017 @@
--
+@@ -4784,8 +4850 @@
 -        let entry = u64::from_le_bytes([
 -            elf[24], elf[25], elf[26], elf[27], elf[28], elf[29], elf[30], elf[31],
 -        ]);
@@ -91,9 +836,8 @@
 -        ]) as usize;
 -        let phentsize = u16::from_le_bytes([elf[54], elf[55]]) as usize;
 -        let phnum = u16::from_le_bytes([elf[56], elf[57]]) as usize;
--
 +        let entry = image.entry;
-@@ -1065,55 +1019,3 @@
+@@ -4794,55 +4853,3 @@
 -        for i in 0..phnum {
 -            let off = phoff + i * phentsize;
 -            let p_type = u32::from_le_bytes([elf[off], elf[off + 1], elf[off + 2], elf[off + 3]]);
@@ -152,3 +896,428 @@
 +        for segment in image.segments {
 +            proc_state.write_bytes(segment.address, segment.data)?;
 +            max_end = max_end.max(segment.end);
+@@ -4850 +4856,0 @@
+-
+@@ -5463 +5469 @@
+-                if (a1 as usize) <= bytes.len() {
++                if (a1 as u128) <= (bytes.len() as u128) {
+@@ -5486,3 +5492,7 @@
+-                self.ensure_parent_dirs(&norm);
+-                self.dirs.insert(norm);
+-                p.regs[10] = 0;
++                if Self::is_protected_guest_path(&norm) {
++                    p.regs[10] = LINUX_EACCES as u64;
++                } else {
++                    self.ensure_parent_dirs(&norm);
++                    self.dirs.insert(norm);
++                    p.regs[10] = 0;
++                }
+@@ -5496,10 +5506,5 @@
+-                    && self.inodes.keys().any(|k| {
+-                        k.starts_with(&dir_prefix) && Self::is_protected_canonical_guest_path(k)
+-                    });
+-                if norm == "/"
+-                    || norm == "/bin"
+-                    || norm == "/sbin"
+-                    || norm == "/workspace"
+-                    || Self::is_protected_canonical_guest_path(&norm)
+-                    || protects_descendant
+-                {
++                    && self
++                        .inodes
++                        .keys()
++                        .any(|k| k.starts_with(&dir_prefix) && Self::is_protected_guest_path(k));
++                if Self::is_protected_guest_path(&norm) || protects_descendant {
+@@ -5507 +5512 @@
+-                } else if self.inodes.remove(&norm).is_some() || self.dirs.remove(&norm) {
++                } else if self.remove_inode_reclaiming(&norm) || self.dirs.remove(&norm) {
+@@ -5557,2 +5562,2 @@
+-                        && (Self::is_protected_canonical_guest_path(&norm)
+-                            || Self::is_protected_canonical_guest_path(&target_norm))
++                        && (Self::is_protected_guest_path(&norm)
++                            || Self::is_protected_guest_path(&target_norm))
+@@ -5621 +5626 @@
+-                let max_bytes = a2 as usize;
++                let max_bytes = usize::try_from(a2).unwrap_or(usize::MAX).min(1024 * 1024);
+@@ -5676 +5681,13 @@
+-                    let next = (base + off).max(0) as usize;
++                    let Some(signed_next) = base.checked_add(off) else {
++                        p.regs[10] = LINUX_EINVAL as u64;
++                        return Ok(None);
++                    };
++                    let next = if signed_next <= 0 {
++                        0usize
++                    } else {
++                        let Ok(pos) = usize::try_from(signed_next) else {
++                            p.regs[10] = LINUX_EINVAL as u64;
++                            return Ok(None);
++                        };
++                        pos
++                    };
+@@ -5684 +5701,3 @@
+-                let count = a2 as usize;
++                let count = usize::try_from(a2)
++                    .unwrap_or(usize::MAX)
++                    .min(MAX_GUEST_FILE_BYTES);
+@@ -5752,6 +5771,6 @@
+-                let count = a2 as usize;
+-                let idx = a1 as usize;
+-                if idx.saturating_add(count) > p.ram.len() {
+-                    return Err(MvmError::CpuTrap("SYS_write buffer fault".to_string()));
+-                }
+-                let data = p.ram[idx..idx + count].to_vec();
++                let count = usize::try_from(a2)
++                    .map_err(|_| MvmError::CpuTrap("SYS_write count overflow".to_string()))?;
++                let range = p.guest_range(a1, count).map_err(|_| {
++                    MvmError::CpuTrap("SYS_write buffer fault".to_string())
++                })?;
++                let data = p.ram[range].to_vec();
+@@ -5782 +5801 @@
+-                        if Self::is_protected_canonical_guest_path(&path) {
++                        if Self::is_protected_guest_path(&path) {
+@@ -5788,2 +5807,9 @@
+-                        if pos + data.len() > cur.len() {
+-                            cur.resize(pos + data.len(), 0);
++                        let new_end = match pos.checked_add(data.len()) {
++                            Some(end) if end <= MAX_GUEST_FILE_BYTES => end,
++                            _ => {
++                                p.regs[10] = LINUX_EFBIG as u64;
++                                return Ok(None);
++                            }
++                        };
++                        if new_end > cur.len() {
++                            cur.resize(new_end, 0);
+@@ -5791 +5817 @@
+-                        cur[pos..pos + data.len()].copy_from_slice(&data);
++                        cur[pos..new_end].copy_from_slice(&data);
+@@ -5802 +5828 @@
+-                            *off_mut = pos + data.len();
++                            *off_mut = new_end;
+@@ -5859 +5885 @@
+-                use crate::lexlean_generated::r4_mvm_linux_container::MvmSocketVerdict;
++                use crate::lexlean_admission::r4_mvm_linux_container::MvmSocketVerdict;
+@@ -5900 +5926 @@
+-                use crate::lexlean_generated::r4_mvm_linux_container::MvmSocketVerdict;
++                use crate::lexlean_admission::r4_mvm_linux_container::MvmSocketVerdict;
+@@ -5909,2 +5935,8 @@
+-                        let port = p.read_u32(a1 + 4)? as u16;
+-                        let cid = p.read_u32(a1 + 8)? as u16;
++                        let port_addr = a1.checked_add(4).ok_or_else(|| {
++                            MvmError::CpuTrap("SYS_connect sockaddr_vm port fault".to_string())
++                        })?;
++                        let cid_addr = a1.checked_add(8).ok_or_else(|| {
++                            MvmError::CpuTrap("SYS_connect sockaddr_vm cid fault".to_string())
++                        })?;
++                        let port = p.read_u32(port_addr)? as u16;
++                        let cid = p.read_u32(cid_addr)? as u16;
+@@ -5925,6 +5957,4 @@
+-                        let off = a1 as usize;
+-                        let port = if off + 4 <= p.ram.len() {
+-                            u16::from_be_bytes([p.ram[off + 2], p.ram[off + 3]])
+-                        } else {
+-                            0
+-                        };
++                        let range4 = p.guest_range(a1, 4).ok();
++                        let port = range4.map_or(0, |r| {
++                            u16::from_be_bytes([p.ram[r.start + 2], p.ram[r.start + 3]])
++                        });
+@@ -5932,5 +5962,3 @@
+-                            if off + 8 > p.ram.len() {
+-                                return Err(MvmError::CpuTrap(
+-                                    "SYS_connect sockaddr_in fault".to_string(),
+-                                ));
+-                            }
++                            let r8 = p.guest_range(a1, 8).map_err(|_| {
++                                MvmError::CpuTrap("SYS_connect sockaddr_in fault".to_string())
++                            })?;
+@@ -5939,4 +5967,4 @@
+-                                p.ram[off + 4],
+-                                p.ram[off + 5],
+-                                p.ram[off + 6],
+-                                p.ram[off + 7]
++                                p.ram[r8.start + 4],
++                                p.ram[r8.start + 5],
++                                p.ram[r8.start + 6],
++                                p.ram[r8.start + 7]
+@@ -5945 +5973,5 @@
+-                            if a2 < 24 || off + 24 > p.ram.len() {
++                            let Ok(r24) = p.guest_range(a1, 24) else {
++                                p.regs[10] = LINUX_EINVAL as u64;
++                                return Ok(None);
++                            };
++                            if a2 < 24 {
+@@ -5952,2 +5984,2 @@
+-                                    p.ram[off + 8 + hi * 2],
+-                                    p.ram[off + 8 + hi * 2 + 1],
++                                    p.ram[r24.start + 8 + hi * 2],
++                                    p.ram[r24.start + 8 + hi * 2 + 1],
+@@ -5990,6 +6022,6 @@
+-                let len = a2 as usize;
+-                let idx = a1 as usize;
+-                if idx.saturating_add(len) > p.ram.len() {
+-                    return Err(MvmError::CpuTrap("SYS_sendto fault".to_string()));
+-                }
+-                let payload = p.ram[idx..idx + len].to_vec();
++                let len = usize::try_from(a2)
++                    .map_err(|_| MvmError::CpuTrap("SYS_sendto length overflow".to_string()))?;
++                let range = p
++                    .guest_range(a1, len)
++                    .map_err(|_| MvmError::CpuTrap("SYS_sendto fault".to_string()))?;
++                let payload = p.ram[range].to_vec();
+@@ -6003 +6035,3 @@
+-                let max_len = a2 as usize;
++                let max_len = usize::try_from(a2)
++                    .unwrap_or(usize::MAX)
++                    .min(MAX_GUEST_FILE_BYTES);
+@@ -6031 +6065 @@
+-                if a0 >= p.brk_addr && (a0 as usize) < GUEST_MMAP_BASE as usize {
++                if a0 >= p.brk_addr && a0 < GUEST_MMAP_BASE {
+@@ -6090 +6124,4 @@
+-                let aligned = (a1.max(4096) + 4095) & !4095;
++                let Some(aligned) = a1.max(4096).checked_add(4095).map(|v| v & !4095) else {
++                    p.regs[10] = (-12i64) as u64; // -ENOMEM
++                    return Ok(None);
++                };
+@@ -6092 +6129,4 @@
+-                if (out.saturating_add(aligned)) >= GUEST_STACK_TOP - 65536 {
++                if out
++                    .checked_add(aligned)
++                    .is_none_or(|end| end >= GUEST_STACK_TOP - 65536)
++                {
+@@ -6208,2 +6248,2 @@
+-    ) -> crate::lexlean_generated::r4_mvm_linux_container::MvmSocketVerdict {
+-        use crate::lexlean_generated::r4_mvm_linux_container::{admit_mvm_socket, MvmNetworkMode};
++    ) -> crate::lexlean_admission::r4_mvm_linux_container::MvmSocketVerdict {
++        use crate::lexlean_admission::r4_mvm_linux_container::{admit_mvm_socket, MvmNetworkMode};
+@@ -7015 +7055,11 @@
+-                let state = self.load_git_state(&repo_root).unwrap();
++                let Some(state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7101 +7151,11 @@
+-                let mut state = self.load_git_state(&repo_root).unwrap();
++                let Some(mut state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7151 +7211,11 @@
+-                let mut state = self.load_git_state(&repo_root).unwrap();
++                let Some(mut state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7251 +7321,11 @@
+-                let state = self.load_git_state(&repo_root).unwrap();
++                let Some(state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7283 +7363,11 @@
+-                let state = self.load_git_state(&repo_root).unwrap();
++                let Some(state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7350 +7440,11 @@
+-                let mut state = self.load_git_state(&repo_root).unwrap();
++                let Some(mut state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7406 +7506,11 @@
+-                    let state = self.load_git_state(&repo_root).unwrap();
++                    let Some(state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7496 +7606,11 @@
+-                let mut state = self.load_git_state(&repo_root).unwrap();
++                let Some(mut state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7627 +7747,11 @@
+-                let state = self.load_git_state(&repo_root).unwrap();
++                let Some(state) = self.load_git_state(&repo_root) else {
++                    return Ok(MvmInteractiveOutcome::Completed(MvmExecOutcome {
++                        exit_code: 128,
++                        stdout: String::new(),
++                        stderr: "fatal: corrupt or missing .git/uor_state.json\n".to_string(),
++                        instructions_retired: 0,
++                        vsock_frames: Vec::new(),
++                        compiled_elf_machine: None,
++                        cow_state_sha256: self.cow_state_sha256(),
++                    }));
++                };
+@@ -7768,16 +7898,13 @@
+-                    let body = if trimmed.len() > 4
+-                        && trimmed[..4].chars().all(|c| c.is_ascii_hexdigit())
+-                    {
+-                        &trimmed[4..]
+-                    } else {
+-                        trimmed
+-                    };
+-                    if body.len() >= 41 && body[..40].chars().all(|c| c.is_ascii_hexdigit()) {
+-                        let oid_cand = &body[..40];
+-                        let rest = body[40..].split('\0').next().unwrap_or("").trim();
+-                        if rest == "HEAD" && head_oid.is_none() {
+-                            head_oid = Some(oid_cand.to_string());
+-                        } else if let Some(bname) = rest.strip_prefix("refs/heads/") {
+-                            if head_oid.as_deref() == Some(oid_cand) || head_oid.is_none() {
+-                                branch = bname.to_string();
+-                                if head_oid.is_none() {
++                    let body = match trimmed.get(..4) {
++                        Some(head)
++                            if trimmed.len() > 4 && head.bytes().all(|b| b.is_ascii_hexdigit()) =>
++                        {
++                            trimmed.get(4..).unwrap_or(trimmed)
++                        }
++                        _ => trimmed,
++                    };
++                    if body.len() >= 41 {
++                        if let (Some(oid_cand), Some(rest_raw)) = (body.get(..40), body.get(40..)) {
++                            if oid_cand.bytes().all(|b| b.is_ascii_hexdigit()) {
++                                let rest = rest_raw.split('\0').next().unwrap_or("").trim();
++                                if rest == "HEAD" && head_oid.is_none() {
+@@ -7784,0 +7912,7 @@
++                                } else if let Some(bname) = rest.strip_prefix("refs/heads/") {
++                                    if head_oid.as_deref() == Some(oid_cand) || head_oid.is_none() {
++                                        branch = bname.to_string();
++                                        if head_oid.is_none() {
++                                            head_oid = Some(oid_cand.to_string());
++                                        }
++                                    }
+@@ -7861 +7995 @@
+-        let short_oid = &resolved_oid[..7.min(resolved_oid.len())];
++        let short_oid: String = resolved_oid.chars().take(7).collect();
+@@ -8106,0 +8241,73 @@
++
++#[cfg(test)]
++mod hardening_tests {
++    use super::*;
++
++    #[test]
++    fn syscalls_and_git_bridge_handle_extreme_inputs_safely() {
++        let mut vm = MvmSandbox::boot_default().expect("boot");
++        let mut proc = Rv64Process {
++            pid: 10,
++            regs: [0u64; 32],
++            pc: 0,
++            ram: vec![0u8; 4096],
++            brk_addr: 0x1000,
++            mmap_cursor: GUEST_MMAP_BASE,
++            lr_reservation: None,
++            fds: BTreeMap::new(),
++            next_fd: 3,
++            cwd: "/workspace".to_string(),
++            exited: None,
++        };
++        proc.write_bytes(0x100, b"/bin/evil\0").unwrap();
++        proc.regs[17] = 34; // SYS_mkdirat
++        proc.regs[11] = 0x100;
++        vm.handle_syscall(&mut proc, 0).unwrap();
++        assert_eq!(proc.regs[10] as i64, LINUX_EACCES);
++
++        proc.regs[17] = 214; // SYS_brk >= 4 GiB must never truncate to 0 on wasm32
++        proc.regs[10] = 0x1_0000_0000;
++        vm.handle_syscall(&mut proc, 0).unwrap();
++        assert_eq!(proc.regs[10], 0x1000);
++
++        proc.fds.insert(
++            5,
++            FdKind::RegularFile {
++                path: "/workspace/t.txt".to_string(),
++                offset: 100,
++                writable: false,
++                append: false,
++            },
++        );
++        proc.regs[17] = 62; // SYS_lseek overflow
++        proc.regs[10] = 5;
++        proc.regs[11] = i64::MAX as u64;
++        proc.regs[12] = 1; // SEEK_CUR
++        vm.handle_syscall(&mut proc, 0).unwrap();
++        assert_eq!(proc.regs[10] as i64, LINUX_EINVAL);
++
++        proc.regs[17] = 222; // SYS_mmap overflow
++        proc.regs[11] = u64::MAX;
++        vm.handle_syscall(&mut proc, 0).unwrap();
++        assert_eq!(proc.regs[10] as i64, -12);
++
++        // Multi-byte UTF-8 spanning byte index 4 and 40 must not panic in complete_git_bridge.
++        let mut utf8_adv = Vec::from("éééé".as_bytes()); // 8 bytes, 'é' spans byte 4..5
++        utf8_adv.extend_from_slice(&[0xc3u8, 0xa9].repeat(25));
++        let b64 = encode_base64_bytes(&utf8_adv);
++        let data = serde_json::json!({ "body_b64": b64, "repo_url": "https://example.invalid/r", "target_dir": "/workspace/g" });
++        let bridge_resp = serde_json::json!({});
++        assert!(vm
++            .complete_git_bridge(
++                "clone",
++                "https://example.invalid/r",
++                "/workspace/g",
++                &data,
++                &bridge_resp,
++            )
++            .is_ok());
++
++        vm.write_guest_file("/workspace/a.txt", b"ok").unwrap();
++        assert!(vm.rename_workspace_file("a.txt", ".").is_err());
++    }
++}

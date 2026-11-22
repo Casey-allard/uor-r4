@@ -1,0 +1,182 @@
+--- a/mvm_cc.rs
++++ b/mvm_cc.rs
+@@ -107 +107 @@
+-    let mut out = String::with_capacity(bytes.len());
++    let mut out = Vec::with_capacity(bytes.len());
+@@ -114 +114 @@
+-            out.push(b as char);
++            out.push(b);
+@@ -117 +117 @@
+-                out.push(bytes[i] as char);
++                out.push(bytes[i]);
+@@ -125 +125 @@
+-            out.push(b as char);
++            out.push(b);
+@@ -128 +128 @@
+-                out.push(bytes[i] as char);
++                out.push(bytes[i]);
+@@ -137 +137 @@
+-            out.push('"');
++            out.push(b'"');
+@@ -143 +143 @@
+-            out.push('\'');
++            out.push(b'\'');
+@@ -157 +157 @@
+-                    out.push('\n');
++                    out.push(b'\n');
+@@ -162 +162 @@
+-            out.push(' ');
++            out.push(b' ');
+@@ -165 +165 @@
+-        out.push(b as char);
++        out.push(b);
+@@ -168 +168 @@
+-    out
++    String::from_utf8_lossy(&out).into_owned()
+@@ -797,0 +798 @@
++    is_array: bool,
+@@ -1141,0 +1143 @@
++                let mut is_array = false;
+@@ -1142,0 +1145 @@
++                    is_array = true;
+@@ -1166,0 +1170 @@
++                    is_array,
+@@ -1818 +1822 @@
+-    global_offsets: HashMap<String, (usize, CType)>,
++    global_offsets: HashMap<String, (usize, CType, bool, usize)>,
+@@ -2009,0 +2014 @@
++        self.emit(enc_s(0, A0, SP, 3, 0x23)); // save cstr byte len in 0(sp)
+@@ -2013,0 +2019,3 @@
++        self.emit(enc_i(0, SP, 3, T0, 0x03));
++        self.emit(enc_i(1, T0, 0, A0, 0x13));
++        let done_all = self.emit(0);
+@@ -2015,0 +2024,3 @@
++        self.emit(enc_i(0, SP, 3, A0, 0x03));
++        let puts_exit = self.insts.len();
++        self.patch_j(done_all, puts_exit, X0);
+@@ -2408,4 +2419,9 @@
+-                for s in list {
+-                    self.compile_stmt(s, next_off)?;
+-                }
+-                Ok(())
++                let saved_locals = self.locals.clone();
++                let res = (|| {
++                    for s in list {
++                        self.compile_stmt(s, next_off)?;
++                    }
++                    Ok(())
++                })();
++                self.locals = saved_locals;
++                res
+@@ -2501,27 +2517,32 @@
+-                if let Some(init_s) = init {
+-                    self.compile_stmt(init_s, next_off)?;
+-                }
+-                self.break_jumps.push(Vec::new());
+-                let top = self.insts.len();
+-                let br_exit = if let Some(c) = cond {
+-                    self.compile_expr(c)?;
+-                    Some(self.emit(0))
+-                } else {
+-                    None
+-                };
+-                self.compile_stmt(body, next_off)?;
+-                if let Some(st) = step {
+-                    self.compile_expr(st)?;
+-                }
+-                let j_top = self.emit(0);
+-                self.patch_j(j_top, top, X0);
+-                let exit_idx = self.insts.len();
+-                if let Some(be) = br_exit {
+-                    self.patch_b(be, exit_idx, X0, A0, 0);
+-                }
+-                if let Some(bjs) = self.break_jumps.pop() {
+-                    for bj in bjs {
+-                        self.patch_j(bj, exit_idx, X0);
+-                    }
+-                }
+-                Ok(())
++                let saved_locals = self.locals.clone();
++                let res = (|| -> Result<(), CCompileError> {
++                    if let Some(init_s) = init {
++                        self.compile_stmt(init_s, next_off)?;
++                    }
++                    self.break_jumps.push(Vec::new());
++                    let top = self.insts.len();
++                    let br_exit = if let Some(c) = cond {
++                        self.compile_expr(c)?;
++                        Some(self.emit(0))
++                    } else {
++                        None
++                    };
++                    self.compile_stmt(body, next_off)?;
++                    if let Some(st) = step {
++                        self.compile_expr(st)?;
++                    }
++                    let j_top = self.emit(0);
++                    self.patch_j(j_top, top, X0);
++                    let exit_idx = self.insts.len();
++                    if let Some(be) = br_exit {
++                        self.patch_b(be, exit_idx, X0, A0, 0);
++                    }
++                    if let Some(bjs) = self.break_jumps.pop() {
++                        for bj in bjs {
++                            self.patch_j(bj, exit_idx, X0);
++                        }
++                    }
++                    Ok(())
++                })();
++                self.locals = saved_locals;
++                res
+@@ -2560,3 +2581,7 @@
+-                } else if let Some((_, gty)) = self.global_offsets.get(name) {
+-                    let sz = ctype_size_align(gty, &self.structs).0;
+-                    (gty.clone(), sz)
++                } else if let Some((_, gty, is_array, size_bytes)) = self.global_offsets.get(name) {
++                    if *is_array {
++                        (CType::Ptr(Box::new(gty.clone())), *size_bytes)
++                    } else {
++                        let sz = ctype_size_align(gty, &self.structs).0;
++                        (gty.clone(), sz)
++                    }
+@@ -2631 +2656 @@
+-                } else if let Some((goff, gty)) = self.global_offsets.get(name).cloned() {
++                } else if let Some((goff, gty, is_array, _)) = self.global_offsets.get(name).cloned() {
+@@ -2633 +2658 @@
+-                    Ok((gty, false))
++                    Ok((gty, is_array))
+@@ -2776,0 +2802,7 @@
++        self.emit(enc_i(-16, SP, 0, SP, 0x13)); // 0(sp) holds printf total written bytes
++        self.emit(enc_s(0, X0, SP, 3, 0x23));
++        let add_acc = |cg: &mut Self| {
++            cg.emit(enc_i(0, SP, 3, T0, 0x03));
++            cg.emit(enc_r(0, T0, A0, 0, T0, 0x33));
++            cg.emit(enc_s(0, T0, SP, 3, 0x23));
++        };
+@@ -2787,0 +2820 @@
++                    add_acc(self);
+@@ -2792,0 +2826 @@
++                    add_acc(self);
+@@ -2804 +2838 @@
+-                    let stack_off = ((n_vals - 1 - cur_val) * 8) as i32;
++                    let stack_off = ((n_vals - 1 - cur_val) * 8 + 16) as i32;
+@@ -2830,0 +2865 @@
++                    add_acc(self);
+@@ -2842,6 +2877,5 @@
+-        }
+-        if n_vals > 0 {
+-            self.emit_li(T0, (n_vals * 8) as i64);
+-            self.emit(enc_r(0, T0, SP, 0, SP, 0x33));
+-        }
+-        self.emit(enc_i(0, X0, 0, A0, 0x13));
++            add_acc(self);
++        }
++        self.emit(enc_i(0, SP, 3, A0, 0x03));
++        self.emit_li(T0, ((n_vals * 8) + 16) as i64);
++        self.emit(enc_r(0, T0, SP, 0, SP, 0x33));
+@@ -2890 +2924 @@
+-                } else if let Some((goff, gty)) = self.global_offsets.get(name).cloned() {
++                } else if let Some((goff, gty, _, _)) = self.global_offsets.get(name).cloned() {
+@@ -3280 +3314 @@
+-            .insert(g.name.clone(), (off, g.ty.clone()));
++            .insert(g.name.clone(), (off, g.ty.clone(), g.is_array, g.size_bytes));

@@ -1,0 +1,345 @@
+--- a/mvm_shell.rs
++++ b/mvm_shell.rs
+@@ -122 +122 @@
+-    let mut cur = String::new();
++    let mut cur: Vec<u8> = Vec::new();
+@@ -171 +171 @@
+-        let mut stage_cur = String::new();
++        let mut stage_cur: Vec<u8> = Vec::new();
+@@ -177,2 +177,2 @@
+-                stage_cur.push('\\');
+-                stage_cur.push(sb[si + 1] as char);
++                stage_cur.push(b'\\');
++                stage_cur.push(sb[si + 1]);
+@@ -183,2 +183,2 @@
+-                stage_cur.push('\\');
+-                stage_cur.push(sb[si + 1] as char);
++                stage_cur.push(b'\\');
++                stage_cur.push(sb[si + 1]);
+@@ -194 +194 @@
+-                stage_cur.push(sb[si] as char);
++                stage_cur.push(sb[si]);
+@@ -203 +203,2 @@
+-                stages_out.push(stage_cur.trim().to_string());
++                let trimmed = String::from_utf8_lossy(&stage_cur).trim().to_string();
++                stages_out.push(trimmed);
+@@ -208 +209 @@
+-            stage_cur.push(sb[si] as char);
++            stage_cur.push(sb[si]);
+@@ -211,2 +212,3 @@
+-        if !stage_cur.trim().is_empty() {
+-            stages_out.push(stage_cur.trim().to_string());
++        let tail = String::from_utf8_lossy(&stage_cur).trim().to_string();
++        if !tail.is_empty() {
++            stages_out.push(tail);
+@@ -221,2 +223,2 @@
+-                cur.push('\\');
+-                cur.push(bytes[i + 1] as char);
++                cur.push(b'\\');
++                cur.push(bytes[i + 1]);
+@@ -229 +231 @@
+-            cur.push(c as char);
++            cur.push(c);
+@@ -239,2 +241,2 @@
+-            cur.push('\\');
+-            cur.push(bytes[i + 1] as char);
++            cur.push(b'\\');
++            cur.push(bytes[i + 1]);
+@@ -247 +249 @@
+-            cur.push(c as char);
++            cur.push(c);
+@@ -252 +254,5 @@
+-        if c == b'#' && (cur.trim().is_empty() || cur.ends_with([' ', '\t'])) {
++        if c == b'#'
++            && (cur.iter().all(|b| b.is_ascii_whitespace())
++                || cur.ends_with(b" ")
++                || cur.ends_with(b"\t"))
++        {
+@@ -274 +280 @@
+-            let mut delim = String::new();
++            let mut delim: Vec<u8> = Vec::new();
+@@ -281 +287 @@
+-                    delim.push(bytes[i] as char);
++                    delim.push(bytes[i]);
+@@ -294 +300 @@
+-                        delim.push(bytes[i + 1] as char);
++                        delim.push(bytes[i + 1]);
+@@ -297 +303 @@
+-                        delim.push(bytes[i] as char);
++                        delim.push(bytes[i]);
+@@ -304 +310 @@
+-                delim,
++                delim: String::from_utf8_lossy(&delim).into_owned(),
+@@ -308 +314 @@
+-            cur.push_str(&format!(" <<__MVM_HEREDOC_{id}__ "));
++            cur.extend_from_slice(format!(" <<__MVM_HEREDOC_{id}__ ").as_bytes());
+@@ -313,2 +319,2 @@
+-            if !cur.trim().is_empty() {
+-                let seg_raw = cur.trim().to_string();
++            let seg_raw = String::from_utf8_lossy(&cur).trim().to_string();
++            if !seg_raw.is_empty() {
+@@ -329,2 +335,2 @@
+-            if !cur.trim().is_empty() {
+-                let seg_raw = cur.trim().to_string();
++            let seg_raw = String::from_utf8_lossy(&cur).trim().to_string();
++            if !seg_raw.is_empty() {
+@@ -345,2 +351,2 @@
+-            if !cur.trim().is_empty() {
+-                let seg_raw = cur.trim().to_string();
++            let seg_raw = String::from_utf8_lossy(&cur).trim().to_string();
++            if !seg_raw.is_empty() {
+@@ -361,2 +367,2 @@
+-            if !cur.trim().is_empty() {
+-                let seg_raw = cur.trim().to_string();
++            let seg_raw = String::from_utf8_lossy(&cur).trim().to_string();
++            if !seg_raw.is_empty() {
+@@ -383 +389 @@
+-        cur.push(c as char);
++        cur.push(c);
+@@ -387,2 +393,2 @@
+-    if !cur.trim().is_empty() {
+-        let seg_raw = cur.trim().to_string();
++    let seg_raw = String::from_utf8_lossy(&cur).trim().to_string();
++    if !seg_raw.is_empty() {
+@@ -521,3 +527,3 @@
+-                let nxt = bytes[i + 1];
+-                if matches!(nxt, b'"' | b'\\' | b'$' | b'`') {
+-                    cur.push(nxt as char);
++                let ch = stage[i + 1..].chars().next().unwrap_or('\0');
++                if matches!(ch, '"' | '\\' | '$' | '`') {
++                    cur.push(ch);
+@@ -526 +532 @@
+-                    cur.push(nxt as char);
++                    cur.push(ch);
+@@ -528 +534 @@
+-                i += 2;
++                i += 1 + ch.len_utf8();
+@@ -1623,2 +1629 @@
+-                            if j < bytes.len() {
+-                                let spec = bytes[j] as char;
++                            if let Some(spec) = fmt.get(j..).and_then(|s| s.chars().next()) {
+@@ -1699 +1704 @@
+-                                i = j + 1;
++                                i = j + spec.len_utf8();
+@@ -1703 +1708 @@
+-                        let ch = fmt[i..].chars().next().unwrap_or('\0');
++                        let ch = fmt.get(i..).and_then(|s| s.chars().next()).unwrap_or('\0');
+@@ -2131,0 +2137,6 @@
++                    if Self::is_protected_guest_path(&norm) {
++                        return StageExecBytesOutcome::err(
++                            1,
++                            format!("mvm: refused mkdir on protected path '{norm}'\n"),
++                        );
++                    }
+@@ -2159,0 +2171,6 @@
++                    if Self::is_protected_guest_path(&norm) {
++                        return StageExecBytesOutcome::err(
++                            1,
++                            format!("rmdir: refusing to remove protected path '{norm}'\n"),
++                        );
++                    }
+@@ -2171 +2188 @@
+-                    if non_empty || norm == "/" || norm == "/workspace" {
++                    if non_empty {
+@@ -2225 +2242 @@
+-                            format!("{dst_norm}/{src_base}")
++                            Self::normalize_guest_path(&dst_norm, src_base)
+@@ -2229,2 +2246,6 @@
+-                        self.ensure_parent_dirs(&target_root);
+-                        self.dirs.insert(target_root.clone());
++                        if Self::is_protected_guest_path(&target_root) {
++                            return StageExecBytesOutcome::err(
++                                1,
++                                format!("mvm: refused copy to protected path '{target_root}'\n"),
++                            );
++                        }
+@@ -2238 +2259,2 @@
+-                        for cd in child_dirs {
++                        let mut dst_dirs = Vec::with_capacity(child_dirs.len());
++                        for cd in &child_dirs {
+@@ -2240 +2262,8 @@
+-                                self.dirs.insert(format!("{target_root}/{rel}"));
++                                let dst_cd = Self::normalize_guest_path(&target_root, rel);
++                                if Self::is_protected_guest_path(&dst_cd) {
++                                    return StageExecBytesOutcome::err(
++                                        1,
++                                        format!("mvm: refused copy to protected path '{dst_cd}'\n"),
++                                    );
++                                }
++                                dst_dirs.push(dst_cd);
+@@ -2250,0 +2280,16 @@
++                        for (cf, _, _) in &child_files {
++                            if let Some(rel) = cf.strip_prefix(&prefix) {
++                                let out_p = Self::normalize_guest_path(&target_root, rel);
++                                if Self::is_protected_guest_path(&out_p) {
++                                    return StageExecBytesOutcome::err(
++                                        1,
++                                        format!("mvm: refused write to protected canonical path '{out_p}'\n"),
++                                    );
++                                }
++                            }
++                        }
++                        self.ensure_parent_dirs(&target_root);
++                        self.dirs.insert(target_root.clone());
++                        for dst_cd in dst_dirs {
++                            self.dirs.insert(dst_cd);
++                        }
+@@ -2253 +2298 @@
+-                                let out_p = format!("{target_root}/{rel}");
++                                let out_p = Self::normalize_guest_path(&target_root, rel);
+@@ -2315,6 +2360 @@
+-                    if Self::is_protected_canonical_guest_path(&src_norm)
+-                        || src_norm == "/"
+-                        || src_norm == "/bin"
+-                        || src_norm == "/sbin"
+-                        || src_norm == "/workspace"
+-                    {
++                    if Self::is_protected_guest_path(&src_norm) {
+@@ -2329 +2369 @@
+-                            format!("{dst_norm}/{base}")
++                            Self::normalize_guest_path(&dst_norm, base)
+@@ -2332,0 +2373,6 @@
++                        if Self::is_protected_guest_path(&target_root) {
++                            return StageExecBytesOutcome::err(
++                                1,
++                                format!("mvm: refused write to protected canonical path '{target_root}'\n"),
++                            );
++                        }
+@@ -2341 +2387 @@
+-                            if Self::is_protected_canonical_guest_path(cf) {
++                            if Self::is_protected_guest_path(cf) {
+@@ -2350,2 +2396,2 @@
+-                                let np = format!("{target_root}/{rel}");
+-                                if Self::is_protected_canonical_guest_path(&np) {
++                                let np = Self::normalize_guest_path(&target_root, rel);
++                                if Self::is_protected_guest_path(&np) {
+@@ -2370 +2416 @@
+-                                self.dirs.insert(format!("{target_root}/{rel}"));
++                                self.dirs.insert(Self::normalize_guest_path(&target_root, rel));
+@@ -2377 +2423,5 @@
+-                                self.inodes.insert(format!("{target_root}/{rel}"), ino);
++                                let dst_child = Self::normalize_guest_path(&target_root, rel);
++                                if let Some(old) = self.inodes.remove(&dst_child) {
++                                    self.free_inode_sectors(&old);
++                                }
++                                self.inodes.insert(dst_child, ino);
+@@ -2391 +2441 @@
+-                        if Self::is_protected_canonical_guest_path(&out_p) {
++                        if Self::is_protected_guest_path(&out_p) {
+@@ -2400,0 +2451,3 @@
++                        if let Some(old) = self.inodes.remove(&out_p) {
++                            self.free_inode_sectors(&old);
++                        }
+@@ -2436 +2489 @@
+-                    if Self::is_protected_canonical_guest_path(&norm) {
++                    if Self::is_protected_guest_path(&norm) {
+@@ -2472 +2525 @@
+-                    if Self::is_protected_canonical_guest_path(&norm) {
++                    if Self::is_protected_guest_path(&norm) {
+@@ -2485 +2538 @@
+-                                    if Self::is_protected_canonical_guest_path(k) {
++                                    if Self::is_protected_guest_path(k) {
+@@ -2555,2 +2608,9 @@
+-                    let base = target_raw.rsplit('/').next().unwrap_or("link");
+-                    link_norm = format!("{link_norm}/{base}");
++                    let trimmed_target = target_raw.trim_end_matches('/');
++                    let base = trimmed_target.rsplit('/').next().unwrap_or("");
++                    if base.is_empty() || base == "." || base == ".." {
++                        return StageExecBytesOutcome::err(
++                            1,
++                            format!("ln: failed to create link '{target_raw}': invalid link name\n"),
++                        );
++                    }
++                    link_norm = Self::normalize_guest_path(&link_norm, base);
+@@ -2558 +2618 @@
+-                if Self::is_protected_canonical_guest_path(&link_norm) {
++                if Self::is_protected_guest_path(&link_norm) {
+@@ -2571,10 +2631,3 @@
+-                    self.ensure_parent_dirs(&link_norm);
+-                    self.inodes.insert(
+-                        link_norm,
+-                        GuestInode {
+-                            mode: 0o120777,
+-                            kind: InodeKind::Symlink {
+-                                target: target_raw.to_string(),
+-                            },
+-                        },
+-                    );
++                    if let Err(msg) = self.write_symlink_inode(&link_norm, target_raw) {
++                        return StageExecBytesOutcome::err(1, format!("{msg}\n"));
++                    }
+@@ -2840 +2893,2 @@
+-            let (prefix_part, name_part) = if name.len() > 100 {
++            let full_bytes = name.as_bytes();
++            let (pb, nb) = if full_bytes.len() > 100 {
+@@ -2842,2 +2896,2 @@
+-                    let p = &name[..pos];
+-                    let n = &name[pos + 1..];
++                    let p = &full_bytes[..pos];
++                    let n = &full_bytes[pos + 1..];
+@@ -2847 +2901 @@
+-                        ("", &name[..100])
++                        (&[][..], &full_bytes[..100])
+@@ -2850 +2904 @@
+-                    ("", &name[..100])
++                    (&[][..], &full_bytes[..100])
+@@ -2853 +2907 @@
+-                ("", name)
++                (&[][..], full_bytes)
+@@ -2855 +2908,0 @@
+-            let nb = name_part.as_bytes();
+@@ -2872 +2924,0 @@
+-            let pb = prefix_part.as_bytes();
+@@ -3169,0 +3222,6 @@
++                                if Self::is_protected_guest_path(&dst) {
++                                    return StageExecBytesOutcome::err(
++                                        2,
++                                        format!("mvm: refused extract to protected path '{dst}'\n"),
++                                    );
++                                }
+@@ -3174,5 +3232,2 @@
+-                                    if Self::is_protected_canonical_guest_path(&dst) {
+-                                        return StageExecBytesOutcome::err(
+-                                    2,
+-                                    format!("mvm: refused extract to protected canonical path '{dst}'\n"),
+-                                );
++                                    if let Err(msg) = self.write_symlink_inode(&dst, &ent.linkname) {
++                                        return StageExecBytesOutcome::err(2, format!("{msg}\n"));
+@@ -3180,10 +3234,0 @@
+-                                    self.ensure_parent_dirs(&dst);
+-                                    self.inodes.insert(
+-                                        dst,
+-                                        GuestInode {
+-                                            mode: 0o120777,
+-                                            kind: InodeKind::Symlink {
+-                                                target: ent.linkname,
+-                                            },
+-                                        },
+-                                    );
+@@ -3264 +3309 @@
+-                        if !keep && Self::is_protected_canonical_guest_path(&norm) {
++                        if !keep && Self::is_protected_guest_path(&norm) {
+@@ -3284,2 +3329,2 @@
+-                        if !keep && !Self::is_protected_canonical_guest_path(&norm) {
+-                            self.inodes.remove(&norm);
++                        if !keep && !Self::is_protected_guest_path(&norm) {
++                            self.remove_inode_reclaiming(&norm);
+@@ -4163,5 +4208,6 @@
+-                let rest = &spec[i..];
+-                if let Some((class_bytes, adv)) = match_tr_posix_class(rest) {
+-                    out.extend_from_slice(&class_bytes);
+-                    i += adv;
+-                    continue;
++                if let Some(rest) = spec.get(i..) {
++                    if let Some((class_bytes, adv)) = match_tr_posix_class(rest) {
++                        out.extend_from_slice(&class_bytes);
++                        i += adv;
++                        continue;
++                    }
+@@ -8682 +8728,5 @@
+-                        _ if depth == 0 && s[i..].starts_with(kw) => {
++                        _ if depth == 0
++                            && s.is_char_boundary(i)
++                            && s.as_bytes()[i..].starts_with(kw.as_bytes())
++                            && s.is_char_boundary(i + kw.len()) =>
++                        {

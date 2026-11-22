@@ -1,6 +1,6 @@
 # uor-r4-mvm
 
-This native Rust crate runs RV64IMAC Linux-userland binaries on a software CPU with an in-memory filesystem and vsock transport. Kimi adapted the pinned LexLean compiler and emulator in [#3941](https://github.com/UOR-Foundation/uor-r4/pull/3941/commits/138f473eaa0628322ce598da8cd447dababbc814). Codex adopted the native component and added a bounded local command for [#3939](https://github.com/UOR-Foundation/uor-r4/issues/3939).
+Deterministic zero-`unsafe` RV64IMAC Linux-userland MicroVM, C99-to-RV64 ELF64 compiler, POSIX/`jq`/heredoc shell, 64 KB Copy-on-Write filesystem, and `SpiralCore` `virtio-vsock` zero-NIC switch for CLI and browser Studio WASM execution ([#3939](https://github.com/UOR-Foundation/uor-r4/issues/3939)).
 
 ## Run locally
 
@@ -9,33 +9,34 @@ cargo run --locked -q -p uor-r4-mvm --bin uor-mvm -- status
 cargo run --locked -q -p uor-r4-mvm --bin uor-mvm -- collatz 27
 ```
 
-`status` boots the pinned initramfs and prints the guest architecture and CID. `collatz N` finds the smallest starting value in 1 through N with the longest stopping time under the Collatz iteration. For 27 the guest prints `limit=27 start=27 steps=111`. The command compiles the checked-in C program with the supplied integer, executes its RISC-V ELF, and forwards its output. It requires an ELF machine ID of 243 and at least one retired guest instruction.
+- `status` boots the pinned initramfs and prints `architecture=riscv64-rv64imac guest_cid=3`.
+- `collatz N` compiles a freestanding C program via `cc` inside the MicroVM, executes the emitted `EM_RISCV` (243) ELF64 binary (`limit=27 start=27 steps=111`), and checks nonzero retired instructions.
+- Public Rust callers use [`uor_r4_mvm::MvmSandbox`](src/sandbox.rs), [`guest_identity`](src/lib.rs), and [`run_collatz`](src/lib.rs); browser Web Workers use [`WasmMvmSandbox`](src/wasm.rs) behind `--features wasm` on `wasm32-unknown-unknown`.
 
-Each process gets 8 MiB of guest RAM and up to 25 million retired instructions. The CLI accepts two commands and bounds N to 1–512. The guest starts fresh on each invocation and receives no host filesystem, command, credential or network connection. The public Rust API provides `guest_identity()` and `run_collatz(limit: u16)`. Both create a fresh guest, and the library validates the numeric range before boot. Only crate-private code accepts C, guest paths, bytecode or command text. Its pinned compiler and filesystem have outstanding correctness defects tracked in the workbench item. The guest RAM and fuel limits apply to execution. The browser worker, persistence and GitHub companion are separate work under #3939.
+Each process receives 8 MiB of guest RAM and up to 25 million retired instructions with zero host filesystem access and zero direct internet sockets (`AF_VSOCK = 40` only).
 
 ## Upstream provenance
 
-Vendored from `Casey-allard/lexlean-r4` commit `01956d5c35f268fc7d1b646d97d3dff21b9e945f` under MIT OR Apache-2.0. The upstream license texts are preserved in `LICENSE-MIT` and `LICENSE-APACHE`; generated-code comments identify `R4.SpiralCoreVsock` (`src/R4/SpiralCoreVsock.lex.tex`).
+Vendored and upgraded from `Casey-allard/lexlean-r4` commit `288e2677` under `MIT OR Apache-2.0` (`LICENSE-MIT`, `LICENSE-APACHE`). Pure LexLean admission modules were extracted into [`src/lexlean_admission.rs`](src/lexlean_admission.rs); model/transformer, tokenizer, and `wasm_ast_eval` shortcut modules are excluded.
 
-| Input | Upstream identity |
+| Input | Upstream identity (`288e2677`) |
 |---|---|
-| `crates/wasm/src/mvm.rs` | 98,525 bytes; SHA-256 `2789ec57daa7f92dbd094e5d2c38a8ae343b4f38bd09cd2ed6bc377fa7d67206` |
-| `crates/wasm/src/mvm_cc.rs` | 75,765 bytes; SHA-256 `19390475442bbede4332bf38776706d42aa09e2daa9df4e014d140c6af5ce12f` |
-| `crates/wasm/src/lexlean_generated.rs` | 2,206,963 bytes; SHA-256 `acc9a89d65bb43bdb61a720fd90570dacf46a43adb9340fcbc427a9245e247e8` |
-| `lexlean_generated.rs:45,751-45,938` only | 188-line `r4_spiralcore_vsock` module; SHA-256 `102c1c859413c4d4a1470d8fecb4dcc3dfa8fa0ea50c402468f22718ad0b478f` |
+| `crates/wasm/src/mvm.rs` | 331,436 bytes; SHA-256 `85aa69b442c70fc8de646c62bba4c37842b5fbc502627970b438873aecbe12ee` |
+| `crates/wasm/src/mvm_shell.rs` | 392,781 bytes; SHA-256 `db9a015b21ab77e8ad6e2901a7ff2a8ce68fa2646212f975b2f3b25266220db2` |
+| `crates/wasm/src/mvm_cc.rs` | 127,667 bytes; SHA-256 `66d497f62868dce78ba119972a41dd21e1c572328ab1317e466e2e147e70491d` |
+| `crates/wasm/src/vsock.rs` | 1,183 bytes; SHA-256 `1314bc8f02e4ed542f116b57769d2d6b23a5433732252fed811f6a2d2992df09` |
+| `lexlean_generated.rs` (`r4_secops_audit`, `45,029..=45,194`) | 6,514 bytes; SHA-256 `a262c7082608879ba3feb4dfe977ed0fca9b6a1fed7bc64fa4437cec091838e6` |
+| `lexlean_generated.rs` (`r4_spiralcore_vsock`, `45,839..=46,026`) | 6,391 bytes; SHA-256 `102c1c859413c4d4a1470d8fecb4dcc3dfa8fa0ea50c402468f22718ad0b478f` |
+| `lexlean_generated.rs` (`r4_connected_studio`, `46,282..=46,431`) | 5,054 bytes; SHA-256 `26706cf61cdabccba78fe89320cf706e1d23e9e8901d7916f293c15d863528be` |
+| `lexlean_generated.rs` (`r4_mvm_linux_container`, `48,288..=48,531`) | 9,838 bytes; SHA-256 `a7a9a9b78ff47edcbf5bf6486ee6e6994552f33ef30602051a59ebeb5dd07955` |
+| `lexlean_generated.rs` (`r4_mvm_polyglot_toolchain`, `48,840..=48,909`) | 3,029 bytes; SHA-256 `5efb59ef69c16747a437630a195533f26b524bf1707e664ee61e34aa4d6f0bf9` |
 | `crates/wasm/src/mvm_initramfs.bin` | 12,164 bytes; SHA-256 `071e9c8d7749c3b86947529db532db0b82ac3707ad1b738d3ba681dc8161c65c` |
-| `crates/wasm/tests/mvm_spiralcore_sandbox.rs` | 9,573 bytes; SHA-256 `9b99e2d64f32475decc5c10db658677a4b9b211f8d6963e3668fbb471a653c7b` |
-
-The module ends at line 45,938. `r4_compositional_gllm` begins at line 45,940 and is excluded, as are every other generated-file line, LexLean `api.rs`, `lib.rs`, `wasm_ast_eval.rs`, `execute_cargo_json`, the generated application/model and AST-evaluated Cargo behavior.
 
 ## UOR modifications
 
-- `mvm_cc.rs` is byte-identical to upstream. `spiralcore_vsock.rs` contains only the exact 188-line module above.
-- [The emulator patch](provenance/mvm-uor.patch) records both import substitutions and the local ELF, snapshot and frame-length changes. The provenance test reverses that unified diff in memory and checks the upstream length and SHA-256.
-- The local ELF parser validates every program header and supplies checked file and guest-memory ranges to the loader. Snapshots save the next sector number. The vsock sender checks the full payload length and the receiver requires one complete frame.
-- `mvm_initramfs.rs` is generated from the pinned binary into a Rust byte slice, so no compiled initramfs binary is committed. Its bytes and SHA-256 are tested.
-- Vendored modules are `#[rustfmt::skip]` so package formatting cannot change upstream hashes; new tests and adapter code remain rustfmt-checked.
-- `lib.rs` exposes the guest identity and the fixed workload. Internal host tests exercise the original source and use synthetic placeholders for the secret policy. An external API test compares guest output to an independent stopping-time calculation for all 512 supported inputs.
-- Cargo/rustc are not emulated by an AST evaluator. Without a genuine guest Rust toolchain they must report unavailable. C compilation and execution must emit genuine `EM_RISCV` output and exact nontrivial results.
-
-The native package tests check exact output, ELF identity, filesystem changes, in-memory CoW restore, vsock admission and pinned source identities. The browser and desktop acceptance tests belong to the remaining workbench item.
+- [mvm-uor.patch](provenance/mvm-uor.patch), [mvm_cc-uor.patch](provenance/mvm_cc-uor.patch), and [mvm_shell-uor.patch](provenance/mvm_shell-uor.patch) record every local patch against `288e2677` and are reversed in provenance tests to recover exact upstream byte lengths and SHA-256 digests.
+- `mvm.rs` fixes and security hardening: `MVM_INITRAMFS` source-slice substitution, hardened ELF loading (`crate::elf::parse`), `next_sector` preservation and full-payload SHA-256 verification for `UORCOW01` CoW snapshots, reclamation of superseded/deleted 64 KB CoW sectors, uniform read-only protection over system (`/bin`, `/sbin`, `/usr/bin`, `/usr/include`, `/usr/src`, `/etc`) and canonical paths across host/shell/syscall entry points, `wasm32`-safe checked guest memory range helpers + `MAX_GUEST_FILE_BYTES` cap on `SYS_write`, fallible malformed `.git` handling (no `.unwrap()` panics), and replacement of `wasm_ast_eval::execute_workspace_cargo` with honest exit-127 unavailability messages.
+- `mvm_cc.rs` prerequisite fixes: global array address/ptr decay (`GlobalVar.is_array`), lexical scope save/restore for `Stmt::Block` and `Stmt::For`, exact `printf`/`puts` byte count return values, and UTF-8 preservation across comment/preprocessor stripping.
+- `mvm_shell.rs` prerequisite & safety fixes: byte-preserving UTF-8 shell/pipe/heredoc parsing, safe raw-byte `tar_build_header` slicing without UTF-8 panic at byte 100, and uniform protected-path enforcement in `mv` and `tar -x`.
+- `vsock.rs` enforces exact wire frame length (`wire.len() != end`) matching `deliver_vsock_packet`.
+- `mvm_initramfs.rs` stores the pinned `UORMVM01` initramfs as a Rust slice with zero committed binaries (§3.13). `Cargo.toml` reuses only existing workspace-locked `serde`, `serde_json`, `sha2`, and target-gated `wasm-bindgen`/`js-sys` (zero new external dependencies).

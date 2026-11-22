@@ -2519,7 +2519,11 @@ dependencies = [
 name = "uor-r4-mvm"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
  "sha2",
+ "wasm-bindgen",
 ]
 
 [[package]]

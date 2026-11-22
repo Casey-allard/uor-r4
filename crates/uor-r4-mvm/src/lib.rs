@@ -1,29 +1,49 @@
 #![forbid(unsafe_code)]
-//! Run the two checked native workbench operations on a fresh, in-memory guest.
+//! Deterministic RV64IMAC Linux-userland MicroVM (`uor-r4-mvm`) for native CLI and
+//! browser WebAssembly studio execution (`#3939`).
 //!
-//! The import's general-purpose execution interface is private.
-//!
-//! ```compile_fail
-//! use uor_r4_mvm::MvmSandbox;
-//! ```
+//! Raw emulator and C compiler internals remain crate-private:
 //!
 //! ```compile_fail
 //! use uor_r4_mvm::compile_c_to_rv64_elf;
 //! ```
+//!
+//! ```compile_fail
+//! use uor_r4_mvm::mvm;
+//! ```
+//!
+//! Public callers interact through [`MvmSandbox`], [`guest_identity`], and [`run_collatz`]:
+//!
+//! ```
+//! let mut vm = uor_r4_mvm::MvmSandbox::new().expect("MVM boots");
+//! let res = vm.exec("uname -m", "/workspace");
+//! assert_eq!(res.exit_code, 0);
+//! assert!(res.stdout.contains("riscv64"));
+//! ```
 
 mod elf;
-// Preserve the upstream implementation and its private parity fixtures. Product callers
-// can only use the two functions below.
 #[allow(dead_code)]
 #[rustfmt::skip]
+mod lexlean_admission;
+#[allow(dead_code, unused_imports)]
+#[rustfmt::skip]
 mod mvm;
+#[allow(dead_code)]
 #[rustfmt::skip]
 mod mvm_cc;
 #[rustfmt::skip]
 mod mvm_initramfs;
 #[allow(dead_code)]
-#[rustfmt::skip]
 mod spiralcore_vsock;
+#[allow(dead_code, unused_imports)]
+#[rustfmt::skip]
+mod vsock;
+
+pub mod sandbox;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+pub mod wasm;
+
+pub use sandbox::{ExecResult, MvmSandbox};
 
 #[cfg(test)]
 #[path = "../tests/internal/mvm.rs"]

@@ -4,7 +4,7 @@
 //! into genuine 64-bit `EM_RISCV` (`243`) static ELF64 executables that run on the
 //! `MVM-Wasm` `RV64IMAC` processor via Linux `riscv64` `ecall` system calls.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Base virtual address for `PT_LOAD` in compiled RV64 ELF64 executables.
 pub const RV64_BASE_VADDR: u64 = 0x0001_0000;
@@ -42,6 +42,9 @@ enum TokKind {
     RBracket,
     Semi,
     Comma,
+    Dot,
+    Arrow,
+    Ellipsis,
     Assign,
     PlusAssign,
     MinusAssign,
@@ -78,42 +81,66 @@ struct Tok {
     line: usize,
 }
 
-fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
-    let mut defines: HashMap<String, String> = HashMap::new();
-    let mut cleaned = String::with_capacity(src.len());
-    for raw_line in src.lines() {
-        let trimmed = raw_line.trim_start();
-        if let Some(rest) = trimmed.strip_prefix('#') {
-            let directive = rest.trim();
-            if let Some(def_rest) = directive.strip_prefix("define ") {
-                let mut parts = def_rest.trim().splitn(2, char::is_whitespace);
-                if let Some(name) = parts.next() {
-                    let val = parts.next().unwrap_or("1").trim();
-                    if !name.contains('(') {
-                        defines.insert(name.to_string(), val.to_string());
-                    }
-                }
-            }
-            cleaned.push('\n');
-        } else {
-            cleaned.push_str(raw_line);
-            cleaned.push('\n');
+/// Formal R4.MvmLinuxContainer join backslash-continued physical source lines and strip C comments outside string literals (`R4-63`).
+fn join_and_strip_c_comments(src: &str) -> String {
+    let mut joined = String::with_capacity(src.len());
+    let phys_lines: Vec<&str> = src.lines().collect();
+    let mut idx = 0usize;
+    while idx < phys_lines.len() {
+        let mut cur = phys_lines[idx].trim_end_matches('\r').to_string();
+        let mut extra_nls = 0usize;
+        while cur.ends_with('\\') && idx + 1 < phys_lines.len() {
+            cur.pop();
+            idx += 1;
+            cur.push_str(phys_lines[idx].trim_end_matches('\r'));
+            extra_nls += 1;
         }
+        joined.push_str(&cur);
+        joined.push('\n');
+        for _ in 0..extra_nls {
+            joined.push('\n');
+        }
+        idx += 1;
     }
 
-    let bytes = cleaned.as_bytes();
+    let bytes = joined.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0usize;
-    let mut line = 1usize;
-    let mut toks = Vec::new();
-
+    let mut in_str = false;
+    let mut in_chr = false;
     while i < bytes.len() {
         let b = bytes[i];
-        if b == b'\n' {
-            line += 1;
+        if in_str {
+            out.push(b);
+            if b == b'\\' && i + 1 < bytes.len() {
+                i += 1;
+                out.push(bytes[i]);
+            } else if b == b'"' {
+                in_str = false;
+            }
             i += 1;
             continue;
         }
-        if b.is_ascii_whitespace() {
+        if in_chr {
+            out.push(b);
+            if b == b'\\' && i + 1 < bytes.len() {
+                i += 1;
+                out.push(bytes[i]);
+            } else if b == b'\'' {
+                in_chr = false;
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_str = true;
+            out.push(b'"');
+            i += 1;
+            continue;
+        }
+        if b == b'\'' {
+            in_chr = true;
+            out.push(b'\'');
             i += 1;
             continue;
         }
@@ -127,11 +154,290 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
             i += 2;
             while i + 1 < bytes.len() && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
                 if bytes[i] == b'\n' {
-                    line += 1;
+                    out.push(b'\n');
                 }
                 i += 1;
             }
             i = (i + 2).min(bytes.len());
+            out.push(b' ');
+            continue;
+        }
+        out.push(b);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Formal R4.MvmLinuxContainer normalize a VFS path cleanly resolving `.` and `..` segments (`R4-63`).
+fn normalize_vfs_path(base_dir: &str, rel_or_abs: &str) -> String {
+    let joined = if rel_or_abs.starts_with('/') {
+        rel_or_abs.to_string()
+    } else if base_dir == "/" {
+        format!("/{rel_or_abs}")
+    } else {
+        format!("{base_dir}/{rel_or_abs}")
+    };
+    let mut stack: Vec<&str> = Vec::new();
+    for seg in joined.split('/') {
+        if seg.is_empty() || seg == "." {
+            continue;
+        }
+        if seg == ".." {
+            stack.pop();
+        } else {
+            stack.push(seg);
+        }
+    }
+    if stack.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{}", stack.join("/"))
+    }
+}
+
+/// Formal R4.MvmLinuxContainer recursively preprocess C `#include`, `#pragma once`, `#define`, and `#ifdef`/`#ifndef` conditionals (`R4-63`).
+#[allow(clippy::too_many_arguments)]
+fn preprocess_unit_recursive<F>(
+    cur_path: &str,
+    src: &str,
+    include_dirs: &[String],
+    defines: &mut HashMap<String, String>,
+    once_headers: &mut HashSet<String>,
+    read_header: &F,
+    depth: usize,
+    out_text: &mut String,
+) -> Result<(), CCompileError>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    if depth > 16 {
+        return Err(CCompileError {
+            line: 1,
+            message: format!("#include nesting depth exceeded 16 in `{cur_path}`"),
+        });
+    }
+    let clean = join_and_strip_c_comments(src);
+    let cur_dir = match cur_path.rsplit_once('/') {
+        Some((d, _)) if !d.is_empty() => d,
+        _ => "/workspace",
+    };
+
+    #[derive(Clone, Copy)]
+    struct CondFrame {
+        parent_active: bool,
+        this_active: bool,
+        branch_taken: bool,
+    }
+    let mut cond_stack: Vec<CondFrame> = Vec::new();
+    let is_active = |st: &[CondFrame]| st.last().is_none_or(|f| f.this_active);
+
+    for (lidx, raw_line) in clean.lines().enumerate() {
+        let line_no = lidx + 1;
+        let trimmed = raw_line.trim_start();
+        if let Some(after_hash) = trimmed.strip_prefix('#') {
+            let dir = after_hash.trim();
+            if let Some(sym) = dir.strip_prefix("ifdef ") {
+                let name = sym.split_whitespace().next().unwrap_or("");
+                let parent = is_active(&cond_stack);
+                let taken = defines.contains_key(name);
+                cond_stack.push(CondFrame {
+                    parent_active: parent,
+                    this_active: parent && taken,
+                    branch_taken: taken,
+                });
+                out_text.push('\n');
+                continue;
+            }
+            if let Some(sym) = dir.strip_prefix("ifndef ") {
+                let name = sym.split_whitespace().next().unwrap_or("");
+                let parent = is_active(&cond_stack);
+                let taken = !defines.contains_key(name);
+                cond_stack.push(CondFrame {
+                    parent_active: parent,
+                    this_active: parent && taken,
+                    branch_taken: taken,
+                });
+                out_text.push('\n');
+                continue;
+            }
+            if let Some(expr) = dir.strip_prefix("if ") {
+                let e = expr.trim();
+                let parent = is_active(&cond_stack);
+                let taken = if let Some(sym) = e.strip_prefix("defined") {
+                    let s = sym
+                        .trim()
+                        .trim_start_matches('(')
+                        .trim_end_matches(')')
+                        .trim();
+                    defines.contains_key(s)
+                } else if let Some(sym) = e.strip_prefix("!defined") {
+                    let s = sym
+                        .trim()
+                        .trim_start_matches('(')
+                        .trim_end_matches(')')
+                        .trim();
+                    !defines.contains_key(s)
+                } else {
+                    e != "0"
+                };
+                cond_stack.push(CondFrame {
+                    parent_active: parent,
+                    this_active: parent && taken,
+                    branch_taken: taken,
+                });
+                out_text.push('\n');
+                continue;
+            }
+            if dir == "else" || dir.starts_with("else ") {
+                if let Some(top) = cond_stack.last_mut() {
+                    let next_active = top.parent_active && !top.branch_taken;
+                    top.this_active = next_active;
+                    top.branch_taken = true;
+                }
+                out_text.push('\n');
+                continue;
+            }
+            if dir == "endif" || dir.starts_with("endif ") {
+                cond_stack.pop();
+                out_text.push('\n');
+                continue;
+            }
+            if !is_active(&cond_stack) {
+                out_text.push('\n');
+                continue;
+            }
+            if dir == "pragma once" {
+                once_headers.insert(cur_path.to_string());
+                out_text.push('\n');
+                continue;
+            }
+            if let Some(def_rest) = dir.strip_prefix("define ") {
+                let trimmed_def = def_rest.trim();
+                let mut split_at = 0usize;
+                for (bidx, ch) in trimmed_def.char_indices() {
+                    if ch.is_ascii_alphanumeric() || ch == '_' {
+                        split_at = bidx + ch.len_utf8();
+                    } else {
+                        break;
+                    }
+                }
+                let name = &trimmed_def[..split_at];
+                let remainder = &trimmed_def[split_at..];
+                if !name.is_empty() && !remainder.starts_with('(') {
+                    let val = remainder.trim();
+                    defines.insert(
+                        name.to_string(),
+                        if val.is_empty() {
+                            "1".to_string()
+                        } else {
+                            val.to_string()
+                        },
+                    );
+                }
+                out_text.push('\n');
+                continue;
+            }
+            if let Some(undef_rest) = dir.strip_prefix("undef ") {
+                let name = undef_rest.split_whitespace().next().unwrap_or("");
+                defines.remove(name);
+                out_text.push('\n');
+                continue;
+            }
+            if let Some(inc_rest) = dir.strip_prefix("include") {
+                let arg = inc_rest.trim();
+                let (quoted, header_rel) = if let Some(s) = arg.strip_prefix('"') {
+                    let Some(end) = s.find('"') else {
+                        return Err(CCompileError {
+                            line: line_no,
+                            message: "unterminated #include \"...\"".to_string(),
+                        });
+                    };
+                    (true, &s[..end])
+                } else if let Some(s) = arg.strip_prefix('<') {
+                    let Some(end) = s.find('>') else {
+                        return Err(CCompileError {
+                            line: line_no,
+                            message: "unterminated #include <...>".to_string(),
+                        });
+                    };
+                    (false, &s[..end])
+                } else {
+                    return Err(CCompileError {
+                        line: line_no,
+                        message: format!("malformed #include `{arg}`"),
+                    });
+                };
+
+                let mut search_paths: Vec<String> = Vec::new();
+                if quoted {
+                    search_paths.push(normalize_vfs_path(cur_dir, header_rel));
+                }
+                for inc_d in include_dirs {
+                    let base = normalize_vfs_path("/workspace", inc_d);
+                    search_paths.push(normalize_vfs_path(&base, header_rel));
+                }
+                search_paths.push(normalize_vfs_path("/usr/include", header_rel));
+
+                let mut resolved: Option<(String, String)> = None;
+                for cand in search_paths {
+                    if let Some(txt) = read_header(&cand) {
+                        resolved = Some((cand, txt));
+                        break;
+                    }
+                }
+                let Some((hdr_path, hdr_src)) = resolved else {
+                    return Err(CCompileError {
+                        line: line_no,
+                        message: format!("header not found: `{header_rel}`"),
+                    });
+                };
+                if !once_headers.contains(&hdr_path) {
+                    preprocess_unit_recursive(
+                        &hdr_path,
+                        &hdr_src,
+                        include_dirs,
+                        defines,
+                        once_headers,
+                        read_header,
+                        depth + 1,
+                        out_text,
+                    )?;
+                }
+                out_text.push('\n');
+                continue;
+            }
+            out_text.push('\n');
+        } else if is_active(&cond_stack) {
+            out_text.push_str(raw_line);
+            out_text.push('\n');
+        } else {
+            out_text.push('\n');
+        }
+    }
+    Ok(())
+}
+
+/// Formal R4.MvmLinuxContainer lex preprocessed C source text with bounded object-like macro expansion (`R4-63`).
+fn lex_c_tokens_with_defines(
+    cleaned: &str,
+    defines: &HashMap<String, String>,
+    base_line: usize,
+    expand_depth: usize,
+) -> Result<Vec<Tok>, CCompileError> {
+    let bytes = cleaned.as_bytes();
+    let mut i = 0usize;
+    let mut line = base_line;
+    let mut toks = Vec::new();
+
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b == b'\n' {
+            line += 1;
+            i += 1;
+            continue;
+        }
+        if b.is_ascii_whitespace() {
+            i += 1;
             continue;
         }
         if b == b'"' {
@@ -251,12 +557,14 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
                 i += 1;
             }
             let ident = &cleaned[start..i];
-            if let Some(rep) = defines.get(ident) {
-                if let Ok(v) = rep.parse::<i64>() {
-                    toks.push(Tok {
-                        kind: TokKind::IntLit(v),
-                        line,
-                    });
+            if expand_depth < 8 {
+                if let Some(rep) = defines.get(ident) {
+                    let sub_toks = lex_c_tokens_with_defines(rep, defines, line, expand_depth + 1)?;
+                    for st in sub_toks {
+                        if st.kind != TokKind::Eof {
+                            toks.push(st);
+                        }
+                    }
                     continue;
                 }
             }
@@ -267,6 +575,15 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
             continue;
         }
 
+        if i + 2 < bytes.len() && bytes[i] == b'.' && bytes[i + 1] == b'.' && bytes[i + 2] == b'.' {
+            toks.push(Tok {
+                kind: TokKind::Ellipsis,
+                line,
+            });
+            i += 3;
+            continue;
+        }
+
         let two = if i + 1 < bytes.len() {
             Some((bytes[i], bytes[i + 1]))
         } else {
@@ -274,6 +591,7 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
         };
         if let Some(pair) = two {
             let two_tok = match pair {
+                (b'-', b'>') => Some(TokKind::Arrow),
                 (b'+', b'=') => Some(TokKind::PlusAssign),
                 (b'-', b'=') => Some(TokKind::MinusAssign),
                 (b'+', b'+') => Some(TokKind::PlusPlus),
@@ -304,6 +622,7 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
             b']' => TokKind::RBracket,
             b';' => TokKind::Semi,
             b',' => TokKind::Comma,
+            b'.' => TokKind::Dot,
             b'=' => TokKind::Assign,
             b'+' => TokKind::Plus,
             b'-' => TokKind::Minus,
@@ -337,12 +656,58 @@ fn preprocess_and_lex(src: &str) -> Result<Vec<Tok>, CCompileError> {
     Ok(toks)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum CType {
     Byte,
+    U16,
+    U32,
     Word64,
-    PtrByte,
-    PtrWord64,
+    Ptr(Box<CType>),
+    Struct(String),
+}
+
+impl CType {
+    /// Formal R4.MvmLinuxContainer construct a `char *` pointer type (`R4-63`).
+    fn ptr_byte() -> Self {
+        Self::Ptr(Box::new(Self::Byte))
+    }
+
+    /// Formal R4.MvmLinuxContainer inspect the pointee type when `self` is a pointer (`R4-63`).
+    fn deref_inner(&self) -> Option<&CType> {
+        match self {
+            Self::Ptr(inner) => Some(inner.as_ref()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct StructField {
+    name: String,
+    offset: usize,
+    size: usize,
+    ty: CType,
+    is_array: bool,
+}
+
+#[derive(Debug, Clone)]
+struct StructDef {
+    size: usize,
+    align: usize,
+    fields: Vec<StructField>,
+}
+
+/// Formal R4.MvmLinuxContainer compute `(size_bytes, align_bytes)` for a C type including structs (`R4-63`).
+fn ctype_size_align(ty: &CType, structs: &HashMap<String, StructDef>) -> (usize, usize) {
+    match ty {
+        CType::Byte => (1, 1),
+        CType::U16 => (2, 2),
+        CType::U32 => (4, 4),
+        CType::Word64 | CType::Ptr(_) => (8, 8),
+        CType::Struct(name) => structs
+            .get(name)
+            .map_or((8, 8), |s| (s.size.max(1), s.align.clamp(1, 8))),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -351,13 +716,18 @@ enum Expr {
     Str(Vec<u8>),
     Var(String),
     Index(Box<Expr>, Box<Expr>),
+    Member(Box<Expr>, String),
+    PtrMember(Box<Expr>, String),
     Deref(Box<Expr>),
-    AddrOf(String),
+    AddrOf(Box<Expr>),
+    SizeOfValue(Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
     Binary(BinOp, Box<Expr>, Box<Expr>),
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
     AssignVar(String, Box<Expr>),
     AssignIndex(Box<Expr>, Box<Expr>, Box<Expr>),
+    AssignMember(Box<Expr>, String, Box<Expr>),
+    AssignPtrMember(Box<Expr>, String, Box<Expr>),
     AssignDeref(Box<Expr>, Box<Expr>),
     Call(String, Vec<Expr>),
 }
@@ -424,6 +794,8 @@ struct FuncDef {
 struct GlobalVar {
     name: String,
     size_bytes: usize,
+    ty: CType,
+    is_array: bool,
     init_i64: i64,
 }
 
@@ -436,17 +808,36 @@ struct Program {
 struct Parser {
     toks: Vec<Tok>,
     pos: usize,
+    structs: HashMap<String, StructDef>,
+    typedefs: HashMap<String, CType>,
 }
 
 impl Parser {
+    /// Formal R4.MvmLinuxContainer initialize a multi-TU C parser carrying known struct & typedef tables (`R4-63`).
+    fn new(
+        toks: Vec<Tok>,
+        structs: HashMap<String, StructDef>,
+        typedefs: HashMap<String, CType>,
+    ) -> Self {
+        Self {
+            toks,
+            pos: 0,
+            structs,
+            typedefs,
+        }
+    }
+
+    /// Formal R4.MvmPolyglotToolchain.
     fn peek(&self) -> &Tok {
         &self.toks[self.pos.min(self.toks.len() - 1)]
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn line(&self) -> usize {
         self.peek().line
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn next(&mut self) -> Tok {
         let t = self.peek().clone();
         if self.pos + 1 < self.toks.len() {
@@ -455,6 +846,7 @@ impl Parser {
         t
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn eat(&mut self, expected: &TokKind) -> bool {
         if &self.peek().kind == expected {
             self.next();
@@ -464,6 +856,7 @@ impl Parser {
         }
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn expect(&mut self, expected: &TokKind) -> Result<(), CCompileError> {
         if self.eat(expected) {
             Ok(())
@@ -475,6 +868,7 @@ impl Parser {
         }
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn expect_ident(&mut self) -> Result<String, CCompileError> {
         match &self.peek().kind {
             TokKind::Ident(s) => {
@@ -489,11 +883,11 @@ impl Parser {
         }
     }
 
+    /// Formal R4.MvmLinuxContainer classify whether the next token begins a C type specifier (`R4-63`).
     fn is_type_start(&self) -> bool {
-        matches!(
-            &self.peek().kind,
-            TokKind::Ident(s)
-                if matches!(
+        match &self.peek().kind {
+            TokKind::Ident(s) => {
+                matches!(
                     s.as_str(),
                     "void"
                         | "int"
@@ -504,28 +898,137 @@ impl Parser {
                         | "signed"
                         | "const"
                         | "static"
+                        | "extern"
+                        | "inline"
+                        | "struct"
+                        | "bool"
+                        | "_Bool"
                         | "size_t"
                         | "ssize_t"
+                        | "socklen_t"
                         | "uint8_t"
+                        | "int8_t"
+                        | "uint16_t"
+                        | "int16_t"
                         | "uint32_t"
+                        | "int32_t"
                         | "uint64_t"
                         | "int64_t"
-                )
-        )
+                ) || self.typedefs.contains_key(s.as_str())
+            }
+            _ => false,
+        }
     }
 
+    /// Formal R4.MvmLinuxContainer parse a C struct body with natural field alignment (`R4-63`).
+    fn parse_struct_body(&mut self, struct_name: String) -> Result<StructDef, CCompileError> {
+        self.expect(&TokKind::LBrace)?;
+        let mut fields = Vec::new();
+        let mut offset = 0usize;
+        let mut max_align = 1usize;
+        while !self.eat(&TokKind::RBrace) {
+            if self.peek().kind == TokKind::Eof {
+                return Err(CCompileError {
+                    line: self.line(),
+                    message: "unclosed struct definition".to_string(),
+                });
+            }
+            let base_ty = self.parse_type()?;
+            loop {
+                let mut fty = base_ty.clone();
+                while self.eat(&TokKind::Star) {
+                    fty = CType::Ptr(Box::new(fty));
+                }
+                let fname = self.expect_ident()?;
+                let mut is_array = false;
+                let (elem_sz, align) = ctype_size_align(&fty, &self.structs);
+                let mut field_sz = elem_sz;
+                if self.eat(&TokKind::LBracket) {
+                    if let TokKind::IntLit(n) = self.peek().kind {
+                        self.next();
+                        field_sz = (n.max(1) as usize) * elem_sz;
+                        is_array = true;
+                    } else {
+                        return Err(CCompileError {
+                            line: self.line(),
+                            message: "expected constant struct array size".to_string(),
+                        });
+                    }
+                    self.expect(&TokKind::RBracket)?;
+                }
+                let a = align.clamp(1, 8);
+                max_align = max_align.max(a);
+                offset = (offset + a - 1) & !(a - 1);
+                fields.push(StructField {
+                    name: fname,
+                    offset,
+                    size: field_sz,
+                    ty: fty,
+                    is_array,
+                });
+                offset += field_sz;
+                if !self.eat(&TokKind::Comma) {
+                    break;
+                }
+            }
+            self.expect(&TokKind::Semi)?;
+        }
+        let total = (offset.max(1) + max_align - 1) & !(max_align - 1);
+        let def = StructDef {
+            size: total,
+            align: max_align,
+            fields,
+        };
+        self.structs.insert(struct_name, def.clone());
+        Ok(def)
+    }
+
+    /// Formal R4.MvmLinuxContainer parse a C type specifier including structs and typedefs (`R4-63`).
     fn parse_type(&mut self) -> Result<CType, CCompileError> {
+        let mut base: Option<CType> = None;
         let mut is_char = false;
-        let mut stars = 0usize;
+        let mut is_short = false;
+        let mut is_u32 = false;
         let mut consumed = false;
         while self.is_type_start() {
-            if let TokKind::Ident(s) = &self.peek().kind {
-                if s == "char" || s == "uint8_t" {
-                    is_char = true;
+            if consumed && self.toks.get(self.pos + 1).map(|t| &t.kind) == Some(&TokKind::Semi) {
+                break;
+            }
+            let ident = match &self.peek().kind {
+                TokKind::Ident(s) => s.clone(),
+                _ => break,
+            };
+            if let Some(aliased) = self.typedefs.get(&ident).cloned() {
+                if consumed {
+                    break;
                 }
+                self.next();
+                base = Some(aliased);
+                consumed = true;
+                break;
             }
             self.next();
             consumed = true;
+            if ident == "struct" {
+                let sname = if let TokKind::Ident(n) = &self.peek().kind {
+                    let s = n.clone();
+                    self.next();
+                    s
+                } else {
+                    format!("__anon_struct_{}", self.line())
+                };
+                if self.peek().kind == TokKind::LBrace {
+                    self.parse_struct_body(sname.clone())?;
+                }
+                base = Some(CType::Struct(sname));
+                break;
+            }
+            match ident.as_str() {
+                "char" | "uint8_t" | "int8_t" | "bool" | "_Bool" => is_char = true,
+                "short" | "uint16_t" | "int16_t" => is_short = true,
+                "uint32_t" => is_u32 = true,
+                _ => {}
+            }
         }
         if !consumed {
             return Err(CCompileError {
@@ -533,27 +1036,46 @@ impl Parser {
                 message: "expected C type specifier".to_string(),
             });
         }
-        while self.eat(&TokKind::Star) {
-            stars += 1;
-        }
-        Ok(if stars > 0 {
-            if is_char {
-                CType::PtrByte
-            } else {
-                CType::PtrWord64
-            }
-        } else if is_char {
+        let mut ty = base.unwrap_or(if is_char {
             CType::Byte
+        } else if is_short {
+            CType::U16
+        } else if is_u32 {
+            CType::U32
         } else {
             CType::Word64
-        })
+        });
+        while self.eat(&TokKind::Star) {
+            ty = CType::Ptr(Box::new(ty));
+        }
+        Ok(ty)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_program(&mut self) -> Result<Program, CCompileError> {
         let mut globals = Vec::new();
         let mut funcs = Vec::new();
         while self.peek().kind != TokKind::Eof {
+            if matches!(&self.peek().kind, TokKind::Ident(s) if s == "typedef") {
+                self.next();
+                let mut base_ty = self.parse_type()?;
+                while self.eat(&TokKind::Star) {
+                    base_ty = CType::Ptr(Box::new(base_ty));
+                }
+                let alias = self.expect_ident()?;
+                self.expect(&TokKind::Semi)?;
+                self.typedefs.insert(alias, base_ty);
+                continue;
+            }
             let base_ty = self.parse_type()?;
+            if self.eat(&TokKind::Semi) {
+                // Standalone `struct Tag { ... };` declaration
+                continue;
+            }
+            let mut decl_ty = base_ty.clone();
+            while self.eat(&TokKind::Star) {
+                decl_ty = CType::Ptr(Box::new(decl_ty));
+            }
             let name = self.expect_ident()?;
             if self.eat(&TokKind::LParen) {
                 let mut params = Vec::new();
@@ -564,16 +1086,33 @@ impl Parser {
                         self.next();
                         self.expect(&TokKind::RParen)?;
                     } else {
+                        let mut arg_idx = 0usize;
                         loop {
+                            if self.eat(&TokKind::Ellipsis) {
+                                if !self.eat(&TokKind::Comma) {
+                                    break;
+                                }
+                                continue;
+                            }
                             let mut pty = self.parse_type()?;
-                            let pname = self.expect_ident()?;
+                            while self.eat(&TokKind::Star) {
+                                pty = CType::Ptr(Box::new(pty));
+                            }
+                            let pname = if matches!(
+                                &self.peek().kind,
+                                TokKind::Comma | TokKind::RParen | TokKind::LBracket
+                            ) {
+                                format!("__arg_{arg_idx}")
+                            } else {
+                                self.expect_ident()?
+                            };
+                            arg_idx += 1;
                             if self.eat(&TokKind::LBracket) {
+                                if matches!(self.peek().kind, TokKind::IntLit(_)) {
+                                    self.next();
+                                }
                                 let _ = self.eat(&TokKind::RBracket);
-                                pty = if pty == CType::Byte {
-                                    CType::PtrByte
-                                } else {
-                                    CType::PtrWord64
-                                };
+                                pty = CType::Ptr(Box::new(pty));
                             }
                             params.push((pname, pty));
                             if !self.eat(&TokKind::Comma) {
@@ -584,7 +1123,6 @@ impl Parser {
                     }
                 }
                 if self.eat(&TokKind::Semi) {
-                    // Forward prototype declaration
                     continue;
                 }
                 self.expect(&TokKind::LBrace)?;
@@ -600,11 +1138,14 @@ impl Parser {
                 }
                 funcs.push(FuncDef { name, params, body });
             } else {
-                let mut size_bytes = 8usize;
+                let (mut size_bytes, _) = ctype_size_align(&decl_ty, &self.structs);
+                size_bytes = size_bytes.max(8);
+                let mut is_array = false;
                 if self.eat(&TokKind::LBracket) {
+                    is_array = true;
                     if let TokKind::IntLit(n) = self.peek().kind {
                         self.next();
-                        let elem = if base_ty == CType::Byte { 1 } else { 8 };
+                        let (elem, _) = ctype_size_align(&decl_ty, &self.structs);
                         size_bytes = ((n.max(1) as usize) * elem + 7) & !7;
                     }
                     self.expect(&TokKind::RBracket)?;
@@ -625,6 +1166,8 @@ impl Parser {
                 globals.push(GlobalVar {
                     name,
                     size_bytes,
+                    ty: decl_ty,
+                    is_array,
                     init_i64,
                 });
             }
@@ -632,13 +1175,22 @@ impl Parser {
         Ok(Program { globals, funcs })
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_decl_stmt(&mut self, eat_semi: bool) -> Result<Stmt, CCompileError> {
         let base_ty = self.parse_type()?;
-        let mut first_stars_applied = base_ty;
+        if eat_semi && matches!(base_ty, CType::Struct(_)) && self.eat(&TokKind::Semi) {
+            return Ok(Stmt::Empty);
+        }
+        let mut first_ty = base_ty.clone();
+        let raw_base = match &base_ty {
+            CType::Ptr(inner) => inner.as_ref().clone(),
+            other => other.clone(),
+        };
         let mut decls = Vec::new();
         loop {
+            let mut cur_ty = first_ty.clone();
             while self.eat(&TokKind::Star) {
-                first_stars_applied = CType::PtrWord64;
+                cur_ty = CType::Ptr(Box::new(cur_ty));
             }
             let name = self.expect_ident()?;
             let mut array_elems = None;
@@ -661,15 +1213,11 @@ impl Parser {
             };
             decls.push(LocalDecl {
                 name,
-                ty: first_stars_applied,
+                ty: cur_ty,
                 array_elems,
                 init,
             });
-            first_stars_applied = if base_ty == CType::PtrByte || base_ty == CType::Byte {
-                CType::Byte
-            } else {
-                CType::Word64
-            };
+            first_ty = raw_base.clone();
             if !self.eat(&TokKind::Comma) {
                 break;
             }
@@ -680,6 +1228,7 @@ impl Parser {
         Ok(Stmt::Decl(decls))
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_stmt(&mut self) -> Result<Stmt, CCompileError> {
         if self.eat(&TokKind::Semi) {
             return Ok(Stmt::Empty);
@@ -776,10 +1325,12 @@ impl Parser {
         Ok(Stmt::ExprStmt(expr))
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_expr(&mut self) -> Result<Expr, CCompileError> {
         self.parse_assign()
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_assign(&mut self) -> Result<Expr, CCompileError> {
         let lhs = self.parse_ternary()?;
         if self.eat(&TokKind::Assign) {
@@ -787,6 +1338,10 @@ impl Parser {
             return match lhs {
                 Expr::Var(name) => Ok(Expr::AssignVar(name, Box::new(rhs))),
                 Expr::Index(base, idx) => Ok(Expr::AssignIndex(base, idx, Box::new(rhs))),
+                Expr::Member(base, field) => Ok(Expr::AssignMember(base, field, Box::new(rhs))),
+                Expr::PtrMember(base, field) => {
+                    Ok(Expr::AssignPtrMember(base, field, Box::new(rhs)))
+                }
                 Expr::Deref(ptr) => Ok(Expr::AssignDeref(ptr, Box::new(rhs))),
                 _ => Err(CCompileError {
                     line: self.line(),
@@ -805,9 +1360,27 @@ impl Parser {
                         Box::new(rhs),
                     )),
                 )),
+                Expr::Member(base, field) => Ok(Expr::AssignMember(
+                    base.clone(),
+                    field.clone(),
+                    Box::new(Expr::Binary(
+                        BinOp::Add,
+                        Box::new(Expr::Member(base, field)),
+                        Box::new(rhs),
+                    )),
+                )),
+                Expr::PtrMember(base, field) => Ok(Expr::AssignPtrMember(
+                    base.clone(),
+                    field.clone(),
+                    Box::new(Expr::Binary(
+                        BinOp::Add,
+                        Box::new(Expr::PtrMember(base, field)),
+                        Box::new(rhs),
+                    )),
+                )),
                 _ => Err(CCompileError {
                     line: self.line(),
-                    message: "+= supported on variables".to_string(),
+                    message: "+= supported on variables and struct fields".to_string(),
                 }),
             };
         }
@@ -822,15 +1395,34 @@ impl Parser {
                         Box::new(rhs),
                     )),
                 )),
+                Expr::Member(base, field) => Ok(Expr::AssignMember(
+                    base.clone(),
+                    field.clone(),
+                    Box::new(Expr::Binary(
+                        BinOp::Sub,
+                        Box::new(Expr::Member(base, field)),
+                        Box::new(rhs),
+                    )),
+                )),
+                Expr::PtrMember(base, field) => Ok(Expr::AssignPtrMember(
+                    base.clone(),
+                    field.clone(),
+                    Box::new(Expr::Binary(
+                        BinOp::Sub,
+                        Box::new(Expr::PtrMember(base, field)),
+                        Box::new(rhs),
+                    )),
+                )),
                 _ => Err(CCompileError {
                     line: self.line(),
-                    message: "-= supported on variables".to_string(),
+                    message: "-= supported on variables and struct fields".to_string(),
                 }),
             };
         }
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_ternary(&mut self) -> Result<Expr, CCompileError> {
         let cond = self.parse_log_or()?;
         if self.eat(&TokKind::Question) {
@@ -843,6 +1435,7 @@ impl Parser {
         }
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_log_or(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_log_and()?;
         while self.eat(&TokKind::PipePipe) {
@@ -852,6 +1445,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_log_and(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_bit_or()?;
         while self.eat(&TokKind::AmpAmp) {
@@ -861,6 +1455,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_bit_or(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_bit_xor()?;
         while self.eat(&TokKind::Pipe) {
@@ -870,6 +1465,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_bit_xor(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_bit_and()?;
         while self.eat(&TokKind::Caret) {
@@ -879,6 +1475,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_bit_and(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_eq()?;
         while self.eat(&TokKind::Amp) {
@@ -888,6 +1485,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_eq(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_rel()?;
         loop {
@@ -904,6 +1502,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_rel(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_shift()?;
         loop {
@@ -926,6 +1525,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_shift(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_add()?;
         loop {
@@ -942,6 +1542,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_add(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_mul()?;
         loop {
@@ -958,6 +1559,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_mul(&mut self) -> Result<Expr, CCompileError> {
         let mut lhs = self.parse_unary()?;
         loop {
@@ -977,6 +1579,7 @@ impl Parser {
         Ok(lhs)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_unary(&mut self) -> Result<Expr, CCompileError> {
         if self.eat(&TokKind::Minus) {
             return Ok(Expr::Unary(UnaryOp::Neg, Box::new(self.parse_unary()?)));
@@ -994,8 +1597,8 @@ impl Parser {
             return Ok(Expr::Deref(Box::new(self.parse_unary()?)));
         }
         if self.eat(&TokKind::Amp) {
-            let id = self.expect_ident()?;
-            return Ok(Expr::AddrOf(id));
+            let inner = self.parse_unary()?;
+            return Ok(Expr::AddrOf(Box::new(inner)));
         }
         if self.eat(&TokKind::PlusPlus) {
             let id = self.expect_ident()?;
@@ -1022,6 +1625,7 @@ impl Parser {
         self.parse_postfix()
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_postfix(&mut self) -> Result<Expr, CCompileError> {
         let mut expr = self.parse_primary()?;
         loop {
@@ -1029,6 +1633,12 @@ impl Parser {
                 let idx = self.parse_expr()?;
                 self.expect(&TokKind::RBracket)?;
                 expr = Expr::Index(Box::new(expr), Box::new(idx));
+            } else if self.eat(&TokKind::Dot) {
+                let field = self.expect_ident()?;
+                expr = Expr::Member(Box::new(expr), field);
+            } else if self.eat(&TokKind::Arrow) {
+                let field = self.expect_ident()?;
+                expr = Expr::PtrMember(Box::new(expr), field);
             } else if self.eat(&TokKind::PlusPlus) {
                 if let Expr::Var(name) = expr {
                     expr = Expr::AssignVar(
@@ -1058,6 +1668,7 @@ impl Parser {
         Ok(expr)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn parse_primary(&mut self) -> Result<Expr, CCompileError> {
         match &self.peek().kind {
             TokKind::IntLit(v) => {
@@ -1084,19 +1695,15 @@ impl Parser {
                 self.next();
                 if name == "sizeof" {
                     self.expect(&TokKind::LParen)?;
-                    let sz = if self.is_type_start() {
+                    if self.is_type_start() {
                         let t = self.parse_type()?;
-                        if t == CType::Byte {
-                            1
-                        } else {
-                            8
-                        }
-                    } else {
-                        let _ = self.parse_expr()?;
-                        8
-                    };
+                        let sz = ctype_size_align(&t, &self.structs).0 as i64;
+                        self.expect(&TokKind::RParen)?;
+                        return Ok(Expr::Int(sz));
+                    }
+                    let e = self.parse_expr()?;
                     self.expect(&TokKind::RParen)?;
-                    return Ok(Expr::Int(sz));
+                    return Ok(Expr::SizeOfValue(Box::new(e)));
                 }
                 if self.eat(&TokKind::LParen) {
                     let mut args = Vec::new();
@@ -1181,13 +1788,17 @@ const S0: u32 = 8;
 const A0: u32 = 10;
 const A1: u32 = 11;
 const A2: u32 = 12;
+const A3: u32 = 13;
+const A4: u32 = 14;
+const A5: u32 = 15;
 const A7: u32 = 17;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct LocalSlot {
     offset_from_fp: i32,
     ty: CType,
     is_array: bool,
+    byte_size: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -1207,7 +1818,8 @@ struct Fixup {
 struct Codegen {
     insts: Vec<u32>,
     data: Vec<u8>,
-    global_offsets: HashMap<String, (usize, CType)>,
+    structs: HashMap<String, StructDef>,
+    global_offsets: HashMap<String, (usize, CType, bool, usize)>,
     func_inst_idx: HashMap<String, usize>,
     fixups: Vec<Fixup>,
     locals: HashMap<String, LocalSlot>,
@@ -1217,12 +1829,14 @@ struct Codegen {
 }
 
 impl Codegen {
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit(&mut self, inst: u32) -> usize {
         let idx = self.insts.len();
         self.insts.push(inst);
         idx
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit_li(&mut self, rd: u32, val: i64) {
         if (-2048..=2047).contains(&val) {
             self.emit(enc_i(val as i32, X0, 0, rd, 0x13)); // addi rd, x0, imm
@@ -1255,6 +1869,7 @@ impl Codegen {
         self.emit(enc_i(c0, rd, 6, rd, 0x13)); // ori rd, rd, c0
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit_fp_addr(&mut self, rd: u32, offset: i32) {
         if (-2048..=2047).contains(&offset) {
             self.emit(enc_i(offset, S0, 0, rd, 0x13));
@@ -1264,6 +1879,7 @@ impl Codegen {
         }
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn add_data_bytes(&mut self, bytes: &[u8], nul_terminate: bool) -> usize {
         while !self.data.len().is_multiple_of(8) {
             self.data.push(0);
@@ -1276,6 +1892,7 @@ impl Codegen {
         off
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit_load_data_addr(&mut self, rd: u32, data_offset: usize) {
         let idx = self.emit(0);
         self.emit(0); // 2-instruction lui + addi slot
@@ -1288,6 +1905,7 @@ impl Codegen {
         });
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit_call(&mut self, target: &str) {
         let idx = self.emit(0);
         self.fixups.push(Fixup {
@@ -1299,26 +1917,54 @@ impl Codegen {
         });
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
+    fn emit_syscall_call(
+        &mut self,
+        args: &[Expr],
+        reg_targets: &[u32],
+        defaults: &[(u32, i32)],
+        syscall_nr: i32,
+    ) -> Result<(), CCompileError> {
+        for a in args {
+            self.compile_expr(a)?;
+            self.push_a0();
+        }
+        for &reg in reg_targets.iter().rev() {
+            self.pop_to(reg);
+        }
+        for &(reg, imm) in defaults {
+            self.emit(enc_i(imm, X0, 0, reg, 0x13));
+        }
+        self.emit(enc_i(syscall_nr, X0, 0, A7, 0x13));
+        self.emit(0x0000_0073);
+        Ok(())
+    }
+
+    /// Formal R4.MvmPolyglotToolchain.
     fn push_a0(&mut self) {
         self.emit(enc_i(-8, SP, 0, SP, 0x13)); // addi sp, sp, -8
         self.emit(enc_s(0, A0, SP, 3, 0x23)); // sd a0, 0(sp)
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn pop_to(&mut self, reg: u32) {
         self.emit(enc_i(0, SP, 3, reg, 0x03)); // ld reg, 0(sp)
         self.emit(enc_i(8, SP, 0, SP, 0x13)); // addi sp, sp, 8
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn patch_b(&mut self, inst_idx: usize, target_idx: usize, rs2: u32, rs1: u32, funct3: u32) {
         let off = ((target_idx as isize) - (inst_idx as isize)) * 4;
         self.insts[inst_idx] = enc_b(off as i32, rs2, rs1, funct3, 0x63);
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn patch_j(&mut self, inst_idx: usize, target_idx: usize, rd: u32) {
         let off = ((target_idx as isize) - (inst_idx as isize)) * 4;
         self.insts[inst_idx] = enc_j(off as i32, rd, 0x6f);
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn emit_runtime_helpers(&mut self) {
         // __rt_putchar(a0 = byte): write 1 byte to stdout (fd=1)
         self.func_inst_idx
@@ -1365,12 +2011,19 @@ impl Codegen {
         self.emit(enc_i(1, X0, 0, A0, 0x13)); // a0 = 1
         self.emit(enc_i(64, X0, 0, A7, 0x13));
         self.emit(0x0000_0073);
+        self.emit(enc_s(0, A0, SP, 3, 0x23)); // save cstr byte len in 0(sp)
         self.emit(enc_i(8, SP, 3, T0, 0x03)); // append_newline?
         let skip_nl = self.emit(0);
         self.emit(enc_i(10, X0, 0, A0, 0x13)); // '\n'
         self.emit_call("__rt_putchar");
+        self.emit(enc_i(0, SP, 3, T0, 0x03));
+        self.emit(enc_i(1, T0, 0, A0, 0x13));
+        let done_all = self.emit(0);
         let after_nl = self.insts.len();
         self.patch_b(skip_nl, after_nl, X0, T0, 0);
+        self.emit(enc_i(0, SP, 3, A0, 0x03));
+        let puts_exit = self.insts.len();
+        self.patch_j(done_all, puts_exit, X0);
         self.emit(enc_i(24, SP, 3, RA, 0x03));
         self.emit(enc_i(32, SP, 0, SP, 0x13));
         self.emit(enc_i(0, RA, 0, X0, 0x67));
@@ -1428,26 +2081,274 @@ impl Codegen {
         self.emit(enc_i(40, SP, 3, RA, 0x03));
         self.emit(enc_i(48, SP, 0, SP, 0x13));
         self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_print_hex64(a0 = u64): lowercase hex with no prefix
+        self.func_inst_idx
+            .insert("__rt_print_hex64".to_string(), self.insts.len());
+        self.emit(enc_i(-48, SP, 0, SP, 0x13));
+        self.emit(enc_s(40, RA, SP, 3, 0x23));
+        self.emit(enc_i(0, A0, 0, T0, 0x13)); // t0 = val
+        self.emit(enc_i(32, SP, 0, T2, 0x13)); // cursor at sp+32
+        self.emit(enc_i(15, X0, 0, T1, 0x13)); // mask 0xf
+        let hex_loop = self.insts.len();
+        self.emit(enc_r(0, T1, T0, 7, A1, 0x33)); // and a1, t0, 0xf
+        self.emit(enc_i(10, X0, 0, A2, 0x13));
+        let br_digit = self.emit(0); // blt a1, 10
+        self.emit(enc_i((b'a' - 10) as i32, A1, 0, A1, 0x13));
+        let j_store = self.emit(0);
+        let is_dec = self.insts.len();
+        self.patch_b(br_digit, is_dec, A2, A1, 4); // blt a1, a2
+        self.emit(enc_i(b'0' as i32, A1, 0, A1, 0x13));
+        let do_store = self.insts.len();
+        self.patch_j(j_store, do_store, X0);
+        self.emit(enc_i(-1, T2, 0, T2, 0x13));
+        self.emit(enc_s(0, A1, T2, 0, 0x23));
+        self.emit(enc_i(4, T0, 5, T0, 0x13)); // srli t0, t0, 4
+        let br_hex_more = self.emit(0);
+        self.patch_b(br_hex_more, hex_loop, X0, T0, 1); // bne t0, x0
+        self.emit(enc_i(32, SP, 0, A2, 0x13));
+        self.emit(enc_r(0x20, T2, A2, 0, A2, 0x33));
+        self.emit(enc_i(0, T2, 0, A1, 0x13));
+        self.emit(enc_i(1, X0, 0, A0, 0x13));
+        self.emit(enc_i(64, X0, 0, A7, 0x13));
+        self.emit(0x0000_0073);
+        self.emit(enc_i(40, SP, 3, RA, 0x03));
+        self.emit(enc_i(48, SP, 0, SP, 0x13));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_strlen(a0 = s) -> a0
+        self.func_inst_idx
+            .insert("__rt_strlen".to_string(), self.insts.len());
+        self.emit(enc_i(0, X0, 0, T0, 0x13));
+        let sl_loop = self.insts.len();
+        self.emit(enc_r(0, T0, A0, 0, T1, 0x33));
+        self.emit(enc_i(0, T1, 4, T2, 0x03));
+        let sl_done = self.emit(0);
+        self.emit(enc_i(1, T0, 0, T0, 0x13));
+        let sl_back = self.emit(0);
+        self.patch_j(sl_back, sl_loop, X0);
+        let sl_exit = self.insts.len();
+        self.patch_b(sl_done, sl_exit, X0, T2, 0);
+        self.emit(enc_i(0, T0, 0, A0, 0x13));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_strcmp(a0 = s1, a1 = s2) -> a0
+        self.func_inst_idx
+            .insert("__rt_strcmp".to_string(), self.insts.len());
+        let sc_loop = self.insts.len();
+        self.emit(enc_i(0, A0, 4, T0, 0x03));
+        self.emit(enc_i(0, A1, 4, T1, 0x03));
+        let sc_diff = self.emit(0); // bne t0, t1
+        let sc_end = self.emit(0); // beq t0, x0
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        self.emit(enc_i(1, A1, 0, A1, 0x13));
+        let sc_back = self.emit(0);
+        self.patch_j(sc_back, sc_loop, X0);
+        let sc_done = self.insts.len();
+        self.patch_b(sc_diff, sc_done, T1, T0, 1);
+        self.patch_b(sc_end, sc_done, X0, T0, 0);
+        self.emit(enc_r(0x20, T1, T0, 0, A0, 0x33));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_strncmp(a0 = s1, a1 = s2, a2 = n) -> a0
+        self.func_inst_idx
+            .insert("__rt_strncmp".to_string(), self.insts.len());
+        let sn_loop = self.insts.len();
+        let sn_zero = self.emit(0); // beq a2, x0
+        self.emit(enc_i(0, A0, 4, T0, 0x03));
+        self.emit(enc_i(0, A1, 4, T1, 0x03));
+        let sn_diff = self.emit(0); // bne t0, t1
+        let sn_nul = self.emit(0); // beq t0, x0
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        self.emit(enc_i(1, A1, 0, A1, 0x13));
+        self.emit(enc_i(-1, A2, 0, A2, 0x13));
+        let sn_back = self.emit(0);
+        self.patch_j(sn_back, sn_loop, X0);
+        let sn_z = self.insts.len();
+        self.patch_b(sn_zero, sn_z, X0, A2, 0);
+        self.emit(enc_i(0, X0, 0, A0, 0x13));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+        let sn_ret = self.insts.len();
+        self.patch_b(sn_diff, sn_ret, T1, T0, 1);
+        self.patch_b(sn_nul, sn_ret, X0, T0, 0);
+        self.emit(enc_r(0x20, T1, T0, 0, A0, 0x33));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_strcpy(a0 = dst, a1 = src) -> a0 = orig dst
+        self.func_inst_idx
+            .insert("__rt_strcpy".to_string(), self.insts.len());
+        self.emit(enc_i(0, A0, 0, T0, 0x13));
+        let cy_loop = self.insts.len();
+        self.emit(enc_i(0, A1, 4, T1, 0x03));
+        self.emit(enc_s(0, T1, T0, 0, 0x23));
+        self.emit(enc_i(1, T0, 0, T0, 0x13));
+        self.emit(enc_i(1, A1, 0, A1, 0x13));
+        let cy_more = self.emit(0);
+        self.patch_b(cy_more, cy_loop, X0, T1, 1);
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_memcpy(a0 = dst, a1 = src, a2 = n) -> a0 = orig dst
+        self.func_inst_idx
+            .insert("__rt_memcpy".to_string(), self.insts.len());
+        self.emit(enc_i(0, A0, 0, T0, 0x13));
+        let mc_loop = self.insts.len();
+        let mc_done = self.emit(0);
+        self.emit(enc_i(0, A1, 4, T1, 0x03));
+        self.emit(enc_s(0, T1, T0, 0, 0x23));
+        self.emit(enc_i(1, T0, 0, T0, 0x13));
+        self.emit(enc_i(1, A1, 0, A1, 0x13));
+        self.emit(enc_i(-1, A2, 0, A2, 0x13));
+        let mc_back = self.emit(0);
+        self.patch_j(mc_back, mc_loop, X0);
+        let mc_exit = self.insts.len();
+        self.patch_b(mc_done, mc_exit, X0, A2, 0);
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_memset(a0 = dst, a1 = byte, a2 = n) -> a0 = orig dst
+        self.func_inst_idx
+            .insert("__rt_memset".to_string(), self.insts.len());
+        self.emit(enc_i(0, A0, 0, T0, 0x13));
+        let ms_loop = self.insts.len();
+        let ms_done = self.emit(0);
+        self.emit(enc_s(0, A1, T0, 0, 0x23));
+        self.emit(enc_i(1, T0, 0, T0, 0x13));
+        self.emit(enc_i(-1, A2, 0, A2, 0x13));
+        let ms_back = self.emit(0);
+        self.patch_j(ms_back, ms_loop, X0);
+        let ms_exit = self.insts.len();
+        self.patch_b(ms_done, ms_exit, X0, A2, 0);
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_malloc(a0 = size) -> a0 (8-byte aligned SYS_brk = 214, R4-67)
+        self.func_inst_idx
+            .insert("__rt_malloc".to_string(), self.insts.len());
+        self.emit(enc_i(7, A0, 0, T2, 0x13)); // addi t2, a0, 7
+        self.emit(enc_i(-8, T2, 7, T2, 0x13)); // andi t2, t2, -8
+        let ml_nz = self.emit(0); // bne t2, x0, ml_do_brk
+        self.emit(enc_i(8, X0, 0, T2, 0x13)); // min 8 bytes
+        let ml_do_brk = self.insts.len();
+        self.patch_b(ml_nz, ml_do_brk, X0, T2, 1);
+        self.emit(enc_i(0, X0, 0, A0, 0x13)); // a0 = 0 (query current brk)
+        self.emit(enc_i(214, X0, 0, A7, 0x13)); // SYS_brk
+        self.emit(0x0000_0073);
+        self.emit(enc_i(0, A0, 0, T0, 0x13)); // t0 = old_brk
+        self.emit(enc_r(0, T2, T0, 0, A0, 0x33)); // a0 = old_brk + aligned_size
+        self.emit(enc_i(214, X0, 0, A7, 0x13)); // SYS_brk
+        self.emit(0x0000_0073);
+        let ml_ok = self.emit(0); // bne a0, t0, ml_ret_ptr
+        self.emit(enc_i(0, X0, 0, A0, 0x13)); // NULL on failure
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+        let ml_ret_ptr = self.insts.len();
+        self.patch_b(ml_ok, ml_ret_ptr, T0, A0, 1);
+        self.emit(enc_i(0, T0, 0, A0, 0x13)); // return old_brk
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_calloc(a0 = nmemb, a1 = size) -> a0 (zero-initialized SYS_brk allocation, R4-67)
+        self.func_inst_idx
+            .insert("__rt_calloc".to_string(), self.insts.len());
+        self.emit(enc_i(-32, SP, 0, SP, 0x13));
+        self.emit(enc_s(24, RA, SP, 3, 0x23));
+        self.emit(enc_s(16, S0, SP, 3, 0x23));
+        self.emit(enc_r(0x01, A1, A0, 0, S0, 0x33)); // mul s0, a0, a1
+        self.emit(enc_i(0, S0, 0, A0, 0x13));
+        self.emit_call("__rt_malloc");
+        let cl_null = self.emit(0); // beq a0, x0, cl_done
+        self.emit(enc_i(0, X0, 0, A1, 0x13)); // byte = 0
+        self.emit(enc_i(0, S0, 0, A2, 0x13)); // n = s0
+        self.emit_call("__rt_memset");
+        let cl_done = self.insts.len();
+        self.patch_b(cl_null, cl_done, X0, A0, 0);
+        self.emit(enc_i(24, SP, 3, RA, 0x03));
+        self.emit(enc_i(16, SP, 3, S0, 0x03));
+        self.emit(enc_i(32, SP, 0, SP, 0x13));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_free(a0 = ptr) -> a0 = 0 (no-op arena free, R4-67)
+        self.func_inst_idx
+            .insert("__rt_free".to_string(), self.insts.len());
+        self.emit(enc_i(0, X0, 0, A0, 0x13));
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_abs(a0 = x) -> a0 (R4-67)
+        self.func_inst_idx
+            .insert("__rt_abs".to_string(), self.insts.len());
+        let abs_pos = self.emit(0); // bge a0, x0, abs_ret
+        self.emit(enc_r(0x20, A0, X0, 0, A0, 0x33)); // sub a0, x0, a0
+        let abs_ret = self.insts.len();
+        self.patch_b(abs_pos, abs_ret, X0, A0, 5);
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
+
+        // __rt_atoi(a0 = s) -> a0 (signed base-10 ASCII integer parser, R4-67)
+        self.func_inst_idx
+            .insert("__rt_atoi".to_string(), self.insts.len());
+        self.emit(enc_i(0, X0, 0, T0, 0x13)); // t0 = acc = 0
+        self.emit(enc_i(1, X0, 0, T1, 0x13)); // t1 = sign = 1
+        self.emit(enc_i(32, X0, 0, A2, 0x13)); // a2 = ' ' (32)
+        let atoi_ws = self.insts.len();
+        self.emit(enc_i(0, A0, 4, T2, 0x03)); // lbu t2, 0(a0)
+        let atoi_ws_nul = self.emit(0); // beq t2, x0, atoi_done
+        let atoi_ws_end = self.emit(0); // blt a2, t2, atoi_sign (32 < t2)
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        let atoi_ws_back = self.emit(0);
+        self.patch_j(atoi_ws_back, atoi_ws, X0);
+        let atoi_sign = self.insts.len();
+        self.patch_b(atoi_ws_end, atoi_sign, T2, A2, 4);
+        self.emit(enc_i(b'-' as i32, X0, 0, A1, 0x13));
+        let atoi_not_minus = self.emit(0); // bne t2, '-', atoi_chk_plus
+        self.emit(enc_i(-1, X0, 0, T1, 0x13));
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        let atoi_to_dig = self.emit(0);
+        let atoi_chk_plus = self.insts.len();
+        self.patch_b(atoi_not_minus, atoi_chk_plus, A1, T2, 1);
+        self.emit(enc_i(b'+' as i32, X0, 0, A1, 0x13));
+        let atoi_not_plus = self.emit(0); // bne t2, '+', atoi_dig
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        let atoi_dig = self.insts.len();
+        self.patch_j(atoi_to_dig, atoi_dig, X0);
+        self.patch_b(atoi_not_plus, atoi_dig, A1, T2, 1);
+        self.emit(enc_i(0, A0, 4, T2, 0x03)); // lbu t2, 0(a0)
+        self.emit(enc_i(b'0' as i32, X0, 0, A1, 0x13));
+        let atoi_lt0 = self.emit(0); // blt t2, '0', atoi_done
+        self.emit(enc_i((b'9' + 1) as i32, X0, 0, A1, 0x13));
+        let atoi_gt9 = self.emit(0); // bge t2, '9'+1, atoi_done
+        self.emit(enc_i(-(b'0' as i32), T2, 0, T2, 0x13));
+        self.emit(enc_i(10, X0, 0, A1, 0x13));
+        self.emit(enc_r(0x01, A1, T0, 0, T0, 0x33)); // t0 *= 10
+        self.emit(enc_r(0, T2, T0, 0, T0, 0x33)); // t0 += digit
+        self.emit(enc_i(1, A0, 0, A0, 0x13));
+        let atoi_dig_back = self.emit(0);
+        self.patch_j(atoi_dig_back, atoi_dig, X0);
+        let atoi_done = self.insts.len();
+        self.patch_b(atoi_ws_nul, atoi_done, X0, T2, 0);
+        self.patch_b(atoi_lt0, atoi_done, A1, T2, 4);
+        self.patch_b(atoi_gt9, atoi_done, A1, T2, 5);
+        self.emit(enc_r(0x01, T1, T0, 0, A0, 0x33)); // a0 = acc * sign
+        self.emit(enc_i(0, RA, 0, X0, 0x67));
     }
 
-    fn count_stmt_slots(stmt: &Stmt) -> usize {
+    fn count_stmt_slots(&self, stmt: &Stmt) -> usize {
         match stmt {
-            Stmt::Block(list) => list.iter().map(Self::count_stmt_slots).sum(),
+            Stmt::Block(list) => list.iter().map(|s| self.count_stmt_slots(s)).sum(),
             Stmt::Decl(decls) => decls
                 .iter()
-                .map(|d| d.array_elems.unwrap_or(1).max(1))
+                .map(|d| {
+                    let (elem_sz, _) = ctype_size_align(&d.ty, &self.structs);
+                    let total_bytes = d.array_elems.unwrap_or(1).max(1) * elem_sz;
+                    total_bytes.div_ceil(8).max(1) + 1
+                })
                 .sum(),
             Stmt::If(_, t, e) => {
-                Self::count_stmt_slots(t) + e.as_deref().map_or(0, Self::count_stmt_slots)
+                self.count_stmt_slots(t) + e.as_deref().map_or(0, |es| self.count_stmt_slots(es))
             }
-            Stmt::While(_, b) => Self::count_stmt_slots(b),
+            Stmt::While(_, b) => self.count_stmt_slots(b),
             Stmt::For(i, _, _, b) => {
-                i.as_deref().map_or(0, Self::count_stmt_slots) + Self::count_stmt_slots(b)
+                i.as_deref().map_or(0, |is| self.count_stmt_slots(is)) + self.count_stmt_slots(b)
             }
             _ => 0,
         }
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn compile_func(&mut self, func: &FuncDef) -> Result<(), CCompileError> {
         self.func_inst_idx
             .insert(func.name.clone(), self.insts.len());
@@ -1455,8 +2356,8 @@ impl Codegen {
         self.epilogue_jumps.clear();
         self.break_jumps.clear();
 
-        let local_slots: usize =
-            func.params.len() + func.body.iter().map(Self::count_stmt_slots).sum::<usize>() + 4;
+        let body_slots: usize = func.body.iter().map(|s| self.count_stmt_slots(s)).sum();
+        let local_slots: usize = func.params.len() + body_slots + 6;
         let raw_bytes = ((local_slots + 2) * 8) as i32;
         self.frame_size = (raw_bytes + 15) & !15;
 
@@ -1472,10 +2373,12 @@ impl Codegen {
 
         let mut next_off = -24i32;
         for (idx, (pname, pty)) in func.params.iter().enumerate() {
+            let byte_size = ctype_size_align(pty, &self.structs).0;
             let slot = LocalSlot {
                 offset_from_fp: next_off,
-                ty: *pty,
+                ty: pty.clone(),
                 is_array: false,
+                byte_size,
             };
             self.locals.insert(pname.clone(), slot);
             if idx < 8 {
@@ -1508,27 +2411,50 @@ impl Codegen {
         Ok(())
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn compile_stmt(&mut self, stmt: &Stmt, next_off: &mut i32) -> Result<(), CCompileError> {
         match stmt {
             Stmt::Empty => Ok(()),
             Stmt::Block(list) => {
-                for s in list {
-                    self.compile_stmt(s, next_off)?;
-                }
-                Ok(())
+                let saved_locals = self.locals.clone();
+                let res = (|| {
+                    for s in list {
+                        self.compile_stmt(s, next_off)?;
+                    }
+                    Ok(())
+                })();
+                self.locals = saved_locals;
+                res
             }
             Stmt::Decl(decls) => {
                 for d in decls {
+                    let (elem_sz, _) = ctype_size_align(&d.ty, &self.structs);
                     if let Some(elems) = d.array_elems {
-                        let bytes = ((elems * 8) as i32 + 7) & !7;
-                        *next_off -= bytes;
+                        let total = elems.max(1) * elem_sz;
+                        let aligned_bytes = (total as i32 + 7) & !7;
+                        *next_off -= aligned_bytes;
                         let base_off = *next_off + 8;
                         self.locals.insert(
                             d.name.clone(),
                             LocalSlot {
                                 offset_from_fp: base_off,
-                                ty: d.ty,
+                                ty: d.ty.clone(),
                                 is_array: true,
+                                byte_size: total,
+                            },
+                        );
+                        *next_off -= 8;
+                    } else if matches!(d.ty, CType::Struct(_)) {
+                        let aligned_bytes = (elem_sz as i32 + 7) & !7;
+                        *next_off -= aligned_bytes;
+                        let base_off = *next_off + 8;
+                        self.locals.insert(
+                            d.name.clone(),
+                            LocalSlot {
+                                offset_from_fp: base_off,
+                                ty: d.ty.clone(),
+                                is_array: false,
+                                byte_size: elem_sz,
                             },
                         );
                         *next_off -= 8;
@@ -1539,14 +2465,15 @@ impl Codegen {
                             d.name.clone(),
                             LocalSlot {
                                 offset_from_fp: off,
-                                ty: d.ty,
+                                ty: d.ty.clone(),
                                 is_array: false,
+                                byte_size: elem_sz,
                             },
                         );
                         if let Some(init) = &d.init {
                             self.compile_expr(init)?;
                             self.emit_fp_addr(T0, off);
-                            self.emit(enc_s(0, A0, T0, 3, 0x23));
+                            self.emit_store_a0_to_t0_by_type(&d.ty);
                         }
                     }
                 }
@@ -1587,33 +2514,38 @@ impl Codegen {
                 Ok(())
             }
             Stmt::For(init, cond, step, body) => {
-                if let Some(init_s) = init {
-                    self.compile_stmt(init_s, next_off)?;
-                }
-                self.break_jumps.push(Vec::new());
-                let top = self.insts.len();
-                let br_exit = if let Some(c) = cond {
-                    self.compile_expr(c)?;
-                    Some(self.emit(0))
-                } else {
-                    None
-                };
-                self.compile_stmt(body, next_off)?;
-                if let Some(st) = step {
-                    self.compile_expr(st)?;
-                }
-                let j_top = self.emit(0);
-                self.patch_j(j_top, top, X0);
-                let exit_idx = self.insts.len();
-                if let Some(be) = br_exit {
-                    self.patch_b(be, exit_idx, X0, A0, 0);
-                }
-                if let Some(bjs) = self.break_jumps.pop() {
-                    for bj in bjs {
-                        self.patch_j(bj, exit_idx, X0);
+                let saved_locals = self.locals.clone();
+                let res = (|| -> Result<(), CCompileError> {
+                    if let Some(init_s) = init {
+                        self.compile_stmt(init_s, next_off)?;
                     }
-                }
-                Ok(())
+                    self.break_jumps.push(Vec::new());
+                    let top = self.insts.len();
+                    let br_exit = if let Some(c) = cond {
+                        self.compile_expr(c)?;
+                        Some(self.emit(0))
+                    } else {
+                        None
+                    };
+                    self.compile_stmt(body, next_off)?;
+                    if let Some(st) = step {
+                        self.compile_expr(st)?;
+                    }
+                    let j_top = self.emit(0);
+                    self.patch_j(j_top, top, X0);
+                    let exit_idx = self.insts.len();
+                    if let Some(be) = br_exit {
+                        self.patch_b(be, exit_idx, X0, A0, 0);
+                    }
+                    if let Some(bjs) = self.break_jumps.pop() {
+                        for bj in bjs {
+                            self.patch_j(bj, exit_idx, X0);
+                        }
+                    }
+                    Ok(())
+                })();
+                self.locals = saved_locals;
+                res
             }
             Stmt::Break => {
                 let j = self.emit(0);
@@ -1636,17 +2568,217 @@ impl Codegen {
         }
     }
 
-    fn expr_elem_stride(&self, base: &Expr) -> i64 {
-        if let Expr::Var(name) = base {
-            if let Some(loc) = self.locals.get(name) {
-                if loc.ty == CType::PtrByte || (loc.is_array && loc.ty == CType::Byte) {
-                    return 1;
+    /// Formal R4.MvmLinuxContainer infer the static `CType` (and optional aggregate byte size) of an expression (`R4-63`).
+    fn infer_expr_type_and_size(&self, expr: &Expr) -> (CType, usize) {
+        match expr {
+            Expr::Var(name) => {
+                if let Some(loc) = self.locals.get(name) {
+                    if loc.is_array {
+                        (CType::Ptr(Box::new(loc.ty.clone())), loc.byte_size)
+                    } else {
+                        (loc.ty.clone(), loc.byte_size)
+                    }
+                } else if let Some((_, gty, is_array, size_bytes)) = self.global_offsets.get(name) {
+                    if *is_array {
+                        (CType::Ptr(Box::new(gty.clone())), *size_bytes)
+                    } else {
+                        let sz = ctype_size_align(gty, &self.structs).0;
+                        (gty.clone(), sz)
+                    }
+                } else {
+                    (CType::Word64, 8)
                 }
             }
+            Expr::Str(b) => (CType::ptr_byte(), b.len() + 1),
+            Expr::AddrOf(inner) => {
+                let (it, _) = self.infer_expr_type_and_size(inner);
+                (CType::Ptr(Box::new(it)), 8)
+            }
+            Expr::Deref(inner) => {
+                let (it, _) = self.infer_expr_type_and_size(inner);
+                let dt = it.deref_inner().cloned().unwrap_or(CType::Word64);
+                let sz = ctype_size_align(&dt, &self.structs).0;
+                (dt, sz)
+            }
+            Expr::Index(base, _) => {
+                let (bt, _) = self.infer_expr_type_and_size(base);
+                let et = bt.deref_inner().cloned().unwrap_or(CType::Word64);
+                let sz = ctype_size_align(&et, &self.structs).0;
+                (et, sz)
+            }
+            Expr::Member(base, fname) => {
+                let (bt, _) = self.infer_expr_type_and_size(base);
+                if let CType::Struct(sname) = bt {
+                    if let Some(f) = self
+                        .structs
+                        .get(&sname)
+                        .and_then(|s| s.fields.iter().find(|sf| sf.name == *fname))
+                    {
+                        let rty = if f.is_array {
+                            CType::Ptr(Box::new(f.ty.clone()))
+                        } else {
+                            f.ty.clone()
+                        };
+                        return (rty, f.size);
+                    }
+                }
+                (CType::Word64, 8)
+            }
+            Expr::PtrMember(base, fname) => {
+                let (bt, _) = self.infer_expr_type_and_size(base);
+                if let Some(CType::Struct(sname)) = bt.deref_inner() {
+                    if let Some(f) = self
+                        .structs
+                        .get(sname)
+                        .and_then(|s| s.fields.iter().find(|sf| sf.name == *fname))
+                    {
+                        let rty = if f.is_array {
+                            CType::Ptr(Box::new(f.ty.clone()))
+                        } else {
+                            f.ty.clone()
+                        };
+                        return (rty, f.size);
+                    }
+                }
+                (CType::Word64, 8)
+            }
+            _ => (CType::Word64, 8),
         }
-        8
     }
 
+    /// Formal R4.MvmLinuxContainer emit `A0 <- &lvalue` and return `(field_type, is_array)` (`R4-63`).
+    fn compile_lvalue_addr(&mut self, expr: &Expr) -> Result<(CType, bool), CCompileError> {
+        match expr {
+            Expr::Var(name) => {
+                if let Some(loc) = self.locals.get(name).cloned() {
+                    self.emit_fp_addr(A0, loc.offset_from_fp);
+                    Ok((loc.ty, loc.is_array))
+                } else if let Some((goff, gty, is_array, _)) = self.global_offsets.get(name).cloned() {
+                    self.emit_load_data_addr(A0, goff);
+                    Ok((gty, is_array))
+                } else {
+                    Err(CCompileError {
+                        line: 1,
+                        message: format!("undefined variable `{name}`"),
+                    })
+                }
+            }
+            Expr::Deref(inner) => {
+                let (it, _) = self.infer_expr_type_and_size(inner);
+                let dt = it.deref_inner().cloned().unwrap_or(CType::Word64);
+                self.compile_expr(inner)?;
+                Ok((dt, false))
+            }
+            Expr::Index(base, idx) => {
+                let (bt, _) = self.infer_expr_type_and_size(base);
+                let et = bt.deref_inner().cloned().unwrap_or(CType::Word64);
+                let (stride, _) = ctype_size_align(&et, &self.structs);
+                self.compile_expr(base)?;
+                self.push_a0();
+                self.compile_expr(idx)?;
+                if stride > 1 {
+                    self.emit_li(T0, stride as i64);
+                    self.emit(enc_r(0x01, T0, A0, 0, A0, 0x33)); // mul a0, a0, t0
+                }
+                self.pop_to(T0);
+                self.emit(enc_r(0, A0, T0, 0, A0, 0x33)); // a0 = base + idx*stride
+                Ok((et, false))
+            }
+            Expr::Member(base, fname) => {
+                let (base_ty, _) = self.compile_lvalue_addr(base)?;
+                let CType::Struct(sname) = base_ty else {
+                    return Err(CCompileError {
+                        line: 1,
+                        message: format!("member `.{fname}` requires a struct value"),
+                    });
+                };
+                let field = self
+                    .structs
+                    .get(&sname)
+                    .and_then(|s| s.fields.iter().find(|f| f.name == *fname))
+                    .cloned()
+                    .ok_or_else(|| CCompileError {
+                        line: 1,
+                        message: format!("struct `{sname}` has no field `{fname}`"),
+                    })?;
+                if field.offset > 0 {
+                    self.emit_li(T0, field.offset as i64);
+                    self.emit(enc_r(0, T0, A0, 0, A0, 0x33));
+                }
+                Ok((field.ty, field.is_array))
+            }
+            Expr::PtrMember(base, fname) => {
+                let (bt, _) = self.infer_expr_type_and_size(base);
+                let Some(CType::Struct(sname)) = bt.deref_inner().cloned() else {
+                    return Err(CCompileError {
+                        line: 1,
+                        message: format!("member `->{fname}` requires a pointer to struct"),
+                    });
+                };
+                let field = self
+                    .structs
+                    .get(&sname)
+                    .and_then(|s| s.fields.iter().find(|f| f.name == *fname))
+                    .cloned()
+                    .ok_or_else(|| CCompileError {
+                        line: 1,
+                        message: format!("struct `{sname}` has no field `{fname}`"),
+                    })?;
+                self.compile_expr(base)?;
+                if field.offset > 0 {
+                    self.emit_li(T0, field.offset as i64);
+                    self.emit(enc_r(0, T0, A0, 0, A0, 0x33));
+                }
+                Ok((field.ty, field.is_array))
+            }
+            _ => Err(CCompileError {
+                line: 1,
+                message: "expression has no addressable lvalue location".to_string(),
+            }),
+        }
+    }
+
+    /// Formal R4.MvmLinuxContainer load a scalar from address in `A0` according to `CType` width (`R4-63`).
+    fn emit_load_from_a0_by_type(&mut self, ty: &CType, is_array: bool) {
+        if is_array || matches!(ty, CType::Struct(_)) {
+            return;
+        }
+        match ty {
+            CType::Byte => {
+                self.emit(enc_i(0, A0, 4, A0, 0x03)); // lbu a0, 0(a0)
+            }
+            CType::U16 => {
+                self.emit(enc_i(0, A0, 5, A0, 0x03)); // lhu a0, 0(a0)
+            }
+            CType::U32 => {
+                self.emit(enc_i(0, A0, 6, A0, 0x03)); // lwu a0, 0(a0)
+            }
+            CType::Word64 | CType::Ptr(_) => {
+                self.emit(enc_i(0, A0, 3, A0, 0x03)); // ld a0, 0(a0)
+            }
+            CType::Struct(_) => {}
+        }
+    }
+
+    /// Formal R4.MvmLinuxContainer store `A0` into address in `T0` according to `CType` width (`R4-63`).
+    fn emit_store_a0_to_t0_by_type(&mut self, ty: &CType) {
+        match ty {
+            CType::Byte => {
+                self.emit(enc_s(0, A0, T0, 0, 0x23)); // sb a0, 0(t0)
+            }
+            CType::U16 => {
+                self.emit(enc_s(0, A0, T0, 1, 0x23)); // sh a0, 0(t0)
+            }
+            CType::U32 => {
+                self.emit(enc_s(0, A0, T0, 2, 0x23)); // sw a0, 0(t0)
+            }
+            CType::Word64 | CType::Ptr(_) | CType::Struct(_) => {
+                self.emit(enc_s(0, A0, T0, 3, 0x23)); // sd a0, 0(t0)
+            }
+        }
+    }
+
+    /// Formal R4.MvmPolyglotToolchain.
     fn compile_printf(&mut self, args: &[Expr]) -> Result<(), CCompileError> {
         if args.is_empty() {
             self.emit(enc_i(0, X0, 0, A0, 0x13));
@@ -1667,6 +2799,13 @@ impl Codegen {
             self.push_a0();
         }
         let n_vals = val_args.len();
+        self.emit(enc_i(-16, SP, 0, SP, 0x13)); // 0(sp) holds printf total written bytes
+        self.emit(enc_s(0, X0, SP, 3, 0x23));
+        let add_acc = |cg: &mut Self| {
+            cg.emit(enc_i(0, SP, 3, T0, 0x03));
+            cg.emit(enc_r(0, T0, A0, 0, T0, 0x33));
+            cg.emit(enc_s(0, T0, SP, 3, 0x23));
+        };
         let mut cur_val = 0usize;
         let mut lit_start = 0usize;
         let mut i = 0usize;
@@ -1678,11 +2817,13 @@ impl Codegen {
                     self.emit_load_data_addr(A0, off);
                     self.emit_li(A1, slice_len);
                     self.emit_call("__rt_write_slice");
+                    add_acc(self);
                 }
                 i += 1;
                 if fmt_bytes[i] == b'%' {
                     self.emit_li(A0, b'%' as i64);
                     self.emit_call("__rt_putchar");
+                    add_acc(self);
                     i += 1;
                     lit_start = i;
                     continue;
@@ -1694,7 +2835,7 @@ impl Codegen {
                 i += 1;
                 lit_start = i;
                 if cur_val < n_vals {
-                    let stack_off = ((n_vals - 1 - cur_val) * 8) as i32;
+                    let stack_off = ((n_vals - 1 - cur_val) * 8 + 16) as i32;
                     self.emit(enc_i(stack_off, SP, 3, A0, 0x03));
                     cur_val += 1;
                     match spec {
@@ -1705,6 +2846,9 @@ impl Codegen {
                         b'u' => {
                             self.emit(enc_i(0, X0, 0, A1, 0x13));
                             self.emit_call("__rt_print_i64");
+                        }
+                        b'x' => {
+                            self.emit_call("__rt_print_hex64");
                         }
                         b'c' => {
                             self.emit_call("__rt_putchar");
@@ -1718,6 +2862,7 @@ impl Codegen {
                             self.emit_call("__rt_print_i64");
                         }
                     }
+                    add_acc(self);
                 }
             } else {
                 i += 1;
@@ -1729,15 +2874,15 @@ impl Codegen {
             self.emit_load_data_addr(A0, off);
             self.emit_li(A1, slice_len);
             self.emit_call("__rt_write_slice");
+            add_acc(self);
         }
-        if n_vals > 0 {
-            self.emit_li(T0, (n_vals * 8) as i64);
-            self.emit(enc_r(0, T0, SP, 0, SP, 0x33));
-        }
-        self.emit(enc_i(0, X0, 0, A0, 0x13));
+        self.emit(enc_i(0, SP, 3, A0, 0x03));
+        self.emit_li(T0, ((n_vals * 8) + 16) as i64);
+        self.emit(enc_r(0, T0, SP, 0, SP, 0x33));
         Ok(())
     }
 
+    /// Formal R4.MvmPolyglotToolchain.
     fn compile_expr(&mut self, expr: &Expr) -> Result<(), CCompileError> {
         match expr {
             Expr::Int(v) => {
@@ -1749,69 +2894,36 @@ impl Codegen {
                 self.emit_load_data_addr(A0, off);
                 Ok(())
             }
-            Expr::Var(name) => {
-                if let Some(loc) = self.locals.get(name).copied() {
-                    self.emit_fp_addr(A0, loc.offset_from_fp);
-                    if !loc.is_array {
-                        self.emit(enc_i(0, A0, 3, A0, 0x03)); // ld a0, 0(a0)
-                    }
-                    Ok(())
-                } else if let Some((goff, _)) = self.global_offsets.get(name).copied() {
-                    self.emit_load_data_addr(A0, goff);
-                    self.emit(enc_i(0, A0, 3, A0, 0x03));
-                    Ok(())
-                } else {
-                    Err(CCompileError {
-                        line: 1,
-                        message: format!("undefined variable `{name}`"),
-                    })
-                }
-            }
-            Expr::AddrOf(name) => {
-                if let Some(loc) = self.locals.get(name).copied() {
-                    self.emit_fp_addr(A0, loc.offset_from_fp);
-                    Ok(())
-                } else if let Some((goff, _)) = self.global_offsets.get(name).copied() {
-                    self.emit_load_data_addr(A0, goff);
-                    Ok(())
-                } else {
-                    Err(CCompileError {
-                        line: 1,
-                        message: format!("undefined variable `&{name}`"),
-                    })
-                }
-            }
-            Expr::Deref(inner) => {
-                self.compile_expr(inner)?;
-                self.emit(enc_i(0, A0, 3, A0, 0x03));
+            Expr::Var(_) | Expr::Member(_, _) | Expr::PtrMember(_, _) | Expr::Index(_, _) => {
+                let (ty, is_array) = self.compile_lvalue_addr(expr)?;
+                self.emit_load_from_a0_by_type(&ty, is_array);
                 Ok(())
             }
-            Expr::Index(base, idx) => {
-                let stride = self.expr_elem_stride(base);
-                self.compile_expr(base)?;
-                self.push_a0();
-                self.compile_expr(idx)?;
-                if stride == 8 {
-                    self.emit(enc_i(3, A0, 1, A0, 0x13)); // slli a0, a0, 3
-                }
-                self.pop_to(T0);
-                self.emit(enc_r(0, A0, T0, 0, T0, 0x33)); // t0 = base + scaled_idx
-                if stride == 1 {
-                    self.emit(enc_i(0, T0, 4, A0, 0x03)); // lbu a0, 0(t0)
-                } else {
-                    self.emit(enc_i(0, T0, 3, A0, 0x03)); // ld a0, 0(t0)
-                }
+            Expr::AddrOf(inner) => {
+                let _ = self.compile_lvalue_addr(inner)?;
+                Ok(())
+            }
+            Expr::SizeOfValue(inner) => {
+                let (_, sz) = self.infer_expr_type_and_size(inner);
+                self.emit_li(A0, sz as i64);
+                Ok(())
+            }
+            Expr::Deref(inner) => {
+                let (it, _) = self.infer_expr_type_and_size(inner);
+                let dt = it.deref_inner().cloned().unwrap_or(CType::Word64);
+                self.compile_expr(inner)?;
+                self.emit_load_from_a0_by_type(&dt, false);
                 Ok(())
             }
             Expr::AssignVar(name, rhs) => {
                 self.compile_expr(rhs)?;
-                if let Some(loc) = self.locals.get(name).copied() {
+                if let Some(loc) = self.locals.get(name).cloned() {
                     self.emit_fp_addr(T0, loc.offset_from_fp);
-                    self.emit(enc_s(0, A0, T0, 3, 0x23));
+                    self.emit_store_a0_to_t0_by_type(&loc.ty);
                     Ok(())
-                } else if let Some((goff, _)) = self.global_offsets.get(name).copied() {
+                } else if let Some((goff, gty, _, _)) = self.global_offsets.get(name).cloned() {
                     self.emit_load_data_addr(T0, goff);
-                    self.emit(enc_s(0, A0, T0, 3, 0x23));
+                    self.emit_store_a0_to_t0_by_type(&gty);
                     Ok(())
                 } else {
                     Err(CCompileError {
@@ -1820,32 +2932,41 @@ impl Codegen {
                     })
                 }
             }
-            Expr::AssignIndex(base, idx, rhs) => {
-                let stride = self.expr_elem_stride(base);
-                self.compile_expr(base)?;
+            Expr::AssignMember(base, field, rhs) => {
+                let target = Expr::Member(base.clone(), field.clone());
+                let (fty, _) = self.compile_lvalue_addr(&target)?;
                 self.push_a0();
-                self.compile_expr(idx)?;
-                if stride == 8 {
-                    self.emit(enc_i(3, A0, 1, A0, 0x13));
-                }
-                self.pop_to(T0);
-                self.emit(enc_r(0, A0, T0, 0, A0, 0x33));
-                self.push_a0(); // save element address
                 self.compile_expr(rhs)?;
                 self.pop_to(T0);
-                if stride == 1 {
-                    self.emit(enc_s(0, A0, T0, 0, 0x23)); // sb
-                } else {
-                    self.emit(enc_s(0, A0, T0, 3, 0x23)); // sd
-                }
+                self.emit_store_a0_to_t0_by_type(&fty);
+                Ok(())
+            }
+            Expr::AssignPtrMember(base, field, rhs) => {
+                let target = Expr::PtrMember(base.clone(), field.clone());
+                let (fty, _) = self.compile_lvalue_addr(&target)?;
+                self.push_a0();
+                self.compile_expr(rhs)?;
+                self.pop_to(T0);
+                self.emit_store_a0_to_t0_by_type(&fty);
+                Ok(())
+            }
+            Expr::AssignIndex(base, idx, rhs) => {
+                let target = Expr::Index(base.clone(), idx.clone());
+                let (ety, _) = self.compile_lvalue_addr(&target)?;
+                self.push_a0();
+                self.compile_expr(rhs)?;
+                self.pop_to(T0);
+                self.emit_store_a0_to_t0_by_type(&ety);
                 Ok(())
             }
             Expr::AssignDeref(ptr, rhs) => {
+                let (pt, _) = self.infer_expr_type_and_size(ptr);
+                let dt = pt.deref_inner().cloned().unwrap_or(CType::Word64);
                 self.compile_expr(ptr)?;
                 self.push_a0();
                 self.compile_expr(rhs)?;
                 self.pop_to(T0);
-                self.emit(enc_s(0, A0, T0, 3, 0x23));
+                self.emit_store_a0_to_t0_by_type(&dt);
                 Ok(())
             }
             Expr::Unary(op, inner) => {
@@ -1983,23 +3104,83 @@ impl Codegen {
                     self.emit_call("__rt_putchar");
                     return Ok(());
                 }
-                if name == "exit" && args.len() == 1 {
+                if (name == "htons" || name == "ntohs") && args.len() == 1 {
                     self.compile_expr(&args[0])?;
-                    self.emit(enc_i(94, X0, 0, A7, 0x13));
-                    self.emit(0x0000_0073);
+                    self.emit(enc_i(0xff, A0, 7, T0, 0x13));
+                    self.emit(enc_i(8, T0, 1, T0, 0x13));
+                    self.emit(enc_i(8, A0, 5, T1, 0x13));
+                    self.emit(enc_i(0xff, T1, 7, T1, 0x13));
+                    self.emit(enc_r(0, T1, T0, 6, A0, 0x33));
                     return Ok(());
                 }
-                if name == "write" && args.len() == 3 {
-                    for a in args {
-                        self.compile_expr(a)?;
-                        self.push_a0();
-                    }
-                    self.pop_to(A2);
-                    self.pop_to(A1);
-                    self.pop_to(A0);
-                    self.emit(enc_i(64, X0, 0, A7, 0x13));
-                    self.emit(0x0000_0073);
+                if (name == "htonl" || name == "ntohl") && args.len() == 1 {
+                    self.compile_expr(&args[0])?;
+                    self.emit(enc_i(0xff, A0, 7, T0, 0x13));
+                    self.emit(enc_i(24, T0, 1, T0, 0x13));
+                    self.emit(enc_i(8, A0, 5, T1, 0x13));
+                    self.emit(enc_i(0xff, T1, 7, T1, 0x13));
+                    self.emit(enc_i(16, T1, 1, T1, 0x13));
+                    self.emit(enc_r(0, T1, T0, 6, T0, 0x33));
+                    self.emit(enc_i(16, A0, 5, T1, 0x13));
+                    self.emit(enc_i(0xff, T1, 7, T1, 0x13));
+                    self.emit(enc_i(8, T1, 1, T1, 0x13));
+                    self.emit(enc_r(0, T1, T0, 6, T0, 0x33));
+                    self.emit(enc_i(24, A0, 5, T1, 0x13));
+                    self.emit(enc_i(0xff, T1, 7, T1, 0x13));
+                    self.emit(enc_r(0, T1, T0, 6, A0, 0x33));
                     return Ok(());
+                }
+                match (name.as_str(), args.len()) {
+                    ("exit", 1) => return self.emit_syscall_call(args, &[A0], &[], 94),
+                    ("close", 1) => return self.emit_syscall_call(args, &[A0], &[], 57),
+                    ("unlink", 1) => {
+                        return self.emit_syscall_call(args, &[A1], &[(A0, -100), (A2, 0)], 35)
+                    }
+                    ("unlinkat", 3) => return self.emit_syscall_call(args, &[A0, A1, A2], &[], 35),
+                    ("open", 2) => {
+                        return self.emit_syscall_call(
+                            args,
+                            &[A1, A2],
+                            &[(A0, -100), (A3, 0o644)],
+                            56,
+                        )
+                    }
+                    ("open", 3) => {
+                        return self.emit_syscall_call(args, &[A1, A2, A3], &[(A0, -100)], 56)
+                    }
+                    ("openat", 3) => {
+                        return self.emit_syscall_call(args, &[A0, A1, A2], &[(A3, 0)], 56)
+                    }
+                    ("openat", 4) => {
+                        return self.emit_syscall_call(args, &[A0, A1, A2, A3], &[], 56)
+                    }
+                    ("read", 3) => return self.emit_syscall_call(args, &[A0, A1, A2], &[], 63),
+                    ("write", 3) => return self.emit_syscall_call(args, &[A0, A1, A2], &[], 64),
+                    ("socket", 3) => return self.emit_syscall_call(args, &[A0, A1, A2], &[], 198),
+                    ("connect", 3) => return self.emit_syscall_call(args, &[A0, A1, A2], &[], 203),
+                    ("send", 4) => {
+                        return self.emit_syscall_call(
+                            args,
+                            &[A0, A1, A2, A3],
+                            &[(A4, 0), (A5, 0)],
+                            206,
+                        )
+                    }
+                    ("sendto", 6) => {
+                        return self.emit_syscall_call(args, &[A0, A1, A2, A3, A4, A5], &[], 206)
+                    }
+                    ("recv", 4) => {
+                        return self.emit_syscall_call(
+                            args,
+                            &[A0, A1, A2, A3],
+                            &[(A4, 0), (A5, 0)],
+                            207,
+                        )
+                    }
+                    ("recvfrom", 6) => {
+                        return self.emit_syscall_call(args, &[A0, A1, A2, A3, A4, A5], &[], 207)
+                    }
+                    _ => {}
                 }
                 if args.len() > 8 {
                     return Err(CCompileError {
@@ -2014,20 +3195,93 @@ impl Codegen {
                 for idx in (0..args.len()).rev() {
                     self.pop_to(10 + (idx as u32));
                 }
-                self.emit_call(name);
+                let callee = match (name.as_str(), args.len()) {
+                    ("strlen", 1) => "__rt_strlen",
+                    ("strcmp", 2) => "__rt_strcmp",
+                    ("strncmp", 3) => "__rt_strncmp",
+                    ("strcpy", 2) => "__rt_strcpy",
+                    ("memcpy", 3) => "__rt_memcpy",
+                    ("memset", 3) => "__rt_memset",
+                    ("malloc", 1) => "__rt_malloc",
+                    ("calloc", 2) => "__rt_calloc",
+                    ("free", 1) => "__rt_free",
+                    ("abs", 1) => "__rt_abs",
+                    ("atoi", 1) => "__rt_atoi",
+                    _ => name.as_str(),
+                };
+                self.emit_call(callee);
                 Ok(())
             }
         }
     }
 }
 
-/// Compile a C translation unit into a static 64-bit `EM_RISCV` (`243`) ELF64 executable.
-pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
-    let toks = preprocess_and_lex(source)?;
-    let mut parser = Parser { toks, pos: 0 };
-    let prog = parser.parse_program()?;
+/// Formal R4.MvmLinuxContainer compile multiple C translation units with recursive `#include`, `-I`, `-D`, and `struct` support into a static RV64 ELF64 executable (`R4-63`).
+pub fn compile_c_units_to_rv64_elf<F>(
+    units: &[(&str, &str)],
+    include_dirs: &[String],
+    defines: &[(String, String)],
+    read_header: F,
+) -> Result<Vec<u8>, CCompileError>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    if units.is_empty() {
+        return Err(CCompileError {
+            line: 1,
+            message: "no C translation units supplied".to_string(),
+        });
+    }
 
-    if !prog.funcs.iter().any(|f| f.name == "main") {
+    let mut base_defines = HashMap::new();
+    base_defines.insert("__riscv".to_string(), "1".to_string());
+    base_defines.insert("__riscv_xlen".to_string(), "64".to_string());
+    base_defines.insert("__UOR_MVM__".to_string(), "1".to_string());
+    for (k, v) in defines {
+        base_defines.insert(k.clone(), v.clone());
+    }
+
+    let mut all_globals = Vec::new();
+    let mut all_funcs = Vec::new();
+    let mut all_structs: HashMap<String, StructDef> = HashMap::new();
+    let mut seen_funcs: HashSet<String> = HashSet::new();
+    let mut seen_globals: HashSet<String> = HashSet::new();
+
+    for &(unit_path, unit_src) in units {
+        let mut tu_defines = base_defines.clone();
+        let mut once_headers = HashSet::new();
+        let mut preprocessed = String::new();
+        preprocess_unit_recursive(
+            unit_path,
+            unit_src,
+            include_dirs,
+            &mut tu_defines,
+            &mut once_headers,
+            &read_header,
+            0,
+            &mut preprocessed,
+        )?;
+        let toks = lex_c_tokens_with_defines(&preprocessed, &tu_defines, 1, 0)?;
+        let mut parser = Parser::new(toks, HashMap::new(), HashMap::new());
+        let unit_prog = parser.parse_program()?;
+        all_structs.extend(parser.structs);
+        for g in unit_prog.globals {
+            if seen_globals.insert(g.name.clone()) {
+                all_globals.push(g);
+            }
+        }
+        for f in unit_prog.funcs {
+            if !seen_funcs.insert(f.name.clone()) {
+                return Err(CCompileError {
+                    line: 1,
+                    message: format!("duplicate definition of `{}` in `{unit_path}`", f.name),
+                });
+            }
+            all_funcs.push(f);
+        }
+    }
+
+    if !all_funcs.iter().any(|f| f.name == "main") {
         return Err(CCompileError {
             line: 1,
             message: "missing `main` entry function".to_string(),
@@ -2037,6 +3291,7 @@ pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
     let mut cg = Codegen {
         insts: Vec::new(),
         data: Vec::new(),
+        structs: all_structs,
         global_offsets: HashMap::new(),
         func_inst_idx: HashMap::new(),
         fixups: Vec::new(),
@@ -2046,7 +3301,7 @@ pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
         break_jumps: Vec::new(),
     };
 
-    for g in &prog.globals {
+    for g in &all_globals {
         while !cg.data.len().is_multiple_of(8) {
             cg.data.push(0);
         }
@@ -2056,7 +3311,7 @@ pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
             cg.data.push(0);
         }
         cg.global_offsets
-            .insert(g.name.clone(), (off, CType::Word64));
+            .insert(g.name.clone(), (off, g.ty.clone(), g.is_array, g.size_bytes));
     }
 
     // _start at text[0]: Load argc/argv from initial sp, call main, SYS_exit_group(a0)
@@ -2067,7 +3322,7 @@ pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
     cg.emit(0x0000_0073); // ecall
 
     cg.emit_runtime_helpers();
-    for f in &prog.funcs {
+    for f in &all_funcs {
         cg.compile_func(f)?;
     }
 
@@ -2135,4 +3390,57 @@ pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
     elf[data_file_offset..data_file_offset + cg.data.len()].copy_from_slice(&cg.data);
 
     Ok(elf)
+}
+
+/// Compile a C translation unit into a static 64-bit `EM_RISCV` (`243`) ELF64 executable.
+pub fn compile_c_to_rv64_elf(source: &str) -> Result<Vec<u8>, CCompileError> {
+    compile_c_units_to_rv64_elf(&[("main.c", source)], &[], &[], |_| None)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compile_multi_tu_struct_and_include_r4_63() {
+        let hdr = r#"
+#pragma once
+typedef unsigned int u32_t;
+struct Pair {
+    u32_t a;
+    u32_t b;
+};
+int pair_sum(struct Pair *p);
+"#;
+        let util_c = r#"
+#include "pair.h"
+int pair_sum(struct Pair *p) {
+    return p->a + p->b;
+}
+"#;
+        let main_c = r#"
+#include "pair.h"
+#include <stdint.h>
+int main() {
+    struct Pair p;
+    p.a = 19;
+    p.b = 23;
+    return pair_sum(&p) + sizeof(struct Pair) - 8;
+}
+"#;
+        let inc = vec!["/usr/include".to_string(), "/workspace".to_string()];
+        let elf = compile_c_units_to_rv64_elf(
+            &[("/workspace/util.c", util_c), ("/workspace/main.c", main_c)],
+            &inc,
+            &[("MVM_TEST".to_string(), "1".to_string())],
+            |path| match path {
+                "/workspace/pair.h" => Some(hdr.to_string()),
+                "/usr/include/stdint.h" => Some("#pragma once\n".to_string()),
+                _ => None,
+            },
+        )
+        .expect("multi-TU struct compile must succeed");
+        assert_eq!(&elf[0..4], b"\x7fELF");
+        assert_eq!(u16::from_le_bytes([elf[18], elf[19]]), 243);
+    }
 }
