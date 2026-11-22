@@ -8,7 +8,7 @@ The project keeps its bytes in three places outside git. The indexes in [`archiv
 | You are looking for | Index | Where the bytes are |
 |---|---|---|
 | Any file in the private HF store | [`hf-store-index-2026-10-20.tsv`](../../archive/storage/hf-store-index-2026-10-20.tsv) | `caseyallard/uor-r4-store` (HF dataset, private) |
-| A folder or file removed from the owner's laptop on 20 Oct 2026 | [`laptop-backup-2026-10-20.tsv`](../../archive/storage/laptop-backup-2026-10-20.tsv) | HF store, `local-archive/2026-10-20/<name>.tar` |
+| A folder or file removed from the owner's laptop on 20 Oct 2026 | [`laptop-backup-2026-10-20.tsv`](../../archive/storage/laptop-backup-2026-10-20.tsv) | [Wick or the HF store](#the-laptop-workspace-backup-20-oct-2026), depending on the tar |
 | The old laptop `research/` tree (prime-analysis, ai-research, archives) | `projects/prime-analysis/INDEX.tsv`, `projects/ai-research/INDEX.tsv` | HF store, `research-archive/2026-10-19/` |
 | Results of a destroyed GPU pod | the HF store index, prefix `vast-archive/<pod id>/` | HF store |
 | A run or workspace tar from before 20 Oct 2026 | [`icloud-index-2026-10-20.tsv`](../../archive/storage/icloud-index-2026-10-20.tsv) | iCloud `UOR-R4/results/` (read-only) |
@@ -70,18 +70,24 @@ On 20 Oct 2026 the owner approved clearing everything project-related outside th
 | `repo-local-scratch.tar` | `~/uor-r4/local/`, `~/uor-r4/.uor-preserved/`, `~/uor-r4/.uor-cleanup/` | `~/uor-r4/` | 849 | 0.63 |
 | `home-loose.tar` | project files and folders that sat loose in `~` | `~/` | 723 | 0.05 |
 
-Restore one folder:
+The October backup also has Wick copies of `uor-r4-local.tar`, `harness-state.tar`, and `spiralcore-fbs-review.tar`. For these three tars, run the restore on Wick using the archive's recorded checksums and original member names:
+
+```sh
+ssh wick
+archive=/mnt/plexpool/uor-r4-corpus/archives/hf-sweep2-20261122.9SoPHGx0
+cd "$archive"
+sha256sum --check SHA256SUMS
+tar --warning=no-unknown-keyword -xf "payload/local-archive/2026-10-20/<name>.tar" -C "<existing destination>" '<path inside the tar>'
+```
+
+The corresponding member lists are under `inventories/local-archive/2026-10-20/` in the same Wick archive. The tars retain their original macOS metadata. Use a compatible tar implementation when restoring extended attributes. To restore from `repo-local-scratch.tar` or `home-loose.tar`, use the Hub:
 
 ```sh
 hf download caseyallard/uor-r4-store local-archive/2026-10-20/<name>.tar --repo-type dataset --local-dir <dir>
 tar -xf <dir>/local-archive/2026-10-20/<name>.tar -C <dest> '<path inside the tar>'
 ```
 
-The path inside the tar is the old path with the tar's root removed, as given in the column above, with no leading `./`. For example, `~/uor-r4-local/a8-census-frozen` is `uor-r4-local/a8-census-frozen` in `uor-r4-local.tar`, `~/uor-r4/local/note-2462.md` is `local/note-2462.md` in `repo-local-scratch.tar`, and `~/.local/share/uor-r4/knowledge/code` is `knowledge/code` in `harness-state.tar`:
-
-```sh
-tar -xf <dir>/local-archive/2026-10-20/uor-r4-local.tar -C ~/restore 'uor-r4-local/a8-census-frozen'
-```
+The path inside the tar is the old path with the tar's root removed, as given in the column above, with no leading `./`. For example, `~/uor-r4-local/a8-census-frozen` is `uor-r4-local/a8-census-frozen` in `uor-r4-local.tar`, `~/uor-r4/local/note-2462.md` is `local/note-2462.md` in `repo-local-scratch.tar`, and `~/.local/share/uor-r4/knowledge/code` is `knowledge/code` in `harness-state.tar`.
 
 ### Removed without a copy
 
