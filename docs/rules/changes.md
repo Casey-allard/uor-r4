@@ -14,6 +14,16 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 22 November 2026 — D90 Studio-only external Qwen3 Foundry port and real Linux GitHub Stitch wiring
+
+Owner Casey Allard approved [D90](../integration/DECISIONS.md#decisions-after-the-charter-from-d43) (`antigravity-4`) at `2026-11-22T21:39:18Z` (referenced in prompt prose as "D88" prior to checking `D88`/`D89` from `2026-11-16`, logged sequentially as `D90` under [decisions](../integration/DECISIONS.md#decisions-after-the-charter-from-d43)):
+
+- Verbatim Q1 answer: `"Approve D88 Studio-only exemption AND run a fresh GPU LoRA fine-tune of Qwen3-0.6B on Vast.ai specifically for Foundry's full toolset (workspace, GitHub, PrismPM, LexLean, standards, Linux VM) and publish new UORR4V13 shards"`
+- Verbatim Q2 answer: `"Boot real Linux 6.18.7 (afflom/stitch v86 + 9p synced to Studio /workspace + Stitch Ed25519 WebRTC & host-fetch networking), keeping uor-r4-mvm RV64IMAC available as a lightweight secondary mode"`
+- Verbatim Q3 answer: `"Real browser-native GitHub via GitHub REST + Git Data API using Fine-Grained PAT sealed in core.wasm's ChaCha20-Poly1305 vault (plus optional user-configurable OAuth Worker relay URL)"`
+
+Touches Charter §3.2, §3.3, §3.4, §3.7, §3.10, and §5.1 for the hosted web AI Studio (`web/studio/` only): allows SHA-locked external `UORR4V13` pure-integer quantized `Qwen/Qwen3-0.6B` runtime assets (from `Casey-allard/lexlean-r4`, `holo_geometric_runtime.rs`) plus a fresh Vast.ai GPU LoRA fine-tune (`weights-v13-qwen3-0.6b-foundry`) to power interactive Studio workflows until native UOR-R4 M4+ takes its place, alongside `afflom/stitch` Linux 6.18.7 (`v86` + 9p + Stitch networking) and browser-native GitHub integration. Charter §3 remains strictly enforced with zero relaxation on `crates/**` and all native UOR-R4 research, training, serving, and M1–M8 milestone paths (`ratchet d23/d25/d32` baselines unchanged).
+
 ## 17 November 2026 — permanent branches and documentation publishing (§5.5)
 
 Casey chose "main, gh-pages, and a new archive branch; retire the preview and update its publishing workflow". The source of truth stays on `main`. The live documentation and Studio stay on `gh-pages`. The permanent `archive` branch preserves retired branch history. Documentation changes on main build and check the book. A manual dispatch from main publishes the book to the live branch and preserves Studio.
@@ -410,7 +420,7 @@ The owner answered eight questions. One line each, with the clause it changed:
 | Item | State | Source |
 |---|---|---|
 | Charter in force | Yes, since 19 October 2026. | `CHARTER.md` |
-| Entries in this log | 9 | this page |
+| Entries in this log | 21 | this page |
 | Open owner questions on the charter | None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers. | `charter-diff-notes.md` |
 
 ## Go deeper
