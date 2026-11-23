@@ -65,7 +65,7 @@ None loaded. The negative check followed the engineering conventions' set-aside 
 - **`hygiene` and `check-rules`** are dispatched by `main.rs` and absent from `ACCEPTED`. No
   document names them today, so the rule does not fail on them.
 - **`claim-wording` is absent from `PORTED_COMMANDS`** in `ruleinventory.rs`, so the binary takes
-  `uor-harness claim-wording --bad-flag` and ignores the flag. No test compares the lists.
+  an unknown flag after `claim-wording` and ignores it. No test compares the lists.
 - **Stale comments in `doccheck.rs`:** the counts "(14)" and "(11)", and the name
   `the_table_agrees_with_pythons_live_parser`, a test no longer in the tree.
 - **The harness workflow does not run on pushes to `main`**, which is how a red rule reached it.
