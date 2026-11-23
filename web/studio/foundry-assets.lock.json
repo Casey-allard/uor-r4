@@ -308,6 +308,48 @@
       "sha256": "a75a75f315bbed01f033fd813195a1728acfbad637888935298604e6467d34ab",
       "bytes": 89865,
       "url": "https://raw.githubusercontent.com/UOR-Foundation/foundry/ea917b8d92974c3d78ebd213eaa1c21fd47666bf/studio/vendor/prism/scaffold/public/favicon.ico"
+    },
+    {
+      "path": "studio/shell/v13/uor_foundry_v13_wasm.js",
+      "sha256": "d548e57ef8d34de6981e3ab9818bef71e5e3330ee860f3809b72f7ce67ad4829",
+      "bytes": 72398,
+      "url": "https://raw.githubusercontent.com/Casey-allard/lexlean-r4/127e954f113b1cac398fb494d9002332138afc70/pkg/uor_foundry_v13_wasm.js"
+    },
+    {
+      "path": "studio/shell/v13/uor_foundry_v13_wasm_bg.wasm",
+      "sha256": "05e92497424f23ed5363a80cbc662d337cfa8d067b0912f1e8944da6114f03fb",
+      "bytes": 11420104,
+      "url": "https://raw.githubusercontent.com/Casey-allard/lexlean-r4/127e954f113b1cac398fb494d9002332138afc70/pkg/uor_foundry_v13_wasm_bg.wasm"
+    },
+    {
+      "path": "studio/shell/v86/libv86.js",
+      "sha256": "b80fba71dacb7977e5b46800b3ba194bba7fe13e52fa3d22f80cc060ff015a4e",
+      "bytes": 353762,
+      "url": "https://raw.githubusercontent.com/afflom/stitch/1607d53dfc5a34324f8102123d166d727cc66634/v86/libv86.js"
+    },
+    {
+      "path": "studio/shell/v86/v86.wasm",
+      "sha256": "abd512988f39f5c81d4930f564bafa1a6e1e0d5210de9b20e2bdec13fbc318d9",
+      "bytes": 1418156,
+      "url": "https://raw.githubusercontent.com/afflom/stitch/1607d53dfc5a34324f8102123d166d727cc66634/v86/v86.wasm"
+    },
+    {
+      "path": "studio/shell/v86/seabios.bin",
+      "sha256": "73e3f359102e3a9982c35fce98eb7cd08f18303ac7f1ba6ebfbe6cdc1c244d98",
+      "bytes": 131072,
+      "url": "https://raw.githubusercontent.com/afflom/stitch/1607d53dfc5a34324f8102123d166d727cc66634/v86/seabios.bin"
+    },
+    {
+      "path": "studio/shell/v86/vgabios.bin",
+      "sha256": "a4bc0d80cc3ca028c73dafa8fee396b8d054ce87ebd8abfbd31b06b437607880",
+      "bytes": 36352,
+      "url": "https://raw.githubusercontent.com/afflom/stitch/1607d53dfc5a34324f8102123d166d727cc66634/v86/vgabios.bin"
+    },
+    {
+      "path": "studio/shell/images/buildroot-bzimage.bin",
+      "sha256": "313a6b545290a2b47856b49bfcc4c7577469749b315932ae008d39fe70fc7f07",
+      "bytes": 8053248,
+      "url": "https://raw.githubusercontent.com/afflom/stitch/1607d53dfc5a34324f8102123d166d727cc66634/images/buildroot-bzimage.bin"
     }
   ]
 }

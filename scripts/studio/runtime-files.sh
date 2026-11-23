@@ -54,6 +54,17 @@ verify_required_files() {
             exit 1
         fi
     done
+    if [ "$typed" = 1 ]; then
+        for req in \
+            'standards-index.json' \
+            'v13/uor_foundry_v13_wasm.js' \
+            'v13/uor_foundry_v13_wasm_bg.wasm'; do
+            if [ ! -f "$root/$req" ]; then
+                printf 'Required typed Foundry V13 file is missing: %s\n' "$root/$req" >&2
+                exit 1
+            fi
+        done
+    fi
 }
 
 case "${1:-}" in
@@ -173,6 +184,19 @@ for (const [file, expected] of declared) {
   }
 }
 
+// Verify bundled engine test fixture stack matches its tokenizer stack_sha256 when present.
+const synStack = resolve(pkgRoot, 'synthetic-stack.lut');
+const synTok = resolve(pkgRoot, 'tokenizer.json');
+if (existsSync(synStack) && existsSync(synTok)) {
+  const tokObj = JSON.parse(readFileSync(synTok, 'utf8'));
+  if (typeof tokObj?.stack_sha256 === 'string' && /^[0-9a-f]{64}$/.test(tokObj.stack_sha256)) {
+    const actualSyn = createHash('sha256').update(readFileSync(synStack)).digest('hex');
+    if (actualSyn !== tokObj.stack_sha256) {
+      throw new Error('Bundled synthetic fixture hash mismatch against pkg/tokenizer.json');
+    }
+  }
+}
+
 // Verify Foundry shell closure manifest matches staged files.
 const shellManifest = JSON.parse(readFileSync(resolve(dest, 'manifest.json'), 'utf8'));
 if (shellManifest.spec !== 'hologram-forge/shell/1' || !Array.isArray(shellManifest.files)) {
@@ -185,7 +209,7 @@ for (const row of shellManifest.files) {
   }
   const actual = createHash('sha256').update(readFileSync(p)).digest('hex');
   if (actual !== row.sha256) {
-    throw new Error('Shell manifest digest mismatch for ' + row.path);
+    throw new Error('Shell manifest hash mismatch for ' + row.path);
   }
 }
 console.log('Foundry runtime + ' + declared.size + ' model artifacts + ' + shellManifest.files.length + ' closure files verified');

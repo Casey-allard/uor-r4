@@ -69,8 +69,9 @@ test("a chat turn gates both UOR-R4 WASM and IdeaReader through R4 before showin
   for (const remote of ["paidGenerate", "sealPaid", "openrouter/", 'op: "warmup"', "inst.generate(", "rulesModel("]) assert.ok(!chatTurn.includes(remote), `a chat turn never reaches ${remote}`);
 });
 
-test("the studio offers UOR-R4 Integer WASM (default) alongside Foundry's reader", () => {
-  assert.ok(host.includes("selectedModel: { name: UOR_R4_DEFAULT_MODEL, provider: UOR_R4_PROVIDER }"));
-  assert.ok(host.includes('handlers.set("get-language-model-providers", () => [UOR_R4, LOCAL]);'));
-  assert.ok(host.includes('handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models(), local: LOCAL_MODELS }));'));
+test("the studio offers UOR-R4 V13 Qwen3-0.6B Foundry as its sole default provider with no dummy models", () => {
+  assert.ok(host.includes('selectedModel: { name: "uor-r4:qwen3-0.6b-foundry", provider: "uor-r4" }'));
+  assert.ok(host.includes('handlers.set("get-language-model-providers", () => [UOR_R4]);'));
+  assert.ok(host.includes('handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models() }));'));
+  assert.ok(!host.includes("const LOCAL_MODELS"));
 });

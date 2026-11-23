@@ -2,8 +2,16 @@
 import { LargeLanguageModelSchema } from './chat-contracts.mjs';
 
 export const UOR_R4_PROVIDER = 'uor-r4';
-export const UOR_R4_DEFAULT_MODEL = 'uor-r4:synthetic-seed-5';
+export const UOR_R4_DEFAULT_MODEL = 'uor-r4:qwen3-0.6b-foundry';
 export const LOCAL_MODEL = 'foundry:reader';
+const ALLOWED_UOR_R4_MODELS = new Set([
+  'qwen3-0.6b-foundry',
+  'm1-discrete-trunk-seed-1',
+  'local-upload',
+  'uor-r4:qwen3-0.6b-foundry',
+  'uor-r4:m1-discrete-trunk-seed-1',
+  'uor-r4:local-upload',
+]);
 const FORMER = ['webgpu:Qwen', 'webgpu:Bonsai', 'webgpu:BitNet'];
 
 const fail = (code) =>
@@ -39,7 +47,7 @@ export function chatModelRoute(chatSelection, defaultSelection) {
     throw fail('unsupportedChatProvider');
   }
   if (provider === 'uor-r4') {
-    if (!name.startsWith('uor-r4:') && !['synthetic-seed-5', 'm1-discrete-trunk-seed-1', 'local-upload'].includes(name)) {
+    if (!ALLOWED_UOR_R4_MODELS.has(name)) {
       throw fail('invalidChatModelSelection');
     }
     const normalized = name.startsWith('uor-r4:') ? name : `uor-r4:${name}`;

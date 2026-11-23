@@ -17,7 +17,7 @@ if [ -d /tmp/foundry-probe/studio ]; then
     fetch_args+=(--seed-dir /tmp/foundry-probe)
 fi
 echo "== 1/9 fetch locked Foundry binary assets =="
-node "$repo_root/scripts/studio/fetch-foundry-assets.mjs" "${fetch_args[@]}"
+node "$repo_root/scripts/studio/fetch-foundry-assets.mjs" ${fetch_args[@]+"${fetch_args[@]}"}
 
 echo "== 2/9 build UOR-R4 integer serving WASM + synthetic-stack.lut + tokenizer.json =="
 bash "$studio_root/build_serve_wasm.sh" --no-verify
@@ -33,7 +33,9 @@ cp "$studio_root/pkg-mvm/uor_r4_mvm.js" "$studio_root/pkg-mvm/uor_r4_mvm_bg.wasm
 cp "$studio_root/r4_worker.js" "$studio_root/coi-serviceworker.js" "$shell_dir/"
 cp "$studio_root/assets/js/uor_model_worker.js" "$studio_root/assets/js/uor_tokenizer_artifact.js" "$shell_dir/uor/js/"
 
+rm -rf "$shell_dir/models"
 node -e "import('$repo_root/scripts/studio/catalog.mjs').then(m => m.writeStudioCatalog({ dest: '$shell_dir' }))"
+node "$repo_root/scripts/studio/build-standards-index.mjs" "$shell_dir/standards-index.json"
 
 echo "== 5/9 build Foundry core.wasm (hologram-forge-core) =="
 cargo build --release --locked --manifest-path "$foundry_studio/core/Cargo.toml" --target wasm32-unknown-unknown
@@ -104,7 +106,7 @@ for p in sorted(src.rglob("*")):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(p, target)
 '
-for req in q/pkg/holospaces_web.js q/pkg/holospaces_web_bg.wasm core.wasm host.bundle.js manifest.json sw.js; do
+for req in q/pkg/holospaces_web.js q/pkg/holospaces_web_bg.wasm core.wasm host.bundle.js manifest.json sw.js standards-index.json v13/uor_foundry_v13_wasm.js v13/uor_foundry_v13_wasm_bg.wasm; do
     [ -f "$dist_dir/$req" ] || { echo "build_foundry_studio: missing required dist file $req" >&2; exit 1; }
 done
 printf 'Built Foundry Studio in %s (%s files)\n' "$dist_dir" "$(find "$dist_dir" -type f | wc -l | tr -d ' ')"

@@ -1,12 +1,12 @@
-// UOR-R4 Foundry model picker: offers real UOR-R4 integer WASM artifacts
-// (bundled synthetic-seed-5, pinned M1 discrete trunk seed-1 with OPFS cache,
-// local .uorlut / .d11 upload) alongside Foundry's compiled IdeaReader.
+// UOR-R4 Foundry model picker: offers real UOR-R4 integer WASM models
+// (`uor-r4:qwen3-0.6b-foundry` V13 with Stitch XOR 2-of-3 & OPFS cache, pinned M1 seed-1,
+// or local `.uorlut` / `.d11` upload). Zero dummy or cloud fallback models.
 //
 // FoundrySpecification.chatModelPickerScopeBoundary: a mounted chat owns its selection;
 // Home owns the default used by future chats.
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDownIcon, CpuIcon, FolderUpIcon, LaptopIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { ChevronDownIcon, CpuIcon, FolderUpIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import {
   DropdownMenu,
@@ -25,22 +25,30 @@ import { cn } from "@/lib/utils";
 
 import { modelSelectionScope } from "./hologram.model-selection.mjs";
 
-const ORDER = ["uor-r4", "local"];
-const WHERE: Record<string, string> = { "uor-r4": "WASM", local: "Local" };
-const MEANS: Record<string, string> = {
-  "uor-r4": "Integer WASM on this device",
-  local: "Prism IdeaReader on this device",
+type ProgressSnapshot = {
+  modelId?: string;
+  phase?: string;
+  percent?: number;
+  packsDone?: number;
+  packsTotal?: number;
+  cached?: boolean;
+  cacheBackend?: string | null;
+  recoveredPieces?: unknown[];
+  error?: string | null;
 };
 
-const Tag = ({ provider }: { provider: string }) => {
-  const Mark = provider === "uor-r4" ? CpuIcon : LaptopIcon;
-  return (
-    <span className="inline-flex w-[66px] shrink-0 items-center justify-center gap-1 rounded-full border border-border/60 py-0.5 text-[11px] font-normal leading-4 text-muted-foreground">
-      <Mark className="size-3 shrink-0" aria-hidden="true" />
-      {WHERE[provider]}
-    </span>
-  );
+const ORDER = ["uor-r4"];
+const WHERE: Record<string, string> = { "uor-r4": "WASM" };
+const MEANS: Record<string, string> = {
+  "uor-r4": "Pure-integer UOR-R4 WASM on this device",
 };
+
+const Tag = ({ provider }: { provider: string }) => (
+  <span className="inline-flex w-[66px] shrink-0 items-center justify-center gap-1 rounded-full border border-border/60 py-0.5 text-[11px] font-normal leading-4 text-muted-foreground">
+    <CpuIcon className="size-3 shrink-0" aria-hidden="true" />
+    {WHERE[provider] || "WASM"}
+  </span>
+);
 
 const Pill = ({ where }: { where: string }) => (
   <span className="shrink-0 rounded-full border border-border/50 px-1.5 py-px text-[10px] font-normal leading-4 text-muted-foreground/70">
@@ -69,16 +77,39 @@ export function ModelPicker() {
   const [open, setOpen] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
+  const [hydration, setHydration] = useState<ProgressSnapshot | null>(null);
   const selectionInFlight = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const unavailable =
     scope.kind === "unavailable" || (scope.kind === "chat" && (chatLoading || !chat || isUpdating));
 
+  useEffect(() => {
+    const ipc = (window as unknown as {
+      electron?: {
+        ipcRenderer?: {
+          on?: (ch: string, fn: (payload: unknown) => void) => (() => void) | void;
+          removeListener?: (ch: string, fn: (payload: unknown) => void) => void;
+        };
+      };
+    }).electron?.ipcRenderer;
+    if (!ipc?.on) return;
+    const onProgress = (payload: unknown) => {
+      if (payload && typeof payload === "object") {
+        setHydration(payload as ProgressSnapshot);
+      }
+    };
+    const off = ipc.on("uor-r4:progress", onProgress);
+    return () => {
+      if (typeof off === "function") off();
+      else ipc.removeListener?.("uor-r4:progress", onProgress);
+    };
+  }, []);
+
   const listed = (providers ?? [])
     .filter((provider) => ORDER.includes(provider.id))
     .sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
   const selected: LargeLanguageModel = chat?.modelSelection ??
-    settings?.selectedModel ?? { name: "uor-r4:synthetic-seed-5", provider: "uor-r4" };
+    settings?.selectedModel ?? { name: "uor-r4:qwen3-0.6b-foundry", provider: "uor-r4" };
   const modelsOf = (providerId: string) => modelsByProvider?.[providerId] ?? [];
   const isSelected = (providerId: string, model: LanguageModel) =>
     (selected.provider === providerId ||
@@ -90,10 +121,16 @@ export function ModelPicker() {
   );
   const current =
     options.find(({ provider, model }) => isSelected(provider, model)) ??
-    options.find(({ provider }) => provider === "uor-r4") ??
-    options.find(({ provider }) => provider === "local");
+    options.find(({ provider }) => provider === "uor-r4");
   const label = current ? current.model.displayName : selected.name;
-  const where = current ? WHERE[current.provider] : "";
+  const where =
+    hydration?.phase === "downloading"
+      ? `${hydration.percent ?? 0}%`
+      : hydration?.phase === "ready" && hydration?.cached
+        ? "Cached"
+        : current
+          ? WHERE[current.provider]
+          : "";
 
   const choose = async (providerId: string, model: LanguageModel) => {
     if (unavailable || selectionInFlight.current) return;
@@ -147,6 +184,7 @@ export function ModelPicker() {
     } catch (err) {
       setSelectionError(String((err as Error)?.message || err));
       setOpen(true);
+    } finally {
       setSelecting(false);
     }
   };
@@ -211,8 +249,12 @@ export function ModelPicker() {
               <FolderUpIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>Load local .uorlut / .d11…</span>
             </button>
-            <div className="px-2.5 py-1 text-[10px] leading-4 text-muted-foreground">
-              Pre-alpha · M1 complete (1 of 8 milestones) · Integer WASM
+            <div className="px-2.5 py-1 text-[10px] leading-4 text-muted-foreground" data-testid="uor-r4-hydration-status">
+              {hydration?.phase === "downloading"
+                ? `Downloading packs ${hydration.packsDone ?? 0}/${hydration.packsTotal ?? 10} (${hydration.percent ?? 0}%)…`
+                : hydration?.phase === "ready"
+                  ? `Ready · ${hydration.cacheBackend || "OPFS"} cache${Array.isArray(hydration.recoveredPieces) && hydration.recoveredPieces.length ? ` · Stitch recovered ${hydration.recoveredPieces.length}` : ""}`
+                  : "Pre-alpha · M1 complete (1 of 8 milestones) · UORR4V13 + M1 Integer WASM"}
             </div>
           </div>
         </DropdownMenuContent>

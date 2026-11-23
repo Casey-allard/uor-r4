@@ -124,7 +124,7 @@ if [ "$typed" = 1 ]; then
 else
     "$repo_root/scripts/studio/runtime-files.sh" copy "$src" "$dest" --allow-generated-missing
 fi
-rm -f "$dest/models.json"
+rm -rf "$dest/models" "$dest/models.json"
 
 node "$repo_root/scripts/studio/catalog.mjs" "$dest" "$public_url" "$public_label" "$trained_manifest" \
     "$repo_root/scripts/validate_served_forward_receipt.py"

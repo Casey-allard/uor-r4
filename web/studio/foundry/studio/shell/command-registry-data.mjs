@@ -145,6 +145,20 @@ export const commandRegistryData = {
       "quality": "Independent journey and release obligations apply; this inventory grants no effects."
     },
     {
+      "id": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "effects": [
+        "storage",
+        "execution"
+      ],
+      "targets": [
+        "browser"
+      ],
+      "assurance": "boundary-inventory",
+      "quality": "In-page Home chat before project creation; independent studio promotion and execution boundaries apply."
+    },
+    {
       "id": "import",
       "version": 1,
       "owner": "FoundrySpecification.projectImportBoundary",
@@ -2098,6 +2112,56 @@ export const commandRegistryData = {
       "output": "product-boundary"
     },
     {
+      "channel": "home-chat:cancel",
+      "feature": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "home-chat:clear",
+      "feature": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "home-chat:history",
+      "feature": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "home-chat:promote-to-studio",
+      "feature": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "home-chat:send",
+      "feature": "home-chat",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
       "channel": "image-generation:wait-for-operation",
       "feature": "unavailable",
       "version": 1,
@@ -3108,6 +3172,16 @@ export const commandRegistryData = {
       "output": "imported-renderer"
     },
     {
+      "channel": "standards:lookup",
+      "feature": "uor-model",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
       "channel": "stop-app",
       "feature": "unavailable",
       "version": 1,
@@ -3439,6 +3513,16 @@ export const commandRegistryData = {
     },
     {
       "channel": "uor-r4:status",
+      "feature": "uor-model",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "uor-r4:test-stitch-recover",
       "feature": "uor-model",
       "version": 1,
       "owner": "FoundrySpecification.currentMainIntegrationBoundary",

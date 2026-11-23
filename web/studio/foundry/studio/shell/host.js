@@ -121,8 +121,8 @@ handlers.set("prompts:delete", input => promptLibrary("delete",input));
 
 // ---- settings
 const DEFAULT_SETTINGS = {
-  // Default to the real UOR-R4 integer WASM engine in this browser alongside Foundry's local IdeaReader.
-  selectedModel: { name: UOR_R4_DEFAULT_MODEL, provider: UOR_R4_PROVIDER }, providerSettings: {}, telemetryConsent: "opted_out", telemetryUserId: "web",
+  // Default to the real UOR-R4 V13 Qwen3-0.6B Foundry integer WASM engine in this browser.
+  selectedModel: { name: "uor-r4:qwen3-0.6b-foundry", provider: "uor-r4" }, providerSettings: {}, telemetryConsent: "opted_out", telemetryUserId: "web",
   hasRunBefore: true, experiments: {}, enableProLazyEditsMode: false, enableProSmartFilesContextMode: false, selectedChatMode: "build",
   enableAppBlueprint: false, enableTestingForNewApps: false, enableAutoUpdate: false, releaseChannel: "stable", isRunning: false,
   enableSandboxScriptExecution: false, enableMcpToolSearch: false, enableCodeExplorer: false, runTypeScriptForWholeProject: false,
@@ -139,9 +139,14 @@ const DEFAULT_SETTINGS = {
 // tool calls this host does not make.
 handlers.set("get-user-settings", async () => {
   const stored = (await inference.settingsGet()) || {};
-  // A selection stored when a cloud model was offered names a route R4 refuses; the stored setting is
-  // moved to the device model once, as one write of the visitor's settings record, never per turn.
-  if (stored.selectedModel && !["local", UOR_R4_PROVIDER].includes(stored.selectedModel.provider)) {
+  // Migrate removed dummy/legacy models (e.g. local foundry:reader, synthetic-seed-5, or cloud models)
+  // onto the real UOR-R4 V13 Qwen3-0.6B Foundry model once per stored settings record.
+  if (
+    stored.selectedModel &&
+    (stored.selectedModel.provider !== "uor-r4" ||
+      stored.selectedModel.name === "uor-r4:synthetic-seed-5" ||
+      stored.selectedModel.name === "synthetic-seed-5")
+  ) {
     return changeUserSettings(dbReady, { selectedModel: DEFAULT_SETTINGS.selectedModel }, (current, captured) => browserSettings(browserChatModeSettings({ ...DEFAULT_SETTINGS, ...current, ...captured })));
   }
   return browserSettings(browserChatModeSettings({ ...DEFAULT_SETTINGS, ...stored }));
@@ -150,7 +155,7 @@ handlers.set("set-user-settings", (patch) => { assertBrowserSettingsPatch(patch)
 // What the renderer takes as "set up": the studio's own model is the only provider, and it is always
 // set up, so no connect dialog ever stands between the first prompt and the answer. Whether this
 // browser can run it is the R4 route's question (Local or NoGpu), never a provider or key question.
-handlers.set("get-env-vars", () => ({ HOLOGRAM_DEVICE: "on this device" }));
+handlers.set("get-env-vars", () => ({ UOR_R4_WASM: "on this device", HOLOGRAM_DEVICE: "on this device" }));
 handlers.set("get-system-platform", () => "web");
 handlers.set("get-app-version", () => ({ version: "1.15.0-web" }));
 handlers.set("native-theme:get-state", () => ({ shouldUseDarkColors: matchMedia("(prefers-color-scheme: dark)").matches }));
@@ -187,8 +192,6 @@ handlers.set("get-system-debug-info", async () => {
   return { nodeVersion: null, pnpmVersion: null, nodePath: "esbuild in the tab", telemetryId: "web", telemetryConsent: "opted_out", telemetryUrl: "", prismVersion: "1.15.0-web", platform: "web", architecture: navigator.userAgent.includes("WOW64") || navigator.userAgent.includes("x86_64") ? "x86_64" : "unknown", logs: "", updaterLogs: null, selectedLanguageModel: (m.provider ? m.provider + "/" : "") + (m.name || "") };
 });
 const UOR_R4 = { id: UOR_R4_PROVIDER, name: "UOR-R4 Integer WASM", type: "custom", hasFreeTier: true, envVarName: "UOR_R4_WASM" };
-const LOCAL = { id: "local", name: "In this browser", type: "custom", hasFreeTier: true, envVarName: "HOLOGRAM_DEVICE" };
-const LOCAL_MODELS = [{ apiName: LOCAL_MODEL, displayName: "Foundry reader", description: "Compiled with Prism; reads your idea in this browser", contextWindow: 3000 }];
 async function getUorR4Models() {
   const cat = await uorR4.getCatalog();
   return (cat.models || []).map((m) => ({
@@ -198,9 +201,9 @@ async function getUorR4Models() {
     contextWindow: m.id === "m1-discrete-trunk-seed-1" ? 512 : 4096,
   }));
 }
-handlers.set("get-language-model-providers", () => [UOR_R4, LOCAL]);
-handlers.set("get-language-models", async ({ providerId }) => (providerId === UOR_R4_PROVIDER ? await getUorR4Models() : providerId === "local" ? LOCAL_MODELS : []));
-handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models(), local: LOCAL_MODELS }));
+handlers.set("get-language-model-providers", () => [UOR_R4]);
+handlers.set("get-language-models", async ({ providerId }) => (providerId === UOR_R4_PROVIDER ? await getUorR4Models() : []));
+handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models() }));
 
 // ---- apps and files. A file is stored under "<appId>:<path>"; the app record carries no files,
 // get-app lists them. Every edit seals a version: the address of the project state.
@@ -220,11 +223,15 @@ handlers.set("list-apps", async () => ({ apps: (await all("apps")).map(withDates
 handlers.set("get-app", async (id) => { const a = await get("apps", id); if (!a) throw new Error("no app " + id); return { ...withDates(a), files: await filesOf(id), frameworkType: "vite", supabaseProjectName: null, vercelTeamSlug: null }; });
 handlers.set("check-app-name", async ({ appName }) => ({ exists: (await all("apps")).some((a) => a.name === appName) }));
 handlers.set("preview-app-folder-name", async ({ appName }) => ({ folderName: appName }));
-handlers.set("create-app", async ({ name, initialChatMode }) => {
+const pendingCreations = new Map();
+handlers.set("create-app", async ({ name, initialChatMode, firstPromptCreationOperationId }) => {
   await coreReady;
   const capturedMode = browserChatMode(initialChatMode,await get("settings","user"));
   const prepared = await prepareNewProject({ name, initialChatMode: capturedMode, files: await loadScaffold() }, { core, derive: kappa });
   const created = await createStoredProject(await dbReady, prepared, nulls, themesData);
+  if (typeof firstPromptCreationOperationId === "string" && firstPromptCreationOperationId) {
+    pendingCreations.set(firstPromptCreationOperationId, { kind: "app", appId: created.app.id, chatId: created.chatId });
+  }
   emit("version-created", { appId: created.app.id, oid: created.oid });
   return { app: withDates(created.app), chatId: created.chatId };
 });
@@ -404,7 +411,15 @@ handlers.set("get-chats", async (appId) => (await all("chats")).filter((c) => ap
 handlers.set("get-chat", async (id) => { const c = await get("chats", id); if (!c) throw new Error("no chat " + id); return { ...c, chatMode: c.chatMode ?? null, referencedApps: c.referencedApps || [], messages: (c.messages || []).map((x) => ({ ...x, createdAt: x.createdAt || now() })) }; });
 const chatRow = (c) => ({ id: c.id, appId: c.appId, title: c.title, createdAt: new Date(c.createdAt || Date.now()), chatMode: c.chatMode ?? null, isFavorite: !!c.isFavorite });
 handlers.set("get-chat-metadata", async (id) => { const c = await get("chats", id); return c ? chatRow(c) : null; });
-handlers.set("create-chat", async (appId) => createStoredChat(await dbReady, appId, now(), browserChatMode(undefined,await get("settings","user"))));
+handlers.set("create-chat", async (input) => {
+  const { appId, initialChatMode, firstPromptCreationOperationId } = typeof input === "number" ? { appId: input } : (input || {});
+  const capturedMode = browserChatMode(initialChatMode, await get("settings", "user"));
+  const chatId = await createStoredChat(await dbReady, appId, now(), capturedMode);
+  if (typeof firstPromptCreationOperationId === "string" && firstPromptCreationOperationId) {
+    pendingCreations.set(firstPromptCreationOperationId, { kind: "chat", appId, chatId });
+  }
+  return chatId;
+});
 handlers.set("update-chat", input => updateChatPreferences(dbReady,input));
 handlers.set("delete-chat", async (id) => { await deleteStoredChat(await dbReady, id); queueChannel?.postMessage({chatId:id}); await chatQueue.refresh(id).catch(()=>{}); });
 // The sidebar's search: a chat matches by title or by the text of one of its messages, and the line
@@ -426,7 +441,7 @@ handlers.set("chat:count-tokens", async ({ chatId, input }) => {
   const chat = chatId != null ? await get("chats", chatId) : null;
   const settings = (await get("settings", "user")) || DEFAULT_SETTINGS;
   const route = chatModelRoute(chat?.modelSelection,settings.selectedModel);
-  const availableModels = [...(await getUorR4Models()), ...LOCAL_MODELS];
+  const availableModels = await getUorR4Models();
   const contextWindow = (availableModels.find((m) => m.apiName === route.model) || availableModels[0]).contextWindow;
   const tokens = (text) => Math.ceil(String(text || "").length / 4);
   const captured = chat && chat.appId != null ? await captureProjectSource(await dbReady,chat.appId) : null;
@@ -1099,6 +1114,227 @@ async function applyPrismTags(appId, tags, options = {}) {
 }
 window.__chat = { parsePrismTags, applyPrismTags };
 
+let standardsCache = null;
+async function loadStandardsIndex() {
+  if (!standardsCache) {
+    const resp = await fetch(new URL("standards-index.json", BASE), { cache: "no-store" });
+    if (!resp.ok) throw new Error(`standards-index.json HTTP ${resp.status}`);
+    standardsCache = await resp.json();
+  }
+  return standardsCache;
+}
+async function lookupStandards(query, limit = 5) {
+  const index = await loadStandardsIndex();
+  const sections = Array.isArray(index?.sections) ? index.sections : [];
+  const q = String(query || "").trim().toLowerCase();
+  const terms = q.split(/\s+/).filter(Boolean);
+  if (!terms.length) return { ok: true, count: sections.length, matches: sections.slice(0, limit) };
+  const scored = sections
+    .map((sec) => {
+      const id = String(sec.id || "").toLowerCase();
+      const title = String(sec.title || "").toLowerCase();
+      const tags = Array.isArray(sec.tags) ? sec.tags.join(" ") : "";
+      const hay = `${id} ${title} ${sec.topic || ""} ${tags} ${sec.source || ""} ${sec.summary || ""} ${sec.content || sec.body || ""}`.toLowerCase();
+      let score = 0;
+      for (const term of terms) {
+        if (id.includes(term)) score += 6;
+        if (title.includes(term)) score += 4;
+        if (tags.toLowerCase().includes(term)) score += 4;
+        if (hay.includes(term)) score += 2;
+      }
+      return { sec, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  return { ok: true, query, matches: scored.map((x) => x.sec) };
+}
+function cleanWorkspacePath(raw, allowEmpty = false) {
+  let s = String(raw ?? "").trim().replace(/\\/g, "/");
+  s = s.replace(/^\/workspace\/?/, "").replace(/^\.\//, "").replace(/^\/+/, "").replace(/\/+$/, "");
+  if (allowEmpty && (!s || s === "root" || s === ".")) return "";
+  if (!s || s.split("/").some((p) => !p || p === "." || p === "..") || /[\x00-\x1f:]/.test(s)) {
+    throw new Error(`Invalid workspace path: ${raw}`);
+  }
+  return s;
+}
+function createFoundryTools({ appId = null, chatMode = "build", signal, onCommit }) {
+  return {
+    workspace_list: async ({ dir } = {}) => {
+      if (!appId) {
+        return { ok: true, dir: "root", files: [], note: 'Home Chat has no open Studio app yet. Click "Build this in Studio" to create one.' };
+      }
+      const prefix = cleanWorkspacePath(dir ?? "root", true);
+      const allFiles = await filesOf(appId);
+      const files = prefix ? allFiles.filter((f) => f === prefix || f.startsWith(prefix + "/")) : allFiles;
+      return { ok: true, appId, dir: prefix || "root", files };
+    },
+    workspace_read: async ({ path: rawPath, start_line, end_line } = {}) => {
+      if (!appId) return { ok: false, error: "Home Chat has no open Studio app." };
+      const rel = cleanWorkspacePath(rawPath, false);
+      const text = await get("files", `${appId}:${rel}`);
+      if (text === undefined) return { ok: false, error: `File not found: ${rel}` };
+      const lines = String(text).split("\n");
+      const start = Number.isInteger(start_line) && start_line > 0 ? start_line - 1 : 0;
+      const end = Number.isInteger(end_line) && end_line >= start + 1 ? end_line : lines.length;
+      return { ok: true, path: rel, total_lines: lines.length, start_line: start + 1, end_line: Math.min(end, lines.length), content: lines.slice(start, end).join("\n") };
+    },
+    workspace_write: async ({ path: rawPath, content } = {}) => {
+      if (!appId || (chatMode !== "build" && chatMode !== "local-agent")) {
+        return { ok: false, error: "Read-only mode; switch to Build or promote to Studio to write files." };
+      }
+      const rel = cleanWorkspacePath(rawPath, false);
+      const text = String(content ?? "");
+      await applyPrismTags(appId, { writes: [{ path: rel, description: "workspace_write", content: text }], deletes: [], renames: [], deps: [] }, { signal, onCommit });
+      return { ok: true, path: rel, bytes: text.length, updatedFiles: true };
+    },
+    linux_exec: async ({ command, cwd } = {}) => {
+      const cmd = String(command ?? "").trim();
+      if (!cmd) return { ok: false, error: "command is required" };
+      const res = await mvmHost.execCommand(appId ?? null, cmd, { echoToSession: Boolean(appId), cwd });
+      return { ok: res.exit_code === 0, runtime: "rv64imac-mvm", ...res };
+    },
+    mvm_exec: async ({ command } = {}) => {
+      const cmd = String(command ?? "").trim();
+      if (!cmd) return { ok: false, error: "command is required" };
+      const res = await mvmHost.execCommand(appId ?? null, cmd, { echoToSession: Boolean(appId) });
+      return { ok: res.exit_code === 0, ...res };
+    },
+    github_status: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    github_list_repos: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    github_clone: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    github_pull: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    github_push: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    prismpm_verify: async ({ target, action } = {}) => {
+      await coreReady;
+      if (!appId) return { ok: true, target: target || "registry", view: core.run({ op: "view" }) };
+      const source = await captureProjectSource(await dbReady, appId);
+      const shape = applicationShape(source);
+      const rules = await rulesOf(appId);
+      if (action === "publish") {
+        const pub = await handlers.get("holo:publish")({ appId });
+        return { ok: Boolean(pub?.kappa), target, shape, rules, publication: pub };
+      }
+      return { ok: true, target: target || shape, shape, rules, applicationState: source.applicationState || null };
+    },
+    lexlean_check: async ({ path: rawPath } = {}) => {
+      if (!appId) return { ok: false, error: "Open a Studio app to check a LexLean module." };
+      const rel = cleanWorkspacePath(rawPath || "prism/Application.lex.tex", false);
+      const text = await get("files", `${appId}:${rel}`);
+      if (text === undefined) return { ok: false, error: `Module not found: ${rel}` };
+      if (appShape.isAppShape(text)) {
+        const verdict = await checkAppModule(text, { signal });
+        return { ok: Boolean(verdict.ok), path: rel, shape: "stateful", issues: verdict.issues || [] };
+      }
+      const parsed = lexlean.specFromTurn(text);
+      return { ok: Boolean(parsed && !parsed.error), path: rel, shape: "rules", error: parsed?.error || null };
+    },
+    lexlean_verify: async ({ path: rawPath, profile } = {}) => {
+      if (!appId) return { ok: false, error: "Open a Studio app to verify LexLean proofs." };
+      const rel = cleanWorkspacePath(rawPath || "prism/spec.json", false);
+      if (rel === "prism/spec.json") {
+        const rawSpec = await get("files", `${appId}:prism/spec.json`);
+        if (!rawSpec) return { ok: false, error: "prism/spec.json not found in app" };
+        const checked = await prism.checkSpec(JSON.parse(rawSpec));
+        return { ok: Boolean(checked?.ok), path: rel, profile: profile || "core", issues: checked?.issues || [] };
+      }
+      const text = await get("files", `${appId}:${rel}`);
+      if (text === undefined) return { ok: false, error: `Module not found: ${rel}` };
+      const verdict = await checkAppModule(text, { signal });
+      return { ok: Boolean(verdict?.ok), path: rel, profile: profile || "core", issues: verdict?.issues || [] };
+    },
+    standards_lookup: async ({ query } = {}) => lookupStandards(query, 5),
+    stitch_fetch: async ({ url, method } = {}) => {
+      const target = String(url ?? "").trim();
+      if (!target) return { ok: false, error: "url is required" };
+      if (target.startsWith("stitch://")) {
+        return { ok: false, error: "stitch:// peer transport initializes with Stitch signaling in Stage 3." };
+      }
+      const safeMethod = String(method || "GET").trim().toUpperCase();
+      if (!["GET", "HEAD"].includes(safeMethod)) {
+        return { ok: false, error: "stitch_fetch supports GET or HEAD methods only" };
+      }
+      let parsed;
+      try {
+        parsed = new URL(target, location.href);
+      } catch {
+        return { ok: false, error: "Invalid URL" };
+      }
+      const isSameOrigin = parsed.origin === location.origin;
+      const defaultAllowedHosts = new Set([
+        "raw.githubusercontent.com",
+        "api.github.com",
+        "github.com",
+        "huggingface.co",
+        "cdn-lfs.huggingface.co",
+        "uor-foundation.github.io",
+        "casey-allard.github.io",
+        "registry.npmjs.org",
+      ]);
+      let customAllowed = [];
+      try {
+        customAllowed = JSON.parse(localStorage.getItem("uor.stitch.allowedOrigins") || "[]");
+      } catch {}
+      const originAllowed =
+        isSameOrigin ||
+        (parsed.protocol === "https:" &&
+          (defaultAllowedHosts.has(parsed.hostname) ||
+            (Array.isArray(customAllowed) && customAllowed.includes(parsed.origin))));
+      if (!originAllowed) {
+        return {
+          ok: false,
+          error: `stitch_fetch blocked cross-origin URL (${parsed.origin}); only same-origin or explicitly allowlisted HTTPS hosts are permitted.`,
+        };
+      }
+      const resp = await fetch(parsed.href, {
+        method: safeMethod,
+        credentials: "omit",
+        redirect: "error",
+        signal,
+      });
+      const MAX_PREVIEW_BYTES = 8192;
+      let text = "";
+      if (safeMethod !== "HEAD" && resp.body?.getReader) {
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let total = 0;
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done || !value) break;
+            const take = Math.min(value.byteLength, MAX_PREVIEW_BYTES - total);
+            if (take > 0) chunks.push(value.subarray(0, take));
+            total += take;
+            if (total >= MAX_PREVIEW_BYTES) {
+              void reader.cancel().catch(() => {});
+              break;
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        const merged = new Uint8Array(total);
+        let offset = 0;
+        for (const chunk of chunks) {
+          merged.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        text = dec.decode(merged);
+      } else if (safeMethod !== "HEAD") {
+        text = (await resp.text()).slice(0, MAX_PREVIEW_BYTES);
+      }
+      return { ok: resp.ok, status: resp.status, url: parsed.href, body_preview: text };
+    },
+    stitch_peer_status: async ({ peer_id } = {}) => ({
+      ok: true,
+      peer_id: peer_id || null,
+      v13_status: uorR4.getStatus(),
+      xor_2_of_3_ready: true,
+      webrtc_peers: [],
+    }),
+  };
+}
+
 // ---- the chat stream machine. the renderer submits a turn only here: SUBMIT on the chat_stream
 // machine, then it watches the snapshot (admitting, streaming, finalizing, idle) and applies the
 // chunk events to the message it renders. The model is OpenRouter with the visitor's own key; the
@@ -1125,7 +1361,7 @@ function publishChat(chatId, patch) {
 // for minutes. So: a newer shell waits until no turn runs (the worker announces it, see sw.template.js);
 // leaving the page while one runs asks first; and a turn a reload did cut is marked as cut, not left as a
 // silent half message.
-function turnRunning() { return [...chatMachines.values()].some((m) => ["admitting", "streaming", "finalizing", "cancelling"].includes(m.state.phase)); }
+function turnRunning() { return [...chatMachines.values()].some((m) => ["admitting", "streaming", "finalizing", "cancelling"].includes(m.state.phase)) || Boolean(homeChatAbort); }
 var shellUpdate = { waiting: false };
 function reloadIfIdle() { if (shellUpdate.waiting && !turnRunning()) location.reload(); }
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener("message", (e) => {
@@ -1747,15 +1983,18 @@ async function chatTurn(chatId, intent) {
     };
     if (provider === UOR_R4_PROVIDER) {
       await enqueueText("");
+      const tools = createFoundryTools({ appId, chatMode: execution.mode, signal: abort.signal, onCommit });
       const uorTurn = await runUorR4AgentTurn({
         appId,
         chatId,
         modelId: model,
         messages: messages.slice(0, -1),
         userPrompt: intent.prompt,
+        chatMode: execution.mode,
         signal: abort.signal,
         uorR4Runtime: uorR4,
         mvmHost,
+        tools,
         onText: enqueueText,
       });
       await textWork;
@@ -1766,11 +2005,46 @@ async function chatTurn(chatId, intent) {
       });
       const shown = await r4Decide(made);
       if (shown.outcome !== "answer") throw new Error(r4Refusal(shown, made));
+      const rawTurn = uorTurn.fullText || full;
+      const sm = rawTurn.match(/<prism-chat-summary>([\s\S]*?)<\/prism-chat-summary>/);
+      summary = sm ? sm[1].trim() : summary;
+      if (summary && (!chat.title || chat.title === "New chat")) {
+        await updateStoredChat(await dbReady, chatId, { title: summary });
+      }
+      let card = null;
+      if (execution.sourceEffects) {
+        await settleAppFrames(appId, abort.signal);
+        assertGenerationActive(abort.signal);
+        const wrote = parsePrismTags(rawTurn);
+        let changed = 0;
+        if (wrote.writes.length || wrote.deletes.length || wrote.renames.length || wrote.deps.length) {
+          const applied = await applyPrismTags(appId, wrote, { signal: abort.signal, onCommit });
+          changed += applied.changed || 0;
+        }
+        const specResult = await afterTurn(appId, rawTurn, [], { signal: abort.signal, onCommit }).catch(() => null);
+        if (specResult) {
+          changed += specResult.changed || 0;
+          card = specResult.card || null;
+        }
+        updatedFiles = updatedFiles || Boolean(uorTurn.updatedFiles) || changed > 0;
+        if (await hasRules(appId)) {
+          await showLive(appId).catch(() => {});
+          await refreshPreview(appId, { signal: abort.signal });
+        } else if (updatedFiles) {
+          if (speculativeLive && liveShown.has(appId)) liveShown.delete(appId);
+          await showBuilt(appId).catch(() => {});
+          await refreshPreview(appId, { signal: abort.signal });
+        }
+      }
+      const commit = committed.at(-1) || null;
+      const rendered = execution.sourceEffects
+        ? (prism.shownText(rawTurn) || prism.withoutThinking(rawTurn))
+        : readOnlyChatText(prism.withoutThinking(rawTurn));
       messages[messages.length - 1] = {
         ...messages[messages.length - 1],
-        content: prism.withoutThinking(uorTurn.fullText || full),
-        commitHash: null,
-        approvalState: "approved",
+        content: prism.withCard(rendered, card) || prism.withoutThinking(rawTurn),
+        commitHash: commit,
+        approvalState: execution.sourceEffects ? "approved" : null,
         requestId: null,
         model,
       };
@@ -2110,7 +2384,26 @@ window.electron = {
   ipcRenderer: {
     invokeEnvelope: (channel, ...args) => dispatch(channel, args),
     invoke: (channel, ...args) => dispatch(channel, args).then(unwrapHost),
-    send: (channel) => { const n = (seen.get(channel) || 0) + 1; seen.set(channel, n); if (n === 1) console.warn("[host] send:", channel); },
+    send: (channel, ...args) => {
+      if (channel === "first-prompt:commit-creation") {
+        const opId = args[0]?.operationId;
+        if (opId) pendingCreations.delete(opId);
+        return;
+      }
+      if (channel === "first-prompt:cancel-creation") {
+        const opId = args[0]?.operationId;
+        const pending = opId ? pendingCreations.get(opId) : null;
+        if (pending) {
+          pendingCreations.delete(opId);
+          void (pending.kind === "app"
+            ? handlers.get("delete-app")({ appId: pending.appId })
+            : dbReady.then((db) => deleteStoredChat(db, pending.chatId))
+          ).catch(() => {});
+        }
+        return;
+      }
+      const n = (seen.get(channel) || 0) + 1; seen.set(channel, n); if (n === 1) console.warn("[host] send:", channel);
+    },
     on: (channel, fn) => { if (!listeners.has(channel)) listeners.set(channel, new Set()); listeners.get(channel).add(fn); return () => listeners.get(channel).delete(fn); },
     removeListener: (channel, fn) => { const set = listeners.get(channel); if (set) set.delete(fn); },
     removeAllListeners: (channel) => { listeners.delete(channel); },
@@ -2141,7 +2434,10 @@ handlers.set("terminal:resize", (input) => mvmHost.resizeSession(input));
 handlers.set("terminal:serialize", (input) => mvmHost.serializeSession(input));
 handlers.set("mvm:exec", async ({ appId, command }) => mvmHost.execCommand(appId ?? null, command));
 handlers.set("mvm:identity", async ({ appId } = {}) => mvmHost.getIdentity(appId ?? null));
+uorR4.onProgress((progress) => emit("uor-r4:progress", progress));
+handlers.set("standards:lookup", ({ query, limit } = {}) => lookupStandards(query, limit));
 handlers.set("uor-r4:status", () => uorR4.getCatalog({ refresh: true }));
+handlers.set("uor-r4:test-stitch-recover", ({ groupIndex = 0, dropped = 2 } = {}) => uorR4.testStitchRecover({ groupIndex, dropped }));
 handlers.set("uor-r4:select-model", ({ modelId }) => uorR4.ensureModelLoaded(modelId));
 handlers.set("uor-r4:load-local-file", async ({ fileName, bytes, bytesBase64, tokenizerJson }) => {
   let rawBytes;
@@ -2158,6 +2454,197 @@ handlers.set("uor-r4:load-local-file", async ({ fileName, bytes, bytesBase64, to
   return uorR4.loadLocalArtifact({ fileName, bytes: rawBytes, tokenizerBytes });
 });
 handlers.set("uor-r4:predict-discrete", ({ modelId, prompt, tokenIds }) => uorR4.predictDiscrete({ modelId, prompt, tokenIds }));
+
+let homeChatAbort = null;
+let homeChatEpoch = 0;
+handlers.set("home-chat:history", async () => {
+  const stored = (await get("refs", "home-chat:history")) || [];
+  return { messages: Array.isArray(stored) ? stored : [] };
+});
+handlers.set("home-chat:clear", async () => {
+  homeChatEpoch += 1;
+  if (homeChatAbort) {
+    homeChatAbort.abort(new Error("Cleared"));
+    homeChatAbort = null;
+  }
+  await put("refs", "home-chat:history", []);
+  emit("home-chat:chunk", { messages: [] });
+  emit("home-chat:end", { outcome: "cancelled", messages: [] });
+  reloadIfIdle();
+  return { messages: [] };
+});
+handlers.set("home-chat:cancel", async () => {
+  if (homeChatAbort) {
+    homeChatAbort.abort(new Error("Cancelled"));
+  }
+  return { cancelled: true };
+});
+handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
+  const text = String(prompt ?? "").trim();
+  if (!text) throw new Error("Prompt is required");
+  homeChatEpoch += 1;
+  const myEpoch = homeChatEpoch;
+  if (homeChatAbort) {
+    homeChatAbort.abort(new Error("Superseded"));
+    homeChatAbort = null;
+  }
+  const abort = new AbortController();
+  homeChatAbort = abort;
+
+  const settings = (await get("settings", "user")) || DEFAULT_SETTINGS;
+  const fallbackModel =
+    !settings.selectedModel ||
+    settings.selectedModel.provider !== UOR_R4_PROVIDER ||
+    settings.selectedModel.name === "uor-r4:synthetic-seed-5" ||
+    settings.selectedModel.name === "synthetic-seed-5"
+      ? { provider: UOR_R4_PROVIDER, name: UOR_R4_DEFAULT_MODEL }
+      : settings.selectedModel;
+  const requested = modelId ? { provider: UOR_R4_PROVIDER, name: modelId } : null;
+  const homeRoute = chatModelRoute(requested, fallbackModel);
+  const activeModel = homeRoute.model;
+  if (myEpoch !== homeChatEpoch) {
+    return { outcome: "cancelled", messages: [] };
+  }
+  const prior = ((await get("refs", "home-chat:history")) || []).filter(Boolean);
+  if (myEpoch !== homeChatEpoch) {
+    return { outcome: "cancelled", messages: [] };
+  }
+  const nextId = prior.length ? Math.max(...prior.map((x) => Number(x.id) || 0)) + 1 : 1;
+  const userMsg = { id: nextId, role: "user", content: text, createdAt: now() };
+  const asstMsg = { id: nextId + 1, role: "assistant", content: "", model: activeModel, createdAt: now() };
+  const messages = [...prior, userMsg, asstMsg];
+  await put("refs", "home-chat:history", messages);
+  if (myEpoch !== homeChatEpoch) {
+    return { outcome: "cancelled", messages: [] };
+  }
+  emit("home-chat:chunk", { messages });
+
+  let error = null;
+  let latest = "";
+  let lastSave = 0;
+  let homeTextWork = Promise.resolve();
+  const enqueueHomeText = (partial) => {
+    homeTextWork = homeTextWork.then(async () => {
+      if (myEpoch !== homeChatEpoch) return;
+      latest = prism.withoutThinking(partial);
+      messages[messages.length - 1] = { ...messages[messages.length - 1], content: latest };
+      emit("home-chat:chunk", { messages: [...messages] });
+      if (Date.now() - lastSave > 200) {
+        lastSave = Date.now();
+        await put("refs", "home-chat:history", messages).catch(() => {});
+      }
+    });
+    void homeTextWork.catch(() => {});
+    return homeTextWork;
+  };
+
+  try {
+    await uorR4.ensureModelLoaded(activeModel, { signal: abort.signal });
+    const status = uorR4.getStatus();
+    const before = r4Request({
+      provider: homeRoute.provider,
+      engine: "match",
+      weights: status?.weightsMatched ? "match" : "mismatch",
+    });
+    const allowed = await r4Decide(before);
+    if (allowed.outcome !== "answer") throw new Error(r4Refusal(allowed, before));
+    const result = await runUorR4AgentTurn({
+      appId: null,
+      chatId: "home-chat",
+      modelId: activeModel,
+      messages: prior,
+      userPrompt: text,
+      chatMode: "chat",
+      signal: abort.signal,
+      uorR4Runtime: uorR4,
+      mvmHost,
+      tools: createFoundryTools({ appId: null, chatMode: "chat", signal: abort.signal }),
+      onText: enqueueHomeText,
+    });
+    await homeTextWork;
+    if (myEpoch === homeChatEpoch) {
+      latest = prism.withoutThinking(result.fullText || latest);
+      const made = r4Request({
+        provider: homeRoute.provider,
+        engine: "match",
+        weights: result.weightsMatched ? "match" : "mismatch",
+      });
+      const shown = await r4Decide(made);
+      if (shown.outcome !== "answer") throw new Error(r4Refusal(shown, made));
+      messages[messages.length - 1] = {
+        ...messages[messages.length - 1],
+        content: latest,
+        toolExecutions: result.toolExecutions || 0,
+        model: activeModel,
+      };
+    }
+  } catch (e) {
+    await homeTextWork.catch(() => {});
+    if (myEpoch === homeChatEpoch) {
+      error = abort.signal.aborted ? null : String(e?.message || e);
+      if (abort.signal.aborted) {
+        messages[messages.length - 1] = {
+          ...messages[messages.length - 1],
+          content: latest + (latest ? "\n\n_Cancelled._" : "_Cancelled._"),
+        };
+      } else if (error) {
+        messages[messages.length - 1] = {
+          ...messages[messages.length - 1],
+          content: (latest ? latest + "\n\n" : "") + `**Error:** ${error}`,
+        };
+      }
+    }
+  } finally {
+    if (homeChatAbort === abort) homeChatAbort = null;
+    reloadIfIdle();
+  }
+  if (myEpoch !== homeChatEpoch) {
+    return { outcome: "cancelled", messages: [] };
+  }
+  await put("refs", "home-chat:history", messages);
+  const outcome = abort.signal.aborted ? "cancelled" : error ? "errored" : "completed";
+  emit("home-chat:chunk", { messages });
+  emit("home-chat:end", { outcome, messages, ...(error ? { error } : {}) });
+  return { outcome, messages, ...(error ? { error } : {}) };
+});
+handlers.set("home-chat:promote-to-studio", async ({ name, prompt, autoBuild = true } = {}) => {
+  const history = ((await get("refs", "home-chat:history")) || []).filter(Boolean);
+  const firstUser = history.find((m) => m.role === "user")?.content || prompt || "studio app";
+  const derivedName =
+    String(name || "").trim() ||
+    ("app-" + firstUser.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).slice(0, 40) ||
+    "app";
+  const created = await handlers.get("create-app")({ name: derivedName, initialChatMode: "build" });
+  const appId = created.app.id;
+  const chatId = created.chatId;
+  const transcriptText = history.length
+    ? history.map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${String(m.content || "").trim()}`).join("\n\n").slice(0, 3500)
+    : String(prompt || "");
+  const buildPrompt = String(prompt || "").trim() || `Build the application discussed in Home Chat:\n\n${transcriptText}`;
+  if (autoBuild) {
+    const intentId = "promote-" + crypto.randomUUID();
+    const intent = await bindQueuePayload(
+      {
+        schemaVersion: 1,
+        intentId,
+        appId,
+        chatId,
+        invocationRef: { kind: "chat-stream", entityKey: chatId, operationId: intentId },
+        prompt: buildPrompt,
+        redo: false,
+        selectedComponents: [],
+        requestedChatMode: "build",
+      },
+      serializeImmutableChatTurnPayload,
+    );
+    await chatDispatch({
+      encodedKey: { chatId },
+      messageId: intentId,
+      encodedEvent: { type: "SUBMIT", intent, observedStopPolicyVersion: 0 },
+    });
+  }
+  return { appId, appName: created.app.name, chatId, buildPrompt };
+});
 
 window.__gallery = Object.freeze({read: appId => readGallery(dbReady, appId)});
 window.__host = { handlers, emit, seen, get, put, all, kappa, core: () => core, coreReady, view: () => coreReady.then((c) => c.run({ op: "view" })), publish: () => lastPublish };

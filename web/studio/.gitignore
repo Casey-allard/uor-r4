@@ -11,6 +11,11 @@ foundry/studio/shell/compiler/
 foundry/studio/shell/editor/
 foundry/studio/shell/pkg/
 foundry/studio/shell/pkg-mvm/
+foundry/studio/shell/v13/
+foundry/studio/shell/v86/
+foundry/studio/shell/images/
+foundry/studio/shell/models/
+foundry/studio/shell/standards-index.json
 foundry/studio/shell/scaffold/
 foundry/studio/shell/core.wasm
 foundry/studio/shell/host.bundle.js

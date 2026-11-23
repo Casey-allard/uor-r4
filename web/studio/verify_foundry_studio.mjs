@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Automated end-to-end Chrome DevTools Protocol (CDP) verification for Foundry Studio +
-// real UOR-R4 integer WASM serving + RV64IMAC MVM Micro-Linux WebAssembly terminal.
+// real UOR-R4 V13 Qwen3-0.6B Foundry WASM + 16-tool webharness + Home Chat mode +
+// Stitch 2-of-3 XOR recovery + RV64IMAC MVM Micro-Linux WebAssembly terminal.
 //
 // Usage:
 //   node web/studio/verify_foundry_studio.mjs [dist-dir]
@@ -16,6 +17,17 @@ import { fileURLToPath } from 'node:url';
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const repoRoot = resolve(__dirname, '../..');
 const DEFAULT_DIST = resolve(__dirname, 'dist');
+function resolveV13PackDir() {
+  const candidates = [
+    process.env.UOR_V13_PACK_DIR || '',
+    resolve(repoRoot, 'local/antigravity/d90-foundry-lora/diag_v5/v13_pieces_foundry'),
+    resolve(repoRoot, '../../local/antigravity/d90-foundry-lora/diag_v5/v13_pieces_foundry'),
+  ].filter(Boolean);
+  for (const dir of candidates) {
+    if (existsSync(join(dir, 'manifest.stitch.json'))) return dir;
+  }
+  return null;
+}
 const CHROME_CANDIDATES = [
   process.env.CHROME || '',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -59,31 +71,41 @@ function chromeBinary() {
   throw new Error('No local Chrome/Chromium found (set CHROME env var)');
 }
 
-async function startServer(distDir) {
+async function startStaticServer(rootDir, { subpathPrefix = null, cors = false } = {}) {
   const server = createServer((req, res) => {
     try {
+      if (cors) {
+        res.setHeader('access-control-allow-origin', '*');
+        res.setHeader('access-control-allow-methods', 'GET, HEAD, OPTIONS');
+        if (req.method === 'OPTIONS') {
+          res.writeHead(204);
+          res.end();
+          return;
+        }
+      }
       const reqUrl = new URL(req.url, 'http://127.0.0.1');
       let reqPath = decodeURIComponent(reqUrl.pathname);
-      if (reqPath === '/uor-r4/studio') {
-        res.writeHead(301, { location: '/uor-r4/studio/' });
-        res.end();
-        return;
-      }
-      if (reqPath.startsWith('/uor-r4/studio/')) {
-        reqPath = '/' + reqPath.slice('/uor-r4/studio/'.length);
+      if (subpathPrefix) {
+        if (reqPath === subpathPrefix) {
+          res.writeHead(301, { location: subpathPrefix + '/' });
+          res.end();
+          return;
+        }
+        if (reqPath.startsWith(subpathPrefix + '/')) {
+          reqPath = '/' + reqPath.slice(subpathPrefix.length + 1);
+        }
       }
       if (reqPath === '/') reqPath = '/index.html';
       const norm = normalize(reqPath).replace(/^\/+/, '');
-      let full = resolve(distDir, norm);
-      if (!full.startsWith(distDir + sep) && full !== distDir) {
+      let full = resolve(rootDir, norm);
+      if (!full.startsWith(rootDir + sep) && full !== rootDir) {
         res.writeHead(403);
         res.end('forbidden');
         return;
       }
       if (!existsSync(full) || statSync(full).isDirectory()) {
-        // SPA client route fallback inside Foundry Studio, matching 404.html / Pages behavior.
-        if (!extname(norm) && existsSync(join(distDir, 'index.html'))) {
-          full = join(distDir, 'index.html');
+        if (!extname(norm) && existsSync(join(rootDir, 'index.html'))) {
+          full = join(rootDir, 'index.html');
         } else {
           res.writeHead(404, { 'content-type': 'text/plain' });
           res.end('not found: ' + norm);
@@ -161,7 +183,7 @@ async function cdpConnect(wsUrl) {
           pending.delete(id);
           rejectSend(new Error(`CDP timeout calling ${method}`));
         }
-      }, 50000);
+      }, 90000);
       pending.set(id, {
         resolve: (res) => {
           clearTimeout(timer);
@@ -229,7 +251,47 @@ async function waitForEval(cdp, sessionId, fnExpr, timeoutMs = 20000) {
   throw new Error('Timed out waiting for condition: ' + fnExpr.slice(0, 120));
 }
 
-async function verifyOriginPath(cdp, origin, basePath) {
+async function evalAsync(cdp, sessionId, fnBody, timeoutMs = 60000, label = 'eval') {
+  const res = await withTimeout(
+    cdp.send(
+      'Runtime.evaluate',
+      { expression: `(async () => { ${fnBody} })()`, awaitPromise: true, returnByValue: true },
+      sessionId,
+    ),
+    timeoutMs,
+    label,
+  );
+  if (res.exceptionDetails) {
+    throw new Error(`${label} threw: ${JSON.stringify(res.exceptionDetails)}`);
+  }
+  return res.result?.value;
+}
+
+async function typeIntoHomeComposer(cdp, sessionId, text) {
+  const focused = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const el = document.querySelector('[data-testid="home-chat-input-container"] [contenteditable="true"]')
+        || document.querySelector('[contenteditable="true"][role="textbox"]');
+      if (!el) return false;
+      el.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    `,
+    10000,
+    'focus home composer',
+  );
+  assert(focused, 'Home composer contenteditable textbox not found');
+  await cdp.send('Input.insertText', { text }, sessionId);
+  await new Promise((r) => setTimeout(r, 200));
+}
+
+async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
   const target = await cdp.send('Target.createTarget', { url: 'about:blank' });
   const attached = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
@@ -243,17 +305,19 @@ async function verifyOriginPath(cdp, origin, basePath) {
     { autoAttach: true, waitForDebuggerOnStart: false, flatten: true },
     sessionId,
   );
-  console.error(`[verify] navigating to ${basePath}`);
+
+  const navUrl = packOrigin
+    ? `${origin}${basePath}?v13Mirror=${encodeURIComponent(packOrigin + '/')}`
+    : `${origin}${basePath}`;
+  console.error(`[verify] navigating to ${navUrl}`);
 
   const handledChildSessions = new Set();
-  const childSessionIds = new Set();
   const drainChildren = async () => {
     for (const ev of cdp.events) {
       if (ev.method === 'Target.attachedToTarget') {
         const cid = ev.params?.sessionId;
         if (cid && !handledChildSessions.has(cid)) {
           handledChildSessions.add(cid);
-          childSessionIds.add(cid);
           void cdp.send('Network.enable', {}, cid).catch(() => {});
           if (ev.params?.waitingForDebugger) {
             void cdp.send('Runtime.runIfWaitingForDebugger', {}, cid).catch(() => {});
@@ -264,7 +328,7 @@ async function verifyOriginPath(cdp, origin, basePath) {
   };
 
   const evStart = cdp.events.length;
-  await cdp.send('Page.navigate', { url: origin + basePath }, sessionId);
+  await cdp.send('Page.navigate', { url: navUrl }, sessionId);
 
   const deadline = Date.now() + 25000;
   let loaded = false;
@@ -277,29 +341,23 @@ async function verifyOriginPath(cdp, origin, basePath) {
     await new Promise((r) => setTimeout(r, 100));
   }
   assert(loaded, `Page load did not fire for ${basePath}`);
-  console.error(`[verify] loaded ${basePath}, waiting for UI mount`);
 
   const ready = await waitForEval(
     cdp,
     sessionId,
     `Boolean(window.electron && window.__host && window.__uorR4 && document.querySelector('#root')?.children.length > 0)`,
-    20000,
+    25000,
   );
   assert(ready, 'Foundry UI did not mount inside #root');
-  console.error(`[verify] UI mounted on ${basePath}, checking network/exceptions`);
-
   await new Promise((r) => setTimeout(r, 1500));
   await drainChildren();
 
-  // Check zero external network requests and zero failed HTTP requests during boot.
   const externalReqs = [];
   const failedSameOrigin = [];
-  const reqMap = new Map();
   const pageExceptions = [];
   for (const ev of cdp.events.slice(evStart)) {
     if (ev.method === 'Network.requestWillBeSent') {
       const reqUrl = ev.params?.request?.url || '';
-      reqMap.set(ev.params.requestId, reqUrl);
       if (/^https?:\/\//i.test(reqUrl)) {
         const parsed = new URL(reqUrl);
         if (parsed.origin !== origin) {
@@ -319,108 +377,311 @@ async function verifyOriginPath(cdp, origin, basePath) {
   assert(externalReqs.length === 0, `Unexpected external boot requests on ${basePath}: ${JSON.stringify(externalReqs)}`);
   assert(failedSameOrigin.length === 0, `Failed HTTP responses on ${basePath}: ${JSON.stringify(failedSameOrigin)}`);
   assert(pageExceptions.length === 0, `Uncaught page exceptions on ${basePath}: ${JSON.stringify(pageExceptions)}`);
-  console.error(`[verify] boot clean on ${basePath}, exercising UOR-R4 + MVM`);
+  console.error(`[verify] boot clean on ${basePath}`);
 
-  // Verify Foundry + UOR-R4 providers, models.json, core.wasm, and real uor_model_worker.js execution.
-  const uorCheck = await withTimeout(
-    cdp.send(
-      'Runtime.evaluate',
-      {
-        expression: `(async () => {
-        const providers = await window.electron.ipcRenderer.invoke('get-language-model-providers');
-        const models = await window.electron.ipcRenderer.invoke('get-language-models', { providerId: 'uor-r4' });
-        const status = await window.electron.ipcRenderer.invoke('uor-r4:status');
-        const created = await window.electron.ipcRenderer.invoke('create-app', { name: 'verify-uor-mvm' });
-        const appId = created.app.id;
-        const chatId = created.chatId;
+  // 1. Check catalog & UI ModelPicker: ZERO dummy models (`synthetic-seed-5`, `foundry:reader`).
+  const catalogCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const providers = await window.electron.ipcRenderer.invoke('get-language-model-providers');
+      const models = await window.electron.ipcRenderer.invoke('get-language-models', { providerId: 'uor-r4' });
+      const status = await window.electron.ipcRenderer.invoke('uor-r4:status');
+      const settings = await window.electron.ipcRenderer.invoke('get-user-settings');
+      const modelsJson = await (await fetch(new URL('models.json', location.href))).json();
+      const pickerText = document.querySelector('[data-testid="model-picker"]')?.textContent || '';
+      const chatTabSelected = document.querySelector('[data-testid="home-mode-chat"]')?.getAttribute('aria-selected');
+      const standards = await window.electron.ipcRenderer.invoke('standards:lookup', { query: 'softmax' });
+      return {
+        providerIds: providers.map((p) => p.id),
+        uorModelNames: models.map((m) => m.apiName),
+        jsonIds: (modelsJson.models || []).map((m) => m.id),
+        selectedModel: settings.selectedModel,
+        catalogSchema: status.schema,
+        pickerText,
+        chatTabSelected,
+        standardsCount: (standards.matches || []).length,
+        standardsTopTitle: standards.matches?.[0]?.title || '',
+      };
+    `,
+    25000,
+    `catalog check on ${basePath}`,
+  );
+  assert(
+    JSON.stringify(catalogCheck.providerIds) === JSON.stringify(['uor-r4']),
+    `Expected sole provider ['uor-r4'], got ${JSON.stringify(catalogCheck.providerIds)}`,
+  );
+  assert(
+    catalogCheck.uorModelNames.includes('uor-r4:qwen3-0.6b-foundry') &&
+      catalogCheck.uorModelNames.includes('uor-r4:m1-discrete-trunk-seed-1') &&
+      !catalogCheck.uorModelNames.some((n) => n.includes('synthetic-seed-5') || n.includes('foundry:reader')),
+    `Unexpected model list: ${JSON.stringify(catalogCheck.uorModelNames)}`,
+  );
+  assert(
+    !catalogCheck.pickerText.includes('synthetic-seed-5') && !catalogCheck.pickerText.includes('Foundry reader'),
+    `Dummy label leaked in ModelPicker: ${catalogCheck.pickerText}`,
+  );
+  assert(catalogCheck.chatTabSelected === 'true', `Home Chat tab should default active: ${JSON.stringify(catalogCheck)}`);
+  assert(catalogCheck.standardsCount > 0, `standards:lookup returned 0 matches for 'softmax'`);
+  console.error(`[verify] catalog & standards OK (${catalogCheck.uorModelNames.join(', ')})`);
 
-        // Exercise real UOR-R4 integer WASM generation through Foundry's canonical chat queue.
-        const loaded = await window.electron.ipcRenderer.invoke('uor-r4:select-model', { modelId: 'uor-r4:synthetic-seed-5' });
-        const submitRes = await window.__uorR4.submitPrompt(chatId, appId, 'hello foundry');
+  // 2. Load Run 5 Qwen3-0.6B Foundry V13 WASM & verify Stitch 2-of-3 XOR recovery.
+  const activeEvMark = cdp.events.length;
+  const v13LoadCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const loaded = await window.electron.ipcRenderer.invoke('uor-r4:select-model', { modelId: 'uor-r4:qwen3-0.6b-foundry' });
+      const stitch = await window.electron.ipcRenderer.invoke('uor-r4:test-stitch-recover', { groupIndex: 0, dropped: 2 });
+      return { loaded, stitch };
+    `,
+    90000,
+    `V13 WASM load + Stitch XOR recovery on ${basePath}`,
+  );
+  assert(
+    v13LoadCheck.loaded?.capabilities?.engine?.includes('v13') &&
+      v13LoadCheck.loaded?.capabilities?.sha256_verified === true &&
+      v13LoadCheck.loaded?.sha256 === v13LoadCheck.loaded?.capabilities?.expected_sha256,
+    `Unexpected V13 load result: ${JSON.stringify(v13LoadCheck.loaded)}`,
+  );
+  assert(
+    v13LoadCheck.stitch?.ok === true &&
+      typeof v13LoadCheck.stitch?.recoveredSha256 === 'string' &&
+      v13LoadCheck.stitch.recoveredSha256 === v13LoadCheck.stitch.expectedSha256,
+    `Stitch 2-of-3 XOR recovery failed: ${JSON.stringify(v13LoadCheck.stitch)}`,
+  );
+  console.error(`[verify] V13 WASM mounted & Stitch XOR group-0 recovered (${v13LoadCheck.stitch.recoveredSha256.slice(0, 12)})`);
 
-        // Poll chat until streaming finishes or timeout
-        let chatState = null;
-        for (let i = 0; i < 80; i++) {
-          chatState = await window.electron.ipcRenderer.invoke('get-chat', chatId);
-          const asst = (chatState.messages || []).find((m) => m.role === 'assistant');
-          if (asst && asst.content && asst.content.trim().length > 0 && asst.model === 'uor-r4:synthetic-seed-5') break;
-          await new Promise((r) => setTimeout(r, 150));
-        }
-        const finalAsst = (chatState?.messages || []).find((m) => m.role === 'assistant');
+  // Ensure network fetches during V13 load only targeted loopback origin / packOrigin (or pinned raw GitHub if no local mirror).
+  const allowedOrigins = new Set([origin, ...(packOrigin ? [packOrigin] : ['https://raw.githubusercontent.com'])]);
+  for (const ev of cdp.events.slice(activeEvMark)) {
+    if (ev.method === 'Network.requestWillBeSent') {
+      const reqUrl = ev.params?.request?.url || '';
+      if (/^https?:\/\//i.test(reqUrl)) {
+        const parsed = new URL(reqUrl);
+        assert(
+          allowedOrigins.has(parsed.origin),
+          `Unexpected remote request during V13 load on ${basePath}: ${reqUrl}`,
+        );
+      }
+    }
+  }
 
-        // Exercise MVM WASM RV64IMAC terminal IPC + CoW persistence across simulated page reload.
-        const open1 = await window.electron.ipcRenderer.invoke('terminal:open', { appId, cols: 80, rows: 24 });
-        const unameRes = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'uname -a' });
-        const writeProbe = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'echo hello-cow > /tmp/probe.txt' });
-        const readProbe1 = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'cat /tmp/probe.txt' });
-        const mvmId = await window.electron.ipcRenderer.invoke('mvm:identity', { appId });
+  // 3. Exercise real Home Chat UI (`Chat` mode stays on `/` with zero app created).
+  await typeIntoHomeComposer(cdp, sessionId, 'Explain the UOR-R4 Charter in one sentence.');
+  const sentHome = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const btn = document.querySelector('[aria-label="Send message"]');
+      if (!btn || btn.disabled) return false;
+      btn.click();
+      return true;
+    `,
+    10000,
+    'click send in Home Chat mode',
+  );
+  assert(sentHome, 'Could not click Send in Home Chat mode');
 
-        // Navigate into chat workspace hash route and open Terminal tab in PreviewPanel
-        location.hash = '#/chat?id=' + chatId + '&appId=' + appId;
-        let terminalBtn = null;
-        for (let i = 0; i < 40; i++) {
-          terminalBtn = document.querySelector('[data-testid="terminal-mode-button"]');
-          if (terminalBtn) break;
-          await new Promise((r) => setTimeout(r, 150));
-        }
-        if (terminalBtn) {
-          terminalBtn.click();
-          await new Promise((r) => setTimeout(r, 600));
-        }
-        const xtermMounted = Boolean(document.querySelector('.xterm, [data-testid="terminal-panel"], canvas'));
+  const homeChatResult = await waitForEval(
+    cdp,
+    sessionId,
+    `(async () => {
+      const thread = document.querySelector('[data-testid="home-chat-thread"]');
+      const asst = thread?.querySelector('[data-role="assistant"]');
+      const promoteBtn = document.querySelector('[data-testid="home-promote-to-studio"]');
+      const stopBtn = document.querySelector('[data-testid="home-chat-cancel"]');
+      const hist = await window.electron.ipcRenderer.invoke('home-chat:history');
+      const msgs = hist.messages || [];
+      const done =
+        !stopBtn &&
+        msgs.length >= 2 &&
+        msgs[1].role === 'assistant' &&
+        String(msgs[1].content || '').trim().length > 8 &&
+        msgs[1].model === 'uor-r4:qwen3-0.6b-foundry';
+      if (!done || !promoteBtn) return null;
+      const apps = (await window.electron.ipcRenderer.invoke('list-apps')).apps || [];
+      return {
+        hash: location.hash,
+        replyLen: msgs[1].content.length,
+        replyPreview: msgs[1].content.slice(0, 120),
+        appsCountBeforePromote: apps.length,
+        asstText: (asst?.textContent || '').slice(0, 120),
+      };
+    })()`,
+    90000,
+  );
+  assert(
+    !homeChatResult.hash.startsWith('#/chat') && homeChatResult.appsCountBeforePromote === 0,
+    `Home Chat navigated or created an app prematurely: ${JSON.stringify(homeChatResult)}`,
+  );
+  console.error(`[verify] Home Chat stayed on '/' and streamed ${homeChatResult.replyLen} chars: ${JSON.stringify(homeChatResult.replyPreview)}`);
 
-        return {
-          providerIds: providers.map((p) => p.id),
-          uorModelNames: models.map((m) => m.apiName),
-          catalogSchema: status.schema,
-          loadedEngine: loaded.capabilities.engine,
-          loadedSha: loaded.sha256,
-          chatModel: finalAsst?.model || null,
-          chatReplyLen: finalAsst?.content?.length || 0,
-          chatReplyPreview: (finalAsst?.content || '').slice(0, 80),
-          submitRes,
-          openShell: open1.shell,
-          unameStdout: unameRes.stdout,
-          unameRetired: unameRes.instructions_retired,
-          unameMachine: unameRes.compiled_elf_machine,
-          probeOut1: readProbe1.stdout,
-          cowSha: writeProbe.cow_state_sha256,
-          arch: mvmId.architecture,
-          hasTerminalTab: Boolean(terminalBtn),
-          xtermMounted,
-          appId,
-          hashAfterNav: location.hash,
-        };
-      })()`,
-        awaitPromise: true,
-        returnByValue: true,
-      },
-      sessionId,
-    ),
-    45000,
-    `uorCheck on ${basePath}`,
+  // 4. Click "Build this in Studio →" and confirm promotion creates an app & navigates into Studio chat.
+  await evalAsync(
+    cdp,
+    sessionId,
+    `document.querySelector('[data-testid="home-promote-to-studio"]')?.click();`,
+    10000,
+    'click Build this in Studio',
+  );
+  const promoted = await waitForEval(
+    cdp,
+    sessionId,
+    `(async () => {
+      const apps = (await window.electron.ipcRenderer.invoke('list-apps')).apps || [];
+      if (apps.length < 1 || !location.hash.includes('chat')) return null;
+      const appId = apps[apps.length - 1].id;
+      const chats = await window.electron.ipcRenderer.invoke('get-chats', appId);
+      const chatId = chats[0]?.id;
+      if (!chatId) return null;
+      return { hash: location.hash, appId, chatId, appCount: apps.length };
+    })()`,
+    25000,
+  );
+  console.error(`[verify] Promoted Home Chat -> Studio app #${promoted.appId} (${promoted.hash})`);
+  await evalAsync(
+    cdp,
+    sessionId,
+    `
+      await window.electron.ipcRenderer.invoke('chat:cancel', ${promoted.chatId}).catch(() => {});
+      for (let i = 0; i < 60; i++) {
+        const sub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'chat_stream', encodedKey: { chatId: ${promoted.chatId} } });
+        if (sub?.encodedState?.phase === 'idle' || sub?.encodedState?.phase === 'errored') break;
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    `,
+    25000,
+    'quiesce promoted chat stream',
   );
 
-  if (uorCheck.exceptionDetails) {
-    throw new Error(`Verification script threw on ${basePath}: ${JSON.stringify(uorCheck.exceptionDetails)}`);
-  }
-  const v = uorCheck.result.value;
-  console.error(`[verify] UOR-R4 + MVM exercised on ${basePath}: app=${v.appId} hash=${v.hashAfterNav} term=${v.hasTerminalTab} xterm=${v.xtermMounted}`);
-  assert(v.providerIds.includes('uor-r4') && v.providerIds.includes('local'), `Missing providers: ${JSON.stringify(v)}`);
-  assert(v.uorModelNames.includes('uor-r4:synthetic-seed-5'), `Missing synthetic-seed-5 model: ${JSON.stringify(v)}`);
-  assert(v.loadedEngine === 'uor-r4-integer/serving-wasm', `Unexpected loaded engine: ${v.loadedEngine}`);
-  assert(v.chatModel === 'uor-r4:synthetic-seed-5' && v.chatReplyLen > 0, `Real UOR-R4 chat stream failed: ${JSON.stringify(v)}`);
-  assert(v.unameStdout.includes('riscv64'), `MVM uname did not report riscv64: ${JSON.stringify(v)}`);
-  assert(v.unameRetired > 0, `MVM instructions_retired must be > 0: ${v.unameRetired}`);
-  assert(v.probeOut1.trim() === 'hello-cow', `MVM /tmp/probe.txt failed: ${JSON.stringify(v)}`);
-  assert(v.hasTerminalTab, `Terminal tab [data-testid="terminal-mode-button"] missing from Foundry UI`);
+  // 5. Return to Home, switch to `Build App` mode, and verify `create-app` launches cleanly via composer UI.
+  await evalAsync(
+    cdp,
+    sessionId,
+    `
+      location.hash = '#/';
+    `,
+    10000,
+    'navigate back home for Build App test',
+  );
+  await waitForEval(cdp, sessionId, `Boolean(document.querySelector('[data-testid="home-mode-build"]'))`, 15000);
+  await evalAsync(
+    cdp,
+    sessionId,
+    `document.querySelector('[data-testid="home-mode-build"]')?.click();`,
+    10000,
+    'switch to Build App mode',
+  );
+  await typeIntoHomeComposer(cdp, sessionId, 'Call workspace_list for root.');
+  await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const btn = document.querySelector('[aria-label="Send message"]');
+      if (!btn || btn.disabled) throw new Error('Build App send button disabled');
+      btn.click();
+    `,
+    10000,
+    'click send in Build App mode',
+  );
+  const builtFromHome = await waitForEval(
+    cdp,
+    sessionId,
+    `(async () => {
+      const apps = (await window.electron.ipcRenderer.invoke('list-apps')).apps || [];
+      if (apps.length < 2 || !location.hash.includes('chat')) return null;
+      const app = apps[apps.length - 1];
+      const chats = await window.electron.ipcRenderer.invoke('get-chats', app.id);
+      const chatId = chats[0]?.id;
+      if (!chatId) return null;
+      const sub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'chat_stream', encodedKey: { chatId } });
+      if (sub?.encodedState?.phase !== 'idle') return null;
+      const chat = await window.electron.ipcRenderer.invoke('get-chat', chatId);
+      const asst = (chat.messages || []).find((m) => m.role === 'assistant');
+      if (!asst || !asst.content || !asst.content.trim().length) return null;
+      return {
+        appId: app.id,
+        chatId,
+        hash: location.hash,
+        model: asst.model,
+        hasToolCall: asst.content.includes('<tool_call>'),
+        hasToolResponse: asst.content.includes('<tool_response>'),
+        replyPreview: asst.content.slice(0, 180),
+      };
+    })()`,
+    120000,
+  );
+  assert(
+    builtFromHome.model === 'uor-r4:qwen3-0.6b-foundry',
+    `Build App chat used wrong model: ${JSON.stringify(builtFromHome)}`,
+  );
+  assert(
+    builtFromHome.hasToolCall && builtFromHome.hasToolResponse,
+    `Expected full <tool_call>/<tool_response> round-trip on Build App turn: ${JSON.stringify(builtFromHome)}`,
+  );
+  console.error(`[verify] Home Build App create-app + Run 5 generation succeeded: app=${builtFromHome.appId} toolCall=${builtFromHome.hasToolCall} toolResp=${builtFromHome.hasToolResponse} preview=${JSON.stringify(builtFromHome.replyPreview)}`);
 
-  // Reload the exact origin + hash route to verify both static-host reload and OPFS/IndexedDB CoW MVM persistence!
-  console.error(`[verify] reloading ${basePath}${v.hashAfterNav || ''}`);
+  // 6. Test <prism-write> parsing + MVM RV64IMAC CoW persistence + reload survival.
+  const mvmCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const appId = ${builtFromHome.appId};
+      const chatId = ${builtFromHome.chatId};
+      const open1 = await window.electron.ipcRenderer.invoke('terminal:open', { appId, cols: 80, rows: 24 });
+      const unameRes = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'uname -a' });
+      const writeProbe = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'echo hello-cow > /tmp/probe.txt' });
+      const readProbe1 = await window.electron.ipcRenderer.invoke('mvm:exec', { appId, command: 'cat /tmp/probe.txt' });
+      const mvmId = await window.electron.ipcRenderer.invoke('mvm:identity', { appId });
+
+      // Apply a sample <prism-write> through the shared chat tag applicator and verify version commit.
+      const tags = window.__chat.parsePrismTags('<prism-write path="src/uor-probe.txt" description="verify write">uor-v13-ok</prism-write>');
+      const patched = await window.__chat.applyPrismTags(appId, tags);
+      const readWritten = await window.electron.ipcRenderer.invoke('read-app-file', { appId, filePath: 'src/uor-probe.txt' });
+
+      let terminalBtn = null;
+      for (let i = 0; i < 40; i++) {
+        terminalBtn = document.querySelector('[data-testid="terminal-mode-button"]');
+        if (terminalBtn) break;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (terminalBtn) {
+        terminalBtn.click();
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      const xtermMounted = Boolean(document.querySelector('.xterm, [data-testid="terminal-panel"], canvas'));
+      return {
+        appId,
+        chatId,
+        openShell: open1.shell,
+        unameStdout: unameRes.stdout,
+        unameRetired: unameRes.instructions_retired,
+        probeOut1: readProbe1.stdout,
+        cowSha: writeProbe.cow_state_sha256,
+        arch: mvmId.architecture,
+        patchedChanged: patched.changed,
+        readWritten,
+        hasTerminalTab: Boolean(terminalBtn),
+        xtermMounted,
+        hashAfterNav: location.hash,
+      };
+    `,
+    45000,
+    `MVM & prism-write check on ${basePath}`,
+  );
+  assert(mvmCheck.unameStdout.includes('riscv64'), `MVM uname did not report riscv64: ${JSON.stringify(mvmCheck)}`);
+  assert(mvmCheck.unameRetired > 0, `MVM instructions_retired must be > 0: ${mvmCheck.unameRetired}`);
+  assert(mvmCheck.probeOut1.trim() === 'hello-cow', `MVM /tmp/probe.txt failed: ${JSON.stringify(mvmCheck)}`);
+  assert(mvmCheck.readWritten === 'uor-v13-ok', `prism-write commit failed: ${JSON.stringify(mvmCheck)}`);
+  assert(mvmCheck.hasTerminalTab, `Terminal tab [data-testid="terminal-mode-button"] missing`);
+
+  // Reload to verify CoW + IndexedDB state persistence.
+  console.error(`[verify] reloading ${basePath}${mvmCheck.hashAfterNav}`);
   await withTimeout(cdp.send('Runtime.evaluate', { expression: 'window.__uorBeforeReload = true;' }, sessionId), 10000, 'mark reload');
   const reloadEvStart = cdp.events.length;
-  await withTimeout(cdp.send('Page.reload', { ignoreCache: true }, sessionId), 15000, 'Page.reload');
-  const reloadDeadline = Date.now() + 20000;
+  await withTimeout(cdp.send('Page.reload', { ignoreCache: false }, sessionId), 30000, 'Page.reload');
+  const reloadDeadline = Date.now() + 45000;
   let reloadFired = false;
   while (Date.now() < reloadDeadline) {
     await drainChildren();
@@ -430,8 +691,10 @@ async function verifyOriginPath(cdp, origin, basePath) {
     }
     await new Promise((r) => setTimeout(r, 100));
   }
-  assert(reloadFired, `Page.reload loadEventFired timed out on ${basePath}`);
-  console.error(`[verify] reload fired on ${basePath}, waiting for UI mount + MVM CoW`);
+  assert(
+    reloadFired,
+    `Page.reload loadEventFired timed out on ${basePath}; seen=[${cdp.events.slice(reloadEvStart).map((e) => e.method).slice(-12).join(',')}]`,
+  );
   await waitForEval(cdp, sessionId, `Boolean(!window.__uorBeforeReload && window.electron && window.__uorR4 && (document.querySelector('#root')?.children.length || 0) > 0)`, 20000);
   await new Promise((r) => setTimeout(r, 800));
   await drainChildren();
@@ -445,42 +708,42 @@ async function verifyOriginPath(cdp, origin, basePath) {
     }
   }
   assert(reloadExternalReqs.length === 0, `Unexpected external requests on reload (${basePath}): ${JSON.stringify(reloadExternalReqs)}`);
-  const reloadCheck = await withTimeout(
-    cdp.send(
-      'Runtime.evaluate',
-      {
-        expression: `(async () => {
-        const res = await window.electron.ipcRenderer.invoke('mvm:exec', { appId: ${v.appId}, command: 'cat /tmp/probe.txt' });
-        return { ...res, hashAfterReload: location.hash, rootMounted: (document.querySelector('#root')?.children.length || 0) > 0 };
-      })()`,
-        awaitPromise: true,
-        returnByValue: true,
-      },
-      sessionId,
-    ),
+  const reloadCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const res = await window.electron.ipcRenderer.invoke('mvm:exec', { appId: ${mvmCheck.appId}, command: 'cat /tmp/probe.txt' });
+      const written = await window.electron.ipcRenderer.invoke('read-app-file', { appId: ${mvmCheck.appId}, filePath: 'src/uor-probe.txt' });
+      return { ...res, written, hashAfterReload: location.hash, rootMounted: (document.querySelector('#root')?.children.length || 0) > 0 };
+    `,
     30000,
     `reloadCheck on ${basePath}`,
   );
-  if (reloadCheck.exceptionDetails) {
-    throw new Error('Reload MVM CoW check failed: ' + JSON.stringify(reloadCheck.exceptionDetails));
-  }
-  const rVal = reloadCheck.result.value;
-  console.error(`[verify] reload CoW check on ${basePath}: stdout=${JSON.stringify(rVal.stdout.trim())} hash=${rVal.hashAfterReload}`);
-  assert(rVal.rootMounted, `Root UI failed to mount after hash route reload on ${basePath}: ${JSON.stringify(rVal)}`);
-  assert(rVal.stdout.trim() === 'hello-cow', `MVM CoW snapshot did not persist across page reload: ${JSON.stringify(rVal)}`);
+  assert(reloadCheck.rootMounted, `Root UI failed to mount after reload on ${basePath}`);
+  assert(reloadCheck.stdout.trim() === 'hello-cow', `MVM CoW failed across reload: ${JSON.stringify(reloadCheck)}`);
+  assert(reloadCheck.written === 'uor-v13-ok', `App file failed across reload: ${JSON.stringify(reloadCheck)}`);
 
   await cdp.send('Target.closeTarget', { targetId: target.targetId });
-  return { ...v, persistedAfterReload: rVal.stdout.trim() === 'hello-cow', basePath };
+  return {
+    basePath,
+    providers: catalogCheck.providerIds,
+    models: catalogCheck.uorModelNames,
+    stitchRecoveredSha256: v13LoadCheck.stitch.recoveredSha256,
+    homeChatReplyPreview: homeChatResult.replyPreview,
+    promotedAppId: promoted.appId,
+    builtFromHomeAppId: builtFromHome.appId,
+    persistedAfterReload: true,
+  };
 }
 
-async function runIsolatedOriginPath(origin, basePath) {
+async function runIsolatedOriginPath(origin, basePath, packOrigin) {
   const profileDir = await mkdtemp(join(tmpdir(), 'uor-foundry-cdp-'));
   let chrome = null;
   let cdp = null;
   try {
     chrome = await launchChrome(profileDir);
     cdp = await cdpConnect(chrome.wsUrl);
-    return await verifyOriginPath(cdp, origin, basePath);
+    return await verifyOriginPath(cdp, origin, basePath, packOrigin);
   } finally {
     try { cdp?.ws?.close(); } catch {}
     try { chrome?.child?.kill('SIGKILL'); } catch {}
@@ -491,21 +754,25 @@ async function runIsolatedOriginPath(origin, basePath) {
 async function main() {
   const distDir = resolve(process.argv[2] || DEFAULT_DIST);
   assert(existsSync(join(distDir, 'index.html')), `dist directory not built: ${distDir}`);
+  const packDir = resolveV13PackDir();
 
-  const { server, origin } = await startServer(distDir);
+  const { server, origin } = await startStaticServer(distDir, { subpathPrefix: '/uor-r4/studio' });
+  const packSrv = packDir ? await startStaticServer(packDir, { cors: true }) : null;
   try {
-    const rootReport = await withTimeout(runIsolatedOriginPath(origin, '/'), 60000, 'origin /');
-    const subpathReport = await withTimeout(runIsolatedOriginPath(origin, '/uor-r4/studio/'), 60000, 'origin /uor-r4/studio/');
+    const rootReport = await withTimeout(runIsolatedOriginPath(origin, '/', packSrv?.origin || null), 240000, 'origin /');
+    const subpathReport = await withTimeout(runIsolatedOriginPath(origin, '/uor-r4/studio/', packSrv?.origin || null), 240000, 'origin /uor-r4/studio/');
     console.log(
       JSON.stringify({
         verdict: 'ALL FOUNDRY STUDIO CDP CHECKS PASSED',
         distDir,
+        packMirrorUsed: Boolean(packSrv),
         root: rootReport,
         subpath: subpathReport,
       }),
     );
   } finally {
     try { server.close(); } catch {}
+    try { packSrv?.server?.close(); } catch {}
   }
 }
 

@@ -224,7 +224,7 @@ self.addEventListener("fetch", (event) => {
       // Pages maps unknown renderer routes to its HTML fallback. Keep those navigations
       // on this closure too; a route allowlist would drift when a newer renderer adds one.
       // Subapps, engine/API and resource namespaces keep their existing ownership.
-      const separate = /^(?:app|ui|p|holo|v1|engine|assets|scaffold|editor|compiler|live|q|kernel|prism|prism-code|fonts|wallpapers)(?:\/|$)/.test(path);
+      const separate = /^(?:app|ui|p|holo|v1|v13|v86|images|pkg|pkg-mvm|uor|engine|assets|scaffold|editor|compiler|live|q|kernel|prism|prism-code|fonts|wallpapers)(?:\/|$)/.test(path);
       if (event.request.mode === "navigate" && !separate) {
         return (await matchShell(BASE + "index.html")) || new Response("Document absent from the active shell", { status: 404 });
       }

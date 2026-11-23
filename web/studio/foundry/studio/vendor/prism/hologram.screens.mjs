@@ -368,7 +368,112 @@ import { MobileBuild } from "../../hologram.screens/MobileBuild";`,
   {
     file: "src/pages/home.tsx",
     from: `import { RefreshCw, Zap } from "lucide-react";`,
-    to: `import { Sparkles, Zap } from "lucide-react";`,
+    to: `import { Sparkles, Zap } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLoadApps } from "@/hooks/useLoadApps";
+import { useSelectChat } from "@/hooks/useSelectChat";
+import { HomeChatThread, HomeModeToggle, useHomeChat, type HomeMode } from "../../hologram.screens/HomeChatSurface";`,
+  },
+  {
+    file: "src/pages/home.tsx",
+    from: `  const navigate = useNavigate();`,
+    to: `  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { refreshApps } = useLoadApps();
+  const { selectChat } = useSelectChat();
+  const [homeMode, setHomeMode] = useState<HomeMode>("chat");
+  const handleHomePromoted = useCallback(async (promotedAppId: number, promotedChatId: number) => {
+    await refreshApps();
+    await queryClient.invalidateQueries();
+    selectChat({ appId: promotedAppId, chatId: promotedChatId });
+  }, [queryClient, refreshApps, selectChat]);
+  const homeChat = useHomeChat({ onPromoted: handleHomePromoted });`,
+  },
+  {
+    file: "src/pages/home.tsx",
+    from: `  const handleSubmit = useCallback(
+    (options?: HomeSubmitOptions) => {
+      const submittedAttachments = options?.attachments ?? [];
+      if (!inputValue.trim() && submittedAttachments.length === 0) return false;
+      return sendFirstPrompt({
+        type: "SUBMIT",
+        payload: {
+          prompt: inputValue,
+          attachments: submittedAttachments,
+          selectedApp: options?.selectedApp,
+          chatMode: homeSubmitChatMode,
+          isChatModeExplicit: hasManuallySelectedChatMode,
+        },
+      });
+    },
+    [
+      hasManuallySelectedChatMode,
+      homeSubmitChatMode,
+      inputValue,
+      sendFirstPrompt,
+    ],
+  );`,
+    to: `  const handleSubmit = useCallback(
+    (options?: HomeSubmitOptions) => {
+      const submittedAttachments = options?.attachments ?? [];
+      if (!inputValue.trim() && submittedAttachments.length === 0) return false;
+      if (homeMode === "chat" && !options?.selectedApp && submittedAttachments.length === 0) {
+        const promptText = inputValue;
+        setInputValue("");
+        void homeChat.sendMessage(promptText);
+        return true;
+      }
+      return sendFirstPrompt({
+        type: "SUBMIT",
+        payload: {
+          prompt: inputValue,
+          attachments: submittedAttachments,
+          selectedApp: options?.selectedApp,
+          chatMode: homeSubmitChatMode,
+          isChatModeExplicit: hasManuallySelectedChatMode,
+        },
+      });
+    },
+    [
+      hasManuallySelectedChatMode,
+      homeChat,
+      homeMode,
+      homeSubmitChatMode,
+      inputValue,
+      sendFirstPrompt,
+      setInputValue,
+    ],
+  );`,
+  },
+  {
+    file: "src/pages/home.tsx",
+    from: `          <HomeChatInput
+            onSubmit={handleSubmit}
+            disabled={isCheckingProviders}
+          />`,
+    to: `          <div className="mb-3 flex justify-center">
+            <HomeModeToggle
+              mode={homeMode}
+              onChange={setHomeMode}
+              disabled={isCheckingProviders || homeChat.sending || homeChat.promoting}
+            />
+          </div>
+          {homeMode === "chat" && (
+            <HomeChatThread
+              messages={homeChat.messages}
+              sending={homeChat.sending}
+              promoting={homeChat.promoting}
+              error={homeChat.error}
+              hydration={homeChat.hydration}
+              onCancel={homeChat.cancel}
+              onClear={homeChat.clear}
+              onPromote={homeChat.promoteToStudio}
+            />
+          )}
+          <HomeChatInput
+            onSubmit={handleSubmit}
+            disabled={isCheckingProviders}
+          />`,
   },
   {
     file: "src/components/chat/HomeChatInput.tsx",
