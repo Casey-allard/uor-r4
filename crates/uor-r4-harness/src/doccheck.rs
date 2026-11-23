@@ -486,6 +486,10 @@ const ACCEPTED: &[&str] = &[
     // `comment edit` edits a note by id. It moved with the lesson that names it: the two tables have to
     // move together, and only one side updated diverges the #[ignore]d cross-check.
     "comment",
+    // `claim-wording` is dispatched by `main.rs` (`cmd_claim_wording`) and listed in its help, and it
+    // was missing here, so a report that named a command that runs was reported as naming one that
+    // does not exist.
+    "claim-wording",
 ];
 
 /// Top-level commands implemented only by the Rust entry point (`scripts/harness/doccheck.py:192-216`).
@@ -507,6 +511,7 @@ const RUST_ONLY_COMMANDS: &[&str] = &[
     "version",
     "loop",
     "comment",
+    "claim-wording",
 ];
 
 /// Subcommands of the top-level groups, as **this binary** accepts them.
@@ -1065,5 +1070,18 @@ mod documented_commands_tests {
         assert_eq!(r6.len(), 1);
         assert!(!r6[0].1, "{r6:?}");
         assert!(r6[0].2.contains("unknown flag \"--bad-flag\""), "{r6:?}");
+    }
+
+    #[test]
+    fn claim_wording_is_a_command_this_binary_runs() {
+        // `main.rs` dispatches `claim-wording`; a report naming it names a command that exists.
+        let ok = commands_in_text("`uor-harness claim-wording` passed.", ACCEPTED);
+        assert_eq!(ok.len(), 1);
+        assert!(ok[0].1, "{ok:?}");
+
+        // A flag it does not take is still refused.
+        let bad = commands_in_text("Run `uor-harness claim-wording --bad-flag`", ACCEPTED);
+        assert_eq!(bad.len(), 1);
+        assert!(!bad[0].1, "{bad:?}");
     }
 }
