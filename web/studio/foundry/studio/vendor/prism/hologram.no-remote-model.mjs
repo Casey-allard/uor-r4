@@ -88,7 +88,7 @@ export const NO_REMOTE_MODEL_PATCHES = [
     from: `import { OpenRouterSetupBanner, SetupBanner } from "../SetupBanner";\n`,
     to: ``,
   },
-  // Settings has no Model Providers section, in the page or its search.
+  // Settings replaces upstream cloud provider grids with UOR-R4 WASM + encrypted Custom AI API Endpoint config.
   {
     file: "src/pages/settings.tsx",
     from: `          <SettingsSection
@@ -99,17 +99,19 @@ export const NO_REMOTE_MODEL_PATCHES = [
             <ProviderSettingsGrid />
           </SettingsSection>
 `,
-    to: ``,
-  },
-  {
-    file: "src/pages/settings.tsx",
-    from: `import { ProviderSettingsGrid } from "@/components/ProviderSettings";\n`,
-    to: ``,
+    to: `          <SettingsSection
+            id={SECTION_IDS.providers}
+            title="AI Model & Custom API Endpoint"
+            description="Use the built-in UOR-R4 integer WASM model or connect your own OpenAI-compatible AI API endpoint."
+          >
+            <ProviderSettingsGrid />
+          </SettingsSection>
+`,
   },
   {
     file: "src/pages/settings.tsx",
     from: `Manage your preferences, providers, and integrations.`,
-    to: `Manage your preferences and integrations.`,
+    to: `Manage your preferences, AI model endpoints, and integrations.`,
   },
   {
     file: "src/lib/settingsSearchIndex.ts",
@@ -133,7 +135,26 @@ export const NO_REMOTE_MODEL_PATCHES = [
     sectionLabel: "Model Providers",
   },
 `,
-    to: ``,
+    to: `  // Custom AI API Endpoint Settings
+  {
+    id: SECTION_IDS.providers,
+    label: "AI Model & Custom API Endpoint",
+    description: "Configure built-in UOR-R4 WASM or an OpenAI-compatible AI API endpoint",
+    keywords: [
+      "provider",
+      "model",
+      "api key",
+      "endpoint",
+      "base url",
+      "openai",
+      "custom api",
+      "uor-r4",
+      "llm",
+    ],
+    sectionId: SECTION_IDS.providers,
+    sectionLabel: "AI Model & Custom API Endpoint",
+  },
+`,
   },
   // The title bar's Pro button opened a provider's key page.
   {

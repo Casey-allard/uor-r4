@@ -292,6 +292,25 @@ async function typeIntoHomeComposer(cdp, sessionId, text) {
   await new Promise((r) => setTimeout(r, 200));
 }
 
+async function clickCenter(cdp, sessionId, selector) {
+  const rect = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    `,
+    10000,
+    `locate ${selector}`,
+  );
+  assert(rect && rect.x >= 0 && rect.y >= 0, `Element not found or invisible: ${selector}`);
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 }, sessionId);
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 }, sessionId);
+  await new Promise((r) => setTimeout(r, 200));
+}
+
 async function startMockGitHubServer() {
   const refs = new Map();
   const blobs = new Map();
@@ -450,7 +469,67 @@ async function startMockGitHubServer() {
   };
 }
 
-async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
+async function startMockOpenAIServer() {
+  const calls = [];
+  const server = createServer(async (req, res) => {
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'content-type, authorization',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    const body = rawBody ? JSON.parse(rawBody) : {};
+    calls.push({ url: req.url, auth: req.headers.authorization || '', body });
+    if (req.url !== '/v1/chat/completions') {
+      res.writeHead(404, { ...corsHeaders, 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: { message: 'Not found' } }));
+      return;
+    }
+    if (req.headers.authorization !== 'Bearer sk-cdp-custom-secret-555') {
+      res.writeHead(401, { ...corsHeaders, 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: { message: 'Invalid Bearer token' } }));
+      return;
+    }
+    const lastUser = [...(body.messages || [])].reverse().find((m) => m.role === 'user')?.content || '';
+    if (!body.stream) {
+      res.writeHead(200, { ...corsHeaders, 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        id: 'cmpl-cdp-test',
+        model: body.model,
+        choices: [{ message: { role: 'assistant', content: lastUser.includes('Reply with OK') ? 'OK' : `Reply: ${lastUser}` } }],
+      }));
+      return;
+    }
+    res.writeHead(200, { ...corsHeaders, 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
+    if (lastUser.includes('<tool_response>')) {
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: 'Custom API Build App verified.' } }] })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+    if (lastUser.includes('TRIGGER_CUSTOM_TOOL')) {
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '<tool_call>{"name":"workspace_list","arguments":{"dir":""}}</tool_call>' } }] })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: 'Custom API Home Chat verified.' } }] })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const { port } = server.address();
+  return { server, origin: `http://127.0.0.1:${port}/v1`, calls };
+}
+
+async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub, mockOpenAI) {
   const target = await cdp.send('Target.createTarget', { url: 'about:blank' });
   const attached = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
@@ -538,7 +617,7 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
   assert(pageExceptions.length === 0, `Uncaught page exceptions on ${basePath}: ${JSON.stringify(pageExceptions)}`);
   console.error(`[verify] boot clean on ${basePath}`);
 
-  // 1. Check catalog & UI ModelPicker: ZERO dummy models (`synthetic-seed-5`, `foundry:reader`).
+  // 1. Check catalog, scaffold & UI ModelPicker: built-in Qwen3-0.6B only; zero M1, zero weight upload, zero desktop window controls.
   const catalogCheck = await evalAsync(
     cdp,
     sessionId,
@@ -548,13 +627,25 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
       const status = await window.electron.ipcRenderer.invoke('uor-r4:status');
       const settings = await window.electron.ipcRenderer.invoke('get-user-settings');
       const modelsJson = await (await fetch(new URL('models.json', location.href))).json();
-      const pickerText = document.querySelector('[data-testid="model-picker"]')?.textContent || '';
+      const scaffoldListResp = await fetch(new URL('scaffold/files.json', location.href));
+      const viteEnvResp = await fetch(new URL('scaffold/src/vite-env.d.ts', location.href));
+      const pickerBtn = document.querySelector('[data-testid="model-picker"]');
+      const pickerText = pickerBtn?.textContent || '';
+      const hasVoiceProBtn = Boolean(document.querySelector('[aria-label="Voice to text (Pro)"]'));
+      const hasWinControls = ['Minimize', 'Maximize', 'Close'].some((label) =>
+        Boolean(document.querySelector('[aria-label="' + label + '"]')),
+      );
       const chatTabSelected = document.querySelector('[data-testid="home-mode-chat"]')?.getAttribute('aria-selected');
       const standards = await window.electron.ipcRenderer.invoke('standards:lookup', { query: 'softmax' });
       return {
         providerIds: providers.map((p) => p.id),
         uorModelNames: models.map((m) => m.apiName),
+        localFileSource: modelsJson?.sources?.local_file,
         jsonIds: (modelsJson.models || []).map((m) => m.id),
+        scaffoldFilesStatus: scaffoldListResp.status,
+        viteEnvStatus: viteEnvResp.status,
+        hasVoiceProBtn,
+        hasWinControls,
         selectedModel: settings.selectedModel,
         catalogSchema: status.schema,
         pickerText,
@@ -566,23 +657,58 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
     25000,
     `catalog check on ${basePath}`,
   );
+  await clickCenter(cdp, sessionId, '[data-testid="model-picker"]');
+  const pickerMenuCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      return {
+        hasAddApiBtn: Boolean(document.querySelector('[data-testid="uor-r4-add-api-endpoint-button"]')),
+        hasLocalUploadBtn: Boolean(document.querySelector('[data-testid="uor-r4-load-local-button"]')),
+        hasLocalFileInput: Boolean(document.querySelector('[data-testid="uor-r4-local-file-input"], input[type="file"][accept*=".uorlut"]')),
+        menuText: document.querySelector('[role="menu"]')?.textContent || '',
+      };
+    `,
+    10000,
+    `inspect open ModelPicker menu on ${basePath}`,
+  );
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' }, sessionId);
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' }, sessionId);
+  await new Promise((r) => setTimeout(r, 150));
+  Object.assign(catalogCheck, pickerMenuCheck);
   assert(
     JSON.stringify(catalogCheck.providerIds) === JSON.stringify(['uor-r4']),
-    `Expected sole provider ['uor-r4'], got ${JSON.stringify(catalogCheck.providerIds)}`,
+    `Expected sole default provider ['uor-r4'], got ${JSON.stringify(catalogCheck.providerIds)}`,
   );
   assert(
-    catalogCheck.uorModelNames.includes('uor-r4:qwen3-0.6b-foundry') &&
-      catalogCheck.uorModelNames.includes('uor-r4:m1-discrete-trunk-seed-1') &&
-      !catalogCheck.uorModelNames.some((n) => n.includes('synthetic-seed-5') || n.includes('foundry:reader')),
-    `Unexpected model list: ${JSON.stringify(catalogCheck.uorModelNames)}`,
+    JSON.stringify(catalogCheck.uorModelNames) === JSON.stringify(['uor-r4:qwen3-0.6b-foundry']),
+    `Expected sole built-in model ['uor-r4:qwen3-0.6b-foundry'], got ${JSON.stringify(catalogCheck.uorModelNames)}`,
   );
   assert(
-    !catalogCheck.pickerText.includes('synthetic-seed-5') && !catalogCheck.pickerText.includes('Foundry reader'),
-    `Dummy label leaked in ModelPicker: ${catalogCheck.pickerText}`,
+    JSON.stringify(catalogCheck.jsonIds) === JSON.stringify(['qwen3-0.6b-foundry']) && catalogCheck.localFileSource === false,
+    `Unexpected models.json: ids=${JSON.stringify(catalogCheck.jsonIds)} local_file=${catalogCheck.localFileSource}`,
+  );
+  assert(
+    catalogCheck.scaffoldFilesStatus === 200 && catalogCheck.viteEnvStatus === 200,
+    `Expected HTTP 200 for scaffold/files.json & scaffold/src/vite-env.d.ts: ${JSON.stringify(catalogCheck)}`,
+  );
+  assert(
+    catalogCheck.hasAddApiBtn && !catalogCheck.hasLocalUploadBtn && !catalogCheck.hasLocalFileInput,
+    `Expected Custom API endpoint button and zero weight upload controls: ${JSON.stringify(catalogCheck)}`,
+  );
+  assert(
+    !catalogCheck.hasVoiceProBtn && !catalogCheck.hasWinControls,
+    `Desktop window controls or Pro voice button still rendered: ${JSON.stringify(catalogCheck)}`,
+  );
+  assert(
+    !catalogCheck.pickerText.includes('synthetic-seed-5') &&
+      !catalogCheck.pickerText.includes('Foundry reader') &&
+      !catalogCheck.pickerText.includes('M1 '),
+    `Removed/dummy label leaked in ModelPicker: ${catalogCheck.pickerText}`,
   );
   assert(catalogCheck.chatTabSelected === 'true', `Home Chat tab should default active: ${JSON.stringify(catalogCheck)}`);
   assert(catalogCheck.standardsCount > 0, `standards:lookup returned 0 matches for 'softmax'`);
-  console.error(`[verify] catalog & standards OK (${catalogCheck.uorModelNames.join(', ')})`);
+  console.error(`[verify] catalog, scaffold & clean UI controls OK (${catalogCheck.uorModelNames.join(', ')})`);
 
   // 2. Load Run 5 Qwen3-0.6B Foundry V13 WASM & verify Stitch 2-of-3 XOR recovery.
   const activeEvMark = cdp.events.length;
@@ -783,6 +909,128 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
   );
   console.error(`[verify] Home Build App create-app + Run 5 generation succeeded: app=${builtFromHome.appId} toolCall=${builtFromHome.hasToolCall} toolResp=${builtFromHome.hasToolResponse} preview=${JSON.stringify(builtFromHome.replyPreview)}`);
 
+  // 5b. Verify create-app scaffold files (`src/vite-env.d.ts`), Zod-contracted internal controls, routes, and local preview mode.
+  const controlsCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const appObj = await window.electron.ipcRenderer.invoke('get-app', ${builtFromHome.appId});
+      const previewFolder = await window.electron.ipcRenderer.invoke('preview-app-folder-name', { name: 'My Renamed App', appId: ${builtFromHome.appId} });
+      const commitObj = await window.electron.ipcRenderer.invoke('app:get-current-commit-hash', { appId: ${builtFromHome.appId} });
+      const renamed = await window.electron.ipcRenderer.invoke('rename-app', {
+        appId: ${builtFromHome.appId},
+        appName: 'Build App Verified',
+        appPath: 'build-app-verified',
+      });
+      const fav1 = await window.electron.ipcRenderer.invoke('add-to-favorite', { appId: ${builtFromHome.appId} });
+      const col = await window.electron.ipcRenderer.invoke('appCollections:create', { name: 'Verified Apps', appIds: [${builtFromHome.appId}] });
+      const colList = await window.electron.ipcRenderer.invoke('appCollections:list');
+      await window.electron.ipcRenderer.invoke('set-app-env-vars', { appId: ${builtFromHome.appId}, envVars: [{ key: 'UOR_ENV', value: 'studio' }] });
+      const envVars = await window.electron.ipcRenderer.invoke('get-app-env-vars', { appId: ${builtFromHome.appId} });
+      await window.electron.ipcRenderer.invoke('update-app-commands', { appId: ${builtFromHome.appId}, installCommand: null, startCommand: null });
+      const problems = await window.electron.ipcRenderer.invoke('check-problems', { appId: ${builtFromHome.appId} });
+      const templates = await window.electron.ipcRenderer.invoke('get-templates');
+      const mcpServers = await window.electron.ipcRenderer.invoke('mcp:list-servers');
+      const imgSub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'image_generation', encodedKey: { scope: 'jobs' } });
+      const imgDispatch = await window.electron.ipcRenderer.invoke('distributed-machine:dispatch', { protocolVersion: 1, machineId: 'image_generation', encodedKey: { scope: 'jobs' }, messageId: 'cdp-img-1', encodedEvent: { type: 'JOB_REQUESTED' } });
+      const ghOpsSub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'github_ops', encodedKey: { appId: ${builtFromHome.appId} } });
+      const ghOpsZeroReject = await window.electron.ipcRenderer.invoke('distributed-machine:dispatch', {
+        protocolVersion: 1,
+        machineId: 'github_ops',
+        encodedKey: { appId: 0 },
+        messageId: 'cdp-gh-zero',
+        encodedEvent: { type: 'OP_REQUESTED', op: { type: 'pull' }, operationId: 'cdp-gh-zero' },
+      });
+      await window.electron.ipcRenderer.invoke('distributed-machine:dispatch', {
+        protocolVersion: 1,
+        machineId: 'app_run',
+        encodedKey: { appId: ${builtFromHome.appId} },
+        messageId: 'cdp-run-1',
+        encodedEvent: { type: 'START', operationId: 'cdp-run-1', startedAt: Date.now(), expectedRevision: 0 },
+      });
+      let appRunState = null;
+      for (let i = 0; i < 40; i++) {
+        const sub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'app_run', encodedKey: { appId: ${builtFromHome.appId} } });
+        appRunState = sub?.encodedState;
+        if (appRunState?.phase === 'ready' || appRunState?.phase === 'errored') break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      const copied = await window.electron.ipcRenderer.invoke('copy-app', { appId: ${builtFromHome.appId}, newAppName: 'Temp Copied App', withHistory: false });
+      const delCopied = await window.electron.ipcRenderer.invoke('delete-apps', { appIds: [copied.app.id] });
+      await window.electron.ipcRenderer.invoke('appCollections:delete', col.id);
+
+      const routeChecks = {};
+      for (const h of [
+        '#/app-details?appId=${builtFromHome.appId}',
+        '#/settings',
+        '#/plugins',
+        '#/templates',
+        '#/library',
+        '#/chat?id=${builtFromHome.chatId}&appId=${builtFromHome.appId}',
+      ]) {
+        location.hash = h;
+        await new Promise((r) => setTimeout(r, 500));
+        const main = document.getElementById('layout-main-content-container');
+        const txt = (main?.innerText || '').trim();
+        const isAppDetails = h.startsWith('#/app-details');
+        const isSettings = h === '#/settings';
+        const hasError = /Something went wrong|Sorry, that shouldn't have happened|Error loading/i.test(txt);
+        const appDetailsOk = !isAppDetails || Boolean(document.querySelector('[data-testid="app-details-page"]'));
+        const settingsOk =
+          !isSettings ||
+          (txt.includes('Custom AI API') && (txt.includes('AI Model Endpoints') || txt.includes('AI model endpoints')));
+        routeChecks[h] = { ok: txt.length > 0 && !hasError && appDetailsOk && settingsOk, preview: txt.slice(0, 120) };
+      }
+      const noSecurityTab = !document.querySelector('[data-testid="security-mode-button"]');
+      const noTestsTab = !document.querySelector('[data-testid="tests-mode-button"]');
+      return {
+        hasViteEnv: (appObj.files || []).includes('src/vite-env.d.ts'),
+        previewFolder,
+        commitObj,
+        renamed,
+        fav1,
+        colListLen: colList.length,
+        envVars,
+        problems,
+        templatesCount: templates.length,
+        mcpServersCount: mcpServers.length,
+        imgJobs: imgSub?.encodedState?.jobs,
+        imgDispatch,
+        ghOpsType: ghOpsSub?.encodedState?.state?.type,
+        ghOpsZeroReject,
+        appRunMode: appRunState?.url?.mode || null,
+        delCopied,
+        routeChecks,
+        noSecurityTab,
+        noTestsTab,
+      };
+    `,
+    45000,
+    `internal controls & routes check on ${basePath}`,
+  );
+  assert(controlsCheck.hasViteEnv, `Created app missing src/vite-env.d.ts: ${JSON.stringify(controlsCheck)}`);
+  assert(controlsCheck.previewFolder?.folderName === 'My Renamed App', `preview-app-folder-name mismatch: ${JSON.stringify(controlsCheck.previewFolder)}`);
+  assert(typeof controlsCheck.commitObj?.commitHash === 'string', `app:get-current-commit-hash mismatch: ${JSON.stringify(controlsCheck.commitObj)}`);
+  assert(controlsCheck.renamed?.name === 'Build App Verified' && controlsCheck.renamed?.path === 'build-app-verified', `rename-app mismatch: ${JSON.stringify(controlsCheck.renamed)}`);
+  assert(controlsCheck.fav1?.isFavorite === true, `add-to-favorite failed: ${JSON.stringify(controlsCheck.fav1)}`);
+  assert(controlsCheck.envVars?.[0]?.key === 'UOR_ENV', `env vars mismatch: ${JSON.stringify(controlsCheck.envVars)}`);
+  assert(controlsCheck.problems?.outcome === 'passed', `check-problems failed: ${JSON.stringify(controlsCheck.problems)}`);
+  assert(
+    controlsCheck.templatesCount >= 1 &&
+      Array.isArray(controlsCheck.imgJobs) &&
+      controlsCheck.imgDispatch?.kind === 'ignored' &&
+      Number.isSafeInteger(controlsCheck.imgDispatch?.transactionSequence) &&
+      controlsCheck.ghOpsType === 'idle' &&
+      controlsCheck.ghOpsZeroReject?.kind === 'rejected' &&
+      controlsCheck.ghOpsZeroReject?.reason === 'invalid-key' &&
+      controlsCheck.appRunMode === 'host',
+    `controls check failed: ${JSON.stringify(controlsCheck)}`,
+  );
+  assert(controlsCheck.delCopied?.results?.[0]?.success === true, `copy/delete-apps failed: ${JSON.stringify(controlsCheck.delCopied)}`);
+  assert(Object.values(controlsCheck.routeChecks).every((r) => r.ok), `A route failed or hit ErrorBoundary: ${JSON.stringify(controlsCheck.routeChecks)}`);
+  assert(controlsCheck.noSecurityTab && controlsCheck.noTestsTab, `Unavailable security/tests tabs still visible`);
+  console.error(`[verify] internal Studio controls & all routes OK: ${JSON.stringify(controlsCheck.routeChecks)}`);
+
   // 6. Test <prism-write> parsing + MVM RV64IMAC CoW persistence + reload survival.
   const mvmCheck = await evalAsync(
     cdp,
@@ -812,6 +1060,8 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
         await new Promise((r) => setTimeout(r, 600));
       }
       const xtermMounted = Boolean(document.querySelector('.xterm, [data-testid="terminal-panel"], canvas'));
+      const debugTestIds = Array.from(document.querySelectorAll('[data-testid]')).map((el) => el.getAttribute('data-testid'));
+      const debugMainText = (document.getElementById('layout-main-content-container')?.innerText || '').slice(0, 200);
       return {
         appId,
         chatId,
@@ -826,6 +1076,8 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
         hasTerminalTab: Boolean(terminalBtn),
         xtermMounted,
         hashAfterNav: location.hash,
+        debugTestIds,
+        debugMainText,
       };
     `,
     45000,
@@ -835,7 +1087,7 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
   assert(mvmCheck.unameRetired > 0, `MVM instructions_retired must be > 0: ${mvmCheck.unameRetired}`);
   assert(mvmCheck.probeOut1.trim() === 'hello-cow', `MVM /tmp/probe.txt failed: ${JSON.stringify(mvmCheck)}`);
   assert(mvmCheck.readWritten === 'uor-v13-ok', `prism-write commit failed: ${JSON.stringify(mvmCheck)}`);
-  assert(mvmCheck.hasTerminalTab, `Terminal tab [data-testid="terminal-mode-button"] missing`);
+  assert(mvmCheck.hasTerminalTab, `Terminal tab [data-testid="terminal-mode-button"] missing (hash=${mvmCheck.hashAfterNav}, main=${JSON.stringify(mvmCheck.debugMainText)}, testids=${JSON.stringify(mvmCheck.debugTestIds)})`);
 
   // Reload to verify CoW + IndexedDB state persistence.
   console.error(`[verify] reloading ${basePath}${mvmCheck.hashAfterNav}`);
@@ -876,12 +1128,21 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
     `
       const res = await window.electron.ipcRenderer.invoke('mvm:exec', { appId: ${mvmCheck.appId}, command: 'cat /tmp/probe.txt' });
       const written = await window.electron.ipcRenderer.invoke('read-app-file', { appId: ${mvmCheck.appId}, filePath: 'src/uor-probe.txt' });
-      return { ...res, written, hashAfterReload: location.hash, rootMounted: (document.querySelector('#root')?.children.length || 0) > 0 };
+      location.hash = '#/app-details?appId=${mvmCheck.appId}';
+      await new Promise((r) => setTimeout(r, 600));
+      const appDetailsTextAfterReload = document.getElementById('layout-main-content-container')?.innerText || '';
+      location.hash = ${JSON.stringify(mvmCheck.hashAfterNav)};
+      await new Promise((r) => setTimeout(r, 400));
+      return { ...res, written, appDetailsTextAfterReload, hashAfterReload: location.hash, rootMounted: (document.querySelector('#root')?.children.length || 0) > 0 };
     `,
     30000,
     `reloadCheck on ${basePath}`,
   );
   assert(reloadCheck.rootMounted, `Root UI failed to mount after reload on ${basePath}`);
+  assert(
+    reloadCheck.appDetailsTextAfterReload.includes('Build App Verified'),
+    `Renamed app did not render on #/app-details after reload: ${reloadCheck.appDetailsTextAfterReload.slice(0, 200)}`,
+  );
   assert(reloadCheck.stdout.trim() === 'hello-cow', `MVM CoW failed across reload: ${JSON.stringify(reloadCheck)}`);
   assert(reloadCheck.written === 'uor-v13-ok', `App file failed across reload: ${JSON.stringify(reloadCheck)}`);
 
@@ -1103,6 +1364,162 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
   assert(stitchCheck.stConn.connected === true && stitchCheck.stDisc.connected === false, `Stitch connect/disconnect failed`);
   assert(stitchCheck.bridgeResult.statusRes.ok && stitchCheck.bridgeResult.statusRes.result?.stitch?.peerId, `Bridge status failed: ${JSON.stringify(stitchCheck.bridgeResult)}`);
 
+  // 10. Check 9: Custom AI API Endpoint UI configuration, ChaCha20-Poly1305 vault, Test Connection, Home/Studio tool loop, and fallback delete.
+  console.error(`[verify] verifying Custom AI API Endpoint UI & R4 routed chat on ${basePath}...`);
+  await evalAsync(
+    cdp,
+    sessionId,
+    `
+      location.hash = '#/settings';
+    `,
+    10000,
+    `navigate to settings for Custom API UI`,
+  );
+  await waitForEval(cdp, sessionId, `Boolean(document.querySelector('[data-testid="custom-api-add-button"]'))`, 20000);
+  await evalAsync(
+    cdp,
+    sessionId,
+    `
+      document.querySelector('[data-testid="custom-api-add-button"]').click();
+      await new Promise((r) => setTimeout(r, 150));
+      const setVal = (sel, val) => {
+        const el = document.querySelector(sel);
+        if (!el) throw new Error('Missing input: ' + sel);
+        const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        desc.set.call(el, val);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      setVal('[data-testid="custom-api-name-input"]', 'Loopback Qwen');
+      setVal('[data-testid="custom-api-model-input"]', 'custom-qwen3');
+      setVal('[data-testid="custom-api-base-url-input"]', ${JSON.stringify(mockOpenAI.origin)});
+      setVal('[data-testid="custom-api-key-input"]', 'sk-cdp-custom-secret-555');
+      await new Promise((r) => setTimeout(r, 100));
+      document.querySelector('[data-testid="custom-api-test-button"]').click();
+    `,
+    15000,
+    `fill and test Custom AI API form`,
+  );
+  const customTestBanner = await waitForEval(
+    cdp,
+    sessionId,
+    `document.querySelector('[data-testid="custom-api-test-result"]')?.textContent || null`,
+    15000,
+  );
+  assert(customTestBanner.includes('Connected'), `Expected Connected test result, got: ${customTestBanner}`);
+
+  const customChatCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      document.querySelector('[data-testid="custom-api-save-button"]').click();
+      let settingsAfterSave = null;
+      for (let i = 0; i < 60; i++) {
+        const rows = document.querySelectorAll('[data-testid^="custom-api-row-"]');
+        settingsAfterSave = await window.electron.ipcRenderer.invoke('get-user-settings');
+        if (rows.length > 0 && settingsAfterSave?.selectedModel?.provider === 'custom-api') break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      const providers = await window.electron.ipcRenderer.invoke('get-language-model-providers');
+      const endpoints = await window.electron.ipcRenderer.invoke('custom-api:list');
+      location.hash = '#/';
+      await new Promise((r) => setTimeout(r, 300));
+      const pickerTextCustom = document.querySelector('[data-testid="model-picker"]')?.textContent || '';
+      const rawIdbDump = await new Promise((resolve, reject) => {
+        const req = indexedDB.open('hologram-forge', 2);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('refs', 'readonly');
+          const g = tx.objectStore('refs').get('vault:custom-api:endpoints');
+          g.onsuccess = () => resolve(JSON.stringify(g.result || null));
+          g.onerror = () => reject(g.error);
+        };
+        req.onerror = () => reject(req.error);
+      });
+      const localDump = JSON.stringify(localStorage);
+
+      const homeReply = await window.electron.ipcRenderer.invoke('home-chat:send', {
+        prompt: 'Confirm custom endpoint connectivity',
+        provider: 'custom-api',
+        modelId: endpoints[0].id,
+      });
+
+      const appId = ${builtFromHome.appId};
+      const chatId = ${builtFromHome.chatId};
+      await window.electron.ipcRenderer.invoke('update-chat', {
+        chatId,
+        modelSelection: { provider: 'custom-api', name: endpoints[0].id, effortLevel: 'medium' },
+      });
+      await window.__uorR4.submitPrompt(chatId, appId, 'TRIGGER_CUSTOM_TOOL inspect workspace');
+      let studioContent = '';
+      for (let i = 0; i < 80; i++) {
+        const sub = await window.electron.ipcRenderer.invoke('distributed-machine:subscribe', { protocolVersion: 1, machineId: 'chat_stream', encodedKey: { chatId } });
+        const chat = await window.electron.ipcRenderer.invoke('get-chat', chatId);
+        const last = (chat.messages || []).at(-1);
+        if (sub?.encodedState?.phase === 'idle' && last?.role === 'assistant' && String(last.content || '').includes('Custom API Build App verified')) {
+          studioContent = last.content;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 150));
+      }
+
+      location.hash = '#/settings';
+      await new Promise((r) => setTimeout(r, 300));
+      document.querySelector('[data-testid^="custom-api-delete-"]')?.click();
+      let settingsAfterDelete = null;
+      let chatAfterDelete = null;
+      for (let i = 0; i < 40; i++) {
+        settingsAfterDelete = await window.electron.ipcRenderer.invoke('get-user-settings');
+        chatAfterDelete = await window.electron.ipcRenderer.invoke('get-chat', chatId);
+        if (settingsAfterDelete?.selectedModel?.provider === 'uor-r4' && chatAfterDelete?.modelSelection?.provider === 'uor-r4') break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      const countAfterDelete = await window.electron.ipcRenderer.invoke('chat:count-tokens', { chatId, input: 'check fallback tokens' });
+      return {
+        providerIds: providers.map((p) => p.id),
+        endpointCount: endpoints.length,
+        endpointPublic: endpoints[0],
+        pickerTextCustom,
+        settingsAfterSave: settingsAfterSave.selectedModel,
+        rawIdbHasSecret: rawIdbDump.includes('sk-cdp-custom-secret-555'),
+        localStorageHasSecret: localDump.includes('sk-cdp-custom-secret-555'),
+        homeOutcome: homeReply.outcome,
+        homeLast: homeReply.messages?.at(-1)?.content || '',
+        studioContent,
+        settingsAfterDelete: settingsAfterDelete.selectedModel,
+        chatModelAfterDelete: chatAfterDelete?.modelSelection || null,
+        countContextWindowAfterDelete: countAfterDelete?.contextWindow || 0,
+      };
+    `,
+    60000,
+    `Custom AI API Endpoint E2E on ${basePath}`,
+  );
+  assert(customChatCheck.providerIds.includes('custom-api'), `custom-api missing from providers: ${JSON.stringify(customChatCheck.providerIds)}`);
+  assert(customChatCheck.pickerTextCustom.includes('Loopback Qwen'), `ModelPicker did not display Loopback Qwen: ${customChatCheck.pickerTextCustom}`);
+  assert(!('apiKey' in (customChatCheck.endpointPublic || {})), `Public custom-api:list leaked apiKey`);
+  assert(!customChatCheck.rawIdbHasSecret && !customChatCheck.localStorageHasSecret, `Plaintext Custom API key leaked in storage`);
+  assert(customChatCheck.homeOutcome === 'completed' && customChatCheck.homeLast.includes('Custom API Home Chat verified'), `Custom API Home Chat failed: ${JSON.stringify(customChatCheck)}`);
+  assert(customChatCheck.studioContent.includes('<tool_response>') && customChatCheck.studioContent.includes('Custom API Build App verified'), `Custom API Studio tool loop failed: ${JSON.stringify(customChatCheck)}`);
+  assert(
+    customChatCheck.settingsAfterDelete?.provider === 'uor-r4' &&
+      customChatCheck.settingsAfterDelete?.name === 'uor-r4:qwen3-0.6b-foundry' &&
+      customChatCheck.chatModelAfterDelete?.provider === 'uor-r4' &&
+      customChatCheck.chatModelAfterDelete?.name === 'uor-r4:qwen3-0.6b-foundry' &&
+      customChatCheck.countContextWindowAfterDelete > 0,
+    `Delete fallback failed: ${JSON.stringify(customChatCheck)}`,
+  );
+
+  const forbiddenIpcErrors = [];
+  for (const ev of cdp.events.slice(evStart)) {
+    if (ev.method === 'Runtime.consoleAPICalled' || ev.method === 'Runtime.exceptionThrown') {
+      const txt = JSON.stringify(ev.params || '');
+      if (txt.includes('unsupportedChannel') || txt.includes('handlerFailed') || txt.includes('no browser machine')) {
+        forbiddenIpcErrors.push(txt.slice(0, 300));
+      }
+    }
+  }
+  assert(forbiddenIpcErrors.length === 0, `Detected forbidden IPC errors during CDP walk on ${basePath}: ${JSON.stringify(forbiddenIpcErrors)}`);
+  console.error(`[verify] Custom AI API Endpoint E2E & zero IPC error check OK`);
+
   await cdp.send('Target.closeTarget', { targetId: target.targetId });
   return {
     basePath,
@@ -1117,22 +1534,25 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
     githubPushSha: ghStep1.pushRes.commitSha,
     stitchPeerId: stitchCheck.stBefore.peerId,
     embedMeBridgeOk: Boolean(stitchCheck.bridgeResult.statusRes.ok),
+    customApiVerified: true,
   };
 }
 
 async function runIsolatedOriginPath(origin, basePath, packOrigin) {
   const profileDir = await mkdtemp(join(tmpdir(), 'uor-foundry-cdp-'));
   const mockGitHub = await startMockGitHubServer();
+  const mockOpenAI = await startMockOpenAIServer();
   let chrome = null;
   let cdp = null;
   try {
     chrome = await launchChrome(profileDir);
     cdp = await cdpConnect(chrome.wsUrl);
-    return await verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub);
+    return await verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub, mockOpenAI);
   } finally {
     try { cdp?.ws?.close(); } catch {}
     try { chrome?.child?.kill('SIGKILL'); } catch {}
     try { mockGitHub?.server?.close(); } catch {}
+    try { mockOpenAI?.server?.close(); } catch {}
     await rm(profileDir, { recursive: true, force: true }).catch(() => {});
   }
 }

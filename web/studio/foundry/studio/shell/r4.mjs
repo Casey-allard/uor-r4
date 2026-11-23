@@ -28,9 +28,18 @@ export const GRANT = Object.freeze([]);
  * routes nothing, and its engine matches because the guest answers only after its pin and every
  * acceptance vector passed (kernel.js).
  */
-export function r4Request({ provider, engine = "match", weights = "match", boundary = "allow" }) {
+export function r4Request({ provider, engine = "match", weights = "match", boundary = "allow", routeGranted = false }) {
   if (provider === "uor-r4") {
     return { mode: "inprism", engine, weights, route: "none", boundary };
+  }
+  if (provider === "custom-api") {
+    return {
+      mode: "routed",
+      engine: routeGranted ? engine : "missing",
+      weights: "none",
+      route: routeGranted ? "granted" : "ungranted",
+      boundary,
+    };
   }
   if (provider !== "local") {
     return {
@@ -53,7 +62,7 @@ export async function r4Decide(request) {
 /** The words a refused turn shows, by the rule that refused it. */
 export function r4Refusal(decision, request) {
   if (request?.mode === "routed" || decision.rule === "REQ-007") {
-    return "UOR-R4 Foundry answers only in-browser with verified UOR-R4 WASM or Prism IdeaReader. External model routing is not granted.";
+    return "UOR-R4 Foundry answers with verified UOR-R4 WASM, Prism IdeaReader, or a user-configured custom AI API endpoint. External model routing is not granted.";
   }
   if (request?.mode === "inprism" && request?.weights !== "match") {
     return "UOR-R4 weight artifact SHA-256 verification failed or no artifact is loaded.";

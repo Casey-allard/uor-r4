@@ -53,13 +53,13 @@ export function writeStudioCatalog({ dest, publicUrl = '', publicLabel = 'Public
   const manifest = {
     schema: 'uor-r4.studio-models/1',
     generated_by: '.github/workflows/docs-site.yml via scripts/stage-studio-site.sh',
-    note: 'Real UOR-R4 Foundry model catalog. Primary model is pure-integer UORR4V13 Qwen3-0.6B Foundry with OPFS cache and Stitch 2-of-3 parity recovery; M1 discrete trunk and local .uorlut/.d11 upload remain available alongside it.',
+    note: 'Real UOR-R4 Foundry model catalog. Built-in model is pure-integer UORR4V13 Qwen3-0.6B Foundry with OPFS cache and Stitch 2-of-3 parity recovery, alongside user-configured custom OpenAI-compatible AI API endpoints.',
     sources: {
-      local_file: true,
+      local_file: false,
       url: publicUrl
         ? { available: true, default_url: publicUrl, label: publicLabel }
         : { available: false, note: 'set public_model_url at workflow dispatch to publish a public model URL slot' },
-      openai_compatible_api: { configured_in_browser: true, storage_key: 'uor.studio.modelSources.v1' },
+      openai_compatible_api: { configured_in_browser: true, encrypted_vault: true },
     },
     models: [
       {
@@ -79,10 +79,6 @@ export function writeStudioCatalog({ dest, publicUrl = '', publicLabel = 'Public
       },
     ],
   };
-
-  if (!trainedManifestPath) {
-    manifest.models.push(Object.assign(publicM1Card({ public_release: PUBLIC_M1_ID }, dest), { primary: false }));
-  }
 
   if (trainedManifestPath) {
     let entries;

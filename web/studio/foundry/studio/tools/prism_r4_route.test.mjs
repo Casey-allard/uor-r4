@@ -14,6 +14,7 @@ globalThis.fetch = async (url) => {
   return { ok: true, json: async () => JSON.parse(specBytes) };
 };
 const { r4Decide, r4Refusal, r4Request, GRANT } = await import("../shell/r4.mjs");
+const { chatModelRoute } = await import("../shell/chat-model-route.mjs");
 const { judge } = await import("../shell/prism/spec.mjs");
 const host = fs.readFileSync(new URL("host.js", shell), "utf8");
 const chatTurn = host.slice(host.indexOf("async function chatTurn("), host.indexOf("    // T6: completed batches"));
@@ -57,6 +58,17 @@ test("Foundry answers via compiled IdeaReader ('local') or SHA-verified UOR-R4 W
   const badDecision = await r4Decide(uorBad);
   assert.notEqual(badDecision.outcome, "answer");
   assert.match(r4Refusal(badDecision, uorBad), /SHA-256 verification failed/);
+
+  const customGranted = r4Request({ provider: "custom-api", engine: "match", routeGranted: true });
+  assert.deepEqual(customGranted, { mode: "routed", engine: "match", weights: "none", route: "granted", boundary: "allow" });
+  assert.equal((await r4Decide(customGranted)).outcome, "answer");
+
+  const customDenied = r4Request({ provider: "custom-api", engine: "match", routeGranted: false });
+  assert.equal((await r4Decide(customDenied)).outcome, "refuse");
+
+  assert.throws(() => chatModelRoute({ provider: "uor-r4", name: "m1-discrete-trunk-seed-1" }, null), { code: "invalidChatModelSelection" });
+  assert.throws(() => chatModelRoute({ provider: "uor-r4", name: "uor-r4:local-upload" }, null), { code: "invalidChatModelSelection" });
+  assert.deepEqual(chatModelRoute({ provider: "custom-api", name: "ep-1" }, null), { provider: "custom-api", model: "ep-1", paid: true });
 });
 
 test("a chat turn gates both UOR-R4 WASM and IdeaReader through R4 before showing output", () => {
@@ -69,9 +81,12 @@ test("a chat turn gates both UOR-R4 WASM and IdeaReader through R4 before showin
   for (const remote of ["paidGenerate", "sealPaid", "openrouter/", 'op: "warmup"', "inst.generate(", "rulesModel("]) assert.ok(!chatTurn.includes(remote), `a chat turn never reaches ${remote}`);
 });
 
-test("the studio offers UOR-R4 V13 Qwen3-0.6B Foundry as its sole default provider with no dummy models", () => {
+test("the studio offers UOR-R4 V13 Qwen3-0.6B Foundry and user Custom AI API endpoints with no M1 or weight uploads", () => {
   assert.ok(host.includes('selectedModel: { name: "uor-r4:qwen3-0.6b-foundry", provider: "uor-r4" }'));
-  assert.ok(host.includes('handlers.set("get-language-model-providers", () => [UOR_R4]);'));
-  assert.ok(host.includes('handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models() }));'));
+  assert.ok(host.includes('handlers.set("get-language-model-providers", async () => {'));
+  assert.ok(host.includes('return customModels.length ? [UOR_R4, CUSTOM_API] : [UOR_R4];'));
+  assert.ok(host.includes('handlers.set("custom-api:list"'));
   assert.ok(!host.includes("const LOCAL_MODELS"));
+  assert.ok(!host.includes("uor-r4:load-local-file"));
+  assert.ok(!host.includes("uor-r4:predict-discrete"));
 });

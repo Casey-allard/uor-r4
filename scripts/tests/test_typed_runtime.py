@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -41,10 +42,14 @@ class TypedRuntimeContractTests(unittest.TestCase):
                 'uor/js/uor_model_worker.js',
                 'uor/js/uor_tokenizer_artifact.js',
                 'app.json',
+                'scaffold/files.json',
+                'scaffold/src/vite-env.d.ts',
                 'v86/v86.wasm',
                 'images/buildroot-bzimage.bin',
             ]:
                 self.assertTrue((dest / req).is_file(), req)
+            for rel in json.loads((dest / 'scaffold/files.json').read_text(encoding='utf-8')):
+                self.assertTrue((dest / 'scaffold' / rel).is_file(), f'scaffold/{rel}')
             for forbidden in ['sw.template.js', 'warmup.json', 'node_modules', 'pkg/README.md', 'pkg/uor_r4_integer.d.ts', 'pkg/package.json']:
                 self.assertFalse((dest / forbidden).exists(), forbidden)
             (dest / 'assets/example.map').write_text('unexpected', encoding='utf-8')
@@ -65,6 +70,12 @@ class TypedRuntimeContractTests(unittest.TestCase):
                 self.assertTrue((typed_dest / 'pkg' / name).is_file(), name)
             for name in ['uor_r4_mvm.js', 'uor_r4_mvm_bg.wasm']:
                 self.assertTrue((typed_dest / 'pkg-mvm' / name).is_file(), name)
+            for rel in json.loads((typed_dest / 'scaffold/files.json').read_text(encoding='utf-8')):
+                self.assertTrue((typed_dest / 'scaffold' / rel).is_file(), f'scaffold/{rel}')
+            models_doc = json.loads((typed_dest / 'models.json').read_text(encoding='utf-8'))
+            self.assertIs(models_doc['sources']['local_file'], False)
+            model_ids = [m['id'] for m in models_doc['models']]
+            self.assertEqual(model_ids, ['qwen3-0.6b-foundry'])
             for forbidden in ['sw.template.js', 'warmup.json', 'node_modules', 'pkg/README.md', 'pkg/uor_r4_integer.d.ts', 'pkg/package.json']:
                 self.assertFalse((typed_dest / forbidden).exists(), forbidden)
             self.assertEqual(list(typed_dest.rglob('*.map')), [])

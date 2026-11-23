@@ -23,7 +23,7 @@ list_files() {
     fi
     (
         cd "$root"
-        find . -type f ! -path '*/node_modules/*' ! -name 'sw.template.js' ! -name '*.test.*' ! -name '*.map' ! -name 'warmup.json' ! -name 'README.md' ! -name '*.d.ts' ! -path './pkg/package.json' ! -path './pkg-mvm/package.json' | sed 's|^\./||' | sort
+        find . -type f ! -path '*/node_modules/*' ! -name 'sw.template.js' ! -name '*.test.*' ! -name '*.map' ! -name 'warmup.json' ! -name 'README.md' ! -path './pkg/*.d.ts' ! -path './pkg-mvm/*.d.ts' ! -path './pkg/package.json' ! -path './pkg-mvm/package.json' | sed 's|^\./||' | sort
     )
 }
 
@@ -58,6 +58,12 @@ verify_required_files() {
         for req in \
             'app.json' \
             'standards-index.json' \
+            'scaffold/files.json' \
+            'scaffold/package.json' \
+            'scaffold/tailwind.config.ts' \
+            'scaffold/index.html' \
+            'scaffold/AI_RULES.md' \
+            'scaffold/src/vite-env.d.ts' \
             'v13/uor_foundry_v13_wasm.js' \
             'v13/uor_foundry_v13_wasm_bg.wasm' \
             'v86/libv86.js' \
@@ -122,7 +128,7 @@ case "${1:-}" in
                 exit 1
             fi
         done
-        if find "$dest" -name '*.map' -o -name '*.test.*' -print -quit | grep -q .; then
+        if find "$dest" \( -name '*.map' -o -name '*.test.*' \) -print -quit | grep -q .; then
             printf 'Dev/test artifact leaked into %s\n' "$dest" >&2
             exit 1
         fi
@@ -199,6 +205,22 @@ if (existsSync(synStack) && existsSync(synTok)) {
     const actualSyn = createHash('sha256').update(readFileSync(synStack)).digest('hex');
     if (actualSyn !== tokObj.stack_sha256) {
       throw new Error('Bundled synthetic fixture hash mismatch against pkg/tokenizer.json');
+    }
+  }
+}
+
+// Verify Foundry project scaffold files declared in scaffold/files.json exist when present.
+const scaffoldRoot = resolve(dest, 'scaffold');
+const scaffoldFilesPath = resolve(scaffoldRoot, 'files.json');
+if (existsSync(scaffoldFilesPath)) {
+  const scaffoldFiles = JSON.parse(readFileSync(scaffoldFilesPath, 'utf8'));
+  if (!Array.isArray(scaffoldFiles) || scaffoldFiles.length === 0) {
+    throw new Error('Invalid scaffold/files.json');
+  }
+  for (const rel of scaffoldFiles) {
+    const file = resolve(scaffoldRoot, rel);
+    if (file === scaffoldRoot || !file.startsWith(scaffoldRoot + sep) || !existsSync(file) || !lstatSync(file).isFile()) {
+      throw new Error('Scaffold file declared in scaffold/files.json is missing: ' + rel);
     }
   }
 }

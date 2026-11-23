@@ -28,6 +28,7 @@ const src = path.resolve(__dirname, "src").replace(/\\/g, "/");
 const mark = path.resolve(__dirname, "../../shell/mark.svg");
 const modeSelector = path.resolve(__dirname, "hologram.ChatModeSelector.tsx");
 const picker = path.resolve(__dirname, "hologram.ModelPicker.tsx");
+const providerSettings = path.resolve(__dirname, "hologram.CustomApiEndpointSettings.tsx");
 const githubIntegration = path.resolve(__dirname, "hologram.GitHubIntegration.tsx");
 const githubConnector = path.resolve(__dirname, "hologram.GitHubConnector.tsx");
 const posthogStub = path.resolve(__dirname, "hologram.posthog.ts");
@@ -94,6 +95,7 @@ const hologramWords: Plugin = {
     // of their models, nothing else. Upstream's has submenus, a recent section, effort levels, price
     // badges, a trial banner and a Pro upsell, none of which this product has.
     if (/(^|\/)ModelPicker$/.test(id) && from.startsWith(src)) return picker;
+    if (/(^|\/)ProviderSettings$/.test(id) && from.startsWith(src)) return providerSettings;
     if (/(^|\/)ChatModeSelector$/.test(id) && from.startsWith(src)) return modeSelector;
     // GitHub connects with a pasted token or OAuth relay and syncs directly via Git Data API.
     if (/(^|\/)GitHubIntegration$/.test(id) && from.startsWith(src)) return githubIntegration;

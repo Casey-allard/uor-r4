@@ -15,8 +15,8 @@
 #
 # USAGE
 #   scripts/studio/build-and-publish.sh [options]
-#     --typed                build and stage the Vite app with the public M1 predictor card
-#                            (default: legacy; --trained-manifest replaces the typed card selection)
+#     --typed                build and stage the Vite Studio app with UOR-R4 Foundry defaults
+#                            (--trained-manifest adds optional signed release entries)
 #     --target <branch>       gh-pages only; required explicitly for a live push
 #     --push                  push the publish commit (otherwise dry run)
 #     --no-build              reuse web/studio/pkg/ as built
@@ -215,9 +215,6 @@ else
     say "== stage: web/studio -> $staging/studio (+ models.json)"
     stage_args=(web/studio "$staging/studio" "$public_url" "$public_label")
 fi
-if [ "$typed" = 1 ] && [ -z "$trained_manifest" ]; then
-    trained_manifest="$root/scripts/studio/public-m1.json"
-fi
 if [ -n "$trained_manifest" ]; then
     stage_args+=(--trained-manifest "$trained_manifest")
 fi
@@ -249,6 +246,7 @@ cp -R "$staging/studio/." "$site_wt/studio/"
 # The staged page is what ships: prove the browser's files are there and stale ones are gone.
 for f in index.html 404.html holo.html manifest.json sw.js models.json host.bundle.js core.wasm \
          assets/index.js assets/index.css kernel/kernel.holo \
+         scaffold/files.json scaffold/src/vite-env.d.ts \
          q/pkg/holospaces_web.js q/pkg/holospaces_web_bg.wasm \
          pkg/uor_r4_integer.js pkg/uor_r4_integer_bg.wasm pkg/synthetic-stack.lut pkg/tokenizer.json \
          pkg-mvm/uor_r4_mvm.js pkg-mvm/uor_r4_mvm_bg.wasm \

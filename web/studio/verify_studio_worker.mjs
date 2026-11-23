@@ -1231,22 +1231,27 @@ assert(!projectShellSrc.includes('uor-foundation.github.io/template/frame/backdr
 assert(!projectShellSrc.includes('en.wikipedia.org/w/api.php') && !projectShellSrc.includes('api.duckduckgo.com'),
     'live Wikipedia/DuckDuckGo fetches must stay absent');
 
-// 6b. Foundry runtime wires uor_model_worker.js and supports bundled demo, M1 public release OPFS cache, and local .uorlut upload.
-assert(r4RuntimeSrc.includes('./uor/js/uor_model_worker.js'), 'uor-r4-runtime.mjs must start uor_model_worker.js');
+// 6b. Foundry runtime wires uor-v13-worker.mjs for Qwen3-0.6B Foundry and removes M1 / local weight uploads.
+assert(r4RuntimeSrc.includes('./uor-v13-worker.mjs'), 'uor-r4-runtime.mjs must wire ./uor-v13-worker.mjs');
 assert(r4RuntimeSrc.includes('./models.json'), 'uor-r4-runtime.mjs must read same-origin models.json');
-assert(r4RuntimeSrc.includes('loadLocalArtifact') && r4RuntimeSrc.includes('predictDiscrete'),
-    'uor-r4-runtime.mjs must expose loadLocalArtifact and predictDiscrete');
+assert(!r4RuntimeSrc.includes('loadLocalArtifact') && !r4RuntimeSrc.includes('predictDiscrete'),
+    'uor-r4-runtime.mjs must not expose loadLocalArtifact or predictDiscrete');
 assert(r4PolicySrc.includes('inprism'), 'r4.mjs must enforce the inprism policy rule for uor-r4');
-assert(modelPickerSrc.includes('uor-r4:load-local-file') && modelPickerSrc.includes('modelSelectionScope('),
-    'hologram.ModelPicker.tsx must wire local .uorlut/.d11 upload and canonical selection scope');
+assert(
+    modelPickerSrc.includes('uor-r4-add-api-endpoint-button')
+        && modelPickerSrc.includes('modelSelectionScope(')
+        && !modelPickerSrc.includes('uor-r4:load-local-file')
+        && !modelPickerSrc.includes('type="file"'),
+    'hologram.ModelPicker.tsx must link Custom AI API endpoints and omit local weight uploads',
+);
 assert(remoteRequests.length === 0, `expected 0 remote requests, got ${JSON.stringify(remoteRequests)}`);
 
 console.log(JSON.stringify({
     verdict: 'ALL STUDIO WORKER CHECKS PASSED',
     engine: runtimeMsg.engine,
     statusChip: 'pre-alpha / M1 complete / 1 of 8 milestones',
-    modelSourceOptions: ['bundled demo', 'local file', 'M1 OPFS cache', 'Foundry reader'],
-    studioReadyMarker: 'Foundry uor-r4-runtime + uor_model_worker',
+    modelSourceOptions: ['UOR-R4 Qwen3-0.6B Foundry (WASM)', 'Custom AI API Endpoint'],
+    studioReadyMarker: 'Foundry uor-r4-runtime + uor-v13-worker',
     statusLabel: loadedMsg.capabilities.status_label,
     tokenizerLabel: loadedMsg.capabilities.tokenizer_label,
     weightsPerToken: loadedMsg.capabilities.weights_per_token,

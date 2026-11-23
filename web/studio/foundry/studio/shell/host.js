@@ -1,4 +1,5 @@
-import {chatModelRoute,LOCAL_MODEL,UOR_R4_PROVIDER,UOR_R4_DEFAULT_MODEL} from './chat-model-route.mjs';
+import {chatModelRoute,CUSTOM_API_PROVIDER,LOCAL_MODEL,UOR_R4_PROVIDER,UOR_R4_DEFAULT_MODEL} from './chat-model-route.mjs';
+import {createCustomApiClient} from './custom-api-client.mjs';
 import * as uorR4 from './uor-r4-runtime.mjs';
 import {createMvmHost} from './mvm-host.mjs';
 import {createLinuxVmHost} from './linux-vm-host.mjs';
@@ -110,6 +111,14 @@ const keys = (store) => tx(store, "readonly", (s) => s.getAllKeys());
 const appRange = (appId) => IDBKeyRange.bound(appId + ":", appId + ":￿");
 
 const themeLibrary=createThemeLibrary(dbReady,themesData);
+
+const customApiClient = createCustomApiClient({
+  coreReady: coreReady.then(() => core),
+  prismFrame: inference.prismFrame,
+  getRef: (k) => get("refs", k),
+  putRef: (k, v) => put("refs", k, v),
+  deleteRef: (k) => del("refs", k),
+});
 handlers.set("get-themes", () => themeLibrary("catalog"));
 handlers.set("get-custom-themes", () => themeLibrary("list"));
 handlers.set("create-custom-theme", input => themeLibrary("create",input));
@@ -143,14 +152,24 @@ const DEFAULT_SETTINGS = {
 // tool calls this host does not make.
 handlers.set("get-user-settings", async () => {
   const stored = (await inference.settingsGet()) || {};
-  // Migrate removed dummy/legacy models (e.g. local foundry:reader, synthetic-seed-5, or cloud models)
-  // onto the real UOR-R4 V13 Qwen3-0.6B Foundry model once per stored settings record.
-  if (
-    stored.selectedModel &&
-    (stored.selectedModel.provider !== "uor-r4" ||
-      stored.selectedModel.name === "uor-r4:synthetic-seed-5" ||
-      stored.selectedModel.name === "synthetic-seed-5")
-  ) {
+  // Migrate removed dummy/legacy/M1 models or deleted custom endpoints onto the real UOR-R4 V13 Qwen3-0.6B Foundry model.
+  const sel = stored.selectedModel;
+  let needsMigration = false;
+  if (sel) {
+    if (sel.provider === UOR_R4_PROVIDER) {
+      if (sel.name !== "uor-r4:qwen3-0.6b-foundry" && sel.name !== "qwen3-0.6b-foundry") {
+        needsMigration = true;
+      }
+    } else if (sel.provider === CUSTOM_API_PROVIDER) {
+      const endpoints = await customApiClient.listEndpoints();
+      if (!endpoints.some((ep) => ep.id === sel.name)) {
+        needsMigration = true;
+      }
+    } else {
+      needsMigration = true;
+    }
+  }
+  if (needsMigration) {
     return changeUserSettings(dbReady, { selectedModel: DEFAULT_SETTINGS.selectedModel }, (current, captured) => browserSettings(browserChatModeSettings({ ...DEFAULT_SETTINGS, ...current, ...captured })));
   }
   return browserSettings(browserChatModeSettings({ ...DEFAULT_SETTINGS, ...stored }));
@@ -196,18 +215,41 @@ handlers.set("get-system-debug-info", async () => {
   return { nodeVersion: null, pnpmVersion: null, nodePath: "esbuild in the tab", telemetryId: "web", telemetryConsent: "opted_out", telemetryUrl: "", prismVersion: "1.15.0-web", platform: "web", architecture: navigator.userAgent.includes("WOW64") || navigator.userAgent.includes("x86_64") ? "x86_64" : "unknown", logs: "", updaterLogs: null, selectedLanguageModel: (m.provider ? m.provider + "/" : "") + (m.name || "") };
 });
 const UOR_R4 = { id: UOR_R4_PROVIDER, name: "UOR-R4 Integer WASM", type: "custom", hasFreeTier: true, envVarName: "UOR_R4_WASM" };
+const CUSTOM_API = { id: CUSTOM_API_PROVIDER, name: "Custom AI API", type: "custom", isCustom: true };
 async function getUorR4Models() {
   const cat = await uorR4.getCatalog();
   return (cat.models || []).map((m) => ({
     apiName: m.apiName,
     displayName: m.label || m.id,
     description: m.note || "In-browser UOR-R4 integer WASM model",
-    contextWindow: m.id === "m1-discrete-trunk-seed-1" ? 512 : 4096,
+    contextWindow: 4096,
   }));
 }
-handlers.set("get-language-model-providers", () => [UOR_R4]);
-handlers.set("get-language-models", async ({ providerId }) => (providerId === UOR_R4_PROVIDER ? await getUorR4Models() : []));
-handlers.set("get-language-models-by-providers", async () => ({ [UOR_R4_PROVIDER]: await getUorR4Models() }));
+async function getCustomApiModels() {
+  const endpoints = await customApiClient.listEndpoints();
+  return endpoints.map((ep) => ({
+    apiName: ep.id,
+    displayName: ep.name,
+    description: `${ep.model} · ${ep.baseUrl}`,
+    contextWindow: ep.contextWindow || 32768,
+    type: "custom",
+  }));
+}
+handlers.set("get-language-model-providers", async () => {
+  const customModels = await getCustomApiModels();
+  return customModels.length ? [UOR_R4, CUSTOM_API] : [UOR_R4];
+});
+handlers.set("get-language-models", async ({ providerId }) => {
+  if (providerId === UOR_R4_PROVIDER) return getUorR4Models();
+  if (providerId === CUSTOM_API_PROVIDER) return getCustomApiModels();
+  return [];
+});
+handlers.set("get-language-models-by-providers", async () => {
+  const out = { [UOR_R4_PROVIDER]: await getUorR4Models() };
+  const customModels = await getCustomApiModels();
+  if (customModels.length) out[CUSTOM_API_PROVIDER] = customModels;
+  return out;
+});
 
 // ---- apps and files. A file is stored under "<appId>:<path>"; the app record carries no files,
 // get-app lists them. Every edit seals a version: the address of the project state.
@@ -226,7 +268,7 @@ async function loadScaffold() {
 handlers.set("list-apps", async () => ({ apps: (await all("apps")).map(withDates) }));
 handlers.set("get-app", async (id) => { const a = await get("apps", id); if (!a) throw new Error("no app " + id); return { ...withDates(a), files: await filesOf(id), frameworkType: "vite", supabaseProjectName: null, vercelTeamSlug: null }; });
 handlers.set("check-app-name", async ({ appName }) => ({ exists: (await all("apps")).some((a) => a.name === appName) }));
-handlers.set("preview-app-folder-name", async ({ appName }) => ({ folderName: appName }));
+handlers.set("preview-app-folder-name", async ({ name, appName } = {}) => ({ folderName: String(name ?? appName ?? "").trim() || "app" }));
 const pendingCreations = new Map();
 handlers.set("create-app", async ({ name, initialChatMode, firstPromptCreationOperationId }) => {
   await coreReady;
@@ -278,7 +320,13 @@ handlers.set("delete-app", async ({ appId }) => { const deletedChats=(await all(
 handlers.set("rename-app", async (input) => {
   await coreReady;
   await renameStoredProject(await dbReady, input, { core, derive: kappa, onCommit: oid => emit("version-created", { appId: input.appId, oid }) });
-  return { app: withDates(await get("apps", input.appId)) };
+  const app = await get("apps", input.appId);
+  if (!app) throw new Error("no app " + input.appId);
+  const nextPath = typeof input?.appPath === "string" && input.appPath.trim() ? input.appPath.trim() : app.path;
+  if (nextPath !== app.path) {
+    await put("apps", input.appId, { ...app, path: nextPath, updatedAt: new Date().toISOString() });
+  }
+  return { name: app.name, path: nextPath };
 });
 // A search matches a project by name, by the title of one of its chats, or by a line in one of their
 // messages, and says which: the renderer shows the matched title and message under the project's name.
@@ -319,7 +367,7 @@ handlers.set("search-app-files", async ({ appId, query }) => {
   }
   return out;
 });
-handlers.set("app:get-current-commit-hash", async ({ appId }) => (await get("refs", appId + ":main")) || null);
+handlers.set("app:get-current-commit-hash", async ({ appId }) => ({ commitHash: (await get("refs", appId + ":main")) || null }));
 
 // ---- moving in. A browser keeps this store per origin, so apps made on the site Forge was served from
 // before stay there; its moved page writes them to a file (hologram-forge/export/1) and Import App on the
@@ -412,7 +460,22 @@ handlers.set("revert-version", async ({appId,previousVersionId,expectedHeadOid,c
 
 // ---- chats as records; the stream is the next slice
 handlers.set("get-chats", async (appId) => (await all("chats")).filter((c) => appId == null || c.appId === appId).map((c) => chatRow(c)));
-handlers.set("get-chat", async (id) => { const c = await get("chats", id); if (!c) throw new Error("no chat " + id); return { ...c, chatMode: c.chatMode ?? null, referencedApps: c.referencedApps || [], messages: (c.messages || []).map((x) => ({ ...x, createdAt: x.createdAt || now() })) }; });
+handlers.set("get-chat", async (id) => {
+  const c = await get("chats", id);
+  if (!c) throw new Error("no chat " + id);
+  let nextChat = c;
+  if (
+    c.modelSelection?.provider === CUSTOM_API_PROVIDER &&
+    !(await customApiClient.listEndpoints()).some((ep) => ep.id === c.modelSelection.name)
+  ) {
+    nextChat = {
+      ...c,
+      modelSelection: { ...DEFAULT_SETTINGS.selectedModel, effortLevel: c.modelSelection?.effortLevel || "medium" },
+    };
+    await put("chats", id, nextChat);
+  }
+  return { ...nextChat, chatMode: nextChat.chatMode ?? null, referencedApps: nextChat.referencedApps || [], messages: (nextChat.messages || []).map((x) => ({ ...x, createdAt: x.createdAt || now() })) };
+});
 const chatRow = (c) => ({ id: c.id, appId: c.appId, title: c.title, createdAt: new Date(c.createdAt || Date.now()), chatMode: c.chatMode ?? null, isFavorite: !!c.isFavorite });
 handlers.set("get-chat-metadata", async (id) => { const c = await get("chats", id); return c ? chatRow(c) : null; });
 handlers.set("create-chat", async (input) => {
@@ -445,8 +508,11 @@ handlers.set("chat:count-tokens", async ({ chatId, input }) => {
   const chat = chatId != null ? await get("chats", chatId) : null;
   const settings = (await get("settings", "user")) || DEFAULT_SETTINGS;
   const route = chatModelRoute(chat?.modelSelection,settings.selectedModel);
-  const availableModels = await getUorR4Models();
-  const contextWindow = (availableModels.find((m) => m.apiName === route.model) || availableModels[0]).contextWindow;
+  let availableModels = route.provider === CUSTOM_API_PROVIDER ? await getCustomApiModels() : await getUorR4Models();
+  if (route.provider === CUSTOM_API_PROVIDER && !availableModels.some((m) => m.apiName === route.model)) {
+    availableModels = await getUorR4Models();
+  }
+  const contextWindow = (availableModels.find((m) => m.apiName === route.model) || availableModels[0])?.contextWindow || 4096;
   const tokens = (text) => Math.ceil(String(text || "").length / 4);
   const captured = chat && chat.appId != null ? await captureProjectSource(await dbReady,chat.appId) : null;
   const moduleNow = captured ? activeApplicationModule(captured, lexlean.canonicalSource) : null;
@@ -924,7 +990,7 @@ async function showBuilt(appId) {
   if (liveShown.has(appId)) return;
   const m = machineOf(appId);
   publish(appId, { phase: "starting", operation: "restart", invocationRef: { kind: "app-run", entityKey: appId, operationId: "built-" + appId + "-" + Date.now() }, startedAt: Date.now(), operationError: null, exit: null });
-  publish(appId, { phase: "ready", operation: null, invocationRef: null, startedAt: Date.now(), operationError: null, exit: null, url: { appUrl, originalUrl: appUrl, mode: "cloud" }, previewReloadEpoch: m.state.previewReloadEpoch + 1 });
+  publish(appId, { phase: "ready", operation: null, invocationRef: null, startedAt: Date.now(), operationError: null, exit: null, url: { appUrl, originalUrl: appUrl, mode: "host" }, previewReloadEpoch: m.state.previewReloadEpoch + 1 });
 }
 // Point the app's preview at the live frame. The iframe loads once: after this, the address it shows
 // never changes for this app, so the preview never reloads.
@@ -938,7 +1004,7 @@ async function showLive(appId) {
   // a dev server per app), and every preview here shares this origin; so a preview already showing
   // another page is first announced as restarting, the renderer's own signal to forget that route.
   if (m.state.url) publish(appId, { phase: "starting", operation: "restart", invocationRef: { kind: "app-run", entityKey: appId, operationId: "live-" + appId + "-" + Date.now() }, startedAt: Date.now(), operationError: null, exit: null });
-  publish(appId, { phase: "ready", operation: null, invocationRef: null, startedAt: Date.now(), operationError: null, exit: null, url: { appUrl, originalUrl: appUrl, mode: "cloud" }, previewReloadEpoch: m.state.previewReloadEpoch + 1 });
+  publish(appId, { phase: "ready", operation: null, invocationRef: null, startedAt: Date.now(), operationError: null, exit: null, url: { appUrl, originalUrl: appUrl, mode: "host" }, previewReloadEpoch: m.state.previewReloadEpoch + 1 });
   return appUrl;
 }
 // An app whose preview is the live frame: one with rules, or one that is a running module.
@@ -970,9 +1036,52 @@ function warmLive() {
 (window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(warmLive, { timeout: 4000 });
 window.__live = { liveFrame, showLive, pushLive, pushApp, appFrames: appFramesReady, refreshLive: refreshPreview, patchSpec, stepSpec, pointed: livePointed, times: liveTimes, project: live.project };
 
+const githubOpsStates = new Map();
+function getGithubOpsMachine(appId) {
+  if (!githubOpsStates.has(appId)) {
+    githubOpsStates.set(appId, { revision: 0, state: { type: "idle", banner: null }, activeInvocationRef: null });
+  }
+  return githubOpsStates.get(appId);
+}
+function publishGithubOps(appId, patch) {
+  const m = getGithubOpsMachine(appId);
+  m.revision += 1;
+  Object.assign(m, patch);
+  const encodedState = {
+    appId,
+    revision: m.revision,
+    state: m.state,
+    activeInvocationRef: m.activeInvocationRef,
+    conflictResolutionClaimed: false,
+  };
+  emit("distributed-machine:snapshot", {
+    protocolVersion: 1,
+    machineId: "github_ops",
+    encodedKey: { appId },
+    actorInstanceId: "web-github_ops-" + appId,
+    revision: m.revision,
+    encodedState,
+  });
+  return encodedState;
+}
 handlers.set("distributed-machine:subscribe", async ({ machineId, encodedKey }) => {
   if (machineId === "version_preview") return previewEnvelope(encodedKey.appId);
   if (machineId === "chat_stream") return chatSubscribe({ machineId, encodedKey });
+  if (machineId === "image_generation") {
+    return { protocolVersion: 1, machineId, encodedKey: { scope: "jobs" }, actorInstanceId: "web-image_generation-jobs", revision: 0, encodedState: { jobs: [], revision: 0 } };
+  }
+  if (machineId === "github_ops") {
+    const appId = Number(encodedKey?.appId ?? 0);
+    const m = getGithubOpsMachine(appId);
+    return {
+      protocolVersion: 1,
+      machineId,
+      encodedKey: { appId },
+      actorInstanceId: "web-github_ops-" + appId,
+      revision: m.revision,
+      encodedState: { appId, revision: m.revision, state: m.state, activeInvocationRef: m.activeInvocationRef, conflictResolutionClaimed: false },
+    };
+  }
   if (machineId !== "app_run") throw new Error("no browser machine " + machineId);
   const m = machineOf(encodedKey.appId);
   return { protocolVersion: 1, machineId, encodedKey, actorInstanceId: "web-app_run-" + encodedKey.appId, revision: m.revision, encodedState: m.state };
@@ -982,6 +1091,84 @@ handlers.set("distributed-machine:dispatch", async (envelope) => {
   const { machineId, encodedKey, messageId, encodedEvent } = envelope;
   if (machineId === "version_preview") return previewDispatch(envelope);
   if (machineId === "chat_stream") return chatDispatch(envelope);
+  if (machineId === "image_generation") {
+    return { kind: "ignored", actorInstanceId: "web-image_generation-jobs", revision: 0, transactionSequence: 0, messageId, reason: "image-generation-unavailable" };
+  }
+  if (machineId === "github_ops") {
+    const appId = Number(encodedKey?.appId ?? 0);
+    const actorInstanceId = "web-github_ops-" + appId;
+    const m = getGithubOpsMachine(appId);
+    const evType = encodedEvent?.type;
+    if (evType === "BANNER_DISMISSED") {
+      publishGithubOps(appId, { state: { type: "idle", banner: null }, activeInvocationRef: null });
+      return { kind: "applied", actorInstanceId, revision: m.revision, transactionSequence: m.revision, messageId };
+    }
+    if (evType === "OP_REQUESTED" && encodedEvent?.op) {
+      if (!(Number.isSafeInteger(appId) && appId > 0)) {
+        return { kind: "rejected", messageId, reason: "invalid-key" };
+      }
+      const op = encodedEvent.op;
+      if (m.state.type === "running") {
+        return { kind: "ignored", actorInstanceId, revision: m.revision, transactionSequence: m.revision, messageId, reason: "operation-in-progress" };
+      }
+      const rawRef = encodedEvent.activeInvocationRef;
+      const invRef = rawRef && Number.isSafeInteger(rawRef.entityKey) && rawRef.entityKey > 0
+        ? rawRef
+        : { kind: "github-operation", entityKey: appId, operationId: encodedEvent.operationId || messageId };
+      publishGithubOps(appId, { state: { type: "running", op, banner: null }, activeInvocationRef: invRef });
+      void (async () => {
+        try {
+          if (op.type === "push") {
+            const res = await githubClient.push({ appId, force: op.mode === "force" });
+            if (res && res.ok === false) {
+              throw new Error(res.error || (res.conflict ? "GitHub push conflict: pull remote changes first." : "GitHub push failed."));
+            }
+          } else if (op.type === "pull" || op.type === "fetch") {
+            const res = await githubClient.pull({ appId });
+            if (res && res.ok === false) {
+              throw new Error(res.error || "GitHub pull failed.");
+            }
+          } else if (op.type === "disconnect") {
+            await githubClient.unlinkRepo({ appId });
+          } else if (op.type === "connect-repo") {
+            if (op.mode === "create") {
+              const created = await githubClient.createRepo({
+                name: op.repo,
+                isPrivate: true,
+                org: typeof op.org === "string" && op.org.trim() ? op.org.trim() : null,
+              });
+              await githubClient.linkRepo({
+                appId,
+                owner: created.owner,
+                repo: created.name,
+                branch: op.branch || created.default_branch || "main",
+              });
+            } else {
+              await githubClient.linkRepo({ appId, owner: op.owner, repo: op.repo, branch: op.branch || "main" });
+            }
+            if (op.thenAutoPush) {
+              const pushRes = await githubClient.push({ appId });
+              if (pushRes && pushRes.ok === false) {
+                throw new Error(pushRes.error || (pushRes.conflict ? "GitHub auto-push conflict." : "GitHub auto-push failed."));
+              }
+            }
+          }
+          publishGithubOps(appId, {
+            state: { type: "idle", banner: { kind: "success", completedOperation: op.type, message: `GitHub ${op.type} completed.` } },
+            activeInvocationRef: null,
+          });
+        } catch (err) {
+          publishGithubOps(appId, {
+            state: { type: "idle", banner: { kind: "error", completedOperation: op.type, message: String(err?.message || err).slice(0, 400) } },
+            activeInvocationRef: null,
+          });
+        }
+      })();
+      return { kind: "applied", actorInstanceId, revision: m.revision, transactionSequence: m.revision, messageId };
+    }
+    publishGithubOps(appId, { state: { type: "idle", banner: null }, activeInvocationRef: null });
+    return { kind: "applied", actorInstanceId, revision: m.revision, transactionSequence: m.revision, messageId };
+  }
   if (machineId !== "app_run") throw new Error("no browser machine " + machineId);
   const appId = encodedKey.appId, type = encodedEvent && encodedEvent.type;
   const receipt = (m) => ({ kind: "applied", actorInstanceId: "web-app_run-" + appId, revision: m.revision, transactionSequence: m.revision, messageId });
@@ -1010,7 +1197,7 @@ handlers.set("distributed-machine:dispatch", async (envelope) => {
         // answered still settles, or the renderer keeps waiting on it.
         if (liveShown.has(appId)) { await showLive(appId).catch(() => {}); publish(appId, { phase: "ready", operation: null, lastSettlement: { operationId: encodedEvent.operationId || messageId, kind: "run", outcome: "succeeded" } }); return; }
         const cur = machineOf(appId);
-        publish(appId, { phase: "ready", operation: null, url: { appUrl, originalUrl: appUrl, mode: "cloud" }, previewReloadEpoch: cur.state.previewReloadEpoch + 1, lastSettlement: { operationId: encodedEvent.operationId || messageId, kind: "run", outcome: "succeeded" } });
+        publish(appId, { phase: "ready", operation: null, url: { appUrl, originalUrl: appUrl, mode: "host" }, previewReloadEpoch: cur.state.previewReloadEpoch + 1, lastSettlement: { operationId: encodedEvent.operationId || messageId, kind: "run", outcome: "succeeded" } });
       } catch (e) {
         publish(appId, { phase: "errored", operation: null, operationError: { message: String((e && e.message) || e) }, lastSettlement: { operationId: encodedEvent.operationId || messageId, kind: "run", outcome: "failed", error: { message: String((e && e.message) || e) } } });
       }
@@ -1021,7 +1208,8 @@ handlers.set("distributed-machine:dispatch", async (envelope) => {
     const m = publish(appId, { phase: "stopped", operation: null, url: null, exit: { exitCode: 0, timestamp: Date.now() }, lastSettlement: { operationId: encodedEvent.operationId || messageId, kind: "stop", outcome: "succeeded" } });
     return receipt(m);
   }
-  return { kind: "ignored", actorInstanceId: "web-app_run-" + appId, revision: machineOf(appId).revision, messageId, reason: "unknown intent " + type };
+  const curRev = machineOf(appId).revision;
+  return { kind: "ignored", actorInstanceId: "web-app_run-" + appId, revision: curRev, transactionSequence: curRev, messageId, reason: "unknown intent " + type };
 });
 handlers.set("connection-flow:get-states", async () => ({
   github: await githubClient.getFlowState(),
@@ -1923,7 +2111,7 @@ async function publishTurn(chatId, appId, messages, userId, ref, intentId) {
   if (!current) { await row("stale", out.kappa); await show(`${head}\n\nThe holo was made from earlier rules, so the current rules are not marked published. Approve them, then say publish.`); return finish(); }
   await row("granted", out.kappa);
   const run = machineOf(appId);
-  publish(appId, { phase: "ready", operation: null, url: { appUrl: out.url, originalUrl: out.url, mode: "local" }, previewReloadEpoch: run.state.previewReloadEpoch + 1 });
+  publish(appId, { phase: "ready", operation: null, url: { appUrl: out.url, originalUrl: out.url, mode: "host" }, previewReloadEpoch: run.state.previewReloadEpoch + 1 });
   await show(`${head}\n\n**Published:** [open it](${out.url}) · holo \`${out.kappa}\`, ${Math.round(out.byteLength / 1024)} KB, in ${Math.max(1, Math.round(out.ms / 1000))} s.\n\nShare the file from Publish, under Download; anyone opens it in any browser with holo.html, which checks it byte for byte before it runs.`);
   finish();
 }
@@ -1941,6 +2129,7 @@ async function chatTurn(chatId, intent) {
   const V = await viewReady();
   const route = chatModelRoute(chat.modelSelection,settings.selectedModel);
   const {model,provider} = route;
+  const isR4OrCustom = provider === UOR_R4_PROVIDER || provider === CUSTOM_API_PROVIDER;
   if (tm.turn === chatId) tm.model = model;
   // T2: the user message, accepted
   const messages = await messagesOf(chatId);
@@ -1949,10 +2138,10 @@ async function chatTurn(chatId, intent) {
   await saveMessages(chatId, messages);
   publishChat(chatId, { phase: "streaming", lastAcceptance: { intentId: intent.intentId, acceptance: "message-accepted", acceptedMessageId: userId } });
   emit("chat:stream:start", { chatId, invocationRef: ref });
-  if (provider !== UOR_R4_PROVIDER && execution.sourceEffects && (prism.isApproval(intent.prompt) || prism.isPublish(intent.prompt))) tmCancel(chatId);
-  if (provider !== UOR_R4_PROVIDER && execution.sourceEffects && prism.isApproval(intent.prompt)) return approveTurn(chatId, appId, messages, userId, ref, intent.intentId);
-  if (provider !== UOR_R4_PROVIDER && execution.sourceEffects && prism.isPublish(intent.prompt)) return publishTurn(chatId, appId, messages, userId, ref, intent.intentId);
-  const speculativeLive = provider !== UOR_R4_PROVIDER && execution.sourceEffects && !(await hasRules(appId)) && messages.filter((x) => x.role === "user").length === 1;
+  if (!isR4OrCustom && execution.sourceEffects && (prism.isApproval(intent.prompt) || prism.isPublish(intent.prompt))) tmCancel(chatId);
+  if (!isR4OrCustom && execution.sourceEffects && prism.isApproval(intent.prompt)) return approveTurn(chatId, appId, messages, userId, ref, intent.intentId);
+  if (!isR4OrCustom && execution.sourceEffects && prism.isPublish(intent.prompt)) return publishTurn(chatId, appId, messages, userId, ref, intent.intentId);
+  const speculativeLive = !isR4OrCustom && execution.sourceEffects && !(await hasRules(appId)) && messages.filter((x) => x.role === "user").length === 1;
   if (speculativeLive) showLive(appId).catch(() => liveShown.delete(appId));
   // T3: the assistant placeholder
   const projectSource = await captureProjectSource(await dbReady, appId);
@@ -1968,9 +2157,15 @@ async function chatTurn(chatId, intent) {
   const onCommit = (oid) => { committed.push(oid); updatedFiles = true; emit("version-created", { appId, oid }); };
   try {
     let uorR4StatusBefore = null;
+    let customEndpoint = null;
     if (provider === UOR_R4_PROVIDER) {
       await uorR4.ensureModelLoaded(model, { signal: abort.signal });
       uorR4StatusBefore = uorR4.getStatus();
+    } else if (provider === CUSTOM_API_PROVIDER) {
+      customEndpoint = await customApiClient.resolveEndpoint(model);
+      if (!customEndpoint) {
+        throw new Error("Selected custom AI API endpoint no longer exists. Pick UOR-R4 or configure an endpoint in Settings.");
+      }
     }
     // R4 decides the route before the request is made: a route to any model outside Foundry is
     // ungranted, so it is refused here and no byte of the request leaves the tab.
@@ -1978,6 +2173,7 @@ async function chatTurn(chatId, intent) {
       provider,
       engine: "match",
       weights: provider === UOR_R4_PROVIDER ? (uorR4StatusBefore?.weightsMatched ? "match" : "mismatch") : "none",
+      routeGranted: provider === CUSTOM_API_PROVIDER && Boolean(customEndpoint),
     });
     const allowed = await r4Decide(before);
     if (allowed.outcome !== "answer") throw new Error(r4Refusal(allowed, before));
@@ -1989,7 +2185,7 @@ async function chatTurn(chatId, intent) {
         if (!tm.token && t && !t.startsWith("<think>")) tmOnce("token");
         if (!tm.complete && (t.includes("\\end{semanticmodule}") || t.includes("</prism-lexlean>") || t.includes("</prism-spec>"))) tmOnce("complete");
       }
-      const shown = provider === UOR_R4_PROVIDER
+      const shown = isR4OrCustom
         ? prism.withoutThinking(full)
         : (execution.sourceEffects ? prism.shownText(full) : readOnlyChatText(prism.withoutThinking(full)));
       let lcp = 0; while (lcp < lastSent.length && lcp < shown.length && lastSent[lcp] === shown[lcp]) lcp++;
@@ -1997,7 +2193,7 @@ async function chatTurn(chatId, intent) {
       else emit("chat:response:chunk", { chatId, invocationRef: ref, streamingMessageId: asstId, streamingPatch: { offset: lcp, content: shown.slice(lcp), ...(lcp > 0 ? { prefixHash: djb2(shown.slice(0, lcp)) } : {}) } });
       lastSent = shown;
       // The rules as far as the model has written them go to the live frame now, not after the turn.
-      if (provider !== UOR_R4_PROVIDER && execution.sourceEffects && full.includes("<prism-spec>")) {
+      if (!isR4OrCustom && execution.sourceEffects && full.includes("<prism-spec>")) {
         const raw = live.partialSpec(full);
         if (raw) { if (!liveShown.has(appId)) { liveShown.add(appId); showLive(appId).catch(() => liveShown.delete(appId)); } tmOnce("declaration"); pushLive(appId, raw, "draft"); }
       }
@@ -2011,18 +2207,20 @@ async function chatTurn(chatId, intent) {
       void textWork.catch(() => {});
       return textWork;
     };
-    if (provider === UOR_R4_PROVIDER) {
+    if (isR4OrCustom) {
       await enqueueText("");
       const tools = createFoundryTools({ appId, chatMode: execution.mode, signal: abort.signal, onCommit });
       const uorTurn = await runUorR4AgentTurn({
         appId,
         chatId,
-        modelId: model,
+        modelId: customEndpoint ? customEndpoint.model : model,
         messages: messages.slice(0, -1),
         userPrompt: intent.prompt,
         chatMode: execution.mode,
+        maxNewTokens: customEndpoint ? 2048 : 384,
         signal: abort.signal,
         uorR4Runtime: uorR4,
+        generateFn: customEndpoint ? (opts) => customApiClient.generateChatCompletion({ endpoint: customEndpoint, ...opts }) : undefined,
         mvmHost,
         tools,
         onText: enqueueText,
@@ -2031,7 +2229,8 @@ async function chatTurn(chatId, intent) {
       const made = r4Request({
         provider,
         engine: "match",
-        weights: uorTurn.weightsMatched ? "match" : "mismatch",
+        weights: provider === UOR_R4_PROVIDER ? (uorTurn.weightsMatched ? "match" : "mismatch") : "none",
+        routeGranted: provider === CUSTOM_API_PROVIDER && Boolean(customEndpoint),
       });
       const shown = await r4Decide(made);
       if (shown.outcome !== "answer") throw new Error(r4Refusal(shown, made));
@@ -2076,7 +2275,7 @@ async function chatTurn(chatId, intent) {
         commitHash: commit,
         approvalState: execution.sourceEffects ? "approved" : null,
         requestId: null,
-        model,
+        model: customEndpoint ? customEndpoint.model : model,
       };
     } else {
       // Foundry's own language model reads the idea: IdeaReader, compiled with Prism into the kernel guest, reads
@@ -2647,21 +2846,263 @@ handlers.set("standards:lookup", ({ query, limit } = {}) => lookupStandards(quer
 handlers.set("uor-r4:status", () => uorR4.getCatalog({ refresh: true }));
 handlers.set("uor-r4:test-stitch-recover", ({ groupIndex = 0, dropped = 2 } = {}) => uorR4.testStitchRecover({ groupIndex, dropped }));
 handlers.set("uor-r4:select-model", ({ modelId }) => uorR4.ensureModelLoaded(modelId));
-handlers.set("uor-r4:load-local-file", async ({ fileName, bytes, bytesBase64, tokenizerJson }) => {
-  let rawBytes;
-  if (bytes instanceof Uint8Array) {
-    rawBytes = bytes;
-  } else if (Array.isArray(bytes)) {
-    rawBytes = new Uint8Array(bytes);
-  } else if (typeof bytesBase64 === "string") {
-    rawBytes = unb64(bytesBase64);
-  } else {
-    throw new Error("bytes or bytesBase64 is required");
-  }
-  const tokenizerBytes = typeof tokenizerJson === "string" && tokenizerJson ? enc.encode(tokenizerJson) : null;
-  return uorR4.loadLocalArtifact({ fileName, bytes: rawBytes, tokenizerBytes });
+handlers.set("custom-api:list", () => customApiClient.listEndpoints());
+handlers.set("custom-api:save", async (input) => {
+  const res = await customApiClient.saveEndpoint(input);
+  void windowCoordination.invalidate([{ family: "token-count" }]).catch(() => {});
+  return res;
 });
-handlers.set("uor-r4:predict-discrete", ({ modelId, prompt, tokenIds }) => uorR4.predictDiscrete({ modelId, prompt, tokenIds }));
+handlers.set("custom-api:delete", async (input) => {
+  const deletedId = String(input?.id ?? "").trim();
+  const res = await customApiClient.deleteEndpoint(input);
+  const settings = await inference.settingsGet();
+  if (settings?.selectedModel?.provider === CUSTOM_API_PROVIDER && settings.selectedModel.name === deletedId) {
+    await changeUserSettings(dbReady, { selectedModel: DEFAULT_SETTINGS.selectedModel }, (current, captured) => browserSettings(browserChatModeSettings({ ...DEFAULT_SETTINGS, ...current, ...captured })));
+  }
+  const migratedChatIds = [];
+  for (const chat of await all("chats")) {
+    if (chat?.modelSelection?.provider === CUSTOM_API_PROVIDER && chat.modelSelection.name === deletedId) {
+      await put("chats", chat.id, {
+        ...chat,
+        modelSelection: { ...DEFAULT_SETTINGS.selectedModel, effortLevel: chat.modelSelection?.effortLevel || "medium" },
+      });
+      if (Number.isSafeInteger(chat.id) && chat.id > 0) migratedChatIds.push(chat.id);
+    }
+  }
+  void windowCoordination
+    .invalidate([
+      { family: "chats" },
+      { family: "token-count" },
+      ...migratedChatIds.map((chatId) => ({ family: "chat", chatId })),
+    ])
+    .catch(() => {});
+  return res;
+});
+handlers.set("custom-api:test", (input) => customApiClient.testEndpoint(input));
+
+// ---- Browser adapters for Studio UI internal controls (matching src/ipc/types/* contracts)
+const COLLECTIONS_REF = "app-collections:list";
+async function readRawCollections() {
+  const raw = await get("refs", COLLECTIONS_REF);
+  return Array.isArray(raw) ? raw.filter((c) => c && Number.isSafeInteger(c.id)) : [];
+}
+const formatCollectionDto = (c) => ({
+  id: Number(c.id),
+  name: String(c.name || ""),
+  appIds: Array.isArray(c.appIds) ? c.appIds.map(Number) : [],
+  createdAt: new Date(c.createdAt || Date.now()),
+  updatedAt: new Date(c.updatedAt || Date.now()),
+});
+handlers.set("get-app-upgrades", () => []);
+handlers.set("app:list-screenshots", () => ({ screenshots: [] }));
+handlers.set("app:list-thumbnails", ({ appIds = [] } = {}) => ({
+  thumbnails: (Array.isArray(appIds) ? appIds : []).map((appId) => ({ appId: Number(appId), thumbnailUrl: null })),
+}));
+handlers.set("add-to-favorite", async (input) => {
+  const appId = Number(typeof input === "object" ? input?.appId : input);
+  const app = await get("apps", appId);
+  if (!app) throw new Error("no app " + appId);
+  const isFavorite = !app.isFavorite;
+  await put("apps", appId, { ...app, isFavorite, updatedAt: new Date().toISOString() });
+  return { isFavorite };
+});
+handlers.set("copy-app", async ({ appId, newAppName, withHistory } = {}) => {
+  await coreReady;
+  const existing = await get("apps", appId);
+  if (!existing) throw new Error("no app " + appId);
+  const filePaths = await filesOf(appId);
+  const fileMap = {};
+  for (const p of filePaths) {
+    const content = await get("files", `${appId}:${p}`);
+    if (typeof content === "string") fileMap[p] = content;
+  }
+  const capturedMode = browserChatMode(undefined, await get("settings", "user"));
+  const prepared = await prepareNewProject({ name: newAppName, initialChatMode: capturedMode, files: fileMap }, { core, derive: kappa });
+  const created = await createStoredProject(await dbReady, prepared, nulls, themesData);
+  if (withHistory) {
+    const sourceChats = (await all("chats")).filter((c) => c.appId === appId);
+    const initialChat = await get("chats", created.chatId);
+    if (initialChat && sourceChats.length && Array.isArray(sourceChats[0].messages)) {
+      await put("chats", created.chatId, { ...initialChat, title: sourceChats[0].title || initialChat.title, messages: structuredClone(sourceChats[0].messages) });
+    }
+    for (let i = 1; i < sourceChats.length; i += 1) {
+      const cid = await createStoredChat(await dbReady, created.app.id, now(), sourceChats[i].chatMode || capturedMode);
+      const cloned = await get("chats", cid);
+      if (cloned) {
+        await put("chats", cid, { ...cloned, title: sourceChats[i].title || cloned.title, messages: structuredClone(sourceChats[i].messages || []) });
+      }
+    }
+  }
+  emit("version-created", { appId: created.app.id, oid: created.oid });
+  return { app: withDates(created.app) };
+});
+handlers.set("delete-apps", async ({ appIds = [] } = {}) => {
+  const results = [];
+  for (const appId of appIds) {
+    try {
+      await handlers.get("delete-app")({ appId });
+      results.push({ appId, success: true });
+    } catch (err) {
+      results.push({ appId, success: false, error: String(err?.message || err) });
+    }
+  }
+  return { results };
+});
+handlers.set("appCollections:list", async () => (await readRawCollections()).map(formatCollectionDto));
+handlers.set("appCollections:create", async ({ name, appIds = [] } = {}) => {
+  const list = await readRawCollections();
+  const nextCollectionId = (list.reduce((mx, c) => Math.max(mx, Number(c.id) || 0), 0) || 0) + 1;
+  const ts = now();
+  const cleanIds = Array.isArray(appIds) ? [...new Set(appIds.map(Number).filter(Number.isSafeInteger))] : [];
+  for (const col of list) {
+    col.appIds = (col.appIds || []).filter((id) => !cleanIds.includes(Number(id)));
+  }
+  const entry = { id: nextCollectionId, name: String(name || "").trim(), appIds: cleanIds, createdAt: ts, updatedAt: ts };
+  list.push(entry);
+  await put("refs", COLLECTIONS_REF, list);
+  for (const appId of cleanIds) {
+    const app = await get("apps", appId);
+    if (app) await put("apps", appId, { ...app, collectionId: nextCollectionId });
+  }
+  return formatCollectionDto(entry);
+});
+handlers.set("appCollections:update", async ({ id, name, appIds } = {}) => {
+  const cid = Number(id);
+  const list = await readRawCollections();
+  const col = list.find((c) => Number(c.id) === cid);
+  if (!col) throw new Error("Collection not found");
+  col.name = String(name || "").trim();
+  const prevIds = Array.isArray(col.appIds) ? col.appIds.map(Number) : [];
+  if (Array.isArray(appIds)) {
+    const cleanIds = [...new Set(appIds.map(Number).filter(Number.isSafeInteger))];
+    for (const other of list) {
+      if (Number(other.id) !== cid) {
+        other.appIds = (other.appIds || []).filter((aid) => !cleanIds.includes(Number(aid)));
+      }
+    }
+    col.appIds = cleanIds;
+    const removed = prevIds.filter((aid) => !cleanIds.includes(aid));
+    for (const appId of removed) {
+      const app = await get("apps", appId);
+      if (app && app.collectionId === cid) await put("apps", appId, { ...app, collectionId: null });
+    }
+    for (const appId of cleanIds) {
+      const app = await get("apps", appId);
+      if (app) await put("apps", appId, { ...app, collectionId: cid });
+    }
+  }
+  col.updatedAt = now();
+  await put("refs", COLLECTIONS_REF, list);
+});
+handlers.set("appCollections:delete", async (collectionId) => {
+  const cid = Number(collectionId);
+  const list = await readRawCollections();
+  const next = list.filter((c) => Number(c.id) !== cid);
+  await put("refs", COLLECTIONS_REF, next);
+  for (const app of await all("apps")) {
+    if (app.collectionId === cid) {
+      await put("apps", app.id, { ...app, collectionId: null });
+    }
+  }
+});
+handlers.set("appCollections:assignApps", async ({ collectionId, appIds = [] } = {}) => {
+  const list = await readRawCollections();
+  const cleanIds = [...new Set((appIds || []).map(Number).filter(Number.isSafeInteger))];
+  const ts = now();
+  for (const col of list) {
+    const filtered = (col.appIds || []).filter((id) => !cleanIds.includes(Number(id)));
+    if (collectionId != null && Number(col.id) === Number(collectionId)) {
+      col.appIds = [...new Set([...filtered, ...cleanIds])];
+      col.updatedAt = ts;
+    } else if (filtered.length !== (col.appIds || []).length) {
+      col.appIds = filtered;
+      col.updatedAt = ts;
+    }
+  }
+  await put("refs", COLLECTIONS_REF, list);
+  for (const appId of cleanIds) {
+    const app = await get("apps", appId);
+    if (app) await put("apps", appId, { ...app, collectionId: collectionId ?? null });
+  }
+});
+handlers.set("get-app-env-vars", async ({ appId } = {}) => {
+  const stored = await get("refs", `app-env:${Number(appId)}`);
+  return Array.isArray(stored) ? stored.map((v) => ({ key: String(v?.key || ""), value: String(v?.value || "") })) : [];
+});
+handlers.set("set-app-env-vars", async ({ appId, envVars = [] } = {}) => {
+  const clean = (Array.isArray(envVars) ? envVars : []).map((v) => ({ key: String(v?.key || ""), value: String(v?.value || "") }));
+  await put("refs", `app-env:${Number(appId)}`, clean);
+});
+handlers.set("update-app-commands", async ({ appId, installCommand, startCommand } = {}) => {
+  const app = await get("apps", appId);
+  if (!app) throw new Error("no app " + appId);
+  await put("apps", appId, { ...app, installCommand: installCommand ?? null, startCommand: startCommand ?? null, updatedAt: now() });
+});
+handlers.set("check-problems", async ({ appId } = {}) => {
+  const app = await get("apps", appId);
+  if (!app) throw new Error("no app " + appId);
+  return { problems: [], outcome: "passed" };
+});
+handlers.set("list-all-media", () => ({ apps: [] }));
+handlers.set("free-agent-quota:get-status", () => ({
+  messagesUsed: 0,
+  messagesLimit: 5,
+  isQuotaExceeded: false,
+  windowStartTime: null,
+  resetTime: null,
+  hoursUntilReset: null,
+}));
+handlers.set("get-templates", () => [
+  {
+    id: "react",
+    title: "React + Vite (UOR-R4 Foundry)",
+    description: "Browser-native React, TypeScript, and Tailwind CSS workspace running inside Foundry.",
+    imageUrl: new URL("mark.svg", BASE).href,
+    isOfficial: true,
+  },
+]);
+handlers.set("open-external-url", (url) => {
+  let parsed;
+  try {
+    parsed = new URL(String(url ?? ""));
+  } catch {
+    throw new Error("Invalid external URL");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Only http(s) URLs can be opened");
+  }
+  try {
+    window.open(parsed.href, "_blank", "noopener,noreferrer");
+  } catch {}
+});
+handlers.set("reset-all", async () => {
+  homeChatEpoch += 1;
+  if (homeChatAbort) {
+    homeChatAbort.abort(new Error("Reset"));
+    homeChatAbort = null;
+  }
+  for (const s of ["settings", "apps", "chats", "files", "objects", "refs", "versions", "audit", "seals"]) {
+    await tx(s, "readwrite", (st) => st.clear()).catch(() => {});
+  }
+  await put("settings", "user", DEFAULT_SETTINGS);
+  try {
+    localStorage.removeItem("uor.terminal.runtime");
+  } catch {}
+  emit("home-chat:chunk", { messages: [] });
+  void windowCoordination
+    .invalidate([
+      { family: "apps" },
+      { family: "chats" },
+      { family: "app-collections" },
+      { family: "token-count" },
+    ])
+    .catch(() => {});
+});
+handlers.set("mcp:list-servers", () => []);
+handlers.set("mcp:list-catalog", () => ({ entries: [], addedSlugs: [] }));
+handlers.set("mcp:get-tool-consents", () => []);
+handlers.set("mcp:probe-callback-port", () => ({ port: 53682 }));
+handlers.set("mcp:is-oauth-storage-encrypted", () => ({ available: true }));
 
 let homeChatAbort = null;
 let homeChatEpoch = 0;
@@ -2687,7 +3128,7 @@ handlers.set("home-chat:cancel", async () => {
   }
   return { cancelled: true };
 });
-handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
+handlers.set("home-chat:send", async ({ prompt, modelId, provider: requestedProvider } = {}) => {
   const text = String(prompt ?? "").trim();
   if (!text) throw new Error("Prompt is required");
   homeChatEpoch += 1;
@@ -2700,16 +3141,25 @@ handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
   homeChatAbort = abort;
 
   const settings = (await get("settings", "user")) || DEFAULT_SETTINGS;
+  const sel = settings.selectedModel;
   const fallbackModel =
-    !settings.selectedModel ||
-    settings.selectedModel.provider !== UOR_R4_PROVIDER ||
-    settings.selectedModel.name === "uor-r4:synthetic-seed-5" ||
-    settings.selectedModel.name === "synthetic-seed-5"
+    !sel ||
+    (sel.provider !== UOR_R4_PROVIDER && sel.provider !== CUSTOM_API_PROVIDER) ||
+    (sel.provider === UOR_R4_PROVIDER &&
+      sel.name !== "uor-r4:qwen3-0.6b-foundry" &&
+      sel.name !== "qwen3-0.6b-foundry")
       ? { provider: UOR_R4_PROVIDER, name: UOR_R4_DEFAULT_MODEL }
-      : settings.selectedModel;
-  const requested = modelId ? { provider: UOR_R4_PROVIDER, name: modelId } : null;
+      : sel;
+  const requested = modelId
+    ? { provider: requestedProvider === CUSTOM_API_PROVIDER ? CUSTOM_API_PROVIDER : UOR_R4_PROVIDER, name: modelId }
+    : null;
   const homeRoute = chatModelRoute(requested, fallbackModel);
   const activeModel = homeRoute.model;
+  let customEndpoint = null;
+  if (homeRoute.provider === CUSTOM_API_PROVIDER) {
+    customEndpoint = await customApiClient.resolveEndpoint(activeModel);
+  }
+  const displayModel = customEndpoint ? customEndpoint.model : activeModel;
   if (myEpoch !== homeChatEpoch) {
     return { outcome: "cancelled", messages: [] };
   }
@@ -2719,7 +3169,7 @@ handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
   }
   const nextId = prior.length ? Math.max(...prior.map((x) => Number(x.id) || 0)) + 1 : 1;
   const userMsg = { id: nextId, role: "user", content: text, createdAt: now() };
-  const asstMsg = { id: nextId + 1, role: "assistant", content: "", model: activeModel, createdAt: now() };
+  const asstMsg = { id: nextId + 1, role: "assistant", content: "", model: displayModel, createdAt: now() };
   const messages = [...prior, userMsg, asstMsg];
   await put("refs", "home-chat:history", messages);
   if (myEpoch !== homeChatEpoch) {
@@ -2747,24 +3197,32 @@ handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
   };
 
   try {
-    await uorR4.ensureModelLoaded(activeModel, { signal: abort.signal });
-    const status = uorR4.getStatus();
+    let statusBefore = null;
+    if (homeRoute.provider === UOR_R4_PROVIDER) {
+      await uorR4.ensureModelLoaded(activeModel, { signal: abort.signal });
+      statusBefore = uorR4.getStatus();
+    } else if (homeRoute.provider === CUSTOM_API_PROVIDER && !customEndpoint) {
+      throw new Error("Selected custom AI API endpoint no longer exists. Pick UOR-R4 or configure an endpoint in Settings.");
+    }
     const before = r4Request({
       provider: homeRoute.provider,
       engine: "match",
-      weights: status?.weightsMatched ? "match" : "mismatch",
+      weights: homeRoute.provider === UOR_R4_PROVIDER ? (statusBefore?.weightsMatched ? "match" : "mismatch") : "none",
+      routeGranted: homeRoute.provider === CUSTOM_API_PROVIDER && Boolean(customEndpoint),
     });
     const allowed = await r4Decide(before);
     if (allowed.outcome !== "answer") throw new Error(r4Refusal(allowed, before));
     const result = await runUorR4AgentTurn({
       appId: null,
       chatId: "home-chat",
-      modelId: activeModel,
+      modelId: displayModel,
       messages: prior,
       userPrompt: text,
       chatMode: "chat",
+      maxNewTokens: customEndpoint ? 2048 : 384,
       signal: abort.signal,
       uorR4Runtime: uorR4,
+      generateFn: customEndpoint ? (opts) => customApiClient.generateChatCompletion({ endpoint: customEndpoint, ...opts }) : undefined,
       mvmHost,
       tools: createFoundryTools({ appId: null, chatMode: "chat", signal: abort.signal }),
       onText: enqueueHomeText,
@@ -2775,7 +3233,8 @@ handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
       const made = r4Request({
         provider: homeRoute.provider,
         engine: "match",
-        weights: result.weightsMatched ? "match" : "mismatch",
+        weights: homeRoute.provider === UOR_R4_PROVIDER ? (result.weightsMatched ? "match" : "mismatch") : "none",
+        routeGranted: homeRoute.provider === CUSTOM_API_PROVIDER && Boolean(customEndpoint),
       });
       const shown = await r4Decide(made);
       if (shown.outcome !== "answer") throw new Error(r4Refusal(shown, made));
@@ -2783,7 +3242,7 @@ handlers.set("home-chat:send", async ({ prompt, modelId } = {}) => {
         ...messages[messages.length - 1],
         content: latest,
         toolExecutions: result.toolExecutions || 0,
-        model: activeModel,
+        model: displayModel,
       };
     }
   } catch (e) {
@@ -2860,8 +3319,7 @@ window.__uorR4 = Object.freeze({
   getCatalog: uorR4.getCatalog,
   getStatus: uorR4.getStatus,
   ensureModelLoaded: uorR4.ensureModelLoaded,
-  loadLocalArtifact: uorR4.loadLocalArtifact,
-  predictDiscrete: uorR4.predictDiscrete,
+  listCustomApiEndpoints: customApiClient.listEndpoints,
   mvmExec: (cmd, appId = null) => mvmHost.execCommand(appId, cmd),
   mvmIdentity: (appId = null) => mvmHost.getIdentity(appId),
   linuxExec: (cmd, appId = null, opts = {}) => linuxVmHost.execCommand(appId, cmd, opts),

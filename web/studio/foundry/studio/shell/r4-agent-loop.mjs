@@ -84,6 +84,7 @@ export async function runUorR4AgentTurn({
   maxNewTokens = 384,
   signal,
   uorR4Runtime,
+  generateFn,
   mvmHost,
   tools = {},
   onText,
@@ -136,22 +137,27 @@ export async function runUorR4AgentTurn({
   let toolExecutions = 0;
   let updatedFiles = false;
   const isV13 = String(modelId || '').includes('qwen3-0.6b-foundry');
+  const hasCustomGenerate = typeof generateFn === 'function';
+  const useFoundryPrompt = isV13 || hasCustomGenerate;
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
     const roundPrefix = transcript;
-    const gen = await uorR4Runtime.generate({
+    const genReq = {
       modelId,
       chatId: `${chatId}-r${round}`,
-      systemPrompt: isV13 ? FOUNDRY_SYSTEM_PROMPT : '',
+      systemPrompt: useFoundryPrompt ? FOUNDRY_SYSTEM_PROMPT : '',
       prompt: round === 0 ? prompt : turnMessages[turnMessages.length - 1].content,
       messages: round === 0 ? turnMessages : turnMessages.slice(0, -1),
-      maxNewTokens: isV13 ? maxNewTokens : 48,
-      stopSequences: isV13 ? ['</tool_call>'] : undefined,
+      maxNewTokens: useFoundryPrompt ? maxNewTokens : 48,
+      stopSequences: useFoundryPrompt ? ['</tool_call>'] : undefined,
       signal,
       onToken: ({ fullText }) => {
         void onText(roundPrefix + fullText);
       },
-    });
+    };
+    const gen = hasCustomGenerate
+      ? await generateFn(genReq)
+      : await uorR4Runtime.generate(genReq);
     if (!gen.weightsMatched) {
       weightsMatched = false;
     }

@@ -2,15 +2,12 @@
 import { LargeLanguageModelSchema } from './chat-contracts.mjs';
 
 export const UOR_R4_PROVIDER = 'uor-r4';
+export const CUSTOM_API_PROVIDER = 'custom-api';
 export const UOR_R4_DEFAULT_MODEL = 'uor-r4:qwen3-0.6b-foundry';
 export const LOCAL_MODEL = 'foundry:reader';
 const ALLOWED_UOR_R4_MODELS = new Set([
   'qwen3-0.6b-foundry',
-  'm1-discrete-trunk-seed-1',
-  'local-upload',
   'uor-r4:qwen3-0.6b-foundry',
-  'uor-r4:m1-discrete-trunk-seed-1',
-  'uor-r4:local-upload',
 ]);
 const FORMER = ['webgpu:Qwen', 'webgpu:Bonsai', 'webgpu:BitNet'];
 
@@ -43,7 +40,7 @@ export function chatModelRoute(chatSelection, defaultSelection) {
     throw fail('invalidChatModelSelection');
   }
   const { provider, name } = chosen;
-  if (!['uor-r4', 'local', 'openrouter', 'featherless'].includes(provider)) {
+  if (!['uor-r4', 'custom-api', 'local', 'openrouter', 'featherless'].includes(provider)) {
     throw fail('unsupportedChatProvider');
   }
   if (provider === 'uor-r4') {
@@ -52,6 +49,9 @@ export function chatModelRoute(chatSelection, defaultSelection) {
     }
     const normalized = name.startsWith('uor-r4:') ? name : `uor-r4:${name}`;
     return Object.freeze({ provider, model: normalized, paid: false });
+  }
+  if (provider === 'custom-api') {
+    return Object.freeze({ provider, model: name, paid: true });
   }
   if (provider === 'local' && name !== LOCAL_MODEL && !FORMER.includes(name)) {
     throw fail('invalidChatModelSelection');

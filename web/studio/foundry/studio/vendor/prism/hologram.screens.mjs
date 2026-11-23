@@ -149,6 +149,77 @@ const SCREEN_PATCHES = [
             <p className="text-muted-foreground">Themes, prompts and media you can use in any app.</p>`,
   },
   {
+    // Parse search params strictly from location.hash so host query params (?embed=me, ?v13Mirror=...)
+    // never concatenate onto route search (?appId=2?v13Mirror=...) and break Zod number validation.
+    file: "src/router.ts",
+    from: `import { createHashHistory, createRouter } from "@tanstack/react-router";`,
+    to: `import { createBrowserHistory, createRouter } from "@tanstack/react-router";`,
+  },
+  {
+    file: "src/router.ts",
+    from: `export const router = createRouter({
+  routeTree,
+  // Hash history keeps location.pathname at the deployment root (e.g. /uor-r4/studio/)
+  // across reloads and relative asset loads on static hosts like GitHub Pages.
+  history: createHashHistory(),`,
+    to: `function createSafeHashHistory() {
+  const win = typeof document !== "undefined" ? window : undefined;
+  return createBrowserHistory({
+    window: win,
+    parseLocation: () => {
+      const rawHash = win?.location.hash ?? "";
+      const hashSplit = rawHash.split("#").slice(1);
+      const pathPart = hashSplit[0] || "/";
+      const hashEntries = hashSplit.slice(1);
+      const hashPart = hashEntries.length === 0 ? "" : \`#\${hashEntries.join("#")}\`;
+      const href = \`\${pathPart}\${hashPart}\`;
+      const hashIndex = href.indexOf("#");
+      const searchIndex = href.indexOf("?");
+      const pathname =
+        href.substring(
+          0,
+          hashIndex > 0
+            ? searchIndex > 0
+              ? Math.min(hashIndex, searchIndex)
+              : hashIndex
+            : searchIndex > 0
+              ? searchIndex
+              : href.length,
+        ) || "/";
+      const hash = hashIndex > -1 ? href.substring(hashIndex) : "";
+      const search =
+        searchIndex > -1
+          ? href.slice(searchIndex, hashIndex === -1 ? undefined : hashIndex)
+          : "";
+      const rawState = win?.history.state as {
+        __TSR_index?: number;
+        key?: string;
+        __TSR_key?: string;
+      } | null;
+      const key =
+        rawState?.__TSR_key ||
+        rawState?.key ||
+        Math.random().toString(36).slice(2, 10);
+      const state =
+        rawState &&
+        typeof rawState.__TSR_index === "number" &&
+        (rawState.__TSR_key || rawState.key)
+          ? { ...rawState, key, __TSR_key: key, __TSR_index: rawState.__TSR_index }
+          : { __TSR_index: 0, key, __TSR_key: key };
+      return { href, pathname, search, hash, state };
+    },
+    createHref: (href: string) =>
+      \`\${win?.location.pathname ?? ""}\${win?.location.search ?? ""}#\${href}\`,
+  });
+}
+
+export const router = createRouter({
+  routeTree,
+  // Safe hash history keeps location.pathname and host query (?embed=me, ?v13Mirror=...)
+  // intact while parsing route search strictly from location.hash.
+  history: createSafeHashHistory(),`,
+  },
+  {
     // Theater (FA-92) lives in the floor's module, which already holds the catalogue, the covers and the
     // bookmarks it plays from, so the route is declared here rather than in a route file of its own.
     file: "src/router.ts",
@@ -193,13 +264,6 @@ const theaterRoute = new Route({ getParentRoute: () => rootRoute, path: "/theate
                   </div>
                 </SidebarInset>
                 <MobileTabBar />`,
-  },
-  {
-    // Its items carry a description under the label; Radix's SelectValue shows the chosen item whole, so the
-    // trigger names the label alone, as Base UI's showed one line.
-    file: "src/components/ZoomSelector.tsx",
-    from: `<SelectValue placeholder={t("general.selectZoom")} />`,
-    to: `<SelectValue placeholder={t("general.selectZoom")}>{ZOOM_LEVEL_LABELS[currentZoomLevel as ZoomLevel]}</SelectValue>`,
   },
   {
     // The app's details sit on the kit's Card, not a box styled to look like one.
@@ -612,7 +676,75 @@ import { ImportAppDialog } from "@/components/ImportAppDialog";`,
   },
   {
     file: "src/pages/settings.tsx",
-    from: `            <div
+    from: `          <SettingsSection
+            id={SECTION_IDS.agentPermissions}
+            title="Build and Agent Permissions"
+            description="Control what Build and Agent tools can do on your behalf."
+          >
+            <AgentToolsSettings />
+          </SettingsSection>
+
+          <SettingsSection
+            id={SECTION_IDS.advanced}
+            title="Advanced"
+            description="We recommend keeping the defaults unless something isn't working."
+          >
+            <div
+              id={SETTING_IDS.enableSandboxScriptExecution}
+              className="space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="enable-sandbox-script-execution"
+                  aria-label="Enable sandbox script execution"
+                  checked={!!settings?.enableSandboxScriptExecution}
+                  onCheckedChange={(checked) => {
+                    updateSettings({
+                      enableSandboxScriptExecution: checked,
+                    });
+                  }}
+                />
+                <Label htmlFor="enable-sandbox-script-execution">
+                  Enable sandbox script execution
+                </Label>
+              </div>
+              <p className={hint}>
+                Allow local-agent attachment scripts to inspect files with
+                execute_sandbox_script.
+              </p>
+            </div>
+
+            <div id={SETTING_IDS.blockUnsafeNpmPackages}>
+              <BlockUnsafeNpmPackagesSwitch />
+            </div>
+
+            <div id={SETTING_IDS.autoApproveNonSchemaSql}>
+              <AutoApproveSqlSwitch />
+            </div>
+          </SettingsSection>
+
+          <SettingsSection
+            id={SECTION_IDS.experiments}
+            title="Experiments"
+            description="Early features that may not be stable yet. Enable at your own risk."
+          >
+            <div id={SETTING_IDS.enableCloudSandbox}>
+              <CloudSandboxExperimentSwitch />
+            </div>
+
+            <div id={SETTING_IDS.enableMultiWindow}>
+              <MultiWindowExperimentSwitch />
+            </div>
+
+            <div id={SETTING_IDS.enableTestRunInPreview}>
+              <TestRunInPreviewSwitch />
+            </div>
+
+            <div id={SETTING_IDS.autoApproveSafeMcpTools}>
+              <AutoApproveMcpSwitch />
+            </div>
+
+            <div
               id={SETTING_IDS.enableOwnServerDeployment}
               className="space-y-1.5"
             >
@@ -636,8 +768,230 @@ import { ImportAppDialog } from "@/components/ImportAppDialog";`,
               </p>
             </div>
 
+            <div id={SETTING_IDS.enableMcpToolSearch} className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="enable-mcp-tool-search"
+                  aria-label="Enable MCP tool search"
+                  disabled={!settings?.enableSandboxScriptExecution}
+                  checked={
+                    !!settings?.enableMcpToolSearch &&
+                    !!settings?.enableSandboxScriptExecution
+                  }
+                  onCheckedChange={(checked) => {
+                    updateSettings({
+                      enableMcpToolSearch: checked,
+                    });
+                  }}
+                />
+                <Label htmlFor="enable-mcp-tool-search">
+                  Enable MCP tool search
+                </Label>
+              </div>
+              <p className={hint}>
+                When many MCP tools are enabled, let the agent search for the
+                tools on demand instead of listing every tool in its context.
+                Requires sandbox script execution.
+              </p>
+              {!settings?.enableSandboxScriptExecution && (
+                <p className="text-xs text-amber-700 dark:text-amber-500">
+                  Cannot be enabled unless sandbox script execution is on.
+                </p>
+              )}
+            </div>
+
+            <div
+              id={SETTING_IDS.enablePnpmMinimumReleaseAgeWarning}
+              className="space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="enable-pnpm-minimum-release-age-warning"
+                  aria-label="Enable pnpm upgrade warning"
+                  checked={!!settings?.enablePnpmMinimumReleaseAgeWarning}
+                  onCheckedChange={(checked) => {
+                    updateSettings({
+                      enablePnpmMinimumReleaseAgeWarning: checked,
+                    });
+                  }}
+                />
+                <Label htmlFor="enable-pnpm-minimum-release-age-warning">
+                  Enable pnpm upgrade warning
+                </Label>
+              </div>
+              <p className={hint}>
+                Show the pnpm release-age warning toast and one-click pnpm
+                upgrade action.
+              </p>
+            </div>
+
+            <div id={SETTING_IDS.enableCodeExplorer} className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="enable-code-explorer"
+                  aria-label="Enable code explorer (Pro)"
+                  checked={!!settings?.enableCodeExplorer}
+                  onCheckedChange={(checked) => {
+                    updateSettings({
+                      enableCodeExplorer: checked,
+                    });
+                  }}
+                />
+                <Label htmlFor="enable-code-explorer">
+                  Enable code explorer (Pro)
+                </Label>
+              </div>
+              <p className={hint}>
+                Let the local agent explore configured TypeScript projects with
+                a compiler-backed code graph.
+              </p>
+            </div>
+
+            <RunTypeScriptForWholeProjectSwitch />
+
+            <SubagentSettings />
+          </SettingsSection>
 `,
     to: ``,
+  },
+  {
+    file: "src/pages/settings.tsx",
+    from: `      <div id={SETTING_IDS.zoom}>
+        <ZoomSelector />
+      </div>
+
+      <div id={SETTING_IDS.autoUpdate} className="space-y-1.5">
+        <AutoUpdateSwitch />
+        <p className={hint}>
+          This will automatically update the app when new versions are
+          available.
+        </p>
+      </div>
+
+      <div id={SETTING_IDS.releaseChannel}>
+        <ReleaseChannelSelector />
+      </div>
+
+      <div id={SETTING_IDS.runtimeMode}>
+        <RuntimeModeSelector />
+      </div>
+      <div id={SETTING_IDS.nodePath}>
+        <NodePathSelector />
+      </div>
+      <div id={SETTING_IDS.customAppsFolder}>
+        <CustomAppsFolderSelector />
+      </div>
+`,
+    to: ``,
+  },
+  // Web Studio runs in the browser: hide Electron window buttons, voice-to-text Pro upsells,
+  // desktop app-folder / Capacitor / Electron-upgrade cards, and unavailable Security/Tests tabs.
+  {
+    file: "src/app/TitleBar.tsx",
+    from: `  const showWindowControls = platform !== null && platform !== "darwin";`,
+    to: `  const showWindowControls = platform !== null && platform !== "darwin" && platform !== "web";`,
+  },
+  {
+    file: "src/pages/app-details.tsx",
+    from: `                <Button
+                  onClick={() => setIsChangeLocationDialogOpen(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 justify-start text-xs"
+                >
+                  Move folder
+                </Button>
+`,
+    to: ``,
+  },
+  {
+    file: "src/pages/app-details.tsx",
+    from: `            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-[-8px] p-0.5 h-auto cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      onClick={() => {
+                        ipc.system.showItemInFolder(currentAppPath);
+                      }}
+                    />
+                  }
+                >
+                  <Folder className="h-3.5 w-3.5" />
+                </TooltipTrigger>
+                <TooltipContent>Show in folder</TooltipContent>
+              </Tooltip>
+              <span className="text-sm break-all">{currentAppPath}</span>
+            </div>`,
+    to: `            <div className="flex items-center gap-1">
+              <span className="text-sm break-all">{currentAppPath}</span>
+            </div>`,
+  },
+  {
+    file: "src/pages/app-details.tsx",
+    from: `          {appId && <CapacitorControls appId={appId} />}
+          <AppUpgrades appId={appId} />`,
+    to: ``,
+  },
+  {
+    file: "src/components/preview_panel/PreviewToolbar.tsx",
+    from: `const TAB_ORDER = [
+  "preview",
+  "code",
+  "terminal",
+  "publish",
+  "configure",
+  "problems",
+  "security",
+  "tests",
+] as const satisfies readonly ToolbarMode[];`,
+    to: `const TAB_ORDER = [
+  "preview",
+  "code",
+  "terminal",
+  "publish",
+  "configure",
+  "problems",
+] as const satisfies readonly ToolbarMode[];`,
+  },
+  {
+    file: "src/components/chat/HomeChatInput.tsx",
+    from: `            {/* Voice-to-text button */}
+            {isProEnabled ? (`,
+    to: `            {/* Voice-to-text omitted in Web Studio */}
+            {false && (isProEnabled ? (`,
+  },
+  {
+    file: "src/components/chat/HomeChatInput.tsx",
+    from: `                <TooltipContent>Voice to text (requires Pro)</TooltipContent>
+              </Tooltip>
+            )}`,
+    to: `                <TooltipContent>Voice to text (requires Pro)</TooltipContent>
+              </Tooltip>
+            ))}`,
+  },
+  {
+    file: "src/components/chat/ChatInput.tsx",
+    from: `            {/* Voice-to-text button */}
+            {isProEnabled ? (`,
+    to: `            {/* Voice-to-text omitted in Web Studio */}
+            {false && (isProEnabled ? (`,
+  },
+  {
+    file: "src/components/chat/ChatInput.tsx",
+    from: `                <TooltipContent>
+                  {t("voiceToTextRequiresPro", "Voice to text (requires Pro)")}
+                </TooltipContent>
+              </Tooltip>
+            )}`,
+    to: `                <TooltipContent>
+                  {t("voiceToTextRequiresPro", "Voice to text (requires Pro)")}
+                </TooltipContent>
+              </Tooltip>
+            ))}`,
   },
   {
     file: "src/lib/settingsSearchIndex.ts",
