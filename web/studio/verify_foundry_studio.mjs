@@ -6,6 +6,7 @@
 // Usage:
 //   node web/studio/verify_foundry_studio.mjs [dist-dir]
 
+import crypto from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -291,7 +292,165 @@ async function typeIntoHomeComposer(cdp, sessionId, text) {
   await new Promise((r) => setTimeout(r, 200));
 }
 
-async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
+async function startMockGitHubServer() {
+  const refs = new Map();
+  const blobs = new Map();
+  const trees = new Map();
+  const commits = new Map();
+  const repos = new Map();
+  let seq = 1;
+  let lastPatchForce = null;
+  const sha = (s) => crypto.createHash('sha1').update(s).digest('hex');
+
+  function seedRepo(owner, repo, files) {
+    const tree = [];
+    for (const [path, content] of Object.entries(files)) {
+      const bSha = sha(`blob:${seq++}:${path}:${content}`);
+      blobs.set(bSha, { sha: bSha, content: Buffer.from(content, 'utf8').toString('base64'), encoding: 'base64' });
+      tree.push({ path, mode: '100644', type: 'blob', sha: bSha, size: Buffer.byteLength(content, 'utf8') });
+    }
+    const tSha = sha(`tree:${seq++}`);
+    trees.set(tSha, tree);
+    const cSha = sha(`commit:${seq++}`);
+    commits.set(cSha, { sha: cSha, tree: { sha: tSha }, message: 'Initial commit', parents: [] });
+    refs.set(`${owner}/${repo}:heads/main`, cSha);
+    repos.set(`${owner}/${repo}`, {
+      name: repo,
+      full_name: `${owner}/${repo}`,
+      private: false,
+      default_branch: 'main',
+      html_url: `https://github.com/${owner}/${repo}`,
+      owner: { login: owner },
+    });
+  }
+
+  seedRepo('octocat', 'hello-uor', {
+    'README.md': '# Hello UOR\n',
+    'src/main.ts': 'export const greeting = "hello v1";\n',
+  });
+
+  const server = createServer(async (req, res) => {
+    res.setHeader('access-control-allow-origin', '*');
+    res.setHeader('access-control-allow-methods', 'GET, POST, PATCH, OPTIONS');
+    res.setHeader('access-control-allow-headers', 'Authorization, Content-Type, Accept, X-GitHub-Api-Version');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    const reqUrl = new URL(req.url, 'http://127.0.0.1');
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    const body = rawBody ? JSON.parse(rawBody) : null;
+    const send = (code, data) => {
+      res.writeHead(code, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(data));
+    };
+
+    if (req.headers.authorization !== 'Bearer ghp_cdp_stage3_secret_token_777') {
+      return send(401, { message: 'Bad credentials' });
+    }
+    if (req.method === 'GET' && reqUrl.pathname === '/user') {
+      return send(200, { login: 'octocat', name: 'The Octocat', avatar_url: 'https://example.invalid/a.png' });
+    }
+    if (req.method === 'GET' && reqUrl.pathname === '/user/repos') {
+      return send(200, Array.from(repos.values()));
+    }
+    const repoMatch = reqUrl.pathname.match(/^\/repos\/([^/]+)\/([^/]+)(.*)$/);
+    if (!repoMatch) return send(404, { message: 'Not Found' });
+    const [, owner, repo, tail] = repoMatch;
+    const key = `${owner}/${repo}`;
+
+    if (req.method === 'GET' && tail === '') {
+      const r = repos.get(key);
+      return r ? send(200, r) : send(404, { message: 'Not Found' });
+    }
+    if (req.method === 'GET' && tail === '/branches') {
+      return send(200, [{ name: 'main', commit: { sha: refs.get(`${key}:heads/main`) } }]);
+    }
+    if (req.method === 'GET' && tail === '/git/ref/heads/main') {
+      const head = refs.get(`${key}:heads/main`);
+      return head ? send(200, { ref: 'refs/heads/main', object: { sha: head, type: 'commit' } }) : send(404, { message: 'Not Found' });
+    }
+    if (req.method === 'PATCH' && tail === '/git/refs/heads/main') {
+      lastPatchForce = body?.force;
+      if (body?.force !== false) return send(400, { message: 'CAS required (force:false)' });
+      refs.set(`${key}:heads/main`, body.sha);
+      return send(200, { ref: 'refs/heads/main', object: { sha: body.sha, type: 'commit' } });
+    }
+    let m;
+    if (req.method === 'GET' && (m = tail.match(/^\/git\/commits\/([0-9a-f]+)$/))) {
+      const c = commits.get(m[1]);
+      return c ? send(200, c) : send(404, { message: 'Not Found' });
+    }
+    if (req.method === 'GET' && (m = tail.match(/^\/git\/trees\/([0-9a-f]+)$/))) {
+      const t = trees.get(m[1]);
+      return t ? send(200, { sha: m[1], tree: t }) : send(404, { message: 'Not Found' });
+    }
+    if (req.method === 'GET' && (m = tail.match(/^\/git\/blobs\/([0-9a-f]+)$/))) {
+      const b = blobs.get(m[1]);
+      return b ? send(200, b) : send(404, { message: 'Not Found' });
+    }
+    if (req.method === 'POST' && tail === '/git/blobs') {
+      const bSha = sha(`blob:${seq++}:${body.content}`);
+      blobs.set(bSha, { sha: bSha, content: body.content, encoding: body.encoding || 'base64' });
+      return send(201, { sha: bSha });
+    }
+    if (req.method === 'POST' && tail === '/git/trees') {
+      const baseEntries = new Map((trees.get(body.base_tree) || []).map((e) => [e.path, e]));
+      for (const item of body.tree || []) {
+        if (item.sha === null) baseEntries.delete(item.path);
+        else baseEntries.set(item.path, { path: item.path, mode: '100644', type: 'blob', sha: item.sha });
+      }
+      const tSha = sha(`tree:${seq++}`);
+      trees.set(tSha, Array.from(baseEntries.values()));
+      return send(201, { sha: tSha });
+    }
+    if (req.method === 'POST' && tail === '/git/commits') {
+      const cSha = sha(`commit:${seq++}:${body.message}`);
+      commits.set(cSha, { sha: cSha, tree: { sha: body.tree }, message: body.message, parents: (body.parents || []).map((p) => ({ sha: p })) });
+      return send(201, { sha: cSha });
+    }
+    return send(404, { message: `Unhandled ${req.method} ${reqUrl.pathname}` });
+  });
+
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const { port } = server.address();
+  return {
+    server,
+    origin: `http://127.0.0.1:${port}`,
+    getLastPatchForce: () => lastPatchForce,
+    advanceRemote(owner, repo, branch, path, content) {
+      const curHead = refs.get(`${owner}/${repo}:heads/${branch}`);
+      const parentCommit = commits.get(curHead);
+      const baseEntries = new Map((trees.get(parentCommit.tree.sha) || []).map((e) => [e.path, e]));
+      const bSha = sha(`blob:${seq++}:${content}`);
+      blobs.set(bSha, { sha: bSha, content: Buffer.from(content, 'utf8').toString('base64'), encoding: 'base64' });
+      baseEntries.set(path, { path, mode: '100644', type: 'blob', sha: bSha });
+      const tSha = sha(`tree:${seq++}`);
+      trees.set(tSha, Array.from(baseEntries.values()));
+      const cSha = sha(`commit:${seq++}:remote`);
+      commits.set(cSha, { sha: cSha, tree: { sha: tSha }, message: 'Remote advance', parents: [{ sha: curHead }] });
+      refs.set(`${owner}/${repo}:heads/${branch}`, cSha);
+      return cSha;
+    },
+    deleteRemote(owner, repo, branch, path) {
+      const curHead = refs.get(`${owner}/${repo}:heads/${branch}`);
+      const parentCommit = commits.get(curHead);
+      const baseEntries = new Map((trees.get(parentCommit.tree.sha) || []).map((e) => [e.path, e]));
+      baseEntries.delete(path);
+      const tSha = sha(`tree:${seq++}`);
+      trees.set(tSha, Array.from(baseEntries.values()));
+      const cSha = sha(`commit:${seq++}:delete:${path}`);
+      commits.set(cSha, { sha: cSha, tree: { sha: tSha }, message: `Delete ${path}`, parents: [{ sha: curHead }] });
+      refs.set(`${owner}/${repo}:heads/${branch}`, cSha);
+      return cSha;
+    },
+  };
+}
+
+async function verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub) {
   const target = await cdp.send('Target.createTarget', { url: 'about:blank' });
   const attached = await cdp.send('Target.attachToTarget', { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
@@ -550,6 +709,8 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
         if (sub?.encodedState?.phase === 'idle' || sub?.encodedState?.phase === 'errored') break;
         await new Promise((r) => setTimeout(r, 200));
       }
+      // Allow the V13 WASM worker to unwind the cancelled token chunk before starting the next turn.
+      await new Promise((r) => setTimeout(r, 1500));
     `,
     25000,
     'quiesce promoted chat stream',
@@ -696,7 +857,8 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
     `Page.reload loadEventFired timed out on ${basePath}; seen=[${cdp.events.slice(reloadEvStart).map((e) => e.method).slice(-12).join(',')}]`,
   );
   await waitForEval(cdp, sessionId, `Boolean(!window.__uorBeforeReload && window.electron && window.__uorR4 && (document.querySelector('#root')?.children.length || 0) > 0)`, 20000);
-  await new Promise((r) => setTimeout(r, 800));
+  await new Promise((r) => setTimeout(r, 1200));
+  await waitForEval(cdp, sessionId, `Boolean(!window.__uorBeforeReload && window.electron && window.__uorR4 && (document.querySelector('#root')?.children.length || 0) > 0)`, 20000);
   await drainChildren();
   const reloadExternalReqs = [];
   for (const ev of cdp.events.slice(reloadEvStart)) {
@@ -723,6 +885,224 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
   assert(reloadCheck.stdout.trim() === 'hello-cow', `MVM CoW failed across reload: ${JSON.stringify(reloadCheck)}`);
   assert(reloadCheck.written === 'uor-v13-ok', `App file failed across reload: ${JSON.stringify(reloadCheck)}`);
 
+  // 7. Check 6: Real Linux 6.18.7 VM (v86) + bidirectional host9p /workspace sync + runtime toggle.
+  console.error(`[verify] booting Linux 6.18.7 v86 VM on ${basePath}...`);
+  const linuxCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      await window.electron.ipcRenderer.invoke('terminal:set-runtime', { mode: 'linux', appId: ${mvmCheck.appId} });
+      const rtLinux = await window.electron.ipcRenderer.invoke('terminal:get-runtime');
+      const openLinux = await window.electron.ipcRenderer.invoke('terminal:open', { appId: ${mvmCheck.appId}, cols: 80, rows: 24 });
+      const res = await window.__uorR4.linuxExec(
+        'uname -sr && ls -la /workspace && mkdir -p /workspace/app2_only_dir && printf "nested" > /workspace/app2_only_dir/nested.txt && printf "from-linux-618" > /workspace/linux_note.txt && printf "temp-rm" > /workspace/linux_rm_probe.txt',
+        ${mvmCheck.appId},
+        { timeoutMs: 30000 }
+      );
+      const syncedFile = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${mvmCheck.appId},
+        filePath: 'linux_note.txt',
+      });
+      const rmProbeSynced = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${mvmCheck.appId},
+        filePath: 'linux_rm_probe.txt',
+      });
+      await window.__uorR4.linuxExec('rm -f /workspace/linux_rm_probe.txt', ${mvmCheck.appId}, { timeoutMs: 20000 });
+      const rmProbeAfterDelete = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${mvmCheck.appId},
+        filePath: 'linux_rm_probe.txt',
+      }).catch(() => null);
+      const lsAfterRm = await window.__uorR4.linuxExec('ls -1a /workspace', ${mvmCheck.appId}, { timeoutMs: 20000 });
+      await window.electron.ipcRenderer.invoke('terminal:set-runtime', { mode: 'mvm', appId: ${mvmCheck.appId} });
+      const rtMvm = await window.electron.ipcRenderer.invoke('terminal:get-runtime');
+      const openMvm = await window.electron.ipcRenderer.invoke('terminal:open', { appId: ${mvmCheck.appId}, cols: 80, rows: 24 });
+      await window.electron.ipcRenderer.invoke('terminal:set-runtime', { mode: 'linux', appId: ${mvmCheck.appId} });
+      const crossAppSwitch = await window.__uorR4.linuxExec(
+        'ls -1a /workspace',
+        ${promoted.appId},
+        { timeoutMs: 20000 }
+      );
+      const promotedHasApp2File = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${promoted.appId},
+        filePath: 'linux_note.txt',
+      }).catch(() => null);
+      return { rtLinux, openLinux, res, syncedFile, rmProbeSynced, rmProbeAfterDelete, lsAfterRm, rtMvm, openMvm, crossAppSwitch, promotedHasApp2File };
+    `,
+    120000,
+    `linuxVmCheck on ${basePath}`,
+  );
+  assert(linuxCheck.rtLinux.mode === 'linux', `Expected linux runtime mode: ${JSON.stringify(linuxCheck.rtLinux)}`);
+  assert(linuxCheck.openLinux.sessionId.startsWith('linux-'), `Expected linux- sessionId: ${JSON.stringify(linuxCheck.openLinux)}`);
+  assert(linuxCheck.res.exit_code === 0, `Linux exec failed: ${JSON.stringify(linuxCheck.res)}`);
+  assert(linuxCheck.res.stdout.includes('Linux 6.18'), `Expected Linux 6.18.7 uname: ${JSON.stringify(linuxCheck.res)}`);
+  assert(linuxCheck.res.stdout.includes('uor-probe.txt') || linuxCheck.res.stdout.includes('package.json') || linuxCheck.res.stdout.includes('src'), `Expected Studio files inside /workspace: ${linuxCheck.res.stdout}`);
+  assert(linuxCheck.syncedFile === 'from-linux-618', `9p -> IndexedDB sync failed: ${JSON.stringify(linuxCheck)}`);
+  assert(linuxCheck.rmProbeSynced === 'temp-rm', `Expected rm probe file to sync first: ${JSON.stringify(linuxCheck)}`);
+  assert(linuxCheck.rmProbeAfterDelete == null, `In-VM rm did not delete file from IndexedDB: ${JSON.stringify(linuxCheck.rmProbeAfterDelete)}`);
+  assert(!linuxCheck.lsAfterRm.stdout.includes('linux_rm_probe.txt'), `In-VM rm resurrected deleted file on re-sync: ${linuxCheck.lsAfterRm.stdout}`);
+  assert(linuxCheck.rtMvm.mode === 'mvm' && linuxCheck.openMvm.sessionId.startsWith('mvm-'), `MVM runtime toggle failed`);
+  assert(!linuxCheck.crossAppSwitch.stdout.includes('linux_note.txt') && !linuxCheck.crossAppSwitch.stdout.includes('app2_only_dir'), `Cross-app /workspace file or dir bleed detected: ${linuxCheck.crossAppSwitch.stdout}`);
+  assert(linuxCheck.promotedHasApp2File == null, `Cross-app IndexedDB bleed detected into promoted app: ${linuxCheck.promotedHasApp2File}`);
+
+  // 8. Check 7: Real browser-native GitHub flow (ChaCha20-Poly1305 vault, clone, diff, CAS push, conflict, pull).
+  console.error(`[verify] verifying browser-native GitHub + ChaCha20-Poly1305 vault on ${basePath}...`);
+  const ghStep1 = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      localStorage.setItem('uor.github.apiBase', ${JSON.stringify(mockGitHub.origin)});
+      const conn = await window.electron.ipcRenderer.invoke('github:connect-token', {
+        token: 'ghp_cdp_stage3_secret_token_777',
+        apiBase: ${JSON.stringify(mockGitHub.origin)},
+      });
+      const flowStates = await window.electron.ipcRenderer.invoke('connection-flow:get-states');
+      const rawIdbDump = await new Promise((resolve, reject) => {
+        const req = indexedDB.open('hologram-forge', 2);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('refs', 'readonly');
+          const g = tx.objectStore('refs').get('vault:github:credentials');
+          g.onsuccess = () => resolve(JSON.stringify(g.result || null));
+          g.onerror = () => reject(g.error);
+        };
+        req.onerror = () => reject(req.error);
+      });
+      const localDump = JSON.stringify(localStorage);
+      const cloned = await window.electron.ipcRenderer.invoke('github:clone-repo-from-url', {
+        url: 'octocat/hello-uor',
+      });
+      if (cloned.error) throw new Error('clone failed: ' + cloned.error);
+      // Verify cloning an unrelated app does NOT overwrite app #1's /workspace in Linux VM (activeAppId stays promotedAppId).
+      const linuxStAfterClone = await window.__uorR4.linuxStatus();
+      const clonedContent = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: cloned.app.id,
+        filePath: 'src/main.ts',
+      });
+      await window.electron.ipcRenderer.invoke('edit-app-file', {
+        appId: cloned.app.id,
+        filePath: 'src/main.ts',
+        content: 'export const greeting = "hello v2 from studio";\\n',
+      });
+      const diffRes = await window.electron.ipcRenderer.invoke('github:diff', { appId: cloned.app.id });
+      const pushRes = await window.electron.ipcRenderer.invoke('github:push', {
+        appId: cloned.app.id,
+        message: 'CDP push from Studio',
+      });
+      return { conn, flowStates, rawIdbDump, localDump, clonedAppId: cloned.app.id, clonedContent, diffRes, pushRes, linuxStAfterClone };
+    `,
+    60000,
+    `githubStep1 on ${basePath}`,
+  );
+  assert(ghStep1.linuxStAfterClone.mountedAppId === promoted.appId, `Clone hijacked Linux VM mount: ${JSON.stringify(ghStep1.linuxStAfterClone)}`);
+  assert(ghStep1.conn.connected && ghStep1.conn.login === 'octocat', `GitHub connect failed: ${JSON.stringify(ghStep1.conn)}`);
+  assert(
+    ghStep1.flowStates?.github?.status === 'connected' &&
+      ghStep1.flowStates?.github?.provider === 'github' &&
+      ghStep1.flowStates?.github?.invocationRef?.kind === 'connection-flow' &&
+      ghStep1.flowStates?.github?.invocationRef?.entityKey === 'github' &&
+      Boolean(ghStep1.flowStates?.github?.invocationRef?.operationId),
+    `Invalid connected connection-flow state: ${JSON.stringify(ghStep1.flowStates)}`,
+  );
+  assert(!ghStep1.rawIdbDump.includes('ghp_cdp_stage3_secret_token_777'), 'Plaintext PAT leaked into raw IndexedDB!');
+  assert(!ghStep1.localDump.includes('ghp_cdp_stage3_secret_token_777'), 'Plaintext PAT leaked into localStorage!');
+  assert(ghStep1.clonedContent === 'export const greeting = "hello v1";\n', `Clone content mismatch: ${ghStep1.clonedContent}`);
+  assert(ghStep1.diffRes.modified.includes('src/main.ts'), `GitHub diff missed edit: ${JSON.stringify(ghStep1.diffRes)}`);
+  assert(ghStep1.pushRes.ok && ghStep1.pushRes.filesPushed === 1, `GitHub push failed: ${JSON.stringify(ghStep1.pushRes)}`);
+  assert(mockGitHub.getLastPatchForce() === false, `CAS push must set force: false, got ${mockGitHub.getLastPatchForce()}`);
+
+  mockGitHub.advanceRemote('octocat', 'hello-uor', 'main', 'REMOTE.md', 'from-remote-head\n');
+  const ghStep2 = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const stalePush = await window.electron.ipcRenderer.invoke('github:push', {
+        appId: ${ghStep1.clonedAppId},
+        message: 'Should refuse stale push',
+      });
+      const pullRes = await window.electron.ipcRenderer.invoke('github:pull', {
+        appId: ${ghStep1.clonedAppId},
+      });
+      const remoteFile = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${ghStep1.clonedAppId},
+        filePath: 'REMOTE.md',
+      });
+      return { stalePush, pullRes, remoteFile };
+    `,
+    60000,
+    `githubStep2 on ${basePath}`,
+  );
+  assert(!ghStep2.stalePush.ok && ghStep2.stalePush.conflict, `Stale push did not conflict-refuse: ${JSON.stringify(ghStep2.stalePush)}`);
+  assert(ghStep2.pullRes.ok && ghStep2.remoteFile === 'from-remote-head\n', `GitHub pull failed: ${JSON.stringify(ghStep2)}`);
+
+  mockGitHub.deleteRemote('octocat', 'hello-uor', 'main', 'REMOTE.md');
+  const ghStep3 = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const pullDelRes = await window.electron.ipcRenderer.invoke('github:pull', {
+        appId: ${ghStep1.clonedAppId},
+      });
+      const deletedRemoteFile = await window.electron.ipcRenderer.invoke('read-app-file', {
+        appId: ${ghStep1.clonedAppId},
+        filePath: 'REMOTE.md',
+      }).catch(() => null);
+      await window.electron.ipcRenderer.invoke('github:disconnect');
+      localStorage.removeItem('uor.github.apiBase');
+      return { pullDelRes, deletedRemoteFile };
+    `,
+    60000,
+    `githubStep3 on ${basePath}`,
+  );
+  assert(ghStep3.pullDelRes.ok && ghStep3.pullDelRes.deletedCount === 1, `GitHub pull deletion failed: ${JSON.stringify(ghStep3)}`);
+  assert(ghStep3.deletedRemoteFile == null, `GitHub pull did not delete REMOTE.md: ${JSON.stringify(ghStep3)}`);
+
+  // 9. Check 8: Stitch networking + afflom/me app.json & ?embed=me postMessage bridge.
+  console.error(`[verify] verifying Stitch + afflom/me ?embed=me bridge on ${basePath}...`);
+  const stitchCheck = await evalAsync(
+    cdp,
+    sessionId,
+    `
+      const appJsonResp = await fetch(new URL('app.json', location.href));
+      const appJson = await appJsonResp.json();
+      const stBefore = await window.__uorR4.stitchStatus();
+      const stConn = await window.__uorR4.stitchConnect({ channelKey: 'uor-cdp-room' });
+      const stDisc = await window.__uorR4.stitchDisconnect();
+
+      // Test ?embed=me postMessage bridge in a same-origin hidden iframe.
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:320px;height:240px;';
+      const bridgeResult = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('?embed=me bridge timeout')), 20000);
+        const onMsg = (ev) => {
+          if (ev.origin !== location.origin || ev.data?.protocol !== 'uor-workspace-bridge/1') return;
+          if (ev.data.event === 'ready') {
+            iframe.contentWindow.postMessage({ protocol: 'uor-workspace-bridge/1', id: 'p1', action: 'ping' }, location.origin);
+          } else if (ev.data.id === 'p1') {
+            iframe.contentWindow.postMessage({ protocol: 'uor-workspace-bridge/1', id: 's1', action: 'get-status' }, location.origin);
+          } else if (ev.data.id === 's1') {
+            clearTimeout(timer);
+            window.removeEventListener('message', onMsg);
+            resolve({ ping: true, statusRes: ev.data });
+          }
+        };
+        window.addEventListener('message', onMsg);
+        const u = new URL(location.href);
+        u.hash = '';
+        u.search = '?embed=me';
+        iframe.src = u.href;
+        document.body.appendChild(iframe);
+      });
+      iframe.remove();
+      return { appJsonOk: appJsonResp.ok, appJson, stBefore, stConn, stDisc, bridgeResult };
+    `,
+    60000,
+    `stitchAndMeCheck on ${basePath}`,
+  );
+  assert(stitchCheck.appJsonOk && stitchCheck.appJson.embed?.protocol === 'uor-workspace-bridge/1', `Invalid app.json: ${JSON.stringify(stitchCheck.appJson)}`);
+  assert(stitchCheck.stBefore.peerId?.startsWith('key-') && stitchCheck.stBefore.connected === false, `Stitch status unexpected: ${JSON.stringify(stitchCheck.stBefore)}`);
+  assert(stitchCheck.stConn.connected === true && stitchCheck.stDisc.connected === false, `Stitch connect/disconnect failed`);
+  assert(stitchCheck.bridgeResult.statusRes.ok && stitchCheck.bridgeResult.statusRes.result?.stitch?.peerId, `Bridge status failed: ${JSON.stringify(stitchCheck.bridgeResult)}`);
+
   await cdp.send('Target.closeTarget', { targetId: target.targetId });
   return {
     basePath,
@@ -733,20 +1113,26 @@ async function verifyOriginPath(cdp, origin, basePath, packOrigin) {
     promotedAppId: promoted.appId,
     builtFromHomeAppId: builtFromHome.appId,
     persistedAfterReload: true,
+    linuxUname: linuxCheck.res.stdout.split('\n')[0],
+    githubPushSha: ghStep1.pushRes.commitSha,
+    stitchPeerId: stitchCheck.stBefore.peerId,
+    embedMeBridgeOk: Boolean(stitchCheck.bridgeResult.statusRes.ok),
   };
 }
 
 async function runIsolatedOriginPath(origin, basePath, packOrigin) {
   const profileDir = await mkdtemp(join(tmpdir(), 'uor-foundry-cdp-'));
+  const mockGitHub = await startMockGitHubServer();
   let chrome = null;
   let cdp = null;
   try {
     chrome = await launchChrome(profileDir);
     cdp = await cdpConnect(chrome.wsUrl);
-    return await verifyOriginPath(cdp, origin, basePath, packOrigin);
+    return await verifyOriginPath(cdp, origin, basePath, packOrigin, mockGitHub);
   } finally {
     try { cdp?.ws?.close(); } catch {}
     try { chrome?.child?.kill('SIGKILL'); } catch {}
+    try { mockGitHub?.server?.close(); } catch {}
     await rm(profileDir, { recursive: true, force: true }).catch(() => {});
   }
 }
@@ -759,8 +1145,8 @@ async function main() {
   const { server, origin } = await startStaticServer(distDir, { subpathPrefix: '/uor-r4/studio' });
   const packSrv = packDir ? await startStaticServer(packDir, { cors: true }) : null;
   try {
-    const rootReport = await withTimeout(runIsolatedOriginPath(origin, '/', packSrv?.origin || null), 240000, 'origin /');
-    const subpathReport = await withTimeout(runIsolatedOriginPath(origin, '/uor-r4/studio/', packSrv?.origin || null), 240000, 'origin /uor-r4/studio/');
+    const rootReport = await withTimeout(runIsolatedOriginPath(origin, '/', packSrv?.origin || null), 360000, 'origin /');
+    const subpathReport = await withTimeout(runIsolatedOriginPath(origin, '/uor-r4/studio/', packSrv?.origin || null), 360000, 'origin /uor-r4/studio/');
     console.log(
       JSON.stringify({
         verdict: 'ALL FOUNDRY STUDIO CDP CHECKS PASSED',

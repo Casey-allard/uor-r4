@@ -145,6 +145,20 @@ export const commandRegistryData = {
       "quality": "Independent journey and release obligations apply; this inventory grants no effects."
     },
     {
+      "id": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "effects": [
+        "storage",
+        "network"
+      ],
+      "targets": [
+        "browser"
+      ],
+      "assurance": "boundary-inventory",
+      "quality": "Browser-native GitHub REST v3 and Git Data API sync with core.wasm ChaCha20-Poly1305 encrypted credential vault."
+    },
+    {
       "id": "home-chat",
       "version": 1,
       "owner": "FoundrySpecification.currentMainIntegrationBoundary",
@@ -348,6 +362,19 @@ export const commandRegistryData = {
       ],
       "assurance": "boundary-inventory",
       "quality": "Independent finite relevance and latency qualification; no permission authority."
+    },
+    {
+      "id": "stitch-network",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "effects": [
+        "network"
+      ],
+      "targets": [
+        "browser"
+      ],
+      "assurance": "boundary-inventory",
+      "quality": "Opt-in Ed25519 stitch.signal/1 WebRTC peer mesh, stitch:// resource fetch, and afflom/me bridge."
     },
     {
       "id": "theme-library",
@@ -1973,21 +2000,61 @@ export const commandRegistryData = {
     },
     {
       "channel": "github:clone-repo-from-url",
-      "feature": "unavailable",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
     },
     {
-      "channel": "github:get-repo-branches",
-      "feature": "unavailable",
+      "channel": "github:connect-token",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:create-repo",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:diff",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:disconnect",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:get-repo-branches",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
     },
@@ -2003,21 +2070,31 @@ export const commandRegistryData = {
     },
     {
       "channel": "github:is-repo-available",
-      "feature": "unavailable",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
     },
     {
-      "channel": "github:list-collaborators",
-      "feature": "unavailable",
+      "channel": "github:link-repo",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:list-collaborators",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
     },
@@ -2033,23 +2110,43 @@ export const commandRegistryData = {
     },
     {
       "channel": "github:list-remote-branches",
-      "feature": "unavailable",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
     },
     {
       "channel": "github:list-repos",
-      "feature": "unavailable",
+      "feature": "github-sync",
       "version": 1,
-      "owner": "FoundrySpecification.capabilityAvailabilityBoundary",
-      "adapter": "studio/shell/host-boundary.mjs",
-      "availability": "unavailable",
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
+    },
+    {
+      "channel": "github:pull",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:push",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
     },
     {
       "channel": "github:remove-collaborator",
@@ -2060,6 +2157,26 @@ export const commandRegistryData = {
       "availability": "unavailable",
       "input": "imported-renderer",
       "output": "imported-renderer"
+    },
+    {
+      "channel": "github:status",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "github:unlink-repo",
+      "feature": "github-sync",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
     },
     {
       "channel": "help:chat:cancel",
@@ -2210,6 +2327,26 @@ export const commandRegistryData = {
       "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
+    },
+    {
+      "channel": "linux:status",
+      "feature": "mvm-terminal",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "linux:sync-workspace",
+      "feature": "mvm-terminal",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
     },
     {
       "channel": "list-all-media",
@@ -3182,6 +3319,36 @@ export const commandRegistryData = {
       "output": "product-boundary"
     },
     {
+      "channel": "stitch:connect",
+      "feature": "stitch-network",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "stitch:disconnect",
+      "feature": "stitch-network",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
+      "channel": "stitch:status",
+      "feature": "stitch-network",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
       "channel": "stop-app",
       "feature": "unavailable",
       "version": 1,
@@ -3342,6 +3509,16 @@ export const commandRegistryData = {
       "output": "imported-renderer"
     },
     {
+      "channel": "terminal:get-runtime",
+      "feature": "mvm-terminal",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
+    },
+    {
       "channel": "terminal:kill",
       "feature": "mvm-terminal",
       "version": 1,
@@ -3380,6 +3557,16 @@ export const commandRegistryData = {
       "availability": "adapter",
       "input": "imported-renderer",
       "output": "imported-renderer"
+    },
+    {
+      "channel": "terminal:set-runtime",
+      "feature": "mvm-terminal",
+      "version": 1,
+      "owner": "FoundrySpecification.currentMainIntegrationBoundary",
+      "adapter": "studio/shell/host.js",
+      "availability": "adapter",
+      "input": "product-boundary",
+      "output": "product-boundary"
     },
     {
       "channel": "terminal:write",

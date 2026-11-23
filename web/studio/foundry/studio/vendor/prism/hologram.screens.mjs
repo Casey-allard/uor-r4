@@ -814,6 +814,141 @@ import { ImportAppDialog } from "@/components/ImportAppDialog";`,
     from: `    setHelpDialog({ open: true, uploadChatId: activeChatId });`,
     to: `    setHelpDialog({ open: true });`,
   },
+  // Linux 6.18.7 (v86 + host9p) primary runtime with RV64IMAC MVM toggle in TerminalEscapeBanner & TerminalPanel.
+  {
+    file: "src/components/chat/TerminalEscapeBanner.tsx",
+    from: `interface TerminalEscapeBannerProps {
+  appName: string;
+  cwd?: string;
+  onExit: () => void;
+}
+
+export function TerminalEscapeBanner({
+  cwd,
+  onExit,
+}: TerminalEscapeBannerProps) {`,
+    to: `interface TerminalEscapeBannerProps {
+  appName: string;
+  cwd?: string;
+  onExit: () => void;
+  runtime?: "linux" | "mvm";
+  onSwitchRuntime?: (mode: "linux" | "mvm") => void;
+}
+
+export function TerminalEscapeBanner({
+  cwd,
+  onExit,
+  runtime = "linux",
+  onSwitchRuntime,
+}: TerminalEscapeBannerProps) {`,
+  },
+  {
+    file: "src/components/chat/TerminalEscapeBanner.tsx",
+    from: `      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+        {cwd ?? ""}
+      </span>
+      <button
+        type="button"
+        onClick={onExit}
+        data-testid="terminal-banner-toggle-button"`,
+    to: `      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+        {cwd ?? ""}
+      </span>
+      {onSwitchRuntime && (
+        <div
+          role="group"
+          aria-label="Terminal runtime"
+          className="flex shrink-0 items-center rounded-md border border-border/70 bg-background/70 p-0.5 text-[11px]"
+        >
+          <button
+            type="button"
+            data-testid="terminal-runtime-linux"
+            onClick={() => onSwitchRuntime("linux")}
+            className={cn(
+              "rounded px-2 py-0.5 font-medium transition-colors",
+              runtime === "linux"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Linux 6.18.7
+          </button>
+          <button
+            type="button"
+            data-testid="terminal-runtime-mvm"
+            onClick={() => onSwitchRuntime("mvm")}
+            className={cn(
+              "rounded px-2 py-0.5 font-medium transition-colors",
+              runtime === "mvm"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            RV64IMAC MVM
+          </button>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onExit}
+        data-testid="terminal-banner-toggle-button"`,
+  },
+  {
+    file: "src/components/chat/TerminalPanel.tsx",
+    from: `  const { session, status, error, exit, write, resize, restart, kill } =
+    useTerminalSession({
+      appId,
+      enabled: appId !== null,
+      cols: terminalSize.cols,
+      rows: terminalSize.rows,
+      onData: handleTerminalData,
+    });`,
+    to: `  const [runtimeMode, setRuntimeMode] = useState<"linux" | "mvm">("linux");
+
+  useEffect(() => {
+    const renderer = (window as any).electron?.ipcRenderer;
+    renderer
+      ?.invoke?.("terminal:get-runtime")
+      ?.then?.((res: { mode?: string } | undefined) => {
+        if (res?.mode === "mvm" || res?.mode === "linux") {
+          setRuntimeMode(res.mode);
+        }
+      })
+      ?.catch?.(() => {});
+  }, []);
+
+  const { session, status, error, exit, write, resize, restart, kill } =
+    useTerminalSession({
+      appId,
+      enabled: appId !== null,
+      cols: terminalSize.cols,
+      rows: terminalSize.rows,
+      onData: handleTerminalData,
+    });
+
+  const handleSwitchRuntime = useCallback(
+    async (nextMode: "linux" | "mvm") => {
+      if (nextMode === runtimeMode) return;
+      const renderer = (window as any).electron?.ipcRenderer;
+      await renderer?.invoke?.("terminal:set-runtime", { mode: nextMode, appId });
+      setRuntimeMode(nextMode);
+      terminalRef.current?.clear();
+      restart();
+    },
+    [appId, restart, runtimeMode],
+  );`,
+  },
+  {
+    file: "src/components/chat/TerminalPanel.tsx",
+    from: `      <TerminalEscapeBanner appName={appLabel} cwd={cwd} onExit={onExit} />`,
+    to: `      <TerminalEscapeBanner
+        appName={appLabel}
+        cwd={cwd}
+        onExit={onExit}
+        runtime={runtimeMode}
+        onSwitchRuntime={handleSwitchRuntime}
+      />`,
+  },
 ];
 
 // The screens' patches, then the ones that keep the first load lean (hologram.lean.mjs).

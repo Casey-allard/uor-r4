@@ -14,7 +14,7 @@ checkFeaturedAppTypes();
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Files the shell's build replaces with ours (vite.shell.config.mts resolveId): their errors do not ship.
-const REPLACED = new Set(["src/components/ChatModeSelector.tsx", "src/components/ModelPicker.tsx", "src/components/GitHubIntegration.tsx", "src/components/ImportAppDialog.tsx",
+const REPLACED = new Set(["src/components/ChatModeSelector.tsx", "src/components/ModelPicker.tsx", "src/components/GitHubIntegration.tsx", "src/components/GitHubConnector.tsx", "src/components/ImportAppDialog.tsx",
   "src/components/preview_panel/DeploymentSection.tsx", "src/components/VercelIntegration.tsx", "src/components/SupabaseIntegration.tsx", "src/components/NeonIntegration.tsx",
   "src/components/SupabaseConnector.tsx", "src/components/NeonConnector.tsx", "src/components/preview_panel/NeonConfigure.tsx"]);
 const slash = (p) => p.replace(/\\/g, "/");

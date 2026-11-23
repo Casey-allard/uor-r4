@@ -1,6 +1,10 @@
 import {chatModelRoute,LOCAL_MODEL,UOR_R4_PROVIDER,UOR_R4_DEFAULT_MODEL} from './chat-model-route.mjs';
 import * as uorR4 from './uor-r4-runtime.mjs';
 import {createMvmHost} from './mvm-host.mjs';
+import {createLinuxVmHost} from './linux-vm-host.mjs';
+import {createStitchNetwork} from './stitch-network.mjs';
+import {createGitHubVault} from './github-vault.mjs';
+import {createGitHubClient} from './github-client.mjs';
 import {runUorR4AgentTurn} from './r4-agent-loop.mjs';
 import {createThemeLibrary} from "./theme-library.mjs";
 import {themesData} from "./builtin-themes.mjs";
@@ -1019,7 +1023,11 @@ handlers.set("distributed-machine:dispatch", async (envelope) => {
   }
   return { kind: "ignored", actorInstanceId: "web-app_run-" + appId, revision: machineOf(appId).revision, messageId, reason: "unknown intent " + type };
 });
-handlers.set("connection-flow:get-states", () => ({ github: { status: "disconnected", revision: 0 }, supabase: { status: "disconnected", revision: 0 }, neon: { status: "disconnected", revision: 0 } }));
+handlers.set("connection-flow:get-states", async () => ({
+  github: await githubClient.getFlowState(),
+  supabase: { status: "disconnected", revision: 0 },
+  neon: { status: "disconnected", revision: 0 },
+}));
 handlers.set("window-infrastructure:attach-interest", input => windowCoordination.attach(input));
 handlers.set("window-infrastructure:detach-interest", input => windowCoordination.detach(input));
 const previewEpoch=crypto.randomUUID();
@@ -1058,7 +1066,12 @@ handlers.set("get-proposal", () => null);
 handlers.set("select-app-for-preview", () => undefined);
 handlers.set("git:get-uncommitted-files", async input => readWorkingTree(await dbReady,input,await versionHistoryBoundary()));
 handlers.set("git:get-uncommitted-file-diff", async input => readWorkingTree(await dbReady,input,await versionHistoryBoundary()));
-handlers.set("github:list-local-branches", () => ({ branches: ["main"], current: "main" }));
+handlers.set("github:list-local-branches", async (appId) => {
+  const id = typeof appId === "object" ? appId?.appId : appId;
+  const app = id ? await get("apps", id) : null;
+  const current = app?.githubBranch || "main";
+  return { branches: [current], current };
+});
 handlers.set("reload-env-path", () => undefined);
 handlers.set("get-cloud-sandbox-status", () => null);
 // The chat's context: which of the project's files a turn carries. the renderer keeps the globs on the app
@@ -1191,8 +1204,8 @@ function createFoundryTools({ appId = null, chatMode = "build", signal, onCommit
     linux_exec: async ({ command, cwd } = {}) => {
       const cmd = String(command ?? "").trim();
       if (!cmd) return { ok: false, error: "command is required" };
-      const res = await mvmHost.execCommand(appId ?? null, cmd, { echoToSession: Boolean(appId), cwd });
-      return { ok: res.exit_code === 0, runtime: "rv64imac-mvm", ...res };
+      const res = await linuxVmHost.execCommand(appId ?? null, cmd, { echoToSession: Boolean(appId), cwd });
+      return { ok: res.exit_code === 0, runtime: "linux-6.18.7-v86", kernel: "6.18.7", ...res };
     },
     mvm_exec: async ({ command } = {}) => {
       const cmd = String(command ?? "").trim();
@@ -1200,11 +1213,28 @@ function createFoundryTools({ appId = null, chatMode = "build", signal, onCommit
       const res = await mvmHost.execCommand(appId ?? null, cmd, { echoToSession: Boolean(appId) });
       return { ok: res.exit_code === 0, ...res };
     },
-    github_status: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
-    github_list_repos: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
-    github_clone: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
-    github_pull: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
-    github_push: async () => ({ ok: false, connected: false, error: "GitHub is not connected yet. Connect a GitHub token in Settings." }),
+    github_status: async () => ({ ok: true, ...(await githubClient.getStatus()) }),
+    github_list_repos: async ({ per_page } = {}) => {
+      const repos = await githubClient.listRepos({ perPage: per_page || 30 });
+      return { ok: true, count: repos.length, repos };
+    },
+    github_clone: async ({ url, owner, repo, repository, branch, app_name, appName } = {}) => {
+      return githubClient.cloneRepoFromUrl({
+        url,
+        owner,
+        repo: repo ?? repository,
+        branch,
+        appName: app_name ?? appName,
+      });
+    },
+    github_pull: async ({ branch } = {}) => {
+      if (!appId) return { ok: false, error: "Open a Studio app before pulling from GitHub." };
+      return githubClient.pull({ appId, branch });
+    },
+    github_push: async ({ message, branch } = {}) => {
+      if (!appId) return { ok: false, error: "Open a Studio app before pushing to GitHub." };
+      return githubClient.push({ appId, message, branch });
+    },
     prismpm_verify: async ({ target, action } = {}) => {
       await coreReady;
       if (!appId) return { ok: true, target: target || "registry", view: core.run({ op: "view" }) };
@@ -1248,7 +1278,7 @@ function createFoundryTools({ appId = null, chatMode = "build", signal, onCommit
       const target = String(url ?? "").trim();
       if (!target) return { ok: false, error: "url is required" };
       if (target.startsWith("stitch://")) {
-        return { ok: false, error: "stitch:// peer transport initializes with Stitch signaling in Stage 3." };
+        return stitchNetwork.fetchPeer(target, { method: method || "GET" });
       }
       const safeMethod = String(method || "GET").trim().toUpperCase();
       if (!["GET", "HEAD"].includes(safeMethod)) {
@@ -1330,7 +1360,7 @@ function createFoundryTools({ appId = null, chatMode = "build", signal, onCommit
       peer_id: peer_id || null,
       v13_status: uorR4.getStatus(),
       xor_2_of_3_ready: true,
-      webrtc_peers: [],
+      stitch: await stitchNetwork.getStatus(),
     }),
   };
 }
@@ -2426,14 +2456,192 @@ const mvmHost = createMvmHost({
   emit,
   getAppName: async (appId) => (appId != null ? (await get("apps", appId))?.name : null),
 });
-handlers.set("terminal:open", (input) => mvmHost.openSession(input));
-handlers.set("terminal:close", (input) => mvmHost.closeSession(input));
-handlers.set("terminal:kill", (input) => mvmHost.killSession(input));
-handlers.set("terminal:write", (input) => mvmHost.writeInput(input));
-handlers.set("terminal:resize", (input) => mvmHost.resizeSession(input));
-handlers.set("terminal:serialize", (input) => mvmHost.serializeSession(input));
+
+let linuxVmHost = null;
+let stitchNetwork = null;
+let syncFromLinuxActive = false;
+
+const githubVault = createGitHubVault({
+  coreReady: coreReady.then(() => core),
+  prismFrame: inference.prismFrame,
+  getRef: (k) => get("refs", k),
+  putRef: (k, v) => put("refs", k, v),
+  deleteRef: (k) => del("refs", k),
+});
+
+const githubClient = createGitHubClient({
+  vault: githubVault,
+  getApp: (appId) => get("apps", appId),
+  listApps: () => all("apps"),
+  putApp: (appId, app) => put("apps", appId, app),
+  listAppFiles: (appId) => filesOf(appId),
+  readAppFile: (appId, rel) => get("files", `${appId}:${rel}`),
+  getRef: (k) => get("refs", k),
+  putRef: (k, v) => put("refs", k, v),
+  deleteRef: (k) => del("refs", k),
+  createClonedProject: async ({ name, files, appDefaults }) => {
+    await coreReady;
+    const prepared = await prepareNewProject({ name, initialChatMode: "build", files }, { core, derive: kappa });
+    const created = await createStoredProject(await dbReady, prepared, { ...nulls, ...appDefaults }, themesData);
+    void windowCoordination.invalidate([{ family: "apps" }]).catch(() => {});
+    return created;
+  },
+  applyWorkspacePatch: async (appId, patch) => {
+    await applyPrismTags(appId, patch, {});
+    void windowCoordination.invalidate([{ family: "apps" }, { family: "versions", appId }]).catch(() => {});
+  },
+  onWorkspaceSynced: async (appId) => {
+    const st = linuxVmHost?.getStatus?.();
+    if (st && st.state === "online" && st.activeAppId === appId) {
+      await linuxVmHost.syncWorkspaceToVm(appId).catch(() => {});
+    }
+  },
+  emit,
+});
+
+stitchNetwork = createStitchNetwork({
+  emit,
+  resolveLocalResource: async (resourcePath) => {
+    const clean = String(resourcePath || "").replace(/^\/+/, "").split("?")[0];
+    if (!clean || clean === "app.json" || clean === "standards-index.json" || clean === "models.json") {
+      const url = new URL(clean || "app.json", BASE);
+      const r = await fetch(url, { credentials: "omit", redirect: "error" });
+      if (!r.ok) return { ok: false, status: r.status, error: `HTTP ${r.status}` };
+      return { ok: true, status: 200, body_preview: (await r.text()).slice(0, 8192) };
+    }
+    const statusMatch = clean.match(/^apps\/(\d+)\/(.+)$/);
+    if (statusMatch) {
+      const content = await get("files", `${Number(statusMatch[1])}:${statusMatch[2]}`);
+      if (typeof content === "string") {
+        return { ok: true, status: 200, body_preview: content.slice(0, 8192) };
+      }
+    }
+    return { ok: false, status: 404, error: `Unknown local resource: ${clean}` };
+  },
+  onEthFrame: (frame) => linuxVmHost?.injectEthFrame?.(frame),
+});
+
+linuxVmHost = createLinuxVmHost({
+  emit,
+  getAppName: async (appId) => (appId != null ? (await get("apps", appId))?.name : null),
+  listAppFiles: (appId) => filesOf(appId),
+  readAppFile: (appId, rel) => get("files", `${appId}:${rel}`),
+  applyWorkspaceChanges: async (appId, patch) => {
+    syncFromLinuxActive = true;
+    try {
+      await applyPrismTags(appId, patch, {});
+      void windowCoordination.invalidate([{ family: "apps" }, { family: "versions", appId }]).catch(() => {});
+    } finally {
+      syncFromLinuxActive = false;
+    }
+  },
+  getEthBridge: () => stitchNetwork,
+});
+
+function getTerminalRuntime() {
+  try {
+    return localStorage.getItem("uor.terminal.runtime") === "mvm" ? "mvm" : "linux";
+  } catch {
+    return "linux";
+  }
+}
+
+function setTerminalRuntime(mode) {
+  const next = mode === "mvm" ? "mvm" : "linux";
+  try {
+    localStorage.setItem("uor.terminal.runtime", next);
+  } catch {}
+  emit("terminal:runtime-changed", { mode: next });
+  return { ok: true, mode: next };
+}
+
+function terminalHostForSession(sessionId) {
+  return String(sessionId || "").startsWith("mvm-") ? mvmHost : linuxVmHost;
+}
+
+function activeTerminalHost() {
+  return getTerminalRuntime() === "mvm" ? mvmHost : linuxVmHost;
+}
+
+handlers.set("terminal:get-runtime", () => ({ mode: getTerminalRuntime(), linux: linuxVmHost.getStatus() }));
+handlers.set("terminal:set-runtime", ({ mode } = {}) => setTerminalRuntime(mode));
+handlers.set("terminal:open", (input) => activeTerminalHost().openSession(input));
+handlers.set("terminal:close", (input) => terminalHostForSession(input?.sessionId).closeSession(input));
+handlers.set("terminal:kill", (input) => terminalHostForSession(input?.sessionId).killSession(input));
+handlers.set("terminal:write", (input) => terminalHostForSession(input?.sessionId).writeInput(input));
+handlers.set("terminal:resize", (input) => terminalHostForSession(input?.sessionId).resizeSession(input));
+handlers.set("terminal:serialize", (input) => terminalHostForSession(input?.sessionId).serializeSession(input));
+handlers.set("linux:status", () => linuxVmHost.getStatus());
+handlers.set("linux:sync-workspace", async ({ appId, direction = "both" } = {}) => {
+  const toVm = direction === "to-vm" || direction === "both" ? await linuxVmHost.syncWorkspaceToVm(appId) : null;
+  const fromVm = direction === "from-vm" || direction === "both" ? await linuxVmHost.syncVmToWorkspace(appId) : null;
+  return { ok: true, toVm, fromVm };
+});
 handlers.set("mvm:exec", async ({ appId, command }) => mvmHost.execCommand(appId ?? null, command));
 handlers.set("mvm:identity", async ({ appId } = {}) => mvmHost.getIdentity(appId ?? null));
+handlers.set("stitch:status", () => stitchNetwork.getStatus());
+handlers.set("stitch:connect", (opts = {}) => stitchNetwork.joinChannel(opts));
+handlers.set("stitch:disconnect", () => stitchNetwork.disconnect());
+
+handlers.set("github:status", () => githubClient.getStatus());
+handlers.set("github:connect-token", (input = {}) => githubClient.connect(input));
+handlers.set("github:disconnect", () => githubClient.disconnect());
+handlers.set("github:list-repos", () => githubClient.listRepos());
+handlers.set("github:get-repo-branches", (input) => githubClient.getRepoBranches(input));
+handlers.set("github:is-repo-available", (input) => githubClient.isRepoAvailable(input));
+handlers.set("github:create-repo", (input) => githubClient.createRepo(input));
+handlers.set("github:link-repo", async (input) => {
+  const res = await githubClient.linkRepo(input);
+  void windowCoordination.invalidate([{ family: "apps" }]).catch(() => {});
+  return res;
+});
+handlers.set("github:unlink-repo", async (input) => {
+  const res = await githubClient.unlinkRepo(input);
+  void windowCoordination.invalidate([{ family: "apps" }]).catch(() => {});
+  return res;
+});
+handlers.set("github:diff", (input) => githubClient.diff(input));
+handlers.set("github:pull", (input) => githubClient.pull(input));
+handlers.set("github:push", (input) => githubClient.push(input));
+handlers.set("github:list-remote-branches", async ({ appId } = {}) => {
+  const app = appId ? await get("apps", appId) : null;
+  if (!app?.githubOrg || !app?.githubRepo) return [];
+  const branches = await githubClient.getRepoBranches({ owner: app.githubOrg, repo: app.githubRepo });
+  return branches.map((b) => b.name);
+});
+handlers.set("github:list-collaborators", async ({ appId } = {}) => {
+  try {
+    const status = await githubClient.getStatus();
+    if (!status.connected || !appId) return [];
+    const app = await get("apps", appId);
+    if (!app?.githubOrg || !app?.githubRepo) return [];
+    return [];
+  } catch {
+    return [];
+  }
+});
+handlers.set("github:clone-repo-from-url", async (input) => {
+  try {
+    const res = await githubClient.cloneRepoFromUrl(input);
+    const fullApp = await handlers.get("get-app")(res.app.id);
+    return { app: fullApp, hasAiRules: Boolean(res.hasAiRules) };
+  } catch (err) {
+    return { error: String(err?.message || err) };
+  }
+});
+
+let vmSyncTimer = null;
+inference.onWorkspaceWrite((store, key) => {
+  if (syncFromLinuxActive || store !== "files") return;
+  const parsedAppId = Number(String(key || "").split(":")[0]);
+  if (!Number.isSafeInteger(parsedAppId) || parsedAppId < 1) return;
+  const st = linuxVmHost.getStatus();
+  if (st.state !== "online" || st.activeAppId !== parsedAppId) return;
+  clearTimeout(vmSyncTimer);
+  vmSyncTimer = setTimeout(() => {
+    void linuxVmHost.syncWorkspaceToVm(parsedAppId).catch(() => {});
+  }, 250);
+});
 uorR4.onProgress((progress) => emit("uor-r4:progress", progress));
 handlers.set("standards:lookup", ({ query, limit } = {}) => lookupStandards(query, limit));
 handlers.set("uor-r4:status", () => uorR4.getCatalog({ refresh: true }));
@@ -2656,6 +2864,13 @@ window.__uorR4 = Object.freeze({
   predictDiscrete: uorR4.predictDiscrete,
   mvmExec: (cmd, appId = null) => mvmHost.execCommand(appId, cmd),
   mvmIdentity: (appId = null) => mvmHost.getIdentity(appId),
+  linuxExec: (cmd, appId = null, opts = {}) => linuxVmHost.execCommand(appId, cmd, opts),
+  linuxStatus: () => linuxVmHost.getStatus(),
+  linuxSyncWorkspace: (appId, direction = 'both') => handlers.get('linux:sync-workspace')({ appId, direction }),
+  stitchStatus: () => stitchNetwork.getStatus(),
+  stitchConnect: (opts = {}) => stitchNetwork.joinChannel(opts),
+  stitchDisconnect: () => stitchNetwork.disconnect(),
+  githubStatus: () => githubClient.getStatus(),
   submitPrompt: async (chatId, appId, prompt) => {
     const intentId = 'uor-' + crypto.randomUUID();
     const intent = await bindQueuePayload(
@@ -2679,6 +2894,87 @@ window.__uorR4 = Object.freeze({
     });
   },
 });
+
+// ---- afflom/me ?embed=me postMessage bridge (strict origin allowlist; active only when embedded)
+if (new URLSearchParams(location.search).get('embed') === 'me' && window.parent && window.parent !== window) {
+  const EMBED_PROTOCOL = 'uor-workspace-bridge/1';
+  const defaultAllowedParents = new Set(['https://afflom.github.io', 'https://uor-foundation.github.io', location.origin]);
+  const isLoopbackOrigin = (origin) => {
+    try {
+      const u = new URL(origin);
+      return u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost');
+    } catch {
+      return false;
+    }
+  };
+  const isAllowedParentOrigin = (origin) => {
+    if (!origin || origin === 'null') return false;
+    if (defaultAllowedParents.has(origin)) return true;
+    if (isLoopbackOrigin(location.origin) && isLoopbackOrigin(origin)) return true;
+    try {
+      const custom = JSON.parse(localStorage.getItem('uor.me.allowedParentOrigins') || '[]');
+      if (Array.isArray(custom) && custom.includes(origin)) return true;
+    } catch {}
+    return false;
+  };
+  window.addEventListener('message', async (event) => {
+    if (!isAllowedParentOrigin(event.origin)) return;
+    const msg = event.data;
+    if (!msg || typeof msg !== 'object' || msg.protocol !== EMBED_PROTOCOL || typeof msg.action !== 'string') return;
+    const reply = (payload) => {
+      try {
+        event.source?.postMessage?.({ protocol: EMBED_PROTOCOL, id: msg.id ?? null, ...payload }, event.origin);
+      } catch {}
+    };
+    try {
+      if (msg.action === 'ping') {
+        reply({ ok: true, result: { studio: 'uor-r4-foundry', ready: true, runtime: await handlers.get('uor-r4:status')() } });
+      } else if (msg.action === 'get-status') {
+        reply({
+          ok: true,
+          result: {
+            runtime: getTerminalRuntime(),
+            linux: linuxVmHost.getStatus(),
+            stitch: await stitchNetwork.getStatus(),
+            github: await githubClient.getStatus(),
+          },
+        });
+      } else if (msg.action === 'list-apps') {
+        const { apps } = await handlers.get('list-apps')();
+        reply({
+          ok: true,
+          result: apps.map((a) => ({ id: a.id, name: a.name, githubOrg: a.githubOrg, githubRepo: a.githubRepo, githubBranch: a.githubBranch })),
+        });
+      } else if (msg.action === 'open-app' && Number.isSafeInteger(msg.payload?.appId)) {
+        const chats = (await all('chats')).filter((c) => c.appId === msg.payload.appId);
+        const chatId = chats[0]?.id;
+        location.hash = chatId ? `#/chat?id=${chatId}&appId=${msg.payload.appId}` : `#/apps/${msg.payload.appId}`;
+        reply({ ok: true, result: { appId: msg.payload.appId, chatId: chatId || null } });
+      } else if (msg.action === 'sync-workspace') {
+        reply({ ok: true, result: await handlers.get('linux:sync-workspace')(msg.payload || {}) });
+      } else {
+        reply({ ok: false, error: `Unsupported action: ${msg.action}` });
+      }
+    } catch (err) {
+      reply({ ok: false, error: String(err?.message || err) });
+    }
+  });
+  let targetParentOrigin = null;
+  try {
+    const refOrigin = document.referrer ? new URL(document.referrer).origin : location.origin;
+    if (isAllowedParentOrigin(refOrigin)) targetParentOrigin = refOrigin;
+  } catch {}
+  if (targetParentOrigin) {
+    try {
+      window.parent.postMessage({ protocol: EMBED_PROTOCOL, event: 'ready', origin: location.origin }, targetParentOrigin);
+    } catch {}
+  }
+}
+
+window.addEventListener('pagehide', () => {
+  void linuxVmHost.destroy().catch(() => {});
+  void stitchNetwork.disconnect().catch(() => {});
+}, { once: true });
 if ("serviceWorker" in navigator) {
   // A page an older worker drew reloads once when a newer worker takes control, so no visitor keeps running
   // a build Foundry has replaced (a removed screen stays removed). The worker's script is always fetched

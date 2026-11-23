@@ -40,6 +40,9 @@ class TypedRuntimeContractTests(unittest.TestCase):
                 'pkg-mvm/uor_r4_mvm_bg.wasm',
                 'uor/js/uor_model_worker.js',
                 'uor/js/uor_tokenizer_artifact.js',
+                'app.json',
+                'v86/v86.wasm',
+                'images/buildroot-bzimage.bin',
             ]:
                 self.assertTrue((dest / req).is_file(), req)
             for forbidden in ['sw.template.js', 'warmup.json', 'node_modules', 'pkg/README.md', 'pkg/uor_r4_integer.d.ts', 'pkg/package.json']:

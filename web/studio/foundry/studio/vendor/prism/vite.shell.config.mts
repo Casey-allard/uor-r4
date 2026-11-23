@@ -29,6 +29,7 @@ const mark = path.resolve(__dirname, "../../shell/mark.svg");
 const modeSelector = path.resolve(__dirname, "hologram.ChatModeSelector.tsx");
 const picker = path.resolve(__dirname, "hologram.ModelPicker.tsx");
 const githubIntegration = path.resolve(__dirname, "hologram.GitHubIntegration.tsx");
+const githubConnector = path.resolve(__dirname, "hologram.GitHubConnector.tsx");
 const posthogStub = path.resolve(__dirname, "hologram.posthog.ts");
 const importDialog = path.resolve(__dirname, "hologram.ImportAppDialog.tsx");
 const removedIntegrations = path.resolve(__dirname, "hologram.removed-integrations.tsx");
@@ -94,8 +95,9 @@ const hologramWords: Plugin = {
     // badges, a trial banner and a Pro upsell, none of which this product has.
     if (/(^|\/)ModelPicker$/.test(id) && from.startsWith(src)) return picker;
     if (/(^|\/)ChatModeSelector$/.test(id) && from.startsWith(src)) return modeSelector;
-    // GitHub connects with a pasted token: Upstream's device flow is served to apps, not to web pages.
+    // GitHub connects with a pasted token or OAuth relay and syncs directly via Git Data API.
     if (/(^|\/)GitHubIntegration$/.test(id) && from.startsWith(src)) return githubIntegration;
+    if (/(^|\/)GitHubConnector$/.test(id) && from.startsWith(src)) return githubConnector;
     // Upstream's analytics are upstream's PostHog project: initialised on every load, they reached its servers
     // (and handed them the visitor's address) even with telemetry off. This product sends nothing there.
     if ((id === "posthog-js" || id === "posthog-js/react") && from.startsWith(src)) return posthogStub;

@@ -1,0 +1,37 @@
+{
+  "name": "UOR-R4 Foundry Studio",
+  "shortName": "Foundry Studio",
+  "tagline": "Local-first AI Studio powered by UOR-R4, Linux 6.18.7, and PrismPM.",
+  "live": "https://uor-foundation.github.io/uor-r4/studio/",
+  "icon": "./mark.svg",
+  "purpose": "Interactive browser IDE and workspace powered by pure-integer UOR-R4 V13 Qwen3-0.6B Foundry, embedded Linux 6.18.7 (v86 + host9p), RV64IMAC MVM, encrypted browser-native GitHub sync, and Stitch peer networking.",
+  "promise": {
+    "headline": "Local-first compute with ChaCha20-Poly1305 sealed workspace storage.",
+    "detail": "Inference, compilation, virtualized Linux execution, and GitHub credential encryption happen directly in the browser."
+  },
+  "runtime": {
+    "model": "uor-r4:qwen3-0.6b-foundry",
+    "vm": "linux-6.18.7-v86",
+    "mvm": "rv64imac-mvm"
+  },
+  "embed": {
+    "protocol": "uor-workspace-bridge/1",
+    "queryParam": "embed=me",
+    "allowedOrigins": [
+      "https://afflom.github.io",
+      "https://uor-foundation.github.io"
+    ]
+  },
+  "stitch": {
+    "signalProfile": "stitch.signal/1",
+    "defaultChannel": "uor-r4-studio"
+  },
+  "capabilities": [
+    "uor-r4-v13-inference",
+    "linux-6.18.7-v86",
+    "rv64imac-mvm",
+    "github-rest-sync",
+    "stitch-signal-1",
+    "prismpm-holo"
+  ]
+}

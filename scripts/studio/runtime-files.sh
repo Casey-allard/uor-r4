@@ -56,9 +56,15 @@ verify_required_files() {
     done
     if [ "$typed" = 1 ]; then
         for req in \
+            'app.json' \
             'standards-index.json' \
             'v13/uor_foundry_v13_wasm.js' \
-            'v13/uor_foundry_v13_wasm_bg.wasm'; do
+            'v13/uor_foundry_v13_wasm_bg.wasm' \
+            'v86/libv86.js' \
+            'v86/v86.wasm' \
+            'v86/seabios.bin' \
+            'v86/vgabios.bin' \
+            'images/buildroot-bzimage.bin'; do
             if [ ! -f "$root/$req" ]; then
                 printf 'Required typed Foundry V13 file is missing: %s\n' "$root/$req" >&2
                 exit 1
